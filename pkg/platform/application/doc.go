@@ -1,6 +1,9 @@
 package application
 
-import "k8s.io/client-go/kubernetes"
+import (
+	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	"k8s.io/client-go/kubernetes"
+)
 
 // Environment
 // DomainPrefix
@@ -29,8 +32,9 @@ type Storage interface {
 }
 
 type service struct {
-	storage   Storage
-	k8sClient *kubernetes.Clientset
+	storage         Storage
+	k8sDolittleRepo platform.K8sRepo
+	k8sClient       *kubernetes.Clientset
 }
 
 type HttpInput interface{}

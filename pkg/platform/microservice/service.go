@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
+	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -22,7 +23,7 @@ func NewService(k8sClient *kubernetes.Clientset) service {
 			"/Users/freshteapot/dolittle/.ssh/test-deploy",
 		),
 		simpleRepo:      NewSimpleRepo(k8sClient),
-		k8sDolittleRepo: NewK8sRepo(k8sClient),
+		k8sDolittleRepo: platform.NewK8sRepo(k8sClient),
 		k8sClient:       k8sClient,
 	}
 }

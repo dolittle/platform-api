@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/dolittle-entropy/platform-api/pkg/application"
-	"github.com/dolittle-entropy/platform-api/pkg/microservice"
-	"github.com/dolittle-entropy/platform-api/pkg/tenant"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/application"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/tenant"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/rs/cors"
@@ -48,7 +48,7 @@ var serverCMD = &cobra.Command{
 		router := mux.NewRouter()
 
 		microserviceService := microservice.NewService(clientset)
-		applicationService := application.NewService()
+		applicationService := application.NewService(clientset)
 		tenantService := tenant.NewService()
 
 		c := cors.New(cors.Options{

@@ -6,18 +6,23 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
 	"github.com/thoas/go-funk"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/client-go/kubernetes"
 )
 
-func NewService() service {
+func NewService(k8sClient *kubernetes.Clientset) service {
 	return service{
 		storage: NewGitStorage(
 			"git@github.com:freshteapot/test-deploy-key.git",
 			"/tmp/dolittle-k8s",
 			"/Users/freshteapot/dolittle/.ssh/test-deploy",
 		),
+		k8sDolittleRepo: platform.NewK8sRepo(k8sClient),
+		k8sClient:       k8sClient,
 	}
 }
 
@@ -43,7 +48,19 @@ func (s *service) SaveEnvironment(w http.ResponseWriter, r *http.Request) {
 	applicationID := vars["applicationID"]
 	fmt.Printf("Lookup %s", applicationID)
 
-	tenantID := "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3"
+	applicationInfo, err := s.k8sDolittleRepo.GetApplication(applicationID)
+	if err != nil {
+		if !k8serrors.IsNotFound(err) {
+			fmt.Println(err)
+			utils.RespondWithError(w, http.StatusInternalServerError, "Something went wrong")
+			return
+		}
+
+		utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Application %s not found", applicationID))
+		return
+	}
+
+	tenantID := applicationInfo.Tenant.ID
 
 	storageBytes, err := s.storage.Read(tenantID, applicationID)
 	if err != nil {
@@ -54,9 +71,18 @@ func (s *service) SaveEnvironment(w http.ResponseWriter, r *http.Request) {
 	var application Application
 	json.Unmarshal(storageBytes, &application)
 
-	// TODO lookup for environment
+	// TODO this is not going to work with custom domains.
+	// Simple logic to make sure the domainPrefix is not used
+	// This is not great and should be linked to actual domains
 	exists := funk.Contains(application.Environments, func(environment HttpInputEnvironment) bool {
-		return environment.Name == input.Name || environment.DomainPrefix == input.DomainPrefix
+		found := false
+		if environment.Name == input.Name {
+			found = true
+		}
+		if environment.DomainPrefix == input.DomainPrefix {
+			found = true
+		}
+		return found
 	})
 
 	if exists {

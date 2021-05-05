@@ -1,6 +1,5 @@
-package microservice
+package platform
 
-// TODO move this  to shared
 import (
 	"context"
 	"errors"
@@ -21,12 +20,12 @@ type Application struct {
 	Tenant Tenant `json:"tenant"`
 }
 
-type k8sRepo struct {
+type K8sRepo struct {
 	k8sClient *kubernetes.Clientset
 }
 
-func NewK8sRepo(k8sClient *kubernetes.Clientset) k8sRepo {
-	return k8sRepo{
+func NewK8sRepo(k8sClient *kubernetes.Clientset) K8sRepo {
+	return K8sRepo{
 		k8sClient: k8sClient,
 	}
 }
@@ -38,7 +37,7 @@ func NewK8sRepo(k8sClient *kubernetes.Clientset) k8sRepo {
 //    tenant: Flokk
 //    application: Shepherd
 
-func (r *k8sRepo) GetIngress(applicationID string) (string, error) {
+func (r *K8sRepo) GetIngress(applicationID string) (string, error) {
 	ctx := context.TODO()
 	opts := metaV1.ListOptions{
 		LabelSelector: "",
@@ -55,7 +54,7 @@ func (r *k8sRepo) GetIngress(applicationID string) (string, error) {
 	return "", errors.New("")
 }
 
-func (r *k8sRepo) GetApplication(applicationID string) (Application, error) {
+func (r *K8sRepo) GetApplication(applicationID string) (Application, error) {
 	client := r.k8sClient
 	ctx := context.TODO()
 	name := fmt.Sprintf("application-%s", applicationID)

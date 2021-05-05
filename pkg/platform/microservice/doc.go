@@ -1,6 +1,9 @@
 package microservice
 
-import "k8s.io/client-go/kubernetes"
+import (
+	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	"k8s.io/client-go/kubernetes"
+)
 
 type Storage interface {
 	Write(info HttpInputDolittle, data []byte) error
@@ -11,7 +14,7 @@ type Storage interface {
 type service struct {
 	storage         Storage
 	simpleRepo      simpleRepo
-	k8sDolittleRepo k8sRepo
+	k8sDolittleRepo platform.K8sRepo
 	k8sClient       *kubernetes.Clientset
 }
 
