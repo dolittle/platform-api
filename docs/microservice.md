@@ -9,10 +9,10 @@ curl -XPOST localhost:8080/microservice -d '
   },
   "name": "Order",
   "kind": "simple",
+  "environment": "Dev",
   "extra": {
     "headImage": "453e04a74f9d42f2b36cd51fa2c83fa3.azurecr.io/taco/order:1.0.6",
     "runtimeImage": "dolittle/runtime:5.6.0",
-    "environment": "Dev",
     "ingress": {
       "path": "/",
       "pathType": "Prefix"
@@ -20,7 +20,6 @@ curl -XPOST localhost:8080/microservice -d '
   }
 }'
 ```
-
 # Delete microservice
 ```sh
 curl -XDELETE localhost:8080/application/11b6cf47-5d9f-438f-8116-0d9828654657/microservice/9f6a613f-d969-4938-a1ac-5b7df199bc40

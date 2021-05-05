@@ -26,7 +26,7 @@ func NewService(k8sClient *kubernetes.Clientset) service {
 }
 
 func (s *service) Create(w http.ResponseWriter, r *http.Request) {
-	var input HttpInputMicroserviceKind
+	var input HttpMicroserviceBase
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		fmt.Println(err)
@@ -41,6 +41,14 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
+
+	// TODO Hardcoding to break dev environments
+	if input.Environment != "Dev" {
+		utils.RespondWithJSON(w, http.StatusBadRequest, map[string]string{
+			"error": "Currently locked down to environment Dev",
+		})
+		return
+	}
 
 	switch input.Kind {
 	case Simple:
@@ -102,6 +110,8 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 
 		utils.RespondWithJSON(w, http.StatusOK, ms)
 		return
+	case BusinessMomentsAdaptor:
+		utils.RespondWithJSON(w, http.StatusOK, "Todo")
 	default:
 		utils.RespondWithError(w, http.StatusBadRequest, "Kind not supported")
 	}

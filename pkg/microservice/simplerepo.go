@@ -30,7 +30,7 @@ func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.
 	// TODO not sure where this comes from really, assume dynamic
 	customersTenantID := "17426336-fb8e-4425-8ab7-07d488367be9"
 
-	environment := input.Extra.Environment
+	environment := input.Environment
 	host := applicationIngress.Host
 	secretName := applicationIngress.SecretName
 

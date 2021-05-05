@@ -16,7 +16,7 @@ type service struct {
 
 const (
 	Simple                 = "simple"
-	BusinessMomentsAdaptor = "buisness-moments"
+	BusinessMomentsAdaptor = "buisness-moments-adaptor"
 	Webhook                = "webhook"
 )
 
@@ -25,10 +25,11 @@ type HttpInputMicroserviceKind struct {
 }
 
 type HttpMicroserviceBase struct {
-	Dolittle HttpInputDolittle `json:"dolittle"`
-	Name     string            `json:"name"`
-	Kind     string            `json:"kind"`
-	Extra    interface{}       `json:"extra"`
+	Dolittle    HttpInputDolittle `json:"dolittle"`
+	Name        string            `json:"name"`
+	Kind        string            `json:"kind"`
+	Environment string            `json:"environment"`
+	Extra       interface{}       `json:"extra"`
 }
 type HttpInputDolittle struct {
 	ApplicationID  string `json:"applicationId"`
@@ -44,15 +45,48 @@ type HttpInputSimpleIngress struct {
 }
 
 type HttpInputSimpleInfo struct {
-	Dolittle HttpInputDolittle    `json:"dolittle"`
-	Name     string               `json:"name"`
-	Kind     string               `json:"kind"`
-	Extra    HttpInputSimpleExtra `json:"extra"`
+	Dolittle    HttpInputDolittle    `json:"dolittle"`
+	Name        string               `json:"name"`
+	Kind        string               `json:"kind"`
+	Environment string               `json:"environment"`
+	Extra       HttpInputSimpleExtra `json:"extra"`
 }
 
 type HttpInputSimpleExtra struct {
 	Headimage    string                 `json:"headImage"`
 	Runtimeimage string                 `json:"runtimeImage"`
-	Environment  string                 `json:"environment"`
 	Ingress      HttpInputSimpleIngress `json:"ingress"`
+}
+
+type HttpInputBusinessMomentAdaptorInfo struct {
+	Dolittle    HttpInputDolittle    `json:"dolittle"`
+	Name        string               `json:"name"`
+	Kind        string               `json:"kind"`
+	Environment string               `json:"environment"`
+	Extra       HttpInputSimpleExtra `json:"extra"`
+}
+
+type HttpInputBusinessMomentAdaptorExtra struct {
+	Headimage     string                 `json:"headImage"`
+	Runtimeimage  string                 `json:"runtimeImage"`
+	Ingress       HttpInputSimpleIngress `json:"ingress"`
+	Configuration interface{}            `json:"configuration"`
+}
+
+type HttpInputBusinessMomentAdaptorConfig struct {
+	Domain    string `json:"domain"`
+	UriPrefix string `json:"uriPrefix"`
+	Kind      string `json:"kind"`
+	// HttpInputBusinessMomentAdaptorConnectorWebhookConfigBasic
+	// HttpInputBusinessMomentAdaptorConnectorWebhookConfigBearer
+	Config interface{} `json:"config"`
+}
+
+type HttpInputBusinessMomentAdaptorConnectorWebhookConfigBasic struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type HttpInputBusinessMomentAdaptorConnectorWebhookConfigBearer struct {
+	Token string `json:"token"`
 }
