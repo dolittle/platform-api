@@ -30,11 +30,20 @@ curl -XDELETE localhost:8080/application/11b6cf47-5d9f-438f-8116-0d9828654657/mi
 ```sh
 curl -XPOST localhost:8080/application -d '
 {
-  "id": "TODO",
-  "name": "TODO",
-  "environment": "Dev"
+  "id": "11b6cf47-5d9f-438f-8116-0d9828654657",
+  "name": "Taco",
+  "tenantId": "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3"
 }'
 ```
+## Create application environment
+```sh
+curl -XPOST localhost:8080/application/11b6cf47-5d9f-438f-8116-0d9828654657/environment -d '
+{
+  "name": "Dev",
+  "domainPrefix": "freshteapot-taco"
+}'
+```
+
 
 ## Create tenant
 ```sh
@@ -44,3 +53,5 @@ curl -XPOST localhost:8080/tenant -d '
   "name": "TODO"
 }'
 ```
+
+

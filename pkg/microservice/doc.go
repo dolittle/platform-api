@@ -9,9 +9,10 @@ type Storage interface {
 }
 
 type service struct {
-	storage    Storage
-	simpleRepo simpleRepo
-	k8sClient  *kubernetes.Clientset
+	storage         Storage
+	simpleRepo      simpleRepo
+	k8sDolittleRepo k8sRepo
+	k8sClient       *kubernetes.Clientset
 }
 
 const (

@@ -74,6 +74,8 @@ var serverCMD = &cobra.Command{
 		router.Handle("/application", stdChain.ThenFunc(applicationService.Create)).Methods("POST", "OPTIONS")
 		router.Handle("/tenant", stdChain.ThenFunc(tenantService.Create)).Methods("POST", "OPTIONS")
 
+		router.Handle("/application/{applicationID}/environment", stdChain.ThenFunc(applicationService.SaveEnvironment)).Methods("POST", "OPTIONS")
+
 		router.Handle("/application/{applicationID}/microservices", stdChain.ThenFunc(microserviceService.GetByApplicationID)).Methods("GET", "OPTIONS")
 		router.Handle("/application/{applicationID}/microservice/{microserviceID}", stdChain.ThenFunc(microserviceService.GetByID)).Methods("GET", "OPTIONS")
 		router.Handle("/application/{applicationID}/microservice/{microserviceID}", stdChain.ThenFunc(microserviceService.Delete)).Methods("DELETE", "OPTIONS")

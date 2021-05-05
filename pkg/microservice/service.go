@@ -9,6 +9,7 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -20,8 +21,9 @@ func NewService(k8sClient *kubernetes.Clientset) service {
 			"/tmp/dolittle-k8s",
 			"/Users/freshteapot/dolittle/.ssh/test-deploy",
 		),
-		simpleRepo: NewSimpleRepo(k8sClient),
-		k8sClient:  k8sClient,
+		simpleRepo:      NewSimpleRepo(k8sClient),
+		k8sDolittleRepo: NewK8sRepo(k8sClient),
+		k8sClient:       k8sClient,
 	}
 }
 
@@ -50,6 +52,20 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	applicationInfo, err := s.k8sDolittleRepo.GetApplication(input.Dolittle.ApplicationID)
+	if err != nil {
+		if !k8serrors.IsNotFound(err) {
+			fmt.Println(err)
+			utils.RespondWithError(w, http.StatusInternalServerError, "Something went wrong")
+			return
+		}
+
+		utils.RespondWithJSON(w, http.StatusNotFound, map[string]string{
+			"error": fmt.Sprintf("Application %s not found", input.Dolittle.ApplicationID),
+		})
+		return
+	}
+
 	switch input.Kind {
 	case Simple:
 		var ms HttpInputSimpleInfo
@@ -60,20 +76,20 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// From the system
 		tenant := k8s.Tenant{
-			ID:   "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3",
-			Name: "Customer-Chris",
+			ID:   applicationInfo.Tenant.ID,
+			Name: applicationInfo.Tenant.Name,
 		}
 
 		application := k8s.Application{
-			ID:   "11b6cf47-5d9f-438f-8116-0d9828654657",
-			Name: "Taco",
+			ID:   applicationInfo.ID,
+			Name: applicationInfo.Name,
 		}
 
+		domainPrefix := "freshteapot-taco"
 		ingress := k8s.Ingress{
-			Host:       "freshteapot-taco.dolittle.cloud",
-			SecretName: "freshteapot-taco-certificate",
+			Host:       fmt.Sprintf("%s.dolittle.cloud", domainPrefix),
+			SecretName: fmt.Sprintf("%s-certificate", domainPrefix),
 		}
 
 		if tenant.ID != ms.Dolittle.TenantID {

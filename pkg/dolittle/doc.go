@@ -8,6 +8,7 @@ type Tenant struct {
 	Name string `json:"name"`
 	ID   string `json:"id"`
 }
+
 type Application struct {
 	ID             string         `json:"id"`
 	Name           string         `json:"name"`
