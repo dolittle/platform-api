@@ -82,11 +82,18 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 			Name: applicationInfo.Tenant.Name,
 		}
 
+		// TODO remove when happy with things
+		if tenant.ID != "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3" {
+			utils.RespondWithError(w, http.StatusBadRequest, "Currently locked down to tenant 453e04a7-4f9d-42f2-b36c-d51fa2c83fa3")
+			return
+		}
+
 		application := k8s.Application{
 			ID:   applicationInfo.ID,
 			Name: applicationInfo.Name,
 		}
 
+		// TODO get from list in the cluster
 		domainPrefix := "freshteapot-taco"
 		ingress := k8s.Ingress{
 			Host:       fmt.Sprintf("%s.dolittle.cloud", domainPrefix),
@@ -94,9 +101,7 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if tenant.ID != ms.Dolittle.TenantID {
-			utils.RespondWithJSON(w, http.StatusInternalServerError, map[string]string{
-				"error": "Currently locked down to tenant 453e04a7-4f9d-42f2-b36c-d51fa2c83fa3",
-			})
+			utils.RespondWithError(w, http.StatusBadRequest, "tenant id in the system doe not match the one in the input")
 			return
 		}
 
@@ -181,6 +186,18 @@ func (s *service) GetByApplicationID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.RespondWithJSON(w, http.StatusOK, data)
+}
+
+func (s *service) GetLiveByApplicationID(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	applicationID := vars["applicationID"]
+	application, err := s.k8sDolittleRepo.GetApplication(applicationID)
+	if err != nil {
+		// TODO change
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	utils.RespondWithJSON(w, http.StatusOK, application)
 }
 
 func (s *service) Delete(w http.ResponseWriter, r *http.Request) {

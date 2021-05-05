@@ -14,10 +14,17 @@ type Tenant struct {
 	ID   string `json:"id"`
 }
 
+type Ingress struct {
+	Host        string `json:"host"`
+	Environment string `json:"environment"`
+	Path        string `json:"path"`
+}
+
 type Application struct {
-	Name   string `json:"name"`
-	ID     string `json:"id"`
-	Tenant Tenant `json:"tenant"`
+	Name      string    `json:"name"`
+	ID        string    `json:"id"`
+	Tenant    Tenant    `json:"tenant"`
+	Ingresses []Ingress `json:"ingresses"`
 }
 
 type K8sRepo struct {
@@ -57,8 +64,8 @@ func (r *K8sRepo) GetIngress(applicationID string) (string, error) {
 func (r *K8sRepo) GetApplication(applicationID string) (Application, error) {
 	client := r.k8sClient
 	ctx := context.TODO()
-	name := fmt.Sprintf("application-%s", applicationID)
-	ns, err := client.CoreV1().Namespaces().Get(ctx, name, metaV1.GetOptions{})
+	namespace := fmt.Sprintf("application-%s", applicationID)
+	ns, err := client.CoreV1().Namespaces().Get(ctx, namespace, metaV1.GetOptions{})
 
 	if err != nil {
 		return Application{}, err
@@ -67,12 +74,64 @@ func (r *K8sRepo) GetApplication(applicationID string) (Application, error) {
 	annotationsMap := ns.GetObjectMeta().GetAnnotations()
 	labelMap := ns.GetObjectMeta().GetLabels()
 
-	return Application{
+	application := Application{
 		Name: labelMap["application"],
 		ID:   annotationsMap["dolittle.io/application-id"],
 		Tenant: Tenant{
 			Name: labelMap["tenant"],
 			ID:   annotationsMap["dolittle.io/tenant-id"],
 		},
-	}, nil
+	}
+
+	ingresses, err := r.k8sClient.NetworkingV1().Ingresses(namespace).List(ctx, metaV1.ListOptions{})
+	if err != nil {
+		return Application{}, err
+	}
+
+	for _, ingress := range ingresses.Items {
+		// TODO I wonder if we actually want this
+		if len(ingress.Spec.TLS) > 0 {
+
+			labelMap := ingress.GetObjectMeta().GetLabels()
+
+			//for _, tls := range ingress.Spec.TLS {
+			//	for _, host := range tls.Hosts {
+			//
+			//		exists := funk.Contains(application.Ingresses, func(item Ingress) bool {
+			//			return item.Host == host
+			//		})
+			//
+			//		if exists {
+			//			continue
+			//		}
+			//
+			//		applicationIngress := Ingress{
+			//			Host:        host,
+			//			Environment: labelMap["environment"],
+			//		}
+			//		application.Ingresses = append(application.Ingresses, applicationIngress)
+			//	}
+			//}
+
+			for _, rule := range ingress.Spec.Rules {
+				// TODO this might crash
+				for _, rulePath := range rule.IngressRuleValue.HTTP.Paths {
+					// TODO could link microservice to backend via service name
+					//fmt.Println(rule.Host, rulePath.Path, *rulePath.PathType)
+
+					applicationIngress := Ingress{
+						Host:        rule.Host,
+						Environment: labelMap["environment"],
+						Path:        rulePath.Path,
+					}
+					application.Ingresses = append(application.Ingresses, applicationIngress)
+
+				}
+
+			}
+		}
+	}
+
+	// TODO get the ingress hosts currently in use
+	return application, nil
 }
