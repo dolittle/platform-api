@@ -260,3 +260,27 @@ func (s *service) GetPodStatus(w http.ResponseWriter, r *http.Request) {
 
 	utils.RespondWithJSON(w, http.StatusOK, status)
 }
+
+func (s *service) GetPodLogs(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	applicationID := vars["applicationID"]
+	podName := vars["podName"]
+	containerName := r.FormValue("containerName")
+	// TODO how to ignore?
+	if containerName == "" {
+		containerName = "head"
+	}
+
+	logData, err := s.k8sDolittleRepo.GetLogs(applicationID, containerName, podName)
+	if err != nil {
+		// TODO change
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	utils.RespondWithJSON(w, http.StatusOK, map[string]string{
+		"applicationId": applicationID,
+		"podName":       podName,
+		"logs":          logData,
+	})
+}

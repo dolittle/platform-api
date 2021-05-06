@@ -1,12 +1,15 @@
 package platform
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 
 	v1 "k8s.io/api/apps/v1"
+	coreV1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -292,10 +295,34 @@ func (r *K8sRepo) GetPodStatus(applicationID string, microserviceID string, envi
 }
 
 // TODO get logs from the pods
-func (r *K8sRepo) GetLogs(namespace string, podName string) (string, error) {
-	//client := r.k8sClient
-	//ctx := context.TODO()
-	//namespace := fmt.Sprintf("application-%s", applicationID)
-	//client.
-	return "", errors.New("TODO")
+func (r *K8sRepo) GetLogs(applicationID string, containerName string, podName string) (string, error) {
+	client := r.k8sClient
+	ctx := context.TODO()
+
+	namespace := fmt.Sprintf("application-%s", applicationID)
+
+	count := int64(100)
+	podLogOptions := coreV1.PodLogOptions{
+		Container: containerName,
+		Follow:    false,
+		TailLines: &count,
+	}
+
+	req := client.CoreV1().Pods(namespace).GetLogs(podName, &podLogOptions)
+	podLogs, err := req.Stream(ctx)
+	if err != nil {
+		fmt.Println(err)
+		return "", errors.New("error in opening stream")
+	}
+	defer podLogs.Close()
+
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, podLogs)
+	if err != nil {
+		fmt.Println(err)
+		return "", errors.New("error in copy information from podLogs to buf")
+	}
+	str := buf.String()
+
+	return str, nil
 }
