@@ -12,14 +12,14 @@ import (
 )
 
 type PodInfo struct {
-	Microservice ShortInfo `json:"microservice"`
-	Name         string    `json:"name"`
-	Phase        string    `json:"phase"`
+	Name  string `json:"name"`
+	Phase string `json:"phase"`
 }
 
 type PodData struct {
-	Namespace string    `json:"namespace"`
-	Pods      []PodInfo `json:"pods"`
+	Namespace    string    `json:"namespace"`
+	Microservice ShortInfo `json:"microservice"`
+	Pods         []PodInfo `json:"pods"`
 }
 
 type Tenant struct {
@@ -258,6 +258,10 @@ func (r *K8sRepo) GetPodStatus(applicationID string, microserviceID string, envi
 
 	response := PodData{
 		Namespace: namespace,
+		Microservice: ShortInfo{
+			Name: "",
+			ID:   microserviceID,
+		},
 	}
 
 	if err != nil {
@@ -276,15 +280,22 @@ func (r *K8sRepo) GetPodStatus(applicationID string, microserviceID string, envi
 			continue
 		}
 
+		response.Microservice.Name = labelMap["microservice"]
+
 		response.Pods = append(response.Pods, PodInfo{
-			Microservice: ShortInfo{
-				Name: labelMap["microservice"],
-				ID:   microserviceID,
-			},
 			Phase: string(pod.Status.Phase),
 			Name:  pod.Name,
 		})
 	}
 
 	return response, err
+}
+
+// TODO get logs from the pods
+func (r *K8sRepo) GetLogs(namespace string, podName string) (string, error) {
+	//client := r.k8sClient
+	//ctx := context.TODO()
+	//namespace := fmt.Sprintf("application-%s", applicationID)
+	//client.
+	return "", errors.New("TODO")
 }
