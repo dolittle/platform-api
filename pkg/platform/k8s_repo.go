@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	v1 "k8s.io/api/apps/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -25,6 +26,17 @@ type Application struct {
 	ID        string    `json:"id"`
 	Tenant    Tenant    `json:"tenant"`
 	Ingresses []Ingress `json:"ingresses"`
+}
+
+type ShortInfo struct {
+	Name string `json:"name"`
+	ID   string `json:"id"`
+}
+
+type ShortInfoWithEnvironment struct {
+	Name        string `json:"name"`
+	Environment string `json:"environment"`
+	ID          string `json:"id"`
 }
 
 type K8sRepo struct {
@@ -134,4 +146,87 @@ func (r *K8sRepo) GetApplication(applicationID string) (Application, error) {
 
 	// TODO get the ingress hosts currently in use
 	return application, nil
+}
+
+func (r *K8sRepo) GetApplicationsByTenantID(tenantID string) ([]ShortInfo, error) {
+	client := r.k8sClient
+	ctx := context.TODO()
+	items, err := client.CoreV1().Namespaces().List(ctx, metaV1.ListOptions{})
+
+	response := make([]ShortInfo, 0)
+	if err != nil {
+		return response, err
+	}
+
+	for _, item := range items.Items {
+		annotationsMap := item.GetObjectMeta().GetAnnotations()
+		labelMap := item.GetObjectMeta().GetLabels()
+
+		if annotationsMap["dolittle.io/tenant-id"] != tenantID {
+			continue
+		}
+
+		response = append(response, ShortInfo{
+			Name: labelMap["application"],
+			ID:   annotationsMap["dolittle.io/application-id"],
+		})
+	}
+
+	return response, nil
+}
+
+func (r *K8sRepo) GetMicroservices(applicationID string) ([]ShortInfoWithEnvironment, error) {
+	client := r.k8sClient
+	ctx := context.TODO()
+	namespace := fmt.Sprintf("application-%s", applicationID)
+	deployments, err := client.AppsV1().Deployments(namespace).List(ctx, metaV1.ListOptions{})
+
+	response := make([]ShortInfoWithEnvironment, 0)
+	for _, deployment := range deployments.Items {
+		annotationsMap := deployment.GetObjectMeta().GetAnnotations()
+		labelMap := deployment.GetObjectMeta().GetLabels()
+
+		_, ok := labelMap["microservice"]
+		if !ok {
+			continue
+		}
+
+		response = append(response, ShortInfoWithEnvironment{
+			Name:        labelMap["microservice"],
+			ID:          annotationsMap["dolittle.io/microservice-id"],
+			Environment: labelMap["environment"],
+		})
+
+	}
+
+	return response, err
+}
+
+func (r *K8sRepo) GetMicroserviceName(applicationID string, microserviceID string) (string, error) {
+	client := r.k8sClient
+	ctx := context.TODO()
+	namespace := fmt.Sprintf("application-%s", applicationID)
+	deployments, err := client.AppsV1().Deployments(namespace).List(ctx, metaV1.ListOptions{})
+
+	found := false
+	var foundDeployment v1.Deployment
+
+	for _, deployment := range deployments.Items {
+		_, ok := deployment.ObjectMeta.Labels["microservice"]
+		if !ok {
+			continue
+		}
+
+		if deployment.ObjectMeta.Annotations["dolittle.io/microservice-id"] == microserviceID {
+			found = true
+			foundDeployment = deployment
+			break
+		}
+	}
+
+	if !found {
+		return "", errors.New("not-found")
+	}
+
+	return foundDeployment.Name, err
 }

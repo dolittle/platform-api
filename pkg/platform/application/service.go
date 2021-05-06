@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
@@ -139,4 +140,35 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.RespondWithJSON(w, http.StatusOK, input)
+}
+
+func (s *service) GetLiveApplications(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	tenantID := vars["tenantID"]
+
+	// TODO get tenant from syncing the terraform output into the repo (which we might have access to if we use the same repo)
+	tenant := k8s.Tenant{
+		ID:   tenantID,
+		Name: "Customer-Chris",
+	}
+
+	if tenant.ID != "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3" {
+		utils.RespondWithError(w, http.StatusBadRequest, "Currently locked down to tenant 453e04a7-4f9d-42f2-b36c-d51fa2c83fa3")
+		return
+	}
+
+	applications, err := s.k8sDolittleRepo.GetApplicationsByTenantID(tenantID)
+	if err != nil {
+		// TODO change
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	response := HttpResponseApplications{
+		ID:           tenantID,
+		Name:         tenant.Name,
+		Applications: applications,
+	}
+
+	utils.RespondWithJSON(w, http.StatusOK, response)
 }

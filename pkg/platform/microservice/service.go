@@ -188,18 +188,6 @@ func (s *service) GetByApplicationID(w http.ResponseWriter, r *http.Request) {
 	utils.RespondWithJSON(w, http.StatusOK, data)
 }
 
-func (s *service) GetLiveByApplicationID(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	applicationID := vars["applicationID"]
-	application, err := s.k8sDolittleRepo.GetApplication(applicationID)
-	if err != nil {
-		// TODO change
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	utils.RespondWithJSON(w, http.StatusOK, application)
-}
-
 func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	// I feel we shouldn't need namespace
@@ -213,6 +201,34 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 		"namespace":       namespace,
 		"application_id":  applicationID,
 		"microservice_id": microserviceID,
-		"action":          "Remove microservicce",
+		"action":          "Remove microservice",
 	})
+}
+
+func (s *service) GetLiveByApplicationID(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	applicationID := vars["applicationID"]
+	application, err := s.k8sDolittleRepo.GetApplication(applicationID)
+	if err != nil {
+		// TODO change
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	microservices, err := s.k8sDolittleRepo.GetMicroservices(applicationID)
+	if err != nil {
+		// TODO change
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	response := HttpResponseMicroservices{
+		Application: platform.ShortInfo{
+			Name: application.Name,
+			ID:   application.ID,
+		},
+		Microservices: microservices,
+	}
+
+	utils.RespondWithJSON(w, http.StatusOK, response)
 }

@@ -94,3 +94,8 @@ type HttpInputBusinessMomentAdaptorConnectorWebhookConfigBasic struct {
 type HttpInputBusinessMomentAdaptorConnectorWebhookConfigBearer struct {
 	Token string `json:"token"`
 }
+
+type HttpResponseMicroservices struct {
+	Application   platform.ShortInfo                  `json:"application"`
+	Microservices []platform.ShortInfoWithEnvironment `json:"microservices"`
+}

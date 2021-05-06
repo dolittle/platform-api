@@ -75,12 +75,14 @@ var serverCMD = &cobra.Command{
 		router.Handle("/tenant", stdChain.ThenFunc(tenantService.Create)).Methods("POST", "OPTIONS")
 
 		router.Handle("/application/{applicationID}/environment", stdChain.ThenFunc(applicationService.SaveEnvironment)).Methods("POST", "OPTIONS")
-
 		router.Handle("/application/{applicationID}/microservices", stdChain.ThenFunc(microserviceService.GetByApplicationID)).Methods("GET", "OPTIONS")
-		router.Handle("/live/application/{applicationID}/microservices", stdChain.ThenFunc(microserviceService.GetLiveByApplicationID)).Methods("GET", "OPTIONS")
+
 		router.Handle("/application/{applicationID}/microservice/{microserviceID}", stdChain.ThenFunc(microserviceService.GetByID)).Methods("GET", "OPTIONS")
 		router.Handle("/application/{applicationID}/microservice/{microserviceID}", stdChain.ThenFunc(microserviceService.Delete)).Methods("DELETE", "OPTIONS")
 
+		router.Handle("/live/tenant/{tenantID}/applications", stdChain.ThenFunc(applicationService.GetLiveApplications)).Methods("GET", "OPTIONS")
+		router.Handle("/live/application/{applicationID}/microservices", stdChain.ThenFunc(microserviceService.GetLiveByApplicationID)).Methods("GET", "OPTIONS")
+		//router.Handle("/live/application/{applicationID}/microservice/{microserviceID}", stdChain.ThenFunc(microserviceService.GetLiveByID)).Methods("GET", "OPTIONS")
 		srv := &http.Server{
 			Handler: router,
 			//Addr:         "0.0.0.0:8080",
