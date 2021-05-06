@@ -311,16 +311,14 @@ func (r *K8sRepo) GetLogs(applicationID string, containerName string, podName st
 	req := client.CoreV1().Pods(namespace).GetLogs(podName, &podLogOptions)
 	podLogs, err := req.Stream(ctx)
 	if err != nil {
-		fmt.Println(err)
-		return "", errors.New("error in opening stream")
+		return err.Error(), nil
 	}
 	defer podLogs.Close()
 
 	buf := new(bytes.Buffer)
 	_, err = io.Copy(buf, podLogs)
 	if err != nil {
-		fmt.Println(err)
-		return "", errors.New("error in copy information from podLogs to buf")
+		return err.Error(), nil
 	}
 	str := buf.String()
 
