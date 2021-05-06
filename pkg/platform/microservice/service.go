@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
@@ -231,4 +232,31 @@ func (s *service) GetLiveByApplicationID(w http.ResponseWriter, r *http.Request)
 	}
 
 	utils.RespondWithJSON(w, http.StatusOK, response)
+}
+
+func (s *service) GetPodStatus(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	applicationID := vars["applicationID"]
+	microserviceID := vars["microserviceID"]
+	environment := strings.ToLower(vars["environment"])
+
+	status, err := s.k8sDolittleRepo.GetPodStatus(applicationID, microserviceID, environment)
+	if err != nil {
+		// TODO change
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	//response := HttpResponsePodStatus{
+	//	Application: platform.ShortInfo{
+	//		Name: application.Name,
+	//		ID:   application.ID,
+	//	},
+	//	Microservice: platform.ShortInfoWithEnvironment{
+	//		Name: application.Name,
+	//		ID:   application.ID,
+	//	},
+	//}
+
+	utils.RespondWithJSON(w, http.StatusOK, status)
 }

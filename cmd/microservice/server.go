@@ -77,6 +77,8 @@ var serverCMD = &cobra.Command{
 		router.Handle("/live/tenant/{tenantID}/applications", stdChain.ThenFunc(applicationService.GetLiveApplications)).Methods("GET", "OPTIONS")
 		router.Handle("/live/application/{applicationID}/microservices", stdChain.ThenFunc(microserviceService.GetLiveByApplicationID)).Methods("GET", "OPTIONS")
 		//router.Handle("/live/application/{applicationID}/microservice/{microserviceID}", stdChain.ThenFunc(microserviceService.GetLiveByID)).Methods("GET", "OPTIONS")
+		router.Handle("/live/application/{applicationID}/microservice/{microserviceID}/podstatus/{environment}", stdChain.ThenFunc(microserviceService.GetPodStatus)).Methods("GET", "OPTIONS")
+
 		srv := &http.Server{
 			Handler: router,
 			//Addr:         "0.0.0.0:8080",

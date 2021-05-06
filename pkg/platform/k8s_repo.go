@@ -4,11 +4,23 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	v1 "k8s.io/api/apps/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
+
+type PodInfo struct {
+	Microservice ShortInfo `json:"microservice"`
+	Name         string    `json:"name"`
+	Phase        string    `json:"phase"`
+}
+
+type PodData struct {
+	Namespace string    `json:"namespace"`
+	Pods      []PodInfo `json:"pods"`
+}
 
 type Tenant struct {
 	Name string `json:"name"`
@@ -182,6 +194,10 @@ func (r *K8sRepo) GetMicroservices(applicationID string) ([]ShortInfoWithEnviron
 	deployments, err := client.AppsV1().Deployments(namespace).List(ctx, metaV1.ListOptions{})
 
 	response := make([]ShortInfoWithEnvironment, 0)
+	if err != nil {
+		return response, err
+	}
+
 	for _, deployment := range deployments.Items {
 		annotationsMap := deployment.GetObjectMeta().GetAnnotations()
 		labelMap := deployment.GetObjectMeta().GetLabels()
@@ -207,6 +223,9 @@ func (r *K8sRepo) GetMicroserviceName(applicationID string, microserviceID strin
 	ctx := context.TODO()
 	namespace := fmt.Sprintf("application-%s", applicationID)
 	deployments, err := client.AppsV1().Deployments(namespace).List(ctx, metaV1.ListOptions{})
+	if err != nil {
+		return "", err
+	}
 
 	found := false
 	var foundDeployment v1.Deployment
@@ -229,4 +248,43 @@ func (r *K8sRepo) GetMicroserviceName(applicationID string, microserviceID strin
 	}
 
 	return foundDeployment.Name, err
+}
+
+func (r *K8sRepo) GetPodStatus(applicationID string, microserviceID string, environment string) (PodData, error) {
+	client := r.k8sClient
+	ctx := context.TODO()
+	namespace := fmt.Sprintf("application-%s", applicationID)
+	pods, err := client.CoreV1().Pods(namespace).List(ctx, metaV1.ListOptions{})
+
+	response := PodData{
+		Namespace: namespace,
+	}
+
+	if err != nil {
+		return response, err
+	}
+
+	for _, pod := range pods.Items {
+		annotationsMap := pod.GetObjectMeta().GetAnnotations()
+		labelMap := pod.GetObjectMeta().GetLabels()
+
+		if annotationsMap["dolittle.io/microservice-id"] != microserviceID {
+			continue
+		}
+
+		if strings.ToLower(labelMap["environment"]) != environment {
+			continue
+		}
+
+		response.Pods = append(response.Pods, PodInfo{
+			Microservice: ShortInfo{
+				Name: labelMap["microservice"],
+				ID:   microserviceID,
+			},
+			Phase: string(pod.Status.Phase),
+			Name:  pod.Name,
+		})
+	}
+
+	return response, err
 }
