@@ -40,8 +40,7 @@ type service struct {
 type HttpInput interface{}
 
 type HttpResponseApplications struct {
-	ID            string                              `json:"id"`
-	Name          string                              `json:"name"`
-	Applications  []platform.ShortInfo                `json:"applications"`
-	Microservices []platform.ShortInfoWithEnvironment `json:"microservices"`
+	ID           string               `json:"id"`
+	Name         string               `json:"name"`
+	Applications []platform.ShortInfo `json:"applications"`
 }

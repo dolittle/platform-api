@@ -27,13 +27,7 @@ var serverCMD = &cobra.Command{
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		kubeconfig := viper.GetString("tools.server.kubeConfig")
-
-		//ctx := context.TODO()
-		// use the current context in kubeconfig
-		//fmt.Println(kubeconfig)
-		//fmt.Println(viper.AllSettings())
-		//fmt.Println(cmd.Flags().GetString("kube-config"))
-		//return
+		// TODO hoist localhost into viper
 		config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 		if err != nil {
 			panic(err.Error())
