@@ -18,6 +18,7 @@ func NewIngress(microservice Microservice) *networkingv1.Ingress {
 
 	labels := GetLabels(microservice)
 	annotations := GetAnnotations(microservice)
+	// TODO might not work locally, you wont get https
 	annotations["cert-manager.io/cluster-issuer"] = "letsencrypt-production"
 	annotations["nginx.ingress.kubernetes.io/configuration-snippet"] = fmt.Sprintf("proxy_set_header Tenant-ID \"%s\";\n", microservice.ResourceID)
 
