@@ -1,7 +1,14 @@
 package microservice
 
+// configmap needs to include WH_AUTHORIZATION
+// hook into the deployment
+// Basic: XXX
+// Bearer: XXX
+// foobar
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -13,20 +20,22 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 )
 
-type simpleRepo struct {
+type businessMomentsAdaptorRepo struct {
 	k8sClient *kubernetes.Clientset
 }
 
-func NewSimpleRepo(k8sClient *kubernetes.Clientset) simpleRepo {
-	return simpleRepo{
+func NewBusinessMomentsAdaptorRepo(k8sClient *kubernetes.Clientset) businessMomentsAdaptorRepo {
+	return businessMomentsAdaptorRepo{
 		k8sClient: k8sClient,
 	}
 }
 
-func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input HttpInputSimpleInfo) error {
+func (r businessMomentsAdaptorRepo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input HttpInputBusinessMomentAdaptorInfo) error {
+
 	// TODO not sure where this comes from really, assume dynamic
 	customersTenantID := "17426336-fb8e-4425-8ab7-07d488367be9"
 
@@ -51,8 +60,8 @@ func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.
 	ingressServiceName := strings.ToLower(fmt.Sprintf("%s-%s", microservice.Environment, microservice.Name))
 	ingressRules := []k8s.SimpleIngressRule{
 		{
-			Path:            "/",
-			PathType:        networkingv1.PathType("Prefix"),
+			Path:            input.Extra.Ingress.Path,
+			PathType:        networkingv1.PathType(input.Extra.Ingress.Pathtype),
 			ServiceName:     ingressServiceName,
 			ServicePortName: "http",
 		},
@@ -68,6 +77,53 @@ func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.
 
 	ingress.Spec.TLS = k8s.AddIngressTLS([]string{host}, secretName)
 	ingress.Spec.Rules = append(ingress.Spec.Rules, k8s.AddIngressRule(host, ingressRules))
+
+	token := ""
+
+	connectorBytes, _ := json.Marshal(input.Extra.Connector)
+	var whatKind HttpInputMicroserviceKind
+	json.Unmarshal(connectorBytes, &whatKind)
+	switch whatKind.Kind {
+	case "webhook":
+		var connector HttpInputBusinessMomentAdaptorConnectorWebhook
+		json.Unmarshal(connectorBytes, &connector)
+
+		//connectorConfigBytes, _ := json.Marshal(connector.Config.Config)
+		//json.Unmarshal(connectorConfigBytes, &whatKind)
+		// Super ugly
+		switch connector.Config.Kind {
+		case "basic":
+			var connectorCredentialsConfig HttpInputBusinessMomentAdaptorConnectorWebhookConfigBasic
+			connectorCredentialsConfigBytes, _ := json.Marshal(connector.Config.Config)
+			json.Unmarshal(connectorCredentialsConfigBytes, &connectorCredentialsConfig)
+			token = fmt.Sprintf("Basic %s",
+				basicAuth(connectorCredentialsConfig.Username, connectorCredentialsConfig.Password),
+			)
+		case "bearer":
+			var connectorCredentialsConfig HttpInputBusinessMomentAdaptorConnectorWebhookConfigBearer
+			connectorCredentialsConfigBytes, _ := json.Marshal(connector.Config)
+			json.Unmarshal(connectorCredentialsConfigBytes, &connectorCredentialsConfig)
+
+			token = fmt.Sprintf("Bearer %s", connectorCredentialsConfig.Token)
+		default:
+			return errors.New("Not supported basic / bearer")
+		}
+
+	case "rest":
+		return errors.New("TODO kind: rest")
+	default:
+		return errors.New("Not supported webhook / rest")
+	}
+
+	configEnvVariables.Data = map[string]string{
+		"WH_AUTHORIZATION": token,
+	}
+
+	service.Spec.Ports[0].TargetPort = intstr.IntOrString{
+		Type:   intstr.Int,
+		IntVal: 3008,
+	}
+	deployment.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort = 3008
 
 	// Assuming the namespace exists
 	var err error
@@ -147,7 +203,7 @@ func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.
 	return nil
 }
 
-func (r simpleRepo) Delete(namespace string, microserviceID string) error {
+func (r businessMomentsAdaptorRepo) Delete(namespace string, microserviceID string) error {
 	client := r.k8sClient
 	ctx := context.TODO()
 	// Not possible to filter based on annotations
@@ -256,4 +312,9 @@ func (r simpleRepo) Delete(namespace string, microserviceID string) error {
 	}
 
 	return errors.New(fmt.Sprintf("Remove microserviceID %s", microserviceID))
+}
+
+func basicAuth(username, password string) string {
+	auth := username + ":" + password
+	return base64.StdEncoding.EncodeToString([]byte(auth))
 }

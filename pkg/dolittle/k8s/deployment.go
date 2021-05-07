@@ -48,6 +48,12 @@ func NewDeployment(microservice Microservice, headImage string, runtimeImage str
 	configEnvVariablesName = strings.ToLower(configEnvVariablesName)
 	configSecretEnvVariablesName = strings.ToLower(configSecretEnvVariablesName)
 
+	//envFrom:
+	//        - configMapRef:
+	//            name: dev-excelsior-env-variables
+	//        - secretRef:
+	//            name: dev-excelsior-secret-env-variables
+
 	deployment := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "apps/v1",

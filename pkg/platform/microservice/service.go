@@ -23,9 +23,10 @@ func NewService(k8sClient *kubernetes.Clientset) service {
 			"/tmp/dolittle-k8s",
 			"/Users/freshteapot/dolittle/.ssh/test-deploy",
 		),
-		simpleRepo:      NewSimpleRepo(k8sClient),
-		k8sDolittleRepo: platform.NewK8sRepo(k8sClient),
-		k8sClient:       k8sClient,
+		simpleRepo:                 NewSimpleRepo(k8sClient),
+		businessMomentsAdaptorRepo: NewBusinessMomentsAdaptorRepo(k8sClient),
+		k8sDolittleRepo:            platform.NewK8sRepo(k8sClient),
+		k8sClient:                  k8sClient,
 	}
 }
 
@@ -134,7 +135,8 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithJSON(w, http.StatusOK, ms)
 		return
 	case BusinessMomentsAdaptor:
-		utils.RespondWithJSON(w, http.StatusOK, "Todo")
+		s.handleBusinessMomentsAdaptor(w, r, b, applicationInfo)
+		return
 	default:
 		utils.RespondWithError(w, http.StatusBadRequest, "Kind not supported")
 	}

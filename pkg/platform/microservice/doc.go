@@ -12,10 +12,11 @@ type Storage interface {
 }
 
 type service struct {
-	storage         Storage
-	simpleRepo      simpleRepo
-	k8sDolittleRepo platform.K8sRepo
-	k8sClient       *kubernetes.Clientset
+	storage                    Storage
+	simpleRepo                 simpleRepo
+	businessMomentsAdaptorRepo businessMomentsAdaptorRepo
+	k8sDolittleRepo            platform.K8sRepo
+	k8sClient                  *kubernetes.Clientset
 }
 
 const (
@@ -42,7 +43,7 @@ type HttpInputDolittle struct {
 }
 
 type HttpInputSimpleIngress struct {
-	Host             string `json:"path"`
+	Host             string `json:"host"`
 	SecretNamePrefix string `json:"secretNamePrefix"` // Not happy with this part
 	Path             string `json:"path"`
 	Pathtype         string `json:"pathType"`
@@ -63,26 +64,27 @@ type HttpInputSimpleExtra struct {
 }
 
 type HttpInputBusinessMomentAdaptorInfo struct {
-	Dolittle    HttpInputDolittle    `json:"dolittle"`
-	Name        string               `json:"name"`
-	Kind        string               `json:"kind"`
-	Environment string               `json:"environment"`
-	Extra       HttpInputSimpleExtra `json:"extra"`
+	Dolittle    HttpInputDolittle                   `json:"dolittle"`
+	Name        string                              `json:"name"`
+	Kind        string                              `json:"kind"`
+	Environment string                              `json:"environment"`
+	Extra       HttpInputBusinessMomentAdaptorExtra `json:"extra"`
 }
 
 type HttpInputBusinessMomentAdaptorExtra struct {
-	Headimage     string                 `json:"headImage"`
-	Runtimeimage  string                 `json:"runtimeImage"`
-	Ingress       HttpInputSimpleIngress `json:"ingress"`
-	Configuration interface{}            `json:"configuration"`
+	Headimage    string                 `json:"headImage"`
+	Runtimeimage string                 `json:"runtimeImage"`
+	Ingress      HttpInputSimpleIngress `json:"ingress"`
+	Connector    interface{}            `json:"connector"`
 }
 
-type HttpInputBusinessMomentAdaptorConfig struct {
-	Domain    string `json:"domain"`
-	UriPrefix string `json:"uriPrefix"`
-	Kind      string `json:"kind"`
-	// HttpInputBusinessMomentAdaptorConnectorWebhookConfigBasic
-	// HttpInputBusinessMomentAdaptorConnectorWebhookConfigBearer
+type HttpInputBusinessMomentAdaptorConnectorWebhook struct {
+	Kind   string                                               `json:"kind"`
+	Config HttpInputBusinessMomentAdaptorConnectorWebhookConfig `json:"config"`
+}
+
+type HttpInputBusinessMomentAdaptorConnectorWebhookConfig struct {
+	Kind   string      `json:"kind"`
 	Config interface{} `json:"config"`
 }
 
