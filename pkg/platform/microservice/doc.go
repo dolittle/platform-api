@@ -105,3 +105,10 @@ type HttpResponsePodStatus struct {
 	Microservice platform.ShortInfoWithEnvironment   `json:"microservice"`
 	PodStatus    []platform.ShortInfoWithEnvironment `json:"podStatus"`
 }
+
+type HttpResponsePodLog struct {
+	ApplicationID  string `json:"applicationId"`
+	MicroserviceID string `json:"microserviceId"`
+	PodName        string `json:"podName"`
+	Logs           string `json:"logs"`
+}

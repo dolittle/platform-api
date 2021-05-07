@@ -278,9 +278,10 @@ func (s *service) GetPodLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.RespondWithJSON(w, http.StatusOK, map[string]string{
-		"applicationId": applicationID,
-		"podName":       podName,
-		"logs":          logData,
+	utils.RespondWithJSON(w, http.StatusOK, HttpResponsePodLog{
+		ApplicationID:  applicationID,
+		MicroserviceID: "TODO",
+		PodName:        podName,
+		Logs:           logData,
 	})
 }
