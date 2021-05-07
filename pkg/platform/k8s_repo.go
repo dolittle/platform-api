@@ -8,6 +8,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/thoas/go-funk"
 	v1 "k8s.io/api/apps/v1"
 	coreV1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,8 +16,9 @@ import (
 )
 
 type PodInfo struct {
-	Name  string `json:"name"`
-	Phase string `json:"phase"`
+	Name       string   `json:"name"`
+	Phase      string   `json:"phase"`
+	Containers []string `json:"containers"`
 }
 
 type PodData struct {
@@ -285,9 +287,14 @@ func (r *K8sRepo) GetPodStatus(applicationID string, microserviceID string, envi
 
 		response.Microservice.Name = labelMap["microservice"]
 
+		containers := funk.Map(pod.Spec.Containers, func(container coreV1.Container) string {
+			return container.Name
+		}).([]string)
+
 		response.Pods = append(response.Pods, PodInfo{
-			Phase: string(pod.Status.Phase),
-			Name:  pod.Name,
+			Phase:      string(pod.Status.Phase),
+			Name:       pod.Name,
+			Containers: containers,
 		})
 	}
 
