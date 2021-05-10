@@ -15,6 +15,17 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+type ImageInfo struct {
+	Image string `json:"image"`
+	Name  string `json:"name"`
+}
+
+type MicroserviceInfo struct {
+	Name        string      `json:"name"`
+	Environment string      `json:"environment"`
+	ID          string      `json:"id"`
+	Images      []ImageInfo `json:"images"`
+}
 type PodInfo struct {
 	Name       string   `json:"name"`
 	Phase      string   `json:"phase"`
@@ -192,18 +203,18 @@ func (r *K8sRepo) GetApplicationsByTenantID(tenantID string) ([]ShortInfo, error
 	return response, nil
 }
 
-func (r *K8sRepo) GetMicroservices(applicationID string) ([]ShortInfoWithEnvironment, error) {
+func (r *K8sRepo) GetMicroservices(applicationID string) ([]MicroserviceInfo, error) {
 	client := r.k8sClient
 	ctx := context.TODO()
 	namespace := fmt.Sprintf("application-%s", applicationID)
 	deployments, err := client.AppsV1().Deployments(namespace).List(ctx, metaV1.ListOptions{})
 
-	response := make([]ShortInfoWithEnvironment, 0)
+	response := make([]MicroserviceInfo, len(deployments.Items))
 	if err != nil {
 		return response, err
 	}
 
-	for _, deployment := range deployments.Items {
+	for deploymentIndex, deployment := range deployments.Items {
 		annotationsMap := deployment.GetObjectMeta().GetAnnotations()
 		labelMap := deployment.GetObjectMeta().GetLabels()
 
@@ -212,12 +223,20 @@ func (r *K8sRepo) GetMicroservices(applicationID string) ([]ShortInfoWithEnviron
 			continue
 		}
 
-		response = append(response, ShortInfoWithEnvironment{
+		images := make([]ImageInfo, len(deployment.Spec.Template.Spec.Containers))
+		for containerIndex, container := range deployment.Spec.Template.Spec.Containers {
+			images[containerIndex] = ImageInfo{
+				Name:  container.Name,
+				Image: container.Image,
+			}
+		}
+
+		response[deploymentIndex] = MicroserviceInfo{
 			Name:        labelMap["microservice"],
 			ID:          annotationsMap["dolittle.io/microservice-id"],
 			Environment: labelMap["environment"],
-		})
-
+			Images:      images,
+		}
 	}
 
 	return response, err

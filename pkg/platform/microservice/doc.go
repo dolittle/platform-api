@@ -98,8 +98,8 @@ type HttpInputBusinessMomentAdaptorConnectorWebhookConfigBearer struct {
 }
 
 type HttpResponseMicroservices struct {
-	Application   platform.ShortInfo                  `json:"application"`
-	Microservices []platform.ShortInfoWithEnvironment `json:"microservices"`
+	Application   platform.ShortInfo          `json:"application"`
+	Microservices []platform.MicroserviceInfo `json:"microservices"`
 }
 
 type HttpResponsePodStatus struct {
