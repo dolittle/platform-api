@@ -27,9 +27,9 @@ type MicroserviceInfo struct {
 	Images      []ImageInfo `json:"images"`
 }
 type PodInfo struct {
-	Name       string   `json:"name"`
-	Phase      string   `json:"phase"`
-	Containers []string `json:"containers"`
+	Name       string      `json:"name"`
+	Phase      string      `json:"phase"`
+	Containers []ImageInfo `json:"containers"`
 }
 
 type PodData struct {
@@ -223,13 +223,20 @@ func (r *K8sRepo) GetMicroservices(applicationID string) ([]MicroserviceInfo, er
 			continue
 		}
 
-		images := make([]ImageInfo, len(deployment.Spec.Template.Spec.Containers))
-		for containerIndex, container := range deployment.Spec.Template.Spec.Containers {
-			images[containerIndex] = ImageInfo{
+		//images := make([]ImageInfo, len(deployment.Spec.Template.Spec.Containers))
+		//for containerIndex, container := range deployment.Spec.Template.Spec.Containers {
+		//	images[containerIndex] = ImageInfo{
+		//		Name:  container.Name,
+		//		Image: container.Image,
+		//	}
+		//}
+
+		images := funk.Map(deployment.Spec.Template.Spec.Containers, func(container coreV1.Container) ImageInfo {
+			return ImageInfo{
 				Name:  container.Name,
 				Image: container.Image,
 			}
-		}
+		}).([]ImageInfo)
 
 		response[deploymentIndex] = MicroserviceInfo{
 			Name:        labelMap["microservice"],
@@ -292,6 +299,7 @@ func (r *K8sRepo) GetPodStatus(applicationID string, microserviceID string, envi
 		return response, err
 	}
 
+	// TODO name will be blank if there are no pods, getting name from the json file would help here
 	for _, pod := range pods.Items {
 		annotationsMap := pod.GetObjectMeta().GetAnnotations()
 		labelMap := pod.GetObjectMeta().GetLabels()
@@ -306,9 +314,12 @@ func (r *K8sRepo) GetPodStatus(applicationID string, microserviceID string, envi
 
 		response.Microservice.Name = labelMap["microservice"]
 
-		containers := funk.Map(pod.Spec.Containers, func(container coreV1.Container) string {
-			return container.Name
-		}).([]string)
+		containers := funk.Map(pod.Spec.Containers, func(container coreV1.Container) ImageInfo {
+			return ImageInfo{
+				Name:  container.Name,
+				Image: container.Image,
+			}
+		}).([]ImageInfo)
 
 		response.Pods = append(response.Pods, PodInfo{
 			Phase:      string(pod.Status.Phase),
