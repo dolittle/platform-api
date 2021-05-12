@@ -12,18 +12,17 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/thoas/go-funk"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/client-go/kubernetes"
 )
 
-func NewService(k8sClient *kubernetes.Clientset) service {
+func NewService(k8sDolittleRepo platform.K8sRepo) service {
 	return service{
 		storage: NewGitStorage(
 			"git@github.com:freshteapot/test-deploy-key.git",
 			"/tmp/dolittle-k8s",
 			"/Users/freshteapot/dolittle/.ssh/test-deploy",
 		),
-		k8sDolittleRepo: platform.NewK8sRepo(k8sClient),
-		k8sClient:       k8sClient,
+		k8sDolittleRepo: k8sDolittleRepo,
+		//k8sClient:       k8sClient,
 	}
 }
 

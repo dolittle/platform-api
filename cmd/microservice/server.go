@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/application"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/tenant"
@@ -41,8 +42,9 @@ var serverCMD = &cobra.Command{
 
 		router := mux.NewRouter()
 
-		microserviceService := microservice.NewService(clientset)
-		applicationService := application.NewService(clientset)
+		k8sRepo := platform.NewK8sRepo(clientset, config)
+		microserviceService := microservice.NewService(k8sRepo, clientset)
+		applicationService := application.NewService(k8sRepo)
 		tenantService := tenant.NewService()
 
 		c := cors.New(cors.Options{
@@ -58,10 +60,14 @@ var serverCMD = &cobra.Command{
 				http.MethodPatch,
 				http.MethodDelete,
 			},
+			// Not allowing "x-shared-secret" to not allow it to come from the browser
 			AllowedHeaders:   []string{"*", "x-secret", "x-tenant"},
 			AllowCredentials: true,
 		})
 
+		// x-shared-secret not happy with this
+		//secret := "TODO"
+		//stdChain := alice.New(c.Handler, middleware.RestrictHandlerWithHeaderName(secret, "x-shared-secret"), middleware.EnforceJSONHandler)
 		stdChain := alice.New(c.Handler)
 
 		router.Handle("/microservice", stdChain.ThenFunc(microserviceService.Create)).Methods("POST", "OPTIONS")
@@ -79,6 +85,9 @@ var serverCMD = &cobra.Command{
 		//router.Handle("/live/application/{applicationID}/microservice/{microserviceID}", stdChain.ThenFunc(microserviceService.GetLiveByID)).Methods("GET", "OPTIONS")
 		router.Handle("/live/application/{applicationID}/microservice/{microserviceID}/podstatus/{environment}", stdChain.ThenFunc(microserviceService.GetPodStatus)).Methods("GET", "OPTIONS")
 		router.Handle("/live/application/{applicationID}/pod/{podName}/logs", stdChain.ThenFunc(microserviceService.GetPodLogs)).Methods("GET", "OPTIONS")
+
+		// kubectl auth can-i list pods --namespace application-11b6cf47-5d9f-438f-8116-0d9828654657 --as be194a45-24b4-4911-9c8d-37125d132b0b --as-group cc3d1c06-ffeb-488c-8b90-a4536c3e6dfa
+		router.Handle("/test/can-i", stdChain.ThenFunc(microserviceService.CanI)).Methods("POST")
 
 		srv := &http.Server{
 			Handler: router,

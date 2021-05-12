@@ -10,9 +10,11 @@ import (
 
 	"github.com/thoas/go-funk"
 	v1 "k8s.io/api/apps/v1"
+	authV1 "k8s.io/api/authorization/v1"
 	coreV1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 type ImageInfo struct {
@@ -68,12 +70,14 @@ type ShortInfoWithEnvironment struct {
 }
 
 type K8sRepo struct {
-	k8sClient *kubernetes.Clientset
+	baseConfig *rest.Config
+	k8sClient  *kubernetes.Clientset
 }
 
-func NewK8sRepo(k8sClient *kubernetes.Clientset) K8sRepo {
+func NewK8sRepo(k8sClient *kubernetes.Clientset, config *rest.Config) K8sRepo {
 	return K8sRepo{
-		k8sClient: k8sClient,
+		baseConfig: config,
+		k8sClient:  k8sClient,
 	}
 }
 
@@ -360,4 +364,45 @@ func (r *K8sRepo) GetLogs(applicationID string, containerName string, podName st
 	str := buf.String()
 
 	return str, nil
+}
+
+// CanModifyApplication confirm user is in the tenant and application
+// Only works when we can use the namespace
+func (r *K8sRepo) CanModifyApplication(tenantID string, applicationID string, userID string) (bool, error) {
+	config := rest.CopyConfig(r.baseConfig)
+
+	config.Impersonate = rest.ImpersonationConfig{
+		UserName: userID,
+		Groups: []string{
+			fmt.Sprintf("tenant-%s", tenantID),
+		},
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	action := authV1.ResourceAttributes{
+		Namespace: fmt.Sprintf("application-%s", applicationID),
+		Verb:      "list",
+		Resource:  "pods",
+	}
+
+	selfCheck := authV1.SelfSubjectAccessReview{
+		Spec: authV1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &action,
+		},
+	}
+
+	resp, err := clientset.AuthorizationV1().
+		SelfSubjectAccessReviews().
+		Create(context.TODO(), &selfCheck, metaV1.CreateOptions{})
+
+	if err != nil {
+		// TODO do we hide this error and log it?
+		return false, err
+	}
+
+	return resp.Status.Allowed, nil
 }

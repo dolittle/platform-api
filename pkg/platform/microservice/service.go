@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func NewService(k8sClient *kubernetes.Clientset) service {
+func NewService(k8sDolittleRepo platform.K8sRepo, k8sClient *kubernetes.Clientset) service {
 
 	return service{
 		storage: NewGitStorage(
@@ -25,8 +25,7 @@ func NewService(k8sClient *kubernetes.Clientset) service {
 		),
 		simpleRepo:                 NewSimpleRepo(k8sClient),
 		businessMomentsAdaptorRepo: NewBusinessMomentsAdaptorRepo(k8sClient),
-		k8sDolittleRepo:            platform.NewK8sRepo(k8sClient),
-		k8sClient:                  k8sClient,
+		k8sDolittleRepo:            k8sDolittleRepo,
 	}
 }
 
@@ -285,5 +284,44 @@ func (s *service) GetPodLogs(w http.ResponseWriter, r *http.Request) {
 		MicroserviceID: "TODO",
 		PodName:        podName,
 		Logs:           logData,
+	})
+}
+
+func (s *service) CanI(w http.ResponseWriter, r *http.Request) {
+	type httpInput struct {
+		UserID        string `json:"user_id"`
+		TenantID      string `json:"tenant_id"`
+		ApplicationID string `json:"application_id"`
+	}
+
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		fmt.Println(err)
+		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	var input httpInput
+	err = json.Unmarshal(b, &input)
+
+	if err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+	defer r.Body.Close()
+
+	allowed, err := s.k8sDolittleRepo.CanModifyApplication(input.TenantID, input.ApplicationID, input.UserID)
+
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	allowedStr := "allowed"
+	if !allowed {
+		allowedStr = "denied"
+	}
+	utils.RespondWithJSON(w, http.StatusNotFound, map[string]string{
+		"allowed": allowedStr,
 	})
 }

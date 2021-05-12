@@ -7,10 +7,10 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 )
 
-func RestrictHandler(secret string) func(next http.Handler) http.Handler {
+func RestrictHandlerWithHeaderName(secret string, name string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			xSecret := r.Header.Get("x-secret")
+			xSecret := r.Header.Get(name)
 			if xSecret != secret {
 				utils.RespondWithError(w, http.StatusUnauthorized, "You are not authorized")
 				return
@@ -20,6 +20,10 @@ func RestrictHandler(secret string) func(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func RestrictHandler(secret string) func(next http.Handler) http.Handler {
+	return RestrictHandlerWithHeaderName(secret, "x-secret")
 }
 
 func EnforceJSONHandler(next http.Handler) http.Handler {
