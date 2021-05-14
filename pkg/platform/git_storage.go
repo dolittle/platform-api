@@ -5,8 +5,10 @@ import (
 	"log"
 	"os"
 
+	"golang.org/x/crypto/ssh"
+
 	git "github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
+	gitSsh "github.com/go-git/go-git/v5/plumbing/transport/ssh"
 )
 
 type GitStorage struct {
@@ -28,10 +30,13 @@ func NewGitStorage(url string, directory string, privateKeyFile string) *GitStor
 	}
 
 	// Clone the given repository to the given directory
-	publicKeys, err := ssh.NewPublicKeysFromFile("git", privateKeyFile, "")
+	publicKeys, err := gitSsh.NewPublicKeysFromFile("git", privateKeyFile, "")
 	if err != nil {
 		log.Fatalf("generate publickeys failed: %s\n", err.Error())
 	}
+
+	// This is not ideal
+	publicKeys.HostKeyCallback = ssh.InsecureIgnoreHostKey()
 
 	r, err := git.PlainClone(directory, false, &git.CloneOptions{
 		// The intended use of a GitHub personal access token is in replace of your password

@@ -35,6 +35,9 @@ var serverCMD = &cobra.Command{
 			panic(err.Error())
 		}
 
+		listenOn := viper.GetString("tools.server.listenOn")
+		sharedSecret := viper.GetString("tools.server.secret")
+
 		// create the clientset
 		clientset, err := kubernetes.NewForConfig(config)
 		if err != nil {
@@ -74,8 +77,7 @@ var serverCMD = &cobra.Command{
 		})
 
 		// x-shared-secret not happy with this
-		secret := "TODO-1"
-		stdChain := alice.New(c.Handler, middleware.LogTenantUser, middleware.RestrictHandlerWithHeaderName(secret, "x-shared-secret"), middleware.EnforceJSONHandler)
+		stdChain := alice.New(c.Handler, middleware.LogTenantUser, middleware.RestrictHandlerWithHeaderName(sharedSecret, "x-shared-secret"), middleware.EnforceJSONHandler)
 
 		//router.NotFoundHandler = http.HandlerFunc(MyNotFound)
 
@@ -100,7 +102,7 @@ var serverCMD = &cobra.Command{
 		srv := &http.Server{
 			Handler: router,
 			//Addr:         "0.0.0.0:8080",
-			Addr:         "localhost:8080",
+			Addr:         listenOn,
 			WriteTimeout: 15 * time.Second,
 			ReadTimeout:  15 * time.Second,
 		}
@@ -113,4 +115,9 @@ func init() {
 	RootCmd.AddCommand(serverCMD)
 	serverCMD.Flags().String("kube-config", "", "FullPath to kubeconfig")
 	viper.BindPFlag("tools.server.kubeConfig", serverCMD.Flags().Lookup("kube-config"))
+	viper.SetDefault("tools.server.secret", "change")
+	viper.SetDefault("tools.server.listenOn", "localhost:8080")
+
+	viper.BindEnv("tools.server.secret", "HEADER_SECRET")
+	viper.BindEnv("tools.server.listenOn", "LISTEN_ON")
 }
