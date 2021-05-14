@@ -6,80 +6,46 @@ import (
 	"strings"
 
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 )
 
-type gitStorage struct {
-	repo      *git.Repository
-	directory string
+type gitRepo struct {
+	storage *platform.GitStorage
 }
 
-func NewGitStorage(url string, directory string, privateKeyFile string) *gitStorage {
-	s := &gitStorage{
-		directory: directory,
+func NewGitRepo(storage *platform.GitStorage) *gitRepo {
+	return &gitRepo{
+		storage: storage,
 	}
-
-	_, err := os.Stat(privateKeyFile)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Clone the given repository to the given directory
-	publicKeys, err := ssh.NewPublicKeysFromFile("git", privateKeyFile, "")
-	if err != nil {
-		log.Fatalf("generate publickeys failed: %s\n", err.Error())
-	}
-
-	r, err := git.PlainClone(directory, false, &git.CloneOptions{
-		// The intended use of a GitHub personal access token is in replace of your password
-		// because access tokens can easily be revoked.
-		// https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/
-		Auth:     publicKeys,
-		URL:      url,
-		Progress: os.Stdout,
-	})
-
-	if err != nil {
-		if err != git.ErrRepositoryAlreadyExists {
-			log.Fatalf("cloning repo: %s\n", err.Error())
-		}
-		r, err = git.PlainOpen(directory)
-		if err != nil {
-			log.Fatalf("repo exists, opening: %s\n", err.Error())
-		}
-	}
-
-	s.repo = r
-	fmt.Println(s.repo)
-	return s
 }
 
-func (s *gitStorage) Write(info HttpInputDolittle, data []byte) error {
-	fmt.Printf("Write %s.json to file", info.MicroserviceID)
+func (s *gitRepo) getDirectory(tenantID string, applicationID string, environment string) string {
+	return fmt.Sprintf("%s/%s/%s/%s", s.storage.Directory, tenantID, applicationID, environment)
+}
 
-	w, err := s.repo.Worktree()
+func (s *gitRepo) Write(tenantID string, applicationID string, environment string, microserviceID string, data []byte) error {
+	w, err := s.storage.Repo.Worktree()
 	if err != nil {
 		return err
 	}
 
 	// TODO actually build structure
-	suffix := fmt.Sprintf("%s_%s_%s.json", info.TenantID, info.ApplicationID, info.MicroserviceID)
-
-	filename := filepath.Join(s.directory, suffix)
+	// `{tenantID}/{applicationID}/{environment}/{microserviceID}.json`
+	dir := s.getDirectory(tenantID, applicationID, environment)
+	filename := fmt.Sprintf("%s/%s.json", dir, microserviceID)
 	err = ioutil.WriteFile(filename, data, 0644)
 	if err != nil {
 		return err
 	}
 
 	// Adds the new file to the staging area.
-	_, err = w.Add(suffix)
+	_, err = w.Add(filename)
 	if err != nil {
 		return err
 	}
@@ -104,21 +70,21 @@ func (s *gitStorage) Write(info HttpInputDolittle, data []byte) error {
 	}
 
 	// Prints the current HEAD to verify that all worked well.
-	_, err = s.repo.CommitObject(commit)
+	_, err = s.storage.Repo.CommitObject(commit)
 	return err
 }
 
-func (s *gitStorage) Read(info HttpInputDolittle) ([]byte, error) {
-	suffix := fmt.Sprintf("%s_%s_%s.json", info.TenantID, info.ApplicationID, info.MicroserviceID)
-	filename := filepath.Join(s.directory, suffix)
+func (s *gitRepo) Read(tenantID string, applicationID string, environment string, microserviceID string) ([]byte, error) {
+	dir := s.getDirectory(tenantID, applicationID, environment)
+	filename := fmt.Sprintf("%s/%s.json", dir, microserviceID)
 	return ioutil.ReadFile(filename)
 }
 
-func (s *gitStorage) GetAll(tenantID string, applicationID string) ([]HttpMicroserviceBase, error) {
+func (s *gitRepo) GetAll(tenantID string, applicationID string) ([]HttpMicroserviceBase, error) {
 	files := []string{}
 
 	// TODO change
-	rootDirectory := s.directory + "/"
+	rootDirectory := s.storage.Directory + "/"
 	// TODO change to fs when gone to 1.16
 	err := filepath.Walk(rootDirectory, func(path string, info os.FileInfo, err error) error {
 		if err != nil {

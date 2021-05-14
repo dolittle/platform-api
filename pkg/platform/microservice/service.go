@@ -15,14 +15,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func NewService(k8sDolittleRepo platform.K8sRepo, k8sClient *kubernetes.Clientset) service {
-
+func NewService(gitStorage *platform.GitStorage, k8sDolittleRepo platform.K8sRepo, k8sClient *kubernetes.Clientset) service {
 	return service{
-		storage: NewGitStorage(
-			"git@github.com:freshteapot/test-deploy-key.git",
-			"/tmp/dolittle-k8s",
-			"/Users/freshteapot/dolittle/.ssh/test-deploy",
-		),
+		gitRepo:                    NewGitRepo(gitStorage),
 		simpleRepo:                 NewSimpleRepo(k8sClient),
 		businessMomentsAdaptorRepo: NewBusinessMomentsAdaptorRepo(k8sClient),
 		k8sDolittleRepo:            k8sDolittleRepo,
@@ -124,7 +119,14 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		// TODO this could be an event
 		// TODO this should be decoupled
 		storageBytes, _ := json.Marshal(ms)
-		s.storage.Write(ms.Dolittle, storageBytes)
+		err = s.gitRepo.Write(
+			ms.Dolittle.TenantID,
+			ms.Dolittle.ApplicationID,
+			ms.Environment,
+			ms.Dolittle.MicroserviceID,
+			storageBytes,
+		)
+
 		if err != nil {
 			// TODO change
 			utils.RespondWithJSON(w, http.StatusInternalServerError, err)
@@ -150,13 +152,15 @@ func (s *service) GetByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	applicationID := vars["applicationID"]
+	environment := vars["environment"]
 	microserviceID := vars["microserviceID"]
 
-	data, err := s.storage.Read(HttpInputDolittle{
-		TenantID:       tenant.ID,
-		ApplicationID:  applicationID,
-		MicroserviceID: microserviceID,
-	})
+	data, err := s.gitRepo.Read(
+		tenant.ID,
+		applicationID,
+		environment,
+		microserviceID,
+	)
 
 	if err != nil {
 		// TODO change
@@ -179,7 +183,7 @@ func (s *service) GetByApplicationID(w http.ResponseWriter, r *http.Request) {
 		Name: "Customer-Chris",
 	}
 
-	data, err := s.storage.GetAll(tenant.ID, applicationID)
+	data, err := s.gitRepo.GetAll(tenant.ID, applicationID)
 
 	if err != nil {
 		// TODO change

@@ -44,7 +44,14 @@ var serverCMD = &cobra.Command{
 		router := mux.NewRouter()
 
 		k8sRepo := platform.NewK8sRepo(clientset, config)
-		microserviceService := microservice.NewService(k8sRepo, clientset)
+
+		gitStorage := platform.NewGitStorage(
+			"git@github.com:freshteapot/test-deploy-key.git",
+			"/tmp/dolittle-k8s",
+			"/Users/freshteapot/dolittle/.ssh/test-deploy",
+		)
+
+		microserviceService := microservice.NewService(gitStorage, k8sRepo, clientset)
 		applicationService := application.NewService(k8sRepo)
 		tenantService := tenant.NewService()
 
@@ -79,13 +86,12 @@ var serverCMD = &cobra.Command{
 		router.Handle("/application/{applicationID}/environment", stdChain.ThenFunc(applicationService.SaveEnvironment)).Methods("POST", "OPTIONS")
 		router.Handle("/application/{applicationID}/microservices", stdChain.ThenFunc(microserviceService.GetByApplicationID)).Methods("GET", "OPTIONS")
 
-		router.Handle("/application/{applicationID}/microservice/{microserviceID}", stdChain.ThenFunc(microserviceService.GetByID)).Methods("GET", "OPTIONS")
-		router.Handle("/application/{applicationID}/microservice/{microserviceID}", stdChain.ThenFunc(microserviceService.Delete)).Methods("DELETE", "OPTIONS")
+		router.Handle("/application/{applicationID}/environment/{environment}/microservice/{microserviceID}", stdChain.ThenFunc(microserviceService.GetByID)).Methods("GET", "OPTIONS")
+		router.Handle("/application/{applicationID}/environment/{environment}/microservice/{microserviceID}", stdChain.ThenFunc(microserviceService.Delete)).Methods("DELETE", "OPTIONS")
 
 		router.Handle("/live/tenant/{tenantID}/applications", stdChain.ThenFunc(applicationService.GetLiveApplications)).Methods("GET", "OPTIONS")
 		router.Handle("/live/application/{applicationID}/microservices", stdChain.ThenFunc(microserviceService.GetLiveByApplicationID)).Methods("GET", "OPTIONS")
-		//router.Handle("/live/application/{applicationID}/microservice/{microserviceID}", stdChain.ThenFunc(microserviceService.GetLiveByID)).Methods("GET", "OPTIONS")
-		router.Handle("/live/application/{applicationID}/microservice/{microserviceID}/podstatus/{environment}", stdChain.ThenFunc(microserviceService.GetPodStatus)).Methods("GET", "OPTIONS")
+		router.Handle("/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/podstatus", stdChain.ThenFunc(microserviceService.GetPodStatus)).Methods("GET", "OPTIONS")
 		router.Handle("/live/application/{applicationID}/pod/{podName}/logs", stdChain.ThenFunc(microserviceService.GetPodLogs)).Methods("GET", "OPTIONS")
 
 		// kubectl auth can-i list pods --namespace application-11b6cf47-5d9f-438f-8116-0d9828654657 --as be194a45-24b4-4911-9c8d-37125d132b0b --as-group cc3d1c06-ffeb-488c-8b90-a4536c3e6dfa

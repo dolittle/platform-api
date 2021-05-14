@@ -71,7 +71,13 @@ func (s *service) handleBusinessMomentsAdaptor(w http.ResponseWriter, r *http.Re
 	// TODO this could be an event
 	// TODO this should be decoupled
 	storageBytes, _ := json.Marshal(ms)
-	s.storage.Write(ms.Dolittle, storageBytes)
+	err = s.gitRepo.Write(
+		ms.Dolittle.TenantID,
+		ms.Dolittle.ApplicationID,
+		ms.Environment,
+		ms.Dolittle.MicroserviceID,
+		storageBytes,
+	)
 	if err != nil {
 		// TODO change
 		utils.RespondWithJSON(w, http.StatusInternalServerError, err)

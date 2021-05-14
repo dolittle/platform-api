@@ -5,17 +5,11 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-type Storage interface {
-	Write(info HttpInputDolittle, data []byte) error
-	Read(info HttpInputDolittle) ([]byte, error)
-	GetAll(tenantID string, applicationID string) ([]HttpMicroserviceBase, error)
-}
-
 type service struct {
-	storage                    Storage
 	simpleRepo                 simpleRepo
 	businessMomentsAdaptorRepo businessMomentsAdaptorRepo
 	k8sDolittleRepo            platform.K8sRepo
+	gitRepo                    *gitRepo
 	k8sClient                  *kubernetes.Clientset
 }
 
