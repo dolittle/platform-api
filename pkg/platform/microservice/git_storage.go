@@ -26,7 +26,7 @@ func NewGitRepo(storage *platform.GitStorage) *gitRepo {
 }
 
 func (s *gitRepo) getDirectory(tenantID string, applicationID string, environment string) string {
-	return fmt.Sprintf("%s/%s/%s/%s", s.storage.Directory, tenantID, applicationID, environment)
+	return fmt.Sprintf("%s/%s/%s/%s", s.storage.Directory, tenantID, applicationID, strings.ToLower(environment))
 }
 
 func (s *gitRepo) Write(tenantID string, applicationID string, environment string, microserviceID string, data []byte) error {
@@ -38,20 +38,32 @@ func (s *gitRepo) Write(tenantID string, applicationID string, environment strin
 	// TODO actually build structure
 	// `{tenantID}/{applicationID}/{environment}/{microserviceID}.json`
 	dir := s.getDirectory(tenantID, applicationID, environment)
-	filename := fmt.Sprintf("%s/%s.json", dir, microserviceID)
-	err = ioutil.WriteFile(filename, data, 0644)
+	err = os.MkdirAll(dir, 0755)
 	if err != nil {
 		return err
 	}
 
-	// Adds the new file to the staging area.
-	_, err = w.Add(filename)
+	filename := fmt.Sprintf("%s/%s.json", dir, microserviceID)
+	err = ioutil.WriteFile(filename, data, 0644)
 	if err != nil {
+		fmt.Println("writeFile")
+		return err
+	}
+
+	// Adds the new file to the staging area.
+	// Need to remove the prefix
+	err = w.AddWithOptions(&git.AddOptions{
+		Path: strings.TrimPrefix(filename, s.storage.Directory+"/"),
+	})
+
+	if err != nil {
+		fmt.Println("w.Add")
 		return err
 	}
 
 	status, err := w.Status()
 	if err != nil {
+		fmt.Println("w.Status")
 		return err
 	}
 
@@ -84,7 +96,7 @@ func (s *gitRepo) GetAll(tenantID string, applicationID string) ([]HttpMicroserv
 	files := []string{}
 
 	// TODO change
-	rootDirectory := s.storage.Directory + "/"
+	rootDirectory := s.storage.GetApplicationDirectory(tenantID, applicationID)
 	// TODO change to fs when gone to 1.16
 	err := filepath.Walk(rootDirectory, func(path string, info os.FileInfo, err error) error {
 		if err != nil {

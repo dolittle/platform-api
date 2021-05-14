@@ -129,7 +129,7 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 
 		if err != nil {
 			// TODO change
-			utils.RespondWithJSON(w, http.StatusInternalServerError, err)
+			utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
@@ -152,7 +152,7 @@ func (s *service) GetByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	applicationID := vars["applicationID"]
-	environment := vars["environment"]
+	environment := strings.ToLower(vars["environment"])
 	microserviceID := vars["microserviceID"]
 
 	data, err := s.gitRepo.Read(

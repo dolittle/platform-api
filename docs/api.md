@@ -1,4 +1,12 @@
 
+
+# Get from git
+```
+curl -XGET \
+-H 'X-Shared-Secret: TODO-1' \
+'localhost:8080/application/11b6cf47-5d9f-438f-8116-0d9828654657/microservices' | jq
+```
+
 # Live from the cluster
 
 # Get applications by tenant

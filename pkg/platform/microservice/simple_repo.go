@@ -93,6 +93,7 @@ func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.
 			log.Fatal(err)
 			return errors.New("issue")
 		}
+		// TODO update
 		fmt.Println("Skipping configEnvVariables already exists")
 	}
 
@@ -102,6 +103,7 @@ func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.
 			log.Fatal(err)
 			return errors.New("issue")
 		}
+		// TODO update
 		fmt.Println("Skipping configFiles already exists")
 	}
 
@@ -112,6 +114,7 @@ func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.
 			log.Fatal(err)
 			return errors.New("issue")
 		}
+		// TODO update
 		fmt.Println("Skipping configSecrets already exists")
 	}
 
@@ -122,6 +125,7 @@ func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.
 			log.Fatal(err)
 			return errors.New("issue")
 		}
+		// TODO update
 		fmt.Println("Skipping ingress already exists")
 	}
 
@@ -132,6 +136,7 @@ func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.
 			log.Fatal(err)
 			return errors.New("issue")
 		}
+		// TODO update
 		fmt.Println("Skipping service already exists")
 	}
 
