@@ -102,17 +102,14 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if application.ID != ms.Dolittle.ApplicationID {
-			utils.RespondWithJSON(w, http.StatusInternalServerError, map[string]string{
-				"error": "Currently locked down to applicaiton 11b6cf47-5d9f-438f-8116-0d9828654657",
-			})
+			utils.RespondWithError(w, http.StatusInternalServerError, "Currently locked down to applicaiton 11b6cf47-5d9f-438f-8116-0d9828654657")
 			return
 		}
 
 		namespace := fmt.Sprintf("application-%s", application.ID)
 		err := s.simpleRepo.Create(namespace, tenant, application, ingress, ms)
 		if err != nil {
-			// TODO change
-			utils.RespondWithJSON(w, http.StatusInternalServerError, err)
+			utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
@@ -163,8 +160,7 @@ func (s *service) GetByID(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		// TODO change
-		utils.RespondWithJSON(w, http.StatusInternalServerError, err)
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 

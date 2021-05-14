@@ -75,8 +75,7 @@ func (s *service) handleBusinessMomentsAdaptor(w http.ResponseWriter, r *http.Re
 		storageBytes,
 	)
 	if err != nil {
-		// TODO change
-		utils.RespondWithJSON(w, http.StatusInternalServerError, err)
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
