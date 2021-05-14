@@ -51,6 +51,7 @@ var serverCMD = &cobra.Command{
 		gitStorage := platform.NewGitStorage(
 			"git@github.com:freshteapot/test-deploy-key.git",
 			"/tmp/dolittle-k8s",
+			// TODO fix this, then update deployment
 			"/Users/freshteapot/dolittle/.ssh/test-deploy",
 		)
 
@@ -61,7 +62,8 @@ var serverCMD = &cobra.Command{
 		c := cors.New(cors.Options{
 			OptionsPassthrough: false,
 			Debug:              true,
-			AllowedOrigins:     []string{"*", "http://localhost:9006"},
+			// TODO fix this
+			AllowedOrigins: []string{"*", "http://localhost:9006"},
 			AllowedMethods: []string{
 				http.MethodOptions,
 				http.MethodHead,
