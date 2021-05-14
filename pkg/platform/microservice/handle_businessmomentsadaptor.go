@@ -30,6 +30,7 @@ func (s *service) handleBusinessMomentsAdaptor(w http.ResponseWriter, r *http.Re
 		utils.RespondWithError(w, http.StatusBadRequest, "Currently locked down to tenant 453e04a7-4f9d-42f2-b36c-d51fa2c83fa3")
 		return
 	}
+	// TODO check tenantID with tenantID in the header
 
 	application := k8s.Application{
 		ID:   applicationInfo.ID,
@@ -49,9 +50,7 @@ func (s *service) handleBusinessMomentsAdaptor(w http.ResponseWriter, r *http.Re
 	}
 
 	if application.ID != ms.Dolittle.ApplicationID {
-		utils.RespondWithJSON(w, http.StatusInternalServerError, map[string]string{
-			"error": "Currently locked down to applicaiton 11b6cf47-5d9f-438f-8116-0d9828654657",
-		})
+		utils.RespondWithError(w, http.StatusInternalServerError, "Currently locked down to applicaiton 11b6cf47-5d9f-438f-8116-0d9828654657")
 		return
 	}
 
@@ -60,11 +59,8 @@ func (s *service) handleBusinessMomentsAdaptor(w http.ResponseWriter, r *http.Re
 	namespace := fmt.Sprintf("application-%s", application.ID)
 	err = s.businessMomentsAdaptorRepo.Create(namespace, tenant, application, ingress, ms)
 	if err != nil {
-		fmt.Println(err)
-		utils.RespondWithError(w, http.StatusBadRequest, "After Create")
-		return
 		// TODO change
-		utils.RespondWithJSON(w, http.StatusInternalServerError, err)
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
