@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/dolittle-entropy/platform-api/pkg/middleware"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/application"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice"
@@ -66,9 +67,10 @@ var serverCMD = &cobra.Command{
 		})
 
 		// x-shared-secret not happy with this
-		//secret := "TODO"
-		//stdChain := alice.New(c.Handler, middleware.RestrictHandlerWithHeaderName(secret, "x-shared-secret"), middleware.EnforceJSONHandler)
-		stdChain := alice.New(c.Handler)
+		secret := "TODO-1"
+		stdChain := alice.New(c.Handler, middleware.LogTenantUser, middleware.RestrictHandlerWithHeaderName(secret, "x-shared-secret"), middleware.EnforceJSONHandler)
+
+		//router.NotFoundHandler = http.HandlerFunc(MyNotFound)
 
 		router.Handle("/microservice", stdChain.ThenFunc(microserviceService.Create)).Methods("POST", "OPTIONS")
 		router.Handle("/application", stdChain.ThenFunc(applicationService.Create)).Methods("POST", "OPTIONS")
@@ -105,5 +107,4 @@ func init() {
 	RootCmd.AddCommand(serverCMD)
 	serverCMD.Flags().String("kube-config", "", "FullPath to kubeconfig")
 	viper.BindPFlag("tools.server.kubeConfig", serverCMD.Flags().Lookup("kube-config"))
-
 }

@@ -1,18 +1,37 @@
 package middleware
 
 import (
+	"fmt"
 	"mime"
 	"net/http"
 
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 )
 
+func LogTenantUser(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tenantID := r.Header.Get("Tenant-ID")
+		userID := r.Header.Get("User-ID")
+
+		fmt.Println(tenantID, userID)
+		next.ServeHTTP(w, r)
+	})
+}
+
 func RestrictHandlerWithHeaderName(secret string, name string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			xSecret := r.Header.Get(name)
 			if xSecret != secret {
-				utils.RespondWithError(w, http.StatusUnauthorized, "You are not authorized")
+				utils.RespondWithError(w, http.StatusForbidden, "Shared secret is missing")
+				return
+			}
+
+			tenantID := r.Header.Get("Tenant-ID")
+			userID := r.Header.Get("User-ID")
+
+			if tenantID == "" || userID == "" {
+				utils.RespondWithError(w, http.StatusForbidden, "Tenant-ID or User-ID is missing")
 				return
 			}
 
