@@ -14,13 +14,9 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
-func NewService(k8sDolittleRepo platform.K8sRepo) service {
+func NewService(gitStorage *platform.GitStorage, k8sDolittleRepo platform.K8sRepo) service {
 	return service{
-		storage: NewGitStorage(
-			"git@github.com:freshteapot/test-deploy-key.git",
-			"/tmp/dolittle-k8s",
-			"/Users/freshteapot/dolittle/.ssh/test-deploy",
-		),
+		gitRepo:         NewGitRepo(gitStorage),
 		k8sDolittleRepo: k8sDolittleRepo,
 		//k8sClient:       k8sClient,
 	}
@@ -80,7 +76,7 @@ func (s *service) SaveEnvironment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	storageBytes, err := s.storage.Read(tenantID, applicationID)
+	storageBytes, err := s.gitRepo.Read(tenantID, applicationID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusBadRequest, "Not able to find application in the storage")
 		return
@@ -110,7 +106,7 @@ func (s *service) SaveEnvironment(w http.ResponseWriter, r *http.Request) {
 
 	application.Environments = append(application.Environments, input)
 	storageBytes, _ = json.Marshal(application)
-	err = s.storage.Write(tenantID, applicationID, storageBytes)
+	err = s.gitRepo.Write(tenantID, applicationID, storageBytes)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to write to storage")
 		return
@@ -136,7 +132,7 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = s.storage.Read(input.TenantID, input.ID)
+	_, err = s.gitRepo.Read(input.TenantID, input.ID)
 	if err == nil {
 		utils.RespondWithError(w, http.StatusBadRequest, "Application already exists")
 		return
@@ -144,13 +140,14 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 
 	// TODO this will overwrite
 	application := Application{
-		ID:       input.ID,
-		Name:     input.Name,
-		TenantID: input.TenantID,
+		ID:           input.ID,
+		Name:         input.Name,
+		TenantID:     input.TenantID,
+		Environments: make([]HttpInputEnvironment, 0),
 	}
 
 	storageBytes, _ := json.Marshal(application)
-	err = s.storage.Write(input.TenantID, input.ID, storageBytes)
+	err = s.gitRepo.Write(input.TenantID, input.ID, storageBytes)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to write to storage")
 		return

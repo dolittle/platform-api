@@ -56,7 +56,7 @@ var serverCMD = &cobra.Command{
 		)
 
 		microserviceService := microservice.NewService(gitStorage, k8sRepo, clientset)
-		applicationService := application.NewService(k8sRepo)
+		applicationService := application.NewService(gitStorage, k8sRepo)
 		tenantService := tenant.NewService()
 
 		c := cors.New(cors.Options{

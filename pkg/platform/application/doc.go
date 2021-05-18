@@ -35,7 +35,7 @@ type Storage interface {
 }
 
 type service struct {
-	storage         Storage
+	gitRepo         *gitRepo
 	k8sDolittleRepo platform.K8sRepo
 	k8sClient       *kubernetes.Clientset
 }

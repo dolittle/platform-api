@@ -6,86 +6,64 @@ import (
 	"strings"
 
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 )
 
-type gitStorage struct {
-	repo      *git.Repository
-	directory string
+type gitRepo struct {
+	storage *platform.GitStorage
 }
 
-func NewGitStorage(url string, directory string, privateKeyFile string) *gitStorage {
-	s := &gitStorage{
-		directory: directory,
+func NewGitRepo(storage *platform.GitStorage) *gitRepo {
+	return &gitRepo{
+		storage: storage,
 	}
-
-	_, err := os.Stat(privateKeyFile)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Clone the given repository to the given directory
-	publicKeys, err := ssh.NewPublicKeysFromFile("git", privateKeyFile, "")
-	if err != nil {
-		log.Fatalf("generate publickeys failed: %s\n", err.Error())
-	}
-
-	r, err := git.PlainClone(directory, false, &git.CloneOptions{
-		// The intended use of a GitHub personal access token is in replace of your password
-		// because access tokens can easily be revoked.
-		// https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/
-		Auth:     publicKeys,
-		URL:      url,
-		Progress: os.Stdout,
-	})
-
-	if err != nil {
-		if err != git.ErrRepositoryAlreadyExists {
-			log.Fatalf("cloning repo: %s\n", err.Error())
-		}
-		r, err = git.PlainOpen(directory)
-		if err != nil {
-			log.Fatalf("repo exists, opening: %s\n", err.Error())
-		}
-	}
-
-	s.repo = r
-	fmt.Println(s.repo)
-	return s
 }
 
-func (s *gitStorage) Write(tenantID string, applicationID string, data []byte) error {
-	fmt.Printf("Write %s.json to file", applicationID)
+func (s *gitRepo) getDirectory(tenantID string, applicationID string) string {
+	return fmt.Sprintf("%s/%s/%s", s.storage.Directory, tenantID, applicationID)
+}
 
-	w, err := s.repo.Worktree()
+func (s *gitRepo) Write(tenantID string, applicationID string, data []byte) error {
+
+	w, err := s.storage.Repo.Worktree()
 	if err != nil {
 		return err
 	}
 
 	// TODO actually build structure
-	suffix := fmt.Sprintf("application_%s_%s.json", tenantID, applicationID)
-
-	filename := filepath.Join(s.directory, suffix)
-	err = ioutil.WriteFile(filename, data, 0644)
+	dir := s.getDirectory(tenantID, applicationID)
+	err = os.MkdirAll(dir, 0755)
 	if err != nil {
 		return err
 	}
 
-	// Adds the new file to the staging area.
-	_, err = w.Add(suffix)
+	filename := fmt.Sprintf("%s/application.json", dir)
+	err = ioutil.WriteFile(filename, data, 0644)
 	if err != nil {
+		fmt.Println("writeFile")
+		return err
+	}
+
+	// Adds the new file to the staging area.
+	// Need to remove the prefix
+	err = w.AddWithOptions(&git.AddOptions{
+		Path: strings.TrimPrefix(filename, s.storage.Directory+"/"),
+	})
+
+	if err != nil {
+		fmt.Println("w.Add")
 		return err
 	}
 
 	status, err := w.Status()
 	if err != nil {
+		fmt.Println("w.Status")
 		return err
 	}
 
@@ -104,21 +82,21 @@ func (s *gitStorage) Write(tenantID string, applicationID string, data []byte) e
 	}
 
 	// Prints the current HEAD to verify that all worked well.
-	_, err = s.repo.CommitObject(commit)
+	_, err = s.storage.Repo.CommitObject(commit)
 	return err
 }
 
-func (s *gitStorage) Read(tenantID string, applicationID string) ([]byte, error) {
-	suffix := fmt.Sprintf("application_%s_%s.json", tenantID, applicationID)
-	filename := filepath.Join(s.directory, suffix)
+func (s *gitRepo) Read(tenantID string, applicationID string) ([]byte, error) {
+	dir := s.getDirectory(tenantID, applicationID)
+	filename := fmt.Sprintf("%s/application.json", dir)
 	return ioutil.ReadFile(filename)
 }
 
-func (s *gitStorage) GetAll(tenantID string) ([]Application, error) {
+func (s *gitRepo) GetAll(tenantID string) ([]Application, error) {
 	files := []string{}
 
 	// TODO change
-	rootDirectory := s.directory + "/"
+	rootDirectory := s.storage.Directory + "/"
 	// TODO change to fs when gone to 1.16
 	err := filepath.Walk(rootDirectory, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -132,11 +110,7 @@ func (s *gitStorage) GetAll(tenantID string) ([]Application, error) {
 		//	return filepath.SkipDir
 		//}
 
-		if !strings.HasSuffix(info.Name(), ".json") {
-			return nil
-		}
-
-		if !strings.HasPrefix(info.Name(), "application_") {
+		if info.Name() != "application.json" {
 			return nil
 		}
 
