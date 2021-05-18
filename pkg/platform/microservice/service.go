@@ -41,11 +41,17 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	// TODO Hardcoding to break dev environments
-	if input.Environment != "Dev" {
-		utils.RespondWithJSON(w, http.StatusBadRequest, map[string]string{
-			"error": "Currently locked down to environment Dev",
-		})
+	tenantID := r.Header.Get("Tenant-ID")
+	userID := r.Header.Get("User-ID")
+	if tenantID == "" || userID == "" {
+		// If the middleware is enabled this shouldn't happen
+		utils.RespondWithError(w, http.StatusForbidden, "Tenant-ID and User-ID is missing from the headers")
+		return
+	}
+
+	// TODO remove when happy with things
+	if tenantID != "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3" || input.Environment != "Dev" {
+		utils.RespondWithError(w, http.StatusBadRequest, "Currently locked down to tenant 453e04a7-4f9d-42f2-b36c-d51fa2c83fa3 and environment Dev")
 		return
 	}
 
@@ -63,6 +69,22 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	allowed, err := s.k8sDolittleRepo.CanModifyApplication(tenantID, applicationInfo.ID, userID)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if !allowed {
+		utils.RespondWithError(w, http.StatusForbidden, "You are not allowed to make this request")
+		return
+	}
+
+	tenant := k8s.Tenant{
+		ID:   applicationInfo.Tenant.ID,
+		Name: applicationInfo.Tenant.Name,
+	}
+
 	switch input.Kind {
 	case Simple:
 		var ms HttpInputSimpleInfo
@@ -73,27 +95,9 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		tenant := k8s.Tenant{
-			ID:   applicationInfo.Tenant.ID,
-			Name: applicationInfo.Tenant.Name,
-		}
-
-		// TODO remove when happy with things
-		if tenant.ID != "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3" {
-			utils.RespondWithError(w, http.StatusBadRequest, "Currently locked down to tenant 453e04a7-4f9d-42f2-b36c-d51fa2c83fa3")
-			return
-		}
-
 		application := k8s.Application{
 			ID:   applicationInfo.ID,
 			Name: applicationInfo.Name,
-		}
-
-		// TODO get from list in the cluster
-		domainPrefix := "freshteapot-taco"
-		ingress := k8s.Ingress{
-			Host:       fmt.Sprintf("%s.dolittle.cloud", domainPrefix),
-			SecretName: fmt.Sprintf("%s-certificate", domainPrefix),
 		}
 
 		if tenant.ID != ms.Dolittle.TenantID {
@@ -104,6 +108,21 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		if application.ID != ms.Dolittle.ApplicationID {
 			utils.RespondWithError(w, http.StatusInternalServerError, "Currently locked down to applicaiton 11b6cf47-5d9f-438f-8116-0d9828654657")
 			return
+		}
+
+		if ms.Extra.Ingress.SecretNamePrefix == "" {
+			utils.RespondWithError(w, http.StatusBadRequest, "Missing extra.ingress.secretNamePrefix")
+			return
+		}
+
+		if ms.Extra.Ingress.Host == "" {
+			utils.RespondWithError(w, http.StatusBadRequest, "Missing extra.ingress.host")
+			return
+		}
+
+		ingress := k8s.Ingress{
+			Host:       ms.Extra.Ingress.Host,
+			SecretName: fmt.Sprintf("%s-certificate", ms.Extra.Ingress.SecretNamePrefix),
 		}
 
 		namespace := fmt.Sprintf("application-%s", application.ID)

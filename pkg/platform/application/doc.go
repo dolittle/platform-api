@@ -14,8 +14,11 @@ type HttpInputApplication struct {
 }
 
 type HttpInputEnvironment struct {
-	Name         string `json:"name"`
-	DomainPrefix string `json:"domainPrefix"`
+	Name          string `json:"name"`
+	DomainPrefix  string `json:"domainPrefix"`
+	Host          string `json:"host"`
+	TenantID      string `json:"tenantId"`
+	ApplicationID string `json:"applicationId"`
 }
 
 type Application struct {

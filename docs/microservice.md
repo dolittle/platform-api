@@ -1,3 +1,8 @@
+# Run server
+```sh
+LISTEN_ON="localhost:8080" go run main.go microservice server --kube-config="/Users/freshteapot/.kube/config"
+```
+
 # Create microservice
 ## Base / Simple
 ```sh

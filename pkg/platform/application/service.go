@@ -43,11 +43,14 @@ func (s *service) SaveEnvironment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO lookup application
-	vars := mux.Vars(r)
-	applicationID := vars["applicationID"]
-	fmt.Printf("Lookup %s", applicationID)
+	userID := r.Header.Get("User-ID")
+	if userID == "" {
+		// If the middleware is enabled this shouldn't happen
+		utils.RespondWithError(w, http.StatusForbidden, "User-ID is missing from the headers")
+		return
+	}
 
+	applicationID := input.ApplicationID
 	applicationInfo, err := s.k8sDolittleRepo.GetApplication(applicationID)
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
@@ -61,6 +64,21 @@ func (s *service) SaveEnvironment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tenantID := applicationInfo.Tenant.ID
+	if tenantID != "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3" {
+		utils.RespondWithError(w, http.StatusBadRequest, "Currently locked down to tenant 453e04a7-4f9d-42f2-b36c-d51fa2c83fa3")
+		return
+	}
+
+	allowed, err := s.k8sDolittleRepo.CanModifyApplication(tenantID, applicationInfo.ID, userID)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if !allowed {
+		utils.RespondWithError(w, http.StatusForbidden, "You are not allowed to make this request")
+		return
+	}
 
 	storageBytes, err := s.storage.Read(tenantID, applicationID)
 	if err != nil {
