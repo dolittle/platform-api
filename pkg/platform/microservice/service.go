@@ -24,8 +24,9 @@ func NewService(gitStorage *platform.GitStorage, k8sDolittleRepo platform.K8sRep
 	}
 }
 
+// TODO https://dolittle.freshdesk.com/a/tickets/1352 how to add multiple entries to ingress
 func (s *service) Create(w http.ResponseWriter, r *http.Request) {
-	var input HttpMicroserviceBase
+	var input platform.HttpMicroserviceBase
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		fmt.Println(err)
@@ -86,8 +87,8 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch input.Kind {
-	case Simple:
-		var ms HttpInputSimpleInfo
+	case platform.Simple:
+		var ms platform.HttpInputSimpleInfo
 		err = json.Unmarshal(b, &ms)
 		if err != nil {
 			fmt.Println(err)
@@ -151,7 +152,7 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 
 		utils.RespondWithJSON(w, http.StatusOK, ms)
 		return
-	case BusinessMomentsAdaptor:
+	case platform.BusinessMomentsAdaptor:
 		s.handleBusinessMomentsAdaptor(w, r, b, applicationInfo)
 		return
 	default:
@@ -243,7 +244,7 @@ func (s *service) GetLiveByApplicationID(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	response := HttpResponseMicroservices{
+	response := platform.HttpResponseMicroservices{
 		Application: platform.ShortInfo{
 			Name: application.Name,
 			ID:   application.ID,
@@ -298,7 +299,7 @@ func (s *service) GetPodLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.RespondWithJSON(w, http.StatusOK, HttpResponsePodLog{
+	utils.RespondWithJSON(w, http.StatusOK, platform.HttpResponsePodLog{
 		ApplicationID:  applicationID,
 		MicroserviceID: "TODO",
 		PodName:        podName,

@@ -11,8 +11,7 @@ import (
 )
 
 func (s *service) handleBusinessMomentsAdaptor(w http.ResponseWriter, r *http.Request, inputBytes []byte, applicationInfo platform.Application) {
-
-	var ms HttpInputBusinessMomentAdaptorInfo
+	var ms platform.HttpInputBusinessMomentAdaptorInfo
 	err := json.Unmarshal(inputBytes, &ms)
 	if err != nil {
 		fmt.Println(err)

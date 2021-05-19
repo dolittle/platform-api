@@ -17,58 +17,6 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-type ImageInfo struct {
-	Image string `json:"image"`
-	Name  string `json:"name"`
-}
-
-type MicroserviceInfo struct {
-	Name        string      `json:"name"`
-	Environment string      `json:"environment"`
-	ID          string      `json:"id"`
-	Images      []ImageInfo `json:"images"`
-}
-type PodInfo struct {
-	Name       string      `json:"name"`
-	Phase      string      `json:"phase"`
-	Containers []ImageInfo `json:"containers"`
-}
-
-type PodData struct {
-	Namespace    string    `json:"namespace"`
-	Microservice ShortInfo `json:"microservice"`
-	Pods         []PodInfo `json:"pods"`
-}
-
-type Tenant struct {
-	Name string `json:"name"`
-	ID   string `json:"id"`
-}
-
-type Ingress struct {
-	Host        string `json:"host"`
-	Environment string `json:"environment"`
-	Path        string `json:"path"`
-}
-
-type Application struct {
-	Name      string    `json:"name"`
-	ID        string    `json:"id"`
-	Tenant    Tenant    `json:"tenant"`
-	Ingresses []Ingress `json:"ingresses"`
-}
-
-type ShortInfo struct {
-	Name string `json:"name"`
-	ID   string `json:"id"`
-}
-
-type ShortInfoWithEnvironment struct {
-	Name        string `json:"name"`
-	Environment string `json:"environment"`
-	ID          string `json:"id"`
-}
-
 type K8sRepo struct {
 	baseConfig *rest.Config
 	k8sClient  *kubernetes.Clientset

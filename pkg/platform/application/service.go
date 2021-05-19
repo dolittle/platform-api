@@ -23,7 +23,7 @@ func NewService(gitStorage *platform.GitStorage, k8sDolittleRepo platform.K8sRep
 }
 
 func (s *service) SaveEnvironment(w http.ResponseWriter, r *http.Request) {
-	var input HttpInputEnvironment
+	var input platform.HttpInputEnvironment
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		fmt.Println(err)
@@ -82,13 +82,13 @@ func (s *service) SaveEnvironment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var application Application
+	var application platform.HttpResponseApplication
 	json.Unmarshal(storageBytes, &application)
 
 	// TODO this is not going to work with custom domains.
 	// Simple logic to make sure the domainPrefix is not used
 	// This is not great and should be linked to actual domains
-	exists := funk.Contains(application.Environments, func(environment HttpInputEnvironment) bool {
+	exists := funk.Contains(application.Environments, func(environment platform.HttpInputEnvironment) bool {
 		found := false
 		if environment.Name == input.Name {
 			found = true
@@ -116,7 +116,7 @@ func (s *service) SaveEnvironment(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *service) Create(w http.ResponseWriter, r *http.Request) {
-	var input HttpInputApplication
+	var input platform.HttpInputApplication
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		fmt.Println(err)
@@ -139,11 +139,11 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO this will overwrite
-	application := Application{
+	application := platform.HttpResponseApplication{
 		ID:           input.ID,
 		Name:         input.Name,
 		TenantID:     input.TenantID,
-		Environments: make([]HttpInputEnvironment, 0),
+		Environments: make([]platform.HttpInputEnvironment, 0),
 	}
 
 	storageBytes, _ := json.Marshal(application)
@@ -178,7 +178,7 @@ func (s *service) GetLiveApplications(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := HttpResponseApplications{
+	response := platform.HttpResponseApplications{
 		ID:           tenantID,
 		Name:         tenant.Name,
 		Applications: applications,

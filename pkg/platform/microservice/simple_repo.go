@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
+	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	v1 "k8s.io/api/apps/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -26,7 +27,7 @@ func NewSimpleRepo(k8sClient *kubernetes.Clientset) simpleRepo {
 	}
 }
 
-func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input HttpInputSimpleInfo) error {
+func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputSimpleInfo) error {
 	// TODO not sure where this comes from really, assume dynamic
 	customersTenantID := "17426336-fb8e-4425-8ab7-07d488367be9"
 

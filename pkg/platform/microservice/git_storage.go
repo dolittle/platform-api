@@ -92,7 +92,7 @@ func (s *gitRepo) Read(tenantID string, applicationID string, environment string
 	return ioutil.ReadFile(filename)
 }
 
-func (s *gitRepo) GetAll(tenantID string, applicationID string) ([]HttpMicroserviceBase, error) {
+func (s *gitRepo) GetAll(tenantID string, applicationID string) ([]platform.HttpMicroserviceBase, error) {
 	files := []string{}
 
 	// TODO change
@@ -118,14 +118,14 @@ func (s *gitRepo) GetAll(tenantID string, applicationID string) ([]HttpMicroserv
 		return nil
 	})
 
-	services := make([]HttpMicroserviceBase, 0)
+	services := make([]platform.HttpMicroserviceBase, 0)
 
 	if err != nil {
 		return services, err
 	}
 
 	for _, filename := range files {
-		var service HttpMicroserviceBase
+		var service platform.HttpMicroserviceBase
 		b, _ := ioutil.ReadFile(filename)
 		json.Unmarshal(b, &service)
 		services = append(services, service)

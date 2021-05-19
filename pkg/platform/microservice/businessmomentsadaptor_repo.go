@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
+	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	v1 "k8s.io/api/apps/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -34,7 +35,7 @@ func NewBusinessMomentsAdaptorRepo(k8sClient *kubernetes.Clientset) businessMome
 	}
 }
 
-func (r businessMomentsAdaptorRepo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input HttpInputBusinessMomentAdaptorInfo) error {
+func (r businessMomentsAdaptorRepo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputBusinessMomentAdaptorInfo) error {
 
 	// TODO not sure where this comes from really, assume dynamic
 	customersTenantID := "17426336-fb8e-4425-8ab7-07d488367be9"
@@ -81,11 +82,11 @@ func (r businessMomentsAdaptorRepo) Create(namespace string, tenant k8s.Tenant, 
 	token := ""
 
 	connectorBytes, _ := json.Marshal(input.Extra.Connector)
-	var whatKind HttpInputMicroserviceKind
+	var whatKind platform.HttpInputMicroserviceKind
 	json.Unmarshal(connectorBytes, &whatKind)
 	switch whatKind.Kind {
 	case "webhook":
-		var connector HttpInputBusinessMomentAdaptorConnectorWebhook
+		var connector platform.HttpInputBusinessMomentAdaptorConnectorWebhook
 		json.Unmarshal(connectorBytes, &connector)
 
 		//connectorConfigBytes, _ := json.Marshal(connector.Config.Config)
@@ -93,14 +94,14 @@ func (r businessMomentsAdaptorRepo) Create(namespace string, tenant k8s.Tenant, 
 		// Super ugly
 		switch connector.Config.Kind {
 		case "basic":
-			var connectorCredentialsConfig HttpInputBusinessMomentAdaptorConnectorWebhookConfigBasic
+			var connectorCredentialsConfig platform.HttpInputBusinessMomentAdaptorConnectorWebhookConfigBasic
 			connectorCredentialsConfigBytes, _ := json.Marshal(connector.Config.Config)
 			json.Unmarshal(connectorCredentialsConfigBytes, &connectorCredentialsConfig)
 			token = fmt.Sprintf("Basic %s",
 				basicAuth(connectorCredentialsConfig.Username, connectorCredentialsConfig.Password),
 			)
 		case "bearer":
-			var connectorCredentialsConfig HttpInputBusinessMomentAdaptorConnectorWebhookConfigBearer
+			var connectorCredentialsConfig platform.HttpInputBusinessMomentAdaptorConnectorWebhookConfigBearer
 			connectorCredentialsConfigBytes, _ := json.Marshal(connector.Config)
 			json.Unmarshal(connectorCredentialsConfigBytes, &connectorCredentialsConfig)
 
