@@ -174,17 +174,34 @@ func (s *service) GetLiveApplications(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	applications, err := s.k8sDolittleRepo.GetApplications(tenantID)
+	liveApplications, err := s.k8sDolittleRepo.GetApplications(tenantID)
 	if err != nil {
 		// TODO change
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
+	// Lookup environments
 	response := platform.HttpResponseApplications{
-		ID:           tenantID,
-		Name:         tenant.Name,
-		Applications: applications,
+		ID:   tenantID,
+		Name: tenant.Name,
+	}
+
+	for _, liveApplication := range liveApplications {
+		application, err := s.gitRepo.GetApplication(tenantID, liveApplication.ID)
+		if err != nil {
+			// TODO change
+			utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		for _, environmentInfo := range application.Environments {
+			response.Applications = append(response.Applications, platform.ShortInfoWithEnvironment{
+				ID:          liveApplication.ID,
+				Name:        liveApplication.Name,
+				Environment: environmentInfo.Name, // TODO do I want to include the info?
+			})
+		}
 	}
 
 	utils.RespondWithJSON(w, http.StatusOK, response)
@@ -210,4 +227,47 @@ func (s *service) GetByID(w http.ResponseWriter, r *http.Request) {
 		Environments:  application.Environments,
 		Microservices: microservices,
 	})
+}
+
+func (s *service) GetApplications(w http.ResponseWriter, r *http.Request) {
+	tenantID := r.Header.Get("Tenant-ID")
+
+	tenantInfo, err := s.gitRepo.GetTenant(tenantID)
+	if err != nil {
+		// TODO handle not found
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	storedApplications, err := s.gitRepo.GetApplications(tenantID)
+	if err != nil {
+		// TODO check if not found
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	response := platform.HttpResponseApplications{
+		ID:   tenantID,
+		Name: tenantInfo.Name,
+	}
+
+	for _, storedApplication := range storedApplications {
+		application, err := s.gitRepo.GetApplication(tenantID, storedApplication.ID)
+		if err != nil {
+			// TODO change
+			utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		for _, environmentInfo := range application.Environments {
+			response.Applications = append(response.Applications, platform.ShortInfoWithEnvironment{
+				ID:          storedApplication.ID,
+				Name:        storedApplication.Name,
+				Environment: environmentInfo.Name, // TODO do I want to include the info?
+			})
+		}
+	}
+
+	//microservices, err := s.gitRepo.GetMicroservices(tenantID, applicationID)
+	utils.RespondWithJSON(w, http.StatusOK, response)
 }
