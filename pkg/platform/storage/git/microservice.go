@@ -117,7 +117,6 @@ func (s *GitStorage) GetMicroservices(tenantID string, applicationID string) ([]
 		return services, err
 	}
 
-	fmt.Println(files)
 	for _, filename := range files {
 		var service platform.HttpMicroserviceBase
 		b, _ := ioutil.ReadFile(filename)
