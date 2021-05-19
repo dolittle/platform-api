@@ -128,7 +128,7 @@ func (r *K8sRepo) GetApplication(applicationID string) (Application, error) {
 	return application, nil
 }
 
-func (r *K8sRepo) GetApplicationsByTenantID(tenantID string) ([]ShortInfo, error) {
+func (r *K8sRepo) GetApplications(tenantID string) ([]ShortInfo, error) {
 	client := r.k8sClient
 	ctx := context.TODO()
 	items, err := client.CoreV1().Namespaces().List(ctx, metaV1.ListOptions{})

@@ -91,11 +91,13 @@ var serverCMD = &cobra.Command{
 
 		router.Handle("/application/{applicationID}/environment", stdChain.ThenFunc(applicationService.SaveEnvironment)).Methods("POST", "OPTIONS")
 		router.Handle("/application/{applicationID}/microservices", stdChain.ThenFunc(microserviceService.GetByApplicationID)).Methods("GET", "OPTIONS")
+		router.Handle("/application/{applicationID}", stdChain.ThenFunc(applicationService.GetByID)).Methods("GET", "OPTIONS")
 
 		router.Handle("/application/{applicationID}/environment/{environment}/microservice/{microserviceID}", stdChain.ThenFunc(microserviceService.GetByID)).Methods("GET", "OPTIONS")
 		router.Handle("/application/{applicationID}/environment/{environment}/microservice/{microserviceID}", stdChain.ThenFunc(microserviceService.Delete)).Methods("DELETE", "OPTIONS")
 
-		router.Handle("/live/tenant/{tenantID}/applications", stdChain.ThenFunc(applicationService.GetLiveApplications)).Methods("GET", "OPTIONS")
+		router.Handle("/live/applications", stdChain.ThenFunc(applicationService.GetLiveApplications)).Methods("GET", "OPTIONS")
+
 		router.Handle("/live/application/{applicationID}/microservices", stdChain.ThenFunc(microserviceService.GetLiveByApplicationID)).Methods("GET", "OPTIONS")
 		router.Handle("/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/podstatus", stdChain.ThenFunc(microserviceService.GetPodStatus)).Methods("GET", "OPTIONS")
 		router.Handle("/live/application/{applicationID}/pod/{podName}/logs", stdChain.ThenFunc(microserviceService.GetPodLogs)).Methods("GET", "OPTIONS")

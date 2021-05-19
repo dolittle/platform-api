@@ -154,8 +154,7 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *service) GetLiveApplications(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	tenantID := vars["tenantID"]
+	tenantID := r.Header.Get("Tenant-ID")
 
 	// TODO get tenant from syncing the terraform output into the repo (which we might have access to if we use the same repo)
 	tenant := k8s.Tenant{
@@ -168,7 +167,7 @@ func (s *service) GetLiveApplications(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	applications, err := s.k8sDolittleRepo.GetApplicationsByTenantID(tenantID)
+	applications, err := s.k8sDolittleRepo.GetApplications(tenantID)
 	if err != nil {
 		// TODO change
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -182,4 +181,26 @@ func (s *service) GetLiveApplications(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.RespondWithJSON(w, http.StatusOK, response)
+}
+
+func (s *service) GetByID(w http.ResponseWriter, r *http.Request) {
+	tenantID := r.Header.Get("Tenant-ID")
+	vars := mux.Vars(r)
+	applicationID := vars["applicationID"]
+
+	application, err := s.gitRepo.GetApplication(tenantID, applicationID)
+	if err != nil {
+		// TODO check if not found
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	microservices, err := s.gitRepo.GetMicroservices(tenantID, applicationID)
+	utils.RespondWithJSON(w, http.StatusOK, platform.HttpResponseApplication2{
+		ID:            application.ID,
+		Name:          application.Name,
+		TenantID:      application.TenantID,
+		Environments:  application.Environments,
+		Microservices: microservices,
+	})
 }

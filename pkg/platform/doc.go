@@ -14,6 +14,14 @@ type HttpInputEnvironment struct {
 	ApplicationID string `json:"applicationId"`
 }
 
+type HttpResponseApplication2 struct {
+	ID            string                 `json:"id"`
+	Name          string                 `json:"name"`
+	TenantID      string                 `json:"tenantId"`
+	Environments  []HttpInputEnvironment `json:"environments"`
+	Microservices []HttpMicroserviceBase `json:"microservices"`
+}
+
 type HttpResponseApplication struct {
 	ID           string                 `json:"id"`
 	Name         string                 `json:"name"`
