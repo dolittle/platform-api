@@ -32,7 +32,7 @@ func (s *GitStorage) SaveMicroservice(tenantID string, applicationID string, env
 		return err
 	}
 
-	filename := fmt.Sprintf("%s/%s.json", dir, microserviceID)
+	filename := fmt.Sprintf("%s/ms_%s.json", dir, microserviceID)
 	err = ioutil.WriteFile(filename, data, 0644)
 	if err != nil {
 		fmt.Println("writeFile")
@@ -77,7 +77,7 @@ func (s *GitStorage) SaveMicroservice(tenantID string, applicationID string, env
 
 func (s *GitStorage) GetMicroservice(tenantID string, applicationID string, environment string, microserviceID string) ([]byte, error) {
 	dir := s.GetMicroserviceDirectory(tenantID, applicationID, environment)
-	filename := fmt.Sprintf("%s/%s.json", dir, microserviceID)
+	filename := fmt.Sprintf("%s/ms_%s.json", dir, microserviceID)
 	return ioutil.ReadFile(filename)
 }
 
@@ -103,6 +103,10 @@ func (s *GitStorage) GetMicroservices(tenantID string, applicationID string) ([]
 			return nil
 		}
 
+		if !strings.HasPrefix(info.Name(), "ms_") {
+			return nil
+		}
+
 		files = append(files, path)
 		return nil
 	})
@@ -113,6 +117,7 @@ func (s *GitStorage) GetMicroservices(tenantID string, applicationID string) ([]
 		return services, err
 	}
 
+	fmt.Println(files)
 	for _, filename := range files {
 		var service platform.HttpMicroserviceBase
 		b, _ := ioutil.ReadFile(filename)
