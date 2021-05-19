@@ -1,13 +1,12 @@
-package application
+package git
 
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
-
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
@@ -15,29 +14,22 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
-type gitRepo struct {
-	storage *platform.GitStorage
+func (s *GitStorage) GetApplicationDirectory(tenantID string, applicationID string) string {
+	return fmt.Sprintf("%s/%s/%s", s.Directory, tenantID, applicationID)
 }
 
-func NewGitRepo(storage *platform.GitStorage) *gitRepo {
-	return &gitRepo{
-		storage: storage,
-	}
-}
+func (s *GitStorage) SaveApplication(application platform.HttpResponseApplication) error {
+	applicationID := application.ID
+	tenantID := application.TenantID
+	data, _ := json.Marshal(application)
 
-func (s *gitRepo) getDirectory(tenantID string, applicationID string) string {
-	return fmt.Sprintf("%s/%s/%s", s.storage.Directory, tenantID, applicationID)
-}
-
-func (s *gitRepo) Write(tenantID string, applicationID string, data []byte) error {
-
-	w, err := s.storage.Repo.Worktree()
+	w, err := s.Repo.Worktree()
 	if err != nil {
 		return err
 	}
 
 	// TODO actually build structure
-	dir := s.getDirectory(tenantID, applicationID)
+	dir := s.GetApplicationDirectory(tenantID, applicationID)
 	err = os.MkdirAll(dir, 0755)
 	if err != nil {
 		return err
@@ -53,7 +45,7 @@ func (s *gitRepo) Write(tenantID string, applicationID string, data []byte) erro
 	// Adds the new file to the staging area.
 	// Need to remove the prefix
 	err = w.AddWithOptions(&git.AddOptions{
-		Path: strings.TrimPrefix(filename, s.storage.Directory+"/"),
+		Path: strings.TrimPrefix(filename, s.Directory+"/"),
 	})
 
 	if err != nil {
@@ -82,21 +74,32 @@ func (s *gitRepo) Write(tenantID string, applicationID string, data []byte) erro
 	}
 
 	// Prints the current HEAD to verify that all worked well.
-	_, err = s.storage.Repo.CommitObject(commit)
+	_, err = s.Repo.CommitObject(commit)
 	return err
 }
 
-func (s *gitRepo) Read(tenantID string, applicationID string) ([]byte, error) {
-	dir := s.getDirectory(tenantID, applicationID)
+func (s *GitStorage) GetApplication(tenantID string, applicationID string) (platform.HttpResponseApplication, error) {
+	dir := s.GetApplicationDirectory(tenantID, applicationID)
 	filename := fmt.Sprintf("%s/application.json", dir)
-	return ioutil.ReadFile(filename)
+	b, err := ioutil.ReadFile(filename)
+
+	var application platform.HttpResponseApplication
+	if err != nil {
+		return application, err
+	}
+
+	err = json.Unmarshal(b, &application)
+	if err != nil {
+		return application, err
+	}
+	return application, nil
 }
 
-func (s *gitRepo) GetAll(tenantID string) ([]platform.HttpResponseApplication, error) {
+func (s *GitStorage) GetApplications(tenantID string) ([]platform.HttpResponseApplication, error) {
 	files := []string{}
 
 	// TODO change
-	rootDirectory := s.storage.Directory + "/"
+	rootDirectory := s.Directory + "/"
 	// TODO change to fs when gone to 1.16
 	err := filepath.Walk(rootDirectory, func(path string, info os.FileInfo, err error) error {
 		if err != nil {

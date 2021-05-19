@@ -8,15 +8,16 @@ import (
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
 	"github.com/thoas/go-funk"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
-func NewService(gitStorage *platform.GitStorage, k8sDolittleRepo platform.K8sRepo) service {
+func NewService(gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo) service {
 	return service{
-		gitRepo:         NewGitRepo(gitStorage),
+		gitRepo:         gitRepo,
 		k8sDolittleRepo: k8sDolittleRepo,
 		//k8sClient:       k8sClient,
 	}
@@ -76,14 +77,11 @@ func (s *service) SaveEnvironment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	storageBytes, err := s.gitRepo.Read(tenantID, applicationID)
+	application, err := s.gitRepo.GetApplication(tenantID, applicationID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusBadRequest, "Not able to find application in the storage")
 		return
 	}
-
-	var application platform.HttpResponseApplication
-	json.Unmarshal(storageBytes, &application)
 
 	// TODO this is not going to work with custom domains.
 	// Simple logic to make sure the domainPrefix is not used
@@ -105,8 +103,8 @@ func (s *service) SaveEnvironment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	application.Environments = append(application.Environments, input)
-	storageBytes, _ = json.Marshal(application)
-	err = s.gitRepo.Write(tenantID, applicationID, storageBytes)
+
+	err = s.gitRepo.SaveApplication(application)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to write to storage")
 		return
@@ -132,7 +130,7 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = s.gitRepo.Read(input.TenantID, input.ID)
+	_, err = s.gitRepo.GetApplication(input.TenantID, input.ID)
 	if err == nil {
 		utils.RespondWithError(w, http.StatusBadRequest, "Application already exists")
 		return
@@ -146,8 +144,7 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		Environments: make([]platform.HttpInputEnvironment, 0),
 	}
 
-	storageBytes, _ := json.Marshal(application)
-	err = s.gitRepo.Write(input.TenantID, input.ID, storageBytes)
+	err = s.gitRepo.SaveApplication(application)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to write to storage")
 		return

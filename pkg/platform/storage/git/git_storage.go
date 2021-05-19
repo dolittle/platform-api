@@ -1,7 +1,6 @@
-package platform
+package git
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -60,12 +59,4 @@ func NewGitStorage(url string, directory string, privateKeyFile string) *GitStor
 	s.repo = r
 	s.Repo = r
 	return s
-}
-
-func (s *GitStorage) GetApplicationDirectory(tenantID string, applicationID string) string {
-	return fmt.Sprintf("%s/%s/%s", s.Directory, tenantID, applicationID)
-}
-
-func (s *GitStorage) GetMicroserviceDirectory(tenantID string, applicationID string) string {
-	return fmt.Sprintf("%s/%s/%s", s.Directory, tenantID, applicationID)
 }

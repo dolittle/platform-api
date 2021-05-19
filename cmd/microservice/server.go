@@ -9,6 +9,7 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/application"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice"
+	storage "github.com/dolittle-entropy/platform-api/pkg/platform/storage/git"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/tenant"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
@@ -48,7 +49,7 @@ var serverCMD = &cobra.Command{
 
 		k8sRepo := platform.NewK8sRepo(clientset, config)
 
-		gitStorage := platform.NewGitStorage(
+		gitStorage := storage.NewGitStorage(
 			"git@github.com:freshteapot/test-deploy-key.git",
 			"/tmp/dolittle-k8s",
 			// TODO fix this, then update deployment

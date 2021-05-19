@@ -1,13 +1,12 @@
-package microservice
+package git
 
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
-
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
@@ -15,29 +14,19 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
-type gitRepo struct {
-	storage *platform.GitStorage
+func (s *GitStorage) GetMicroserviceDirectory(tenantID string, applicationID string, environment string) string {
+	return fmt.Sprintf("%s/%s/%s/%s", s.Directory, tenantID, applicationID, strings.ToLower(environment))
 }
 
-func NewGitRepo(storage *platform.GitStorage) *gitRepo {
-	return &gitRepo{
-		storage: storage,
-	}
-}
-
-func (s *gitRepo) getDirectory(tenantID string, applicationID string, environment string) string {
-	return fmt.Sprintf("%s/%s/%s/%s", s.storage.Directory, tenantID, applicationID, strings.ToLower(environment))
-}
-
-func (s *gitRepo) Write(tenantID string, applicationID string, environment string, microserviceID string, data []byte) error {
-	w, err := s.storage.Repo.Worktree()
+func (s *GitStorage) SaveMicroservice(tenantID string, applicationID string, environment string, microserviceID string, data []byte) error {
+	w, err := s.Repo.Worktree()
 	if err != nil {
 		return err
 	}
 
 	// TODO actually build structure
 	// `{tenantID}/{applicationID}/{environment}/{microserviceID}.json`
-	dir := s.getDirectory(tenantID, applicationID, environment)
+	dir := s.GetMicroserviceDirectory(tenantID, applicationID, environment)
 	err = os.MkdirAll(dir, 0755)
 	if err != nil {
 		return err
@@ -53,7 +42,7 @@ func (s *gitRepo) Write(tenantID string, applicationID string, environment strin
 	// Adds the new file to the staging area.
 	// Need to remove the prefix
 	err = w.AddWithOptions(&git.AddOptions{
-		Path: strings.TrimPrefix(filename, s.storage.Directory+"/"),
+		Path: strings.TrimPrefix(filename, s.Directory+"/"),
 	})
 
 	if err != nil {
@@ -82,21 +71,21 @@ func (s *gitRepo) Write(tenantID string, applicationID string, environment strin
 	}
 
 	// Prints the current HEAD to verify that all worked well.
-	_, err = s.storage.Repo.CommitObject(commit)
+	_, err = s.Repo.CommitObject(commit)
 	return err
 }
 
-func (s *gitRepo) Read(tenantID string, applicationID string, environment string, microserviceID string) ([]byte, error) {
-	dir := s.getDirectory(tenantID, applicationID, environment)
+func (s *GitStorage) GetMicroservice(tenantID string, applicationID string, environment string, microserviceID string) ([]byte, error) {
+	dir := s.GetMicroserviceDirectory(tenantID, applicationID, environment)
 	filename := fmt.Sprintf("%s/%s.json", dir, microserviceID)
 	return ioutil.ReadFile(filename)
 }
 
-func (s *gitRepo) GetAll(tenantID string, applicationID string) ([]platform.HttpMicroserviceBase, error) {
+func (s *GitStorage) GetMicroservices(tenantID string, applicationID string) ([]platform.HttpMicroserviceBase, error) {
 	files := []string{}
 
 	// TODO change
-	rootDirectory := s.storage.GetApplicationDirectory(tenantID, applicationID)
+	rootDirectory := s.GetApplicationDirectory(tenantID, applicationID)
 	// TODO change to fs when gone to 1.16
 	err := filepath.Walk(rootDirectory, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
