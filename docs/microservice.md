@@ -3,6 +3,11 @@
 LISTEN_ON="localhost:8080" go run main.go microservice server --kube-config="/Users/freshteapot/.kube/config"
 ```
 
+# Build customers.json
+```sh
+cat azure.json | jq -r '[.|to_entries | .[] | select(.value.value.customer).value.value.customer] | unique_by(.guid)'
+```
+
 # Create microservice
 ## Base / Simple
 ```sh

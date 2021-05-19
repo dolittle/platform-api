@@ -188,3 +188,10 @@ type HttpResponsePodLog struct {
 	PodName        string `json:"podName"`
 	Logs           string `json:"logs"`
 }
+
+type TerraformCustomer struct {
+	Name                    string `json:"name"`
+	GUID                    string `json:"guid"`
+	AzureStorageAccountName string `json:"azure_storage_account_name"`
+	ContainerRegistryName   string `json:"container_registry_name"`
+}

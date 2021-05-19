@@ -157,9 +157,16 @@ func (s *service) GetLiveApplications(w http.ResponseWriter, r *http.Request) {
 	tenantID := r.Header.Get("Tenant-ID")
 
 	// TODO get tenant from syncing the terraform output into the repo (which we might have access to if we use the same repo)
+	tenantInfo, err := s.gitRepo.GetTenant(tenantID)
+	if err != nil {
+		// TODO handle not found
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	tenant := k8s.Tenant{
-		ID:   tenantID,
-		Name: "Customer-Chris",
+		ID:   tenantInfo.GUID,
+		Name: tenantInfo.Name,
 	}
 
 	if tenant.ID != "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3" {

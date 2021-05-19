@@ -5,6 +5,9 @@ import "github.com/dolittle-entropy/platform-api/pkg/platform"
 // TODO need a better name
 // Interface for writing data for the automation part of the platform
 type Repo interface {
+	SaveTenant(tenant platform.TerraformCustomer) error
+	GetTenant(tenantID string) (platform.TerraformCustomer, error)
+
 	GetApplication(tenantID string, applicationID string) (platform.HttpResponseApplication, error)
 	SaveApplication(application platform.HttpResponseApplication) error
 	GetApplications(tenantID string) ([]platform.HttpResponseApplication, error)
