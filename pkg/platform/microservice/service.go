@@ -162,13 +162,20 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *service) GetByID(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-
-	tenant := k8s.Tenant{
-		ID:   "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3",
-		Name: "Customer-Chris",
+	tenantID := r.Header.Get("Tenant-ID")
+	tenantInfo, err := s.gitRepo.GetTenant(tenantID)
+	if err != nil {
+		// TODO handle not found
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
+	tenant := k8s.Tenant{
+		ID:   tenantInfo.GUID,
+		Name: tenantInfo.Name,
+	}
+
+	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
 	environment := strings.ToLower(vars["environment"])
 	microserviceID := vars["microserviceID"]
@@ -191,14 +198,21 @@ func (s *service) GetByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *service) GetByApplicationID(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-
-	applicationID := vars["applicationID"]
+	tenantID := r.Header.Get("Tenant-ID")
+	tenantInfo, err := s.gitRepo.GetTenant(tenantID)
+	if err != nil {
+		// TODO handle not found
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 
 	tenant := k8s.Tenant{
-		ID:   "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3",
-		Name: "Customer-Chris",
+		ID:   tenantInfo.GUID,
+		Name: tenantInfo.Name,
 	}
+
+	vars := mux.Vars(r)
+	applicationID := vars["applicationID"]
 
 	data, err := s.gitRepo.GetMicroservices(tenant.ID, applicationID)
 

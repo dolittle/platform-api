@@ -13,15 +13,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// microserviceCmd represents the microservice command
 var buildCustomersCMD = &cobra.Command{
-	Use:   "build-customers",
-	Short: "Set customers in the repo",
+	Use:   "build-tenant-info",
+	Short: "Write tenant info into the git repo",
 	Long: `
 	You need  the output from terraform
 
 	terraform output -json
-	go run main.go microservice build-customers /Users/freshteapot/dolittle/git/Operations/Source/V3/Azure/azure.json
+	go run main.go microservice build-tenant-info /Users/freshteapot/dolittle/git/Operations/Source/V3/Azure/azure.json
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		pathToFile := args[0]
