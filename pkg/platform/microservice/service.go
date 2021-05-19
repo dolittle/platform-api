@@ -111,7 +111,7 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 			utils.RespondWithError(w, http.StatusInternalServerError, "Currently locked down to applicaiton 11b6cf47-5d9f-438f-8116-0d9828654657")
 			return
 		}
-
+		// TODO I cant decide if domainNamePrefix or SecretNamePrefix is better
 		if ms.Extra.Ingress.SecretNamePrefix == "" {
 			utils.RespondWithError(w, http.StatusBadRequest, "Missing extra.ingress.secretNamePrefix")
 			return
