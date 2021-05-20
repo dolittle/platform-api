@@ -9,6 +9,7 @@ require (
 	github.com/itchyny/gojq v0.12.3
 	github.com/justinas/alice v1.2.0
 	github.com/rs/cors v1.7.0
+	github.com/sirupsen/logrus v1.4.1
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/viper v1.7.1
 	github.com/thoas/go-funk v0.8.0

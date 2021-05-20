@@ -10,6 +10,7 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
 	gitStorage "github.com/dolittle-entropy/platform-api/pkg/platform/storage/git"
 	"github.com/itchyny/gojq"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -30,7 +31,9 @@ var buildCustomersCMD = &cobra.Command{
 			return
 		}
 
+		logrus.SetFormatter(&logrus.JSONFormatter{})
 		gitRepo := gitStorage.NewGitStorage(
+			logrus.WithField("context", "git-repo"),
 			"git@github.com:freshteapot/test-deploy-key.git",
 			"/tmp/dolittle-k8s",
 			"auto-dev",

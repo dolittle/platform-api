@@ -9,11 +9,12 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/application"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice"
-	storage "github.com/dolittle-entropy/platform-api/pkg/platform/storage/git"
+	gitStorage "github.com/dolittle-entropy/platform-api/pkg/platform/storage/git"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/tenant"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/rs/cors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"k8s.io/client-go/kubernetes"
@@ -48,7 +49,9 @@ var serverCMD = &cobra.Command{
 		router := mux.NewRouter()
 
 		k8sRepo := platform.NewK8sRepo(clientset, config)
-		gitStorage := storage.NewGitStorage(
+		logrus.SetFormatter(&logrus.JSONFormatter{})
+		gitRepo := gitStorage.NewGitStorage(
+			logrus.WithField("context", "git-repo"),
 			"git@github.com:freshteapot/test-deploy-key.git",
 			"/tmp/dolittle-k8s",
 			"auto-dev",
@@ -56,8 +59,8 @@ var serverCMD = &cobra.Command{
 			"/Users/freshteapot/dolittle/.ssh/test-deploy",
 		)
 
-		microserviceService := microservice.NewService(gitStorage, k8sRepo, clientset)
-		applicationService := application.NewService(gitStorage, k8sRepo)
+		microserviceService := microservice.NewService(gitRepo, k8sRepo, clientset)
+		applicationService := application.NewService(gitRepo, k8sRepo)
 		tenantService := tenant.NewService()
 
 		c := cors.New(cors.Options{

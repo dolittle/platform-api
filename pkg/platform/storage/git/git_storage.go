@@ -1,7 +1,6 @@
 package git
 
 import (
-	"log"
 	"os"
 	"time"
 
@@ -11,42 +10,47 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	gitSsh "github.com/go-git/go-git/v5/plumbing/transport/ssh"
+	"github.com/sirupsen/logrus"
 )
 
 type GitStorage struct {
-	repo      *git.Repository
-	directory string
-	Repo      *git.Repository
-	Directory string
+	logContext logrus.FieldLogger
+	Repo       *git.Repository
+	Directory  string
+	publicKeys *gitSsh.PublicKeys
 }
 
-func NewGitStorage(url string, directory string, branchName string, privateKeyFile string) *GitStorage {
+func NewGitStorage(logContext logrus.FieldLogger, url string, directory string, branchName string, privateKeyFile string) *GitStorage {
 	branch := plumbing.NewBranchReferenceName(branchName)
 
 	s := &GitStorage{
-		directory: directory,
-		Directory: directory,
+		logContext: logContext,
+		Directory:  directory,
 	}
 
 	_, err := os.Stat(privateKeyFile)
 	if err != nil {
-		log.Fatal(err)
+		s.logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Fatal("issue stat")
 	}
 
 	// Clone the given repository to the given directory
-	publicKeys, err := gitSsh.NewPublicKeysFromFile("git", privateKeyFile, "")
+	s.publicKeys, err = gitSsh.NewPublicKeysFromFile("git", privateKeyFile, "")
 	if err != nil {
-		log.Fatalf("generate publickeys failed: %s\n", err.Error())
+		s.logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Fatal("generate publickeys failed")
 	}
 
 	// This is not ideal
-	publicKeys.HostKeyCallback = ssh.InsecureIgnoreHostKey()
+	s.publicKeys.HostKeyCallback = ssh.InsecureIgnoreHostKey()
 
 	r, err := git.PlainClone(directory, false, &git.CloneOptions{
 		// The intended use of a GitHub personal access token is in replace of your password
 		// because access tokens can easily be revoked.
 		// https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/
-		Auth:          publicKeys,
+		Auth:          s.publicKeys,
 		URL:           url,
 		Progress:      os.Stdout,
 		ReferenceName: branch,
@@ -54,11 +58,15 @@ func NewGitStorage(url string, directory string, branchName string, privateKeyFi
 
 	if err != nil {
 		if err != git.ErrRepositoryAlreadyExists {
-			log.Fatalf("cloning repo: %s\n", err.Error())
+			s.logContext.WithFields(logrus.Fields{
+				"error": err,
+			}).Fatal("cloning repo")
 		}
 		r, err = git.PlainOpen(directory)
 		if err != nil {
-			log.Fatalf("repo exists, opening: %s\n", err.Error())
+			s.logContext.WithFields(logrus.Fields{
+				"error": err,
+			}).Fatal("repo exists")
 		}
 	}
 
@@ -78,7 +86,6 @@ func NewGitStorage(url string, directory string, branchName string, privateKeyFi
 	//	log.Fatalf("repo exists, unable to checkout branch: %s error %s\n", branchName, err.Error())
 	//}
 
-	s.repo = r
 	s.Repo = r
 	return s
 }
@@ -93,6 +100,10 @@ func (s *GitStorage) CommitAndPush(w *git.Worktree, msg string) error {
 	})
 
 	if err != nil {
+		s.logContext.WithFields(logrus.Fields{
+			"error": err,
+			"msg":   msg,
+		}).Error("Commit")
 		return err
 	}
 
@@ -100,13 +111,24 @@ func (s *GitStorage) CommitAndPush(w *git.Worktree, msg string) error {
 	_, err = s.Repo.CommitObject(commit)
 
 	if err != nil {
+		s.logContext.WithFields(logrus.Fields{
+			"error": err,
+			"msg":   msg,
+		}).Error("CommitObject")
 		return err
 	}
 
-	err = s.Repo.Push(&git.PushOptions{})
+	err = s.Repo.Push(&git.PushOptions{
+		Auth: s.publicKeys,
+	})
+
 	if err != nil {
 		//if err == git.NoErrAlreadyUpToDate {}
 		// If we have commited, this is a mistake
+		s.logContext.WithFields(logrus.Fields{
+			"error": err,
+			"msg":   msg,
+		}).Error("Push")
 		return err
 	}
 
@@ -117,13 +139,20 @@ func (s *GitStorage) Pull() error {
 	// This code might need to be alot more fancy
 	w, err := s.Repo.Worktree()
 	if err != nil {
-		// Maybe trigger fatal?
+		s.logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("Worktree")
 		return err
 	}
 
-	err = w.Pull(&git.PullOptions{})
+	err = w.Pull(&git.PullOptions{
+		Auth: s.publicKeys,
+	})
 	if err != nil {
 		// Maybe trigger fatal?
+		s.logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("Pull")
 		return err
 	}
 
