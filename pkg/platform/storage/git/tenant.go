@@ -6,11 +6,9 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	git "github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 func (s *GitStorage) GetTenantDirectory(tenantID string) string {
@@ -51,29 +49,18 @@ func (s *GitStorage) SaveTenant(tenant platform.TerraformCustomer) error {
 		return err
 	}
 
-	status, err := w.Status()
+	_, err = w.Status()
 	if err != nil {
 		fmt.Println("w.Status")
 		return err
 	}
-
-	fmt.Println(status)
-
-	commit, err := w.Commit("adding customer", &git.CommitOptions{
-		Author: &object.Signature{
-			Name:  "John Doe",
-			Email: "john@doe.org",
-			When:  time.Now(),
-		},
-	})
+	err = s.CommitAndPush(w, "Adding customer")
 
 	if err != nil {
 		return err
 	}
 
-	// Prints the current HEAD to verify that all worked well.
-	_, err = s.Repo.CommitObject(commit)
-	return err
+	return nil
 }
 
 func (s *GitStorage) GetTenant(tenantID string) (platform.TerraformCustomer, error) {

@@ -7,11 +7,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	git "github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 func (s *GitStorage) GetMicroserviceDirectory(tenantID string, applicationID string, environment string) string {
@@ -50,29 +48,19 @@ func (s *GitStorage) SaveMicroservice(tenantID string, applicationID string, env
 		return err
 	}
 
-	status, err := w.Status()
+	_, err = w.Status()
 	if err != nil {
 		fmt.Println("w.Status")
 		return err
 	}
 
-	fmt.Println(status)
-
-	commit, err := w.Commit("example go-git commit", &git.CommitOptions{
-		Author: &object.Signature{
-			Name:  "John Doe",
-			Email: "john@doe.org",
-			When:  time.Now(),
-		},
-	})
+	err = s.CommitAndPush(w, "upsert microservice")
 
 	if err != nil {
 		return err
 	}
 
-	// Prints the current HEAD to verify that all worked well.
-	_, err = s.Repo.CommitObject(commit)
-	return err
+	return nil
 }
 
 func (s *GitStorage) GetMicroservice(tenantID string, applicationID string, environment string, microserviceID string) ([]byte, error) {

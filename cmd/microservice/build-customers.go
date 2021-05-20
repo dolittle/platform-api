@@ -33,6 +33,7 @@ var buildCustomersCMD = &cobra.Command{
 		gitRepo := gitStorage.NewGitStorage(
 			"git@github.com:freshteapot/test-deploy-key.git",
 			"/tmp/dolittle-k8s",
+			"auto-dev",
 			// TODO fix this, then update deployment
 			"/Users/freshteapot/dolittle/.ssh/test-deploy",
 		)

@@ -1,6 +1,8 @@
 package storage
 
-import "github.com/dolittle-entropy/platform-api/pkg/platform"
+import (
+	"github.com/dolittle-entropy/platform-api/pkg/platform"
+)
 
 // TODO need a better name
 // Interface for writing data for the automation part of the platform

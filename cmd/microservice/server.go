@@ -48,10 +48,10 @@ var serverCMD = &cobra.Command{
 		router := mux.NewRouter()
 
 		k8sRepo := platform.NewK8sRepo(clientset, config)
-
 		gitStorage := storage.NewGitStorage(
 			"git@github.com:freshteapot/test-deploy-key.git",
 			"/tmp/dolittle-k8s",
+			"auto-dev",
 			// TODO fix this, then update deployment
 			"/Users/freshteapot/dolittle/.ssh/test-deploy",
 		)
