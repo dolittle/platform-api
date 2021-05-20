@@ -106,6 +106,12 @@ var serverCMD = &cobra.Command{
 		// kubectl auth can-i list pods --namespace application-11b6cf47-5d9f-438f-8116-0d9828654657 --as be194a45-24b4-4911-9c8d-37125d132b0b --as-group cc3d1c06-ffeb-488c-8b90-a4536c3e6dfa
 		router.Handle("/test/can-i", stdChain.ThenFunc(microserviceService.CanI)).Methods("POST")
 
+		// dev-web-adpator.application-{applicationID}.svc.local - kubernetes
+		// Lookup service not
+		router.Handle("/application/{applicationID}/businessmomentsadaptor/{microserviceID}/save", stdChain.ThenFunc(microserviceService.BusinessMomentsAdaptorSave)).Methods("POST", "OPTIONS")
+		router.Handle("/application/{applicationID}/businessmomentsadaptor/{microserviceID}/rawdata", stdChain.ThenFunc(microserviceService.BusinessMomentsAdaptorRawData)).Methods("GET", "OPTIONS")
+		router.Handle("/application/{applicationID}/businessmomentsadaptor/{microserviceID}/sync", stdChain.ThenFunc(microserviceService.BusinessMomentsAdaptorSync)).Methods("GET", "OPTIONS")
+
 		srv := &http.Server{
 			Handler: router,
 			//Addr:         "0.0.0.0:8080",

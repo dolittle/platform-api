@@ -265,7 +265,6 @@ func (r *K8sRepo) GetPodStatus(applicationID string, microserviceID string, envi
 		}
 
 		response.Microservice.Name = labelMap["microservice"]
-
 		containers := funk.Map(pod.Spec.Containers, func(container coreV1.Container) ImageInfo {
 			return ImageInfo{
 				Name:  container.Name,
@@ -353,4 +352,40 @@ func (r *K8sRepo) CanModifyApplication(tenantID string, applicationID string, us
 	}
 
 	return resp.Status.Allowed, nil
+}
+
+func (r *K8sRepo) GetMicroserviceDNS(applicationID string, microserviceID string) (string, error) {
+	client := r.k8sClient
+	ctx := context.TODO()
+	namespace := fmt.Sprintf("application-%s", applicationID)
+	services, err := client.CoreV1().Services(namespace).List(ctx, metaV1.ListOptions{})
+	if err != nil {
+		return "", err
+	}
+
+	found := false
+	var foundService coreV1.Service
+
+	for _, service := range services.Items {
+		_, ok := service.ObjectMeta.Labels["microservice"]
+		if !ok {
+			continue
+		}
+
+		if service.ObjectMeta.Annotations["dolittle.io/microservice-id"] == microserviceID {
+			found = true
+			foundService = service
+			break
+		}
+	}
+
+	if !found {
+		return "", errors.New("not-found")
+	}
+
+	// TODO return DNS not name
+	// Talks about needing to look up dns
+	// Poor mans approach which might not work for all cases
+	// curl dev-selfserviceweb.application-fe7736bb-57fc-4166-bb91-6954f4dd4eb7.svc.cluster.local
+	return fmt.Sprintf("%s.application-%s.svc.cluster.local", foundService.Name, applicationID), nil
 }
