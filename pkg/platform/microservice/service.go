@@ -229,13 +229,45 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	// I feel we shouldn't need namespace
 	applicationID := vars["applicationID"]
+	environment := strings.ToLower(vars["environment"])
 	microserviceID := vars["microserviceID"]
 	namespace := fmt.Sprintf("application-%s", applicationID)
 
-	err := s.simpleRepo.Delete(namespace, microserviceID)
+	tenantID := r.Header.Get("Tenant-ID")
+	userID := r.Header.Get("User-ID")
+	if tenantID == "" || userID == "" {
+		// If the middleware is enabled this shouldn't happen
+		utils.RespondWithError(w, http.StatusForbidden, "Tenant-ID and User-ID is missing from the headers")
+		return
+	}
+
+	// TODO remove when happy with things
+	if tenantID != "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3" || environment != "dev" {
+		utils.RespondWithError(w, http.StatusBadRequest, "Currently locked down to tenant 453e04a7-4f9d-42f2-b36c-d51fa2c83fa3 and environment Dev")
+		return
+	}
+
+	allowed, err := s.k8sDolittleRepo.CanModifyApplication(tenantID, applicationID, userID)
+
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if !allowed {
+		utils.RespondWithError(w, http.StatusForbidden, "You are not allowed to make this request")
+		return
+	}
+
+	err = s.simpleRepo.Delete(namespace, microserviceID)
 	fmt.Println("err", err)
-	utils.RespondWithJSON(w, http.StatusOK, map[string]string{
+	statusCode := http.StatusOK
+	if err != nil {
+		statusCode = http.StatusUnprocessableEntity
+	}
+	utils.RespondWithJSON(w, statusCode, map[string]string{
 		"namespace":       namespace,
+		"error":           err.Error(),
 		"application_id":  applicationID,
 		"microservice_id": microserviceID,
 		"action":          "Remove microservice",

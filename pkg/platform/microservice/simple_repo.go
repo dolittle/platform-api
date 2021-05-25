@@ -261,5 +261,5 @@ func (r simpleRepo) Delete(namespace string, microserviceID string) error {
 		return errors.New("todo")
 	}
 
-	return errors.New(fmt.Sprintf("Remove microserviceID %s", microserviceID))
+	return nil
 }
