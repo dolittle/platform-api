@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	"github.com/sirupsen/logrus"
 )
 
 func (s *GitStorage) GetStudioConfig(tenantID string) (platform.StudioConfig, error) {
@@ -15,12 +16,24 @@ func (s *GitStorage) GetStudioConfig(tenantID string) (platform.StudioConfig, er
 
 	var config platform.StudioConfig
 	if err != nil {
-		return config, err
+		s.logContext.WithFields(logrus.Fields{
+			"error":  err,
+			"method": "GetStudioConfig",
+		}).Error("lookup getting studio.json")
+		config.AutomationEnabled = false
+		config.AutomationEnvironments = make([]string, 0)
+		return config, nil
 	}
 
 	err = json.Unmarshal(b, &config)
 	if err != nil {
-		return config, err
+		s.logContext.WithFields(logrus.Fields{
+			"error":  err,
+			"method": "GetStudioConfig",
+		}).Error("parsing json")
+		config.AutomationEnabled = false
+		config.AutomationEnvironments = make([]string, 0)
+		return config, nil
 	}
 	return config, nil
 }
