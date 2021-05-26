@@ -1,16 +1,20 @@
 package git
 
 import (
+	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/ssh"
 
+	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	gitSsh "github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 )
 
 type GitStorage struct {
@@ -157,4 +161,31 @@ func (s *GitStorage) Pull() error {
 	}
 
 	return nil
+}
+
+func (s *GitStorage) IsAutomationEnabled(tenantID string, applicationID string, environment string) bool {
+	environment = strings.ToLower(environment)
+	studioConfig, err := s.GetStudioConfig(tenantID)
+	if err != nil {
+		// TODO maybe log this
+		return false
+	}
+
+	if !studioConfig.AutomationEnabled {
+		return false
+	}
+
+	key := fmt.Sprintf("%s/%s", applicationID, environment)
+	return funk.ContainsString(studioConfig.AutomationEnvironments, key)
+}
+
+func (s *GitStorage) CheckAutomationEnabledViaCustomer(config platform.StudioConfig, applicationID string, environment string) bool {
+	environment = strings.ToLower(environment)
+
+	if !config.AutomationEnabled {
+		return false
+	}
+
+	key := fmt.Sprintf("%s/%s", applicationID, environment)
+	return funk.ContainsString(config.AutomationEnvironments, key)
 }

@@ -51,13 +51,24 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO remove when happy with things
-	if tenantID != "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3" || input.Environment != "Dev" {
-		utils.RespondWithError(w, http.StatusBadRequest, "Currently locked down to tenant 453e04a7-4f9d-42f2-b36c-d51fa2c83fa3 and environment Dev")
+	applicationID := input.Dolittle.ApplicationID
+	environment := input.Environment
+
+	if !s.gitRepo.IsAutomationEnabled(tenantID, applicationID, environment) {
+		utils.RespondWithError(
+			w,
+			http.StatusBadRequest,
+			fmt.Sprintf(
+				"Tenant %s with application %s in environment %s does not allow changes via Studio",
+				tenantID,
+				applicationID,
+				environment,
+			),
+		)
 		return
 	}
 
-	applicationInfo, err := s.k8sDolittleRepo.GetApplication(input.Dolittle.ApplicationID)
+	applicationInfo, err := s.k8sDolittleRepo.GetApplication(applicationID)
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
 			fmt.Println(err)
@@ -66,7 +77,7 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		}
 
 		utils.RespondWithJSON(w, http.StatusNotFound, map[string]string{
-			"error": fmt.Sprintf("Application %s not found", input.Dolittle.ApplicationID),
+			"error": fmt.Sprintf("Application %s not found", applicationID),
 		})
 		return
 	}
@@ -241,9 +252,17 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO remove when happy with things
-	if tenantID != "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3" || environment != "dev" {
-		utils.RespondWithError(w, http.StatusBadRequest, "Currently locked down to tenant 453e04a7-4f9d-42f2-b36c-d51fa2c83fa3 and environment Dev")
+	if !s.gitRepo.IsAutomationEnabled(tenantID, applicationID, environment) {
+		utils.RespondWithError(
+			w,
+			http.StatusBadRequest,
+			fmt.Sprintf(
+				"Tenant %s with application %s in environment %s does not allow changes via Studio",
+				tenantID,
+				applicationID,
+				environment,
+			),
+		)
 		return
 	}
 
@@ -260,14 +279,15 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = s.simpleRepo.Delete(namespace, microserviceID)
-	fmt.Println("err", err)
+	errStr := ""
 	statusCode := http.StatusOK
 	if err != nil {
 		statusCode = http.StatusUnprocessableEntity
+		errStr = err.Error()
 	}
 	utils.RespondWithJSON(w, statusCode, map[string]string{
 		"namespace":       namespace,
-		"error":           err.Error(),
+		"error":           errStr,
 		"application_id":  applicationID,
 		"microservice_id": microserviceID,
 		"action":          "Remove microservice",

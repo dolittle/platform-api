@@ -61,8 +61,13 @@ func (s *service) SaveEnvironment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tenantID := applicationInfo.Tenant.ID
-	if tenantID != "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3" {
-		utils.RespondWithError(w, http.StatusBadRequest, "Currently locked down to tenant 453e04a7-4f9d-42f2-b36c-d51fa2c83fa3")
+	// This is ugly but will work "12343/"
+	if !s.gitRepo.IsAutomationEnabled(tenantID, applicationID, "") {
+		utils.RespondWithError(
+			w,
+			http.StatusBadRequest,
+			fmt.Sprintf("Tenant %s with application %s does not allow changes via Studio", tenantID, applicationID),
+		)
 		return
 	}
 
