@@ -7,11 +7,12 @@ type HttpInputApplication struct {
 }
 
 type HttpInputEnvironment struct {
-	Name          string `json:"name"`
-	DomainPrefix  string `json:"domainPrefix"`
-	Host          string `json:"host"`
-	TenantID      string `json:"tenantId"`
-	ApplicationID string `json:"applicationId"`
+	Name              string `json:"name"`
+	DomainPrefix      string `json:"domainPrefix"`
+	Host              string `json:"host"`
+	TenantID          string `json:"tenantId"`
+	ApplicationID     string `json:"applicationId"`
+	AutomationEnabled bool   `json:"automationEnabled"`
 }
 
 type HttpResponseApplication2 struct {
@@ -194,4 +195,9 @@ type TerraformCustomer struct {
 	GUID                    string `json:"guid"`
 	AzureStorageAccountName string `json:"azure_storage_account_name"`
 	ContainerRegistryName   string `json:"container_registry_name"`
+}
+
+type StudioConfig struct {
+	AutomationEnabled      bool     `json:"automation_enabled"` // Crude beginning of knowing if the customer allows  automation
+	AutomationEnvironments []string `json:"automation_environments"`
 }

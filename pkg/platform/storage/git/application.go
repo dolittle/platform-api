@@ -10,6 +10,7 @@ import (
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	git "github.com/go-git/go-git/v5"
+	"github.com/thoas/go-funk"
 )
 
 func (s *GitStorage) GetApplicationDirectory(tenantID string, applicationID string) string {
@@ -80,11 +81,23 @@ func (s *GitStorage) GetApplication(tenantID string, applicationID string) (plat
 	if err != nil {
 		return application, err
 	}
+
+	studioConfig, err := s.GetStudioConfig(tenantID)
+	if err != nil {
+		return application, err
+	}
+
+	// Sprinkle in if automation enabled
+	// I wonder if this should be in each applicaiton
+	application.Environments = funk.Map(application.Environments, func(e platform.HttpInputEnvironment) platform.HttpInputEnvironment {
+		e.AutomationEnabled = s.CheckAutomationEnabledViaCustomer(studioConfig, e.ApplicationID, e.Name)
+		return e
+	}).([]platform.HttpInputEnvironment)
 	return application, nil
 }
 
 func (s *GitStorage) GetApplications(tenantID string) ([]platform.HttpResponseApplication, error) {
-	files := []string{}
+	applicationIDs := []string{}
 
 	// TODO change
 	rootDirectory := s.Directory + "/"
@@ -101,11 +114,16 @@ func (s *GitStorage) GetApplications(tenantID string) ([]platform.HttpResponseAp
 		//	return filepath.SkipDir
 		//}
 
+		// /tmp/dolittle-k8s/453e04a7-4f9d-42f2-b36c-d51fa2c83fa3/11b6cf47-5d9f-438f-8116-0d9828654657/application.json
 		if info.Name() != "application.json" {
 			return nil
 		}
 
-		files = append(files, path)
+		parent := filepath.Dir(path)
+		parts := strings.Split(parent, "/")
+		applicationID := parts[len(parts)-1]
+
+		applicationIDs = append(applicationIDs, applicationID)
 		return nil
 	})
 
@@ -115,10 +133,11 @@ func (s *GitStorage) GetApplications(tenantID string) ([]platform.HttpResponseAp
 		return applications, err
 	}
 
-	for _, filename := range files {
-		var application platform.HttpResponseApplication
-		b, _ := ioutil.ReadFile(filename)
-		json.Unmarshal(b, &application)
+	for _, applicationID := range applicationIDs {
+		application, err := s.GetApplication(tenantID, applicationID)
+		if err != nil {
+			continue
+		}
 		applications = append(applications, application)
 	}
 

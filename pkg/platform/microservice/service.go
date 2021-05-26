@@ -51,13 +51,24 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO remove when happy with things
-	if tenantID != "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3" || input.Environment != "Dev" {
-		utils.RespondWithError(w, http.StatusBadRequest, "Currently locked down to tenant 453e04a7-4f9d-42f2-b36c-d51fa2c83fa3 and environment Dev")
+	applicationID := input.Dolittle.ApplicationID
+	environment := input.Environment
+
+	if !s.gitRepo.IsAutomationEnabled(tenantID, applicationID, environment) {
+		utils.RespondWithError(
+			w,
+			http.StatusBadRequest,
+			fmt.Sprintf(
+				"Tenant %s with application %s in environment %s does not allow changes via Studio",
+				tenantID,
+				applicationID,
+				environment,
+			),
+		)
 		return
 	}
 
-	applicationInfo, err := s.k8sDolittleRepo.GetApplication(input.Dolittle.ApplicationID)
+	applicationInfo, err := s.k8sDolittleRepo.GetApplication(applicationID)
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
 			fmt.Println(err)
@@ -66,7 +77,7 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		}
 
 		utils.RespondWithJSON(w, http.StatusNotFound, map[string]string{
-			"error": fmt.Sprintf("Application %s not found", input.Dolittle.ApplicationID),
+			"error": fmt.Sprintf("Application %s not found", applicationID),
 		})
 		return
 	}
@@ -229,13 +240,54 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	// I feel we shouldn't need namespace
 	applicationID := vars["applicationID"]
+	environment := strings.ToLower(vars["environment"])
 	microserviceID := vars["microserviceID"]
 	namespace := fmt.Sprintf("application-%s", applicationID)
 
-	err := s.simpleRepo.Delete(namespace, microserviceID)
-	fmt.Println("err", err)
-	utils.RespondWithJSON(w, http.StatusOK, map[string]string{
+	tenantID := r.Header.Get("Tenant-ID")
+	userID := r.Header.Get("User-ID")
+	if tenantID == "" || userID == "" {
+		// If the middleware is enabled this shouldn't happen
+		utils.RespondWithError(w, http.StatusForbidden, "Tenant-ID and User-ID is missing from the headers")
+		return
+	}
+
+	if !s.gitRepo.IsAutomationEnabled(tenantID, applicationID, environment) {
+		utils.RespondWithError(
+			w,
+			http.StatusBadRequest,
+			fmt.Sprintf(
+				"Tenant %s with application %s in environment %s does not allow changes via Studio",
+				tenantID,
+				applicationID,
+				environment,
+			),
+		)
+		return
+	}
+
+	allowed, err := s.k8sDolittleRepo.CanModifyApplication(tenantID, applicationID, userID)
+
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if !allowed {
+		utils.RespondWithError(w, http.StatusForbidden, "You are not allowed to make this request")
+		return
+	}
+
+	err = s.simpleRepo.Delete(namespace, microserviceID)
+	errStr := ""
+	statusCode := http.StatusOK
+	if err != nil {
+		statusCode = http.StatusUnprocessableEntity
+		errStr = err.Error()
+	}
+	utils.RespondWithJSON(w, statusCode, map[string]string{
 		"namespace":       namespace,
+		"error":           errStr,
 		"application_id":  applicationID,
 		"microservice_id": microserviceID,
 		"action":          "Remove microservice",
