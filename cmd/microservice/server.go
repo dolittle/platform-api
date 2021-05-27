@@ -124,6 +124,11 @@ var serverCMD = &cobra.Command{
 		router.Handle("/application/{applicationID}/environment/{environment}/businessmomentsadaptor/{microserviceID}/sync", stdChain.ThenFunc(microserviceService.BusinessMomentsAdaptorSync)).Methods("GET", "OPTIONS")
 
 		router.Handle(
+			"/businessmomententity",
+			stdChain.ThenFunc(businessMomentsService.SaveEntity),
+		).Methods("POST", "OPTIONS")
+
+		router.Handle(
 			"/businessmoment",
 			stdChain.ThenFunc(businessMomentsService.SaveMoment),
 		).Methods("POST", "OPTIONS")
@@ -131,6 +136,11 @@ var serverCMD = &cobra.Command{
 			"/application/{applicationID}/environment/{environment}/businessmoments",
 			stdChain.ThenFunc(businessMomentsService.GetMoments),
 		).Methods("GET", "OPTIONS")
+
+		router.Handle(
+			"/application/{applicationID}/environment/{environment}/businessmoments/microservice/{microserviceID}/entity/{entityID}",
+			stdChain.ThenFunc(businessMomentsService.DeleteEntity),
+		).Methods("DELETE", "OPTIONS")
 
 		router.Handle(
 			"/application/{applicationID}/environment/{environment}/businessmoments/microservice/{microserviceID}/moment/{momentID}",

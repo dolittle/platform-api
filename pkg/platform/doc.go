@@ -152,6 +152,7 @@ type HttpInputBusinessMomentAdaptorExtra struct {
 	Ingress      HttpInputSimpleIngress `json:"ingress"`
 	Connector    interface{}            `json:"connector"`
 	Moments      []BusinessMoment       `json:"moments"`
+	Entities     []Entity               `json:"entities"`
 }
 
 type HttpInputBusinessMomentAdaptorConnectorWebhook struct {
@@ -203,31 +204,40 @@ type StudioConfig struct {
 	AutomationEnvironments []string `json:"automation_environments"`
 }
 
+type Entity struct {
+	Name          string `json:"name"`
+	TypeID        string `json:"typeId"` // Should this be eventType, GUUID
+	IdForRetrival string `json:"idForRetrival"`
+	Filter        string `json:"filter"`
+	Transform     string `json:"transform"`
+}
+
 type BusinessMoment struct {
+	EntityID  string `json:"entityId"`
 	Name      string `json:"name"`
 	UUID      string `json:"uuid"`
-	Filter    string `json:"filter"`    // filter https://github.com/dolittle-entropy/no-code-experiment/blob/demo-prep/src/editor.svelte
-	Mapper    string `json:"mapper"`    // mapper https://github.com/dolittle-entropy/no-code-experiment/blob/demo-prep/src/editor.svelte
-	Transform string `json:"transform"` // businessMomentsMapper https://github.com/dolittle-entropy/no-code-experiment/blob/demo-prep/src/editor.svelte
+	Filter    string `json:"filter"`
+	Transform string `json:"transform"`
+}
+
+type HttpInputEntity struct {
+	ApplicationID  string `json:"applicationId"`
+	Environment    string `json:"environment"`
+	MicroserviceID string `json:"microserviceId"`
+	Entity         Entity `json:"entity"`
 }
 
 type HttpInputBusinessMoment struct {
-	ApplicationID  string         `json:"application_id"`
+	ApplicationID  string         `json:"applicationId"`
 	Environment    string         `json:"environment"`
-	MicroserviceID string         `json:"microservice_id"`
+	MicroserviceID string         `json:"microserviceId"`
 	Moment         BusinessMoment `json:"moment"`
-}
-
-type HttpInputBusinessMoments struct {
-	ApplicationID  string                    `json:"application_id"`
-	Environment    string                    `json:"environment"`
-	MicroserviceID string                    `json:"microservice_id"`
-	Moments        []HttpInputBusinessMoment `json:"moments"`
 }
 
 type HttpResponseBusinessMoments struct {
 	ApplicationID string `json:"application_id"`
 	Environment   string `json:"environment"`
 	//MicroserviceID string                    `json:"microservice_id"` // Could omit if empty
-	Moments []HttpInputBusinessMoment `json:"moments"`
+	Moments  []HttpInputBusinessMoment `json:"moments"`
+	Entities []HttpInputEntity         `json:"entities"`
 }
