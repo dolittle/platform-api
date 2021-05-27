@@ -61,7 +61,7 @@ curl -XPOST localhost:8080/microservice -d '
     "microserviceId": "9f6a613f-d969-4938-a1ac-5b7df199bc41"
   },
   "name": "Webhook-101",
-  "kind": "buisness-moments-adaptor",
+  "kind": "business-moments-adaptor",
   "environment": "Dev",
   "extra": {
     "headImage": "453e04a74f9d42f2b36cd51fa2c83fa3.azurecr.io/businessmomentsadaptor:latest",

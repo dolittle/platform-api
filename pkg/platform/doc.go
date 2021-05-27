@@ -96,7 +96,7 @@ type GitRepo interface {
 
 const (
 	Simple                 = "simple"
-	BusinessMomentsAdaptor = "buisness-moments-adaptor"
+	BusinessMomentsAdaptor = "business-moments-adaptor"
 	Webhook                = "webhook"
 )
 
@@ -151,6 +151,7 @@ type HttpInputBusinessMomentAdaptorExtra struct {
 	Runtimeimage string                 `json:"runtimeImage"`
 	Ingress      HttpInputSimpleIngress `json:"ingress"`
 	Connector    interface{}            `json:"connector"`
+	Moments      []BusinessMoment       `json:"moments"`
 }
 
 type HttpInputBusinessMomentAdaptorConnectorWebhook struct {
@@ -200,4 +201,33 @@ type TerraformCustomer struct {
 type StudioConfig struct {
 	AutomationEnabled      bool     `json:"automation_enabled"` // Crude beginning of knowing if the customer allows  automation
 	AutomationEnvironments []string `json:"automation_environments"`
+}
+
+type BusinessMoment struct {
+	Name      string `json:"name"`
+	UUID      string `json:"uuid"`
+	Filter    string `json:"filter"`    // filter https://github.com/dolittle-entropy/no-code-experiment/blob/demo-prep/src/editor.svelte
+	Mapper    string `json:"mapper"`    // mapper https://github.com/dolittle-entropy/no-code-experiment/blob/demo-prep/src/editor.svelte
+	Transform string `json:"transform"` // businessMomentsMapper https://github.com/dolittle-entropy/no-code-experiment/blob/demo-prep/src/editor.svelte
+}
+
+type HttpInputBusinessMoment struct {
+	ApplicationID  string         `json:"application_id"`
+	Environment    string         `json:"environment"`
+	MicroserviceID string         `json:"microservice_id"`
+	Moment         BusinessMoment `json:"moment"`
+}
+
+type HttpInputBusinessMoments struct {
+	ApplicationID  string                    `json:"application_id"`
+	Environment    string                    `json:"environment"`
+	MicroserviceID string                    `json:"microservice_id"`
+	Moments        []HttpInputBusinessMoment `json:"moments"`
+}
+
+type HttpResponseBusinessMoments struct {
+	ApplicationID string `json:"application_id"`
+	Environment   string `json:"environment"`
+	//MicroserviceID string                    `json:"microservice_id"` // Could omit if empty
+	Moments []HttpInputBusinessMoment `json:"moments"`
 }

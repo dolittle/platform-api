@@ -151,7 +151,7 @@ func (s *service) BusinessMomentsAdaptorSync(w http.ResponseWriter, r *http.Requ
 	url := fmt.Sprintf("%s/sync", strings.TrimSuffix(dnsSRV, "/"))
 
 	utils.RespondWithJSON(w, http.StatusOK, map[string]string{
-		"message":        "TODO businessmomentsadaptor sync buisness moments back to studio",
+		"message":        "TODO businessmomentsadaptor sync business moments back to studio",
 		"namespace":      namespace,
 		"applicationID":  applicationID,
 		"microserviceID": microserviceID,

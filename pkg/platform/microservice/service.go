@@ -285,6 +285,8 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 		statusCode = http.StatusUnprocessableEntity
 		errStr = err.Error()
 	}
+
+	// TODO need to delete from gitrepo
 	utils.RespondWithJSON(w, statusCode, map[string]string{
 		"namespace":       namespace,
 		"error":           errStr,

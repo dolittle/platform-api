@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"errors"
+
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 )
 
@@ -21,4 +23,13 @@ type Repo interface {
 	GetStudioConfig(tenantID string) (platform.StudioConfig, error)
 	IsAutomationEnabled(tenantID string, applicationID string, environment string) bool
 	CheckAutomationEnabledViaCustomer(customer platform.StudioConfig, applicationID string, environment string) bool
+
+	SaveBusinessMoment(tenantID string, input platform.HttpInputBusinessMoment) error
+	GetBusinessMoments(tenantID string, applicationID string, environment string) (platform.HttpResponseBusinessMoments, error)
+	DeleteBusinessMoment(tenantID string, applicationID string, environment string, microserviceID string, momentID string) error
 }
+
+var (
+	ErrNotFound                  = errors.New("not-found")
+	ErrNotBusinessMomentsAdaptor = errors.New("not-business-moments-adaptor")
+)
