@@ -9,6 +9,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+func (s *GitStorage) SaveStudioConfig(tenantID string, config platform.StudioConfig) error {
+	dir := s.GetTenantDirectory(tenantID)
+	filename := fmt.Sprintf("%s/studio.json", dir)
+	data, _ := json.Marshal(config)
+	return ioutil.WriteFile(filename, data, 0644)
+}
+
 func (s *GitStorage) GetStudioConfig(tenantID string) (platform.StudioConfig, error) {
 	dir := s.GetTenantDirectory(tenantID)
 	filename := fmt.Sprintf("%s/studio.json", dir)
@@ -20,6 +27,7 @@ func (s *GitStorage) GetStudioConfig(tenantID string) (platform.StudioConfig, er
 			"error":  err,
 			"method": "GetStudioConfig",
 		}).Error("lookup getting studio.json")
+		config.BuildOverwrite = true
 		config.AutomationEnabled = false
 		config.AutomationEnvironments = make([]string, 0)
 		return config, nil
@@ -31,9 +39,11 @@ func (s *GitStorage) GetStudioConfig(tenantID string) (platform.StudioConfig, er
 			"error":  err,
 			"method": "GetStudioConfig",
 		}).Error("parsing json")
+		config.BuildOverwrite = false
 		config.AutomationEnabled = false
 		config.AutomationEnvironments = make([]string, 0)
 		return config, nil
 	}
+
 	return config, nil
 }

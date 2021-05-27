@@ -72,7 +72,7 @@ func extractCustomers(data []byte) []platform.TerraformCustomer {
 	json.Unmarshal(data, &input)
 
 	// This would be easier if we added context in terraform
-	jqQuery := `[.|to_entries | .[] | select(.value.value.azure_storage_account_name).value.value] | unique_by(.guid) | .[]`
+	jqQuery := `[.|to_entries | .[] | select(.value.value.kind=="dolittle-customer").value.value] | unique_by(.guid) | .[]`
 	//query, err := gojq.Parse(`[.|to_entries | .[] | select(.value.value.customer).value.value.customer] | unique_by(.guid) | .[]`)
 	query, err := gojq.Parse(jqQuery)
 

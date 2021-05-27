@@ -200,6 +200,7 @@ type TerraformCustomer struct {
 }
 
 type StudioConfig struct {
+	BuildOverwrite         bool     `json:"build_overwrite"`
 	AutomationEnabled      bool     `json:"automation_enabled"` // Crude beginning of knowing if the customer allows  automation
 	AutomationEnvironments []string `json:"automation_environments"`
 }

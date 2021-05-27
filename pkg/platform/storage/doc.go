@@ -20,6 +20,7 @@ type Repo interface {
 	GetMicroservice(tenantID string, applicationID string, environment string, microserviceID string) ([]byte, error)
 	GetMicroservices(tenantID string, applicationID string) ([]platform.HttpMicroserviceBase, error)
 
+	SaveStudioConfig(tenantID string, config platform.StudioConfig) error
 	GetStudioConfig(tenantID string) (platform.StudioConfig, error)
 	IsAutomationEnabled(tenantID string, applicationID string, environment string) bool
 	CheckAutomationEnabledViaCustomer(customer platform.StudioConfig, applicationID string, environment string) bool
