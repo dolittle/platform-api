@@ -115,6 +115,7 @@ func (s *service) SaveEnvironment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO need to create network policy for the environment
 	utils.RespondWithJSON(w, http.StatusOK, input)
 }
 

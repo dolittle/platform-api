@@ -113,6 +113,12 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 			Name: applicationInfo.Name,
 		}
 
+		domainPrefix := "freshteapot-taco"
+		ingress := k8s.Ingress{
+			Host:       fmt.Sprintf("%s.dolittle.cloud", domainPrefix),
+			SecretName: fmt.Sprintf("%s-certificate", domainPrefix),
+		}
+
 		if tenant.ID != ms.Dolittle.TenantID {
 			utils.RespondWithError(w, http.StatusBadRequest, "tenant id in the system doe not match the one in the input")
 			return
@@ -122,20 +128,16 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 			utils.RespondWithError(w, http.StatusInternalServerError, "Currently locked down to applicaiton 11b6cf47-5d9f-438f-8116-0d9828654657")
 			return
 		}
+
 		// TODO I cant decide if domainNamePrefix or SecretNamePrefix is better
-		if ms.Extra.Ingress.SecretNamePrefix == "" {
-			utils.RespondWithError(w, http.StatusBadRequest, "Missing extra.ingress.secretNamePrefix")
-			return
-		}
+		//if ms.Extra.Ingress.SecretNamePrefix == "" {
+		//	utils.RespondWithError(w, http.StatusBadRequest, "Missing extra.ingress.secretNamePrefix")
+		//	return
+		//}
 
 		if ms.Extra.Ingress.Host == "" {
 			utils.RespondWithError(w, http.StatusBadRequest, "Missing extra.ingress.host")
 			return
-		}
-
-		ingress := k8s.Ingress{
-			Host:       ms.Extra.Ingress.Host,
-			SecretName: fmt.Sprintf("%s-certificate", ms.Extra.Ingress.SecretNamePrefix),
 		}
 
 		namespace := fmt.Sprintf("application-%s", application.ID)
