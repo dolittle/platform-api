@@ -280,12 +280,28 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.simpleRepo.Delete(namespace, microserviceID)
 	errStr := ""
 	statusCode := http.StatusOK
-	if err != nil {
-		statusCode = http.StatusUnprocessableEntity
-		errStr = err.Error()
+
+	// Hairy stuff
+	msData, err := s.gitRepo.GetMicroservice(tenantID, applicationID, environment, microserviceID)
+	if err == nil {
+		// LOG THIS
+		var whatKind platform.HttpInputMicroserviceKind
+		err = json.Unmarshal(msData, &whatKind)
+		if err == nil {
+			switch whatKind.Kind {
+			case platform.Simple:
+				err = s.simpleRepo.Delete(namespace, microserviceID)
+			case platform.BusinessMomentsAdaptor:
+				err = s.businessMomentsAdaptorRepo.Delete(namespace, microserviceID)
+			}
+
+			if err != nil {
+				statusCode = http.StatusUnprocessableEntity
+				errStr = err.Error()
+			}
+		}
 	}
 
 	// TODO need to delete from gitrepo

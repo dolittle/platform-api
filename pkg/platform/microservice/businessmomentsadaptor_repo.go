@@ -333,7 +333,7 @@ func (r businessMomentsAdaptorRepo) Delete(namespace string, microserviceID stri
 		return errors.New("todo")
 	}
 
-	return errors.New(fmt.Sprintf("Remove microserviceID %s", microserviceID))
+	return nil
 }
 
 func basicAuth(username, password string) string {
