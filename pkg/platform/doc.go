@@ -208,19 +208,19 @@ type StudioConfig struct {
 }
 
 type Entity struct {
-	Name          string `json:"name"`
-	TypeID        string `json:"typeId"` // Should this be eventType, GUUID
-	IdForRetrival string `json:"idForRetrival"`
-	Filter        string `json:"filter"`
-	Transform     string `json:"transform"`
+	Name              string `json:"name"`
+	EntityTypeID      string `json:"entityTypeId"`
+	IdNameForRetrival string `json:"idNameForRetrival"`
+	FilterCode        string `json:"filterCode"`
+	TransformCode     string `json:"transformCode"`
 }
 
 type BusinessMoment struct {
-	EntityID  string `json:"entityId"`
-	Name      string `json:"name"`
-	UUID      string `json:"uuid"`
-	Filter    string `json:"filter"`
-	Transform string `json:"transform"`
+	EntityTypeID   string `json:"entityTypeId"`
+	Name           string `json:"name"`
+	UUID           string `json:"uuid"`
+	EmbeddingCode  string `json:"embeddingCode"`
+	ProjectionCode string `json:"projectionCode"`
 }
 
 type HttpInputBusinessMomentEntity struct {

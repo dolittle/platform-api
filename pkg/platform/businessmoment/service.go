@@ -2,7 +2,6 @@ package businessmoment
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -66,6 +65,12 @@ func (s *service) DeleteMoment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = s.eventUpdateConfigmap(tenantID, applicationID, environment, microserviceID)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, "Something has gone wrong whilst updating business moments to microservice")
+		return
+	}
+
 	utils.RespondWithJSON(w, http.StatusOK, map[string]string{
 		"message":        "Moment removed",
 		"tenant_id":      tenantID,
@@ -113,6 +118,12 @@ func (s *service) DeleteEntity(w http.ResponseWriter, r *http.Request) {
 		// TODO add logContext
 		// TODO handle if error not found?
 		utils.RespondWithError(w, http.StatusInternalServerError, "Something has gone wrong")
+		return
+	}
+
+	err = s.eventUpdateConfigmap(tenantID, applicationID, environment, microserviceID)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, "Something has gone wrong whilst updating business moments to microservice")
 		return
 	}
 
@@ -230,7 +241,6 @@ func (s *service) SaveMoment(w http.ResponseWriter, r *http.Request) {
 	tenantID := r.Header.Get("Tenant-ID")
 	applicationID := input.ApplicationID
 
-	fmt.Println(applicationID, userID)
 	// TODO could be helper function
 	allowed, err := s.k8sDolittleRepo.CanModifyApplication(tenantID, applicationID, userID)
 	if err != nil {
@@ -269,6 +279,12 @@ func (s *service) SaveMoment(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// TODO add logContext
 		utils.RespondWithError(w, http.StatusInternalServerError, "Something has gone wrong")
+		return
+	}
+
+	err = s.eventUpdateConfigmap(tenantID, applicationID, input.Environment, input.MicroserviceID)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, "Something has gone wrong whilst updating business moments to microservice")
 		return
 	}
 
@@ -313,11 +329,14 @@ func (s *service) GetMoments(w http.ResponseWriter, r *http.Request) {
 
 func (s *service) eventUpdateConfigmap(tenantID string, applicationID string, environment string, microserviceID string) error {
 	logContext := s.logContext
+	environment = strings.ToLower(environment)
+
 	//  TODO this should be an event
 	data, err := s.gitRepo.GetBusinessMoments(tenantID, applicationID, environment)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
-			"error": err,
+			"error":  err,
+			"method": "s.gitRepo.GetBusinessMoments",
 		}).Error("issue updating configmap")
 		return err
 	}
@@ -326,7 +345,8 @@ func (s *service) eventUpdateConfigmap(tenantID string, applicationID string, en
 	if err != nil {
 		// TODO defend and make?
 		logContext.WithFields(logrus.Fields{
-			"error": err,
+			"error":  err,
+			"method": "s.k8sBusiessMomentRepo.GetBusinessMomentsConfigmap",
 		}).Error("issue updating configmap")
 		return err
 	}
@@ -336,7 +356,8 @@ func (s *service) eventUpdateConfigmap(tenantID string, applicationID string, en
 	if err != nil {
 		// TODO
 		logContext.WithFields(logrus.Fields{
-			"error": err,
+			"error":  err,
+			"method": "s.k8sBusiessMomentRepo.SaveBusinessMomentsConfigmap",
 		}).Error("issue updating configmap")
 		return err
 	}

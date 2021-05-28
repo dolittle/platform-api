@@ -75,7 +75,7 @@ func (r K8sRepo) GetBusinessMomentsConfigmap(
 			continue
 		}
 
-		if labelMap["environment"] != environment {
+		if strings.ToLower(labelMap["environment"]) != environment {
 			continue
 		}
 
@@ -95,10 +95,7 @@ func (r K8sRepo) GetBusinessMomentsConfigmap(
 	return foundConfigmap, nil
 }
 
-func (r K8sRepo) SaveBusinessMomentsConfigmap(
-	newConfigmap coreV1.ConfigMap,
-	data []byte,
-) error {
+func (r K8sRepo) SaveBusinessMomentsConfigmap(newConfigmap coreV1.ConfigMap, data []byte) error {
 	ctx := context.TODO()
 	client := r.k8sClient
 	annotationsMap := newConfigmap.GetObjectMeta().GetAnnotations()

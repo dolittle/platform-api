@@ -16,7 +16,7 @@ func (s *GitStorage) SaveBusinessMomentEntity(tenantID string, input platform.Ht
 		"application_id":  input.ApplicationID,
 		"environment":     input.Environment,
 		"microservice_id": input.MicroserviceID,
-		"entity_id":       input.Entity.TypeID,
+		"entity_id":       input.Entity.EntityTypeID,
 	})
 
 	// Lookup the microservice
@@ -44,7 +44,7 @@ func (s *GitStorage) SaveBusinessMomentEntity(tenantID string, input platform.Ht
 	}
 
 	index := funk.IndexOf(microservice.Extra.Entities, func(entity platform.Entity) bool {
-		return entity.TypeID == input.Entity.TypeID
+		return entity.EntityTypeID == input.Entity.EntityTypeID
 	})
 
 	if index != -1 {
@@ -281,7 +281,7 @@ func (s *GitStorage) DeleteBusinessMomentEntity(tenantID string, applicationID s
 	}
 
 	index := funk.IndexOf(microservice.Extra.Entities, func(entity platform.Entity) bool {
-		return entity.TypeID == entityID
+		return entity.EntityTypeID == entityID
 	})
 
 	if index == -1 {
@@ -289,7 +289,7 @@ func (s *GitStorage) DeleteBusinessMomentEntity(tenantID string, applicationID s
 	}
 	// Remove business moments
 	cleanedMoments := funk.Filter(microservice.Extra.Moments, func(moment platform.BusinessMoment) bool {
-		return moment.EntityID != entityID
+		return moment.EntityTypeID != entityID
 	}).([]platform.BusinessMoment)
 	microservice.Extra.Moments = cleanedMoments
 
