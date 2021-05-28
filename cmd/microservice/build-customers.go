@@ -12,6 +12,7 @@ import (
 	"github.com/itchyny/gojq"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var buildCustomersCMD = &cobra.Command{
@@ -24,6 +25,11 @@ var buildCustomersCMD = &cobra.Command{
 	go run main.go microservice build-tenant-info /Users/freshteapot/dolittle/git/Operations/Source/V3/Azure/azure.json
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
+		gitRepoBranch := viper.GetString("tools.server.gitRepo.branch")
+		if gitRepoBranch == "" {
+			panic("GIT_BRANCH required")
+		}
+
 		pathToFile := args[0]
 		b, err := ioutil.ReadFile(pathToFile)
 		if err != nil {
@@ -36,7 +42,7 @@ var buildCustomersCMD = &cobra.Command{
 			logrus.WithField("context", "git-repo"),
 			"git@github.com:freshteapot/test-deploy-key.git",
 			"/tmp/dolittle-k8s",
-			"auto-dev",
+			gitRepoBranch,
 			// TODO fix this, then update deployment
 			"/Users/freshteapot/dolittle/.ssh/test-deploy",
 		)
