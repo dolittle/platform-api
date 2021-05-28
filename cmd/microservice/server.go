@@ -30,6 +30,11 @@ var serverCMD = &cobra.Command{
 	fetch('http://localhost:8080/ping').then(d => d.text()).then(d=> console.log(d))
 `,
 	Run: func(cmd *cobra.Command, args []string) {
+		gitRepoBranch := viper.GetString("tools.server.gitRepo.branch")
+		if gitRepoBranch == "" {
+			panic("GIT_BRANCH required")
+		}
+
 		kubeconfig := viper.GetString("tools.server.kubeConfig")
 		// TODO hoist localhost into viper
 		config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
@@ -54,7 +59,7 @@ var serverCMD = &cobra.Command{
 			logrus.WithField("context", "git-repo"),
 			"git@github.com:freshteapot/test-deploy-key.git",
 			"/tmp/dolittle-k8s",
-			"auto-dev",
+			gitRepoBranch,
 			// TODO fix this, then update deployment
 			"/Users/freshteapot/dolittle/.ssh/test-deploy",
 		)

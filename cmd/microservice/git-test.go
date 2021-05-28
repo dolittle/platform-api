@@ -10,6 +10,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var gitTestCMD = &cobra.Command{
@@ -17,11 +18,15 @@ var gitTestCMD = &cobra.Command{
 	Short: "Test git",
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
+		gitRepoBranch := viper.GetString("tools.server.gitRepo.branch")
+		if gitRepoBranch == "" {
+			panic("GIT_BRANCH required")
+		}
 		gitRepo := gitStorage.NewGitStorage(
 			logrus.WithField("context", "git-repo"),
 			"git@github.com:freshteapot/test-deploy-key.git",
 			"/tmp/dolittle-k8s",
-			"auto-dev",
+			gitRepoBranch,
 			// TODO fix this, then update deployment
 			"/Users/freshteapot/dolittle/.ssh/test-deploy",
 		)

@@ -2,6 +2,7 @@ package microservice
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var RootCmd = &cobra.Command{
@@ -15,4 +16,6 @@ func init() {
 	RootCmd.AddCommand(buildCustomersCMD)
 	RootCmd.AddCommand(updateRepoCMD)
 	RootCmd.AddCommand(gitTestCMD)
+
+	viper.BindEnv("tools.server.gitRepo.branch", "GIT_BRANCH")
 }
