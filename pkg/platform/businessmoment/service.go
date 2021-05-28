@@ -8,15 +8,22 @@ import (
 	"strings"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/businessmomentsadaptor"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
+	"k8s.io/client-go/kubernetes"
 )
 
-func NewService(gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo) service {
+func NewService(logContext logrus.FieldLogger, gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClient *kubernetes.Clientset) service {
 	return service{
-		gitRepo:         gitRepo,
-		k8sDolittleRepo: k8sDolittleRepo}
+		logContext:           logContext,
+		gitRepo:              gitRepo,
+		k8sDolittleRepo:      k8sDolittleRepo,
+		k8sClient:            k8sClient,
+		k8sBusiessMomentRepo: businessmomentsadaptor.NewK8sRepo(k8sClient),
+	}
 }
 
 func (s *service) DeleteMoment(w http.ResponseWriter, r *http.Request) {
@@ -187,6 +194,12 @@ func (s *service) SaveEntity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = s.eventUpdateConfigmap(tenantID, input.ApplicationID, input.Environment, input.MicroserviceID)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, "Something has gone wrong whilst updating business moments to microservice")
+		return
+	}
+
 	utils.RespondWithJSON(w, http.StatusOK, input)
 }
 
@@ -296,4 +309,37 @@ func (s *service) GetMoments(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.RespondWithJSON(w, http.StatusOK, data)
+}
+
+func (s *service) eventUpdateConfigmap(tenantID string, applicationID string, environment string, microserviceID string) error {
+	logContext := s.logContext
+	//  TODO this should be an event
+	data, err := s.gitRepo.GetBusinessMoments(tenantID, applicationID, environment)
+	if err != nil {
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("issue updating configmap")
+		return err
+	}
+
+	configMap, err := s.k8sBusiessMomentRepo.GetBusinessMomentsConfigmap(applicationID, environment, microserviceID)
+	if err != nil {
+		// TODO defend and make?
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("issue updating configmap")
+		return err
+	}
+
+	dataBytes, _ := json.Marshal(data)
+	err = s.k8sBusiessMomentRepo.SaveBusinessMomentsConfigmap(configMap, dataBytes)
+	if err != nil {
+		// TODO
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("issue updating configmap")
+		return err
+	}
+
+	return nil
 }

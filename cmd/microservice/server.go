@@ -69,7 +69,7 @@ var serverCMD = &cobra.Command{
 		microserviceService := microservice.NewService(gitRepo, k8sRepo, clientset)
 		applicationService := application.NewService(gitRepo, k8sRepo)
 		tenantService := tenant.NewService()
-		businessMomentsService := businessmoment.NewService(gitRepo, k8sRepo)
+		businessMomentsService := businessmoment.NewService(logrus.WithField("context", "business-moments-service"), gitRepo, k8sRepo, clientset)
 
 		c := cors.New(cors.Options{
 			OptionsPassthrough: false,

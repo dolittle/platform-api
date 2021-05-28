@@ -18,6 +18,7 @@ type Repo interface {
 
 	SaveMicroservice(tenantID string, applicationID string, environment string, microserviceID string, data []byte) error
 	GetMicroservice(tenantID string, applicationID string, environment string, microserviceID string) ([]byte, error)
+	DeleteMicroservice(tenantID string, applicationID string, environment string, microserviceID string) error
 	GetMicroservices(tenantID string, applicationID string) ([]platform.HttpMicroserviceBase, error)
 
 	SaveStudioConfig(tenantID string, config platform.StudioConfig) error

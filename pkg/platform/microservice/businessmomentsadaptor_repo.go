@@ -16,6 +16,7 @@ import (
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/businessmomentsadaptor"
 	v1 "k8s.io/api/apps/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -76,7 +77,7 @@ func (r businessMomentsAdaptorRepo) Create(namespace string, tenant k8s.Tenant, 
 	configEnvVariables := k8s.NewEnvVariablesConfigmap(microservice)
 	configFiles := k8s.NewConfigFilesConfigmap(microservice)
 	configSecrets := k8s.NewEnvVariablesSecret(microservice)
-
+	configBusinessMoments := businessmomentsadaptor.NewBusinessMomentsConfigmap(microservice)
 	ingress.Spec.TLS = k8s.AddIngressTLS([]string{host}, secretName)
 	ingress.Spec.Rules = append(ingress.Spec.Rules, k8s.AddIngressRule(host, ingressRules))
 
@@ -155,6 +156,15 @@ func (r businessMomentsAdaptorRepo) Create(namespace string, tenant k8s.Tenant, 
 	}
 
 	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, configFiles, metaV1.CreateOptions{})
+	if err != nil {
+		if !k8serrors.IsAlreadyExists(err) {
+			log.Fatal(err)
+			return errors.New("issue")
+		}
+		fmt.Println("Skipping configFiles already exists")
+	}
+
+	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, configBusinessMoments, metaV1.CreateOptions{})
 	if err != nil {
 		if !k8serrors.IsAlreadyExists(err) {
 			log.Fatal(err)

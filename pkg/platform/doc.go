@@ -1,5 +1,7 @@
 package platform
 
+import "errors"
+
 type HttpInputApplication struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`
@@ -242,3 +244,7 @@ type HttpResponseBusinessMoments struct {
 	Moments  []HttpInputBusinessMoment       `json:"moments"`
 	Entities []HttpInputBusinessMomentEntity `json:"entities"`
 }
+
+var (
+	ErrNotFound = errors.New("not-found")
+)

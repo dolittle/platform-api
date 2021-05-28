@@ -289,6 +289,12 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO need to delete from gitrepo
+	err = s.gitRepo.DeleteMicroservice(tenantID, applicationID, environment, microserviceID)
+	if err != nil {
+		statusCode = http.StatusUnprocessableEntity
+		errStr = err.Error()
+	}
+
 	utils.RespondWithJSON(w, statusCode, map[string]string{
 		"namespace":       namespace,
 		"error":           errStr,
