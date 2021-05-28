@@ -29,7 +29,7 @@ type Repo interface {
 	GetBusinessMoments(tenantID string, applicationID string, environment string) (platform.HttpResponseBusinessMoments, error)
 	DeleteBusinessMoment(tenantID string, applicationID string, environment string, microserviceID string, momentID string) error
 
-	SaveBusinessMomentEntity(tenantID string, input platform.HttpInputEntity) error
+	SaveBusinessMomentEntity(tenantID string, input platform.HttpInputBusinessMomentEntity) error
 	DeleteBusinessMomentEntity(tenantID string, applicationID string, environment string, microserviceID string, entityID string) error
 }
 

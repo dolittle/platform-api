@@ -221,7 +221,7 @@ type BusinessMoment struct {
 	Transform string `json:"transform"`
 }
 
-type HttpInputEntity struct {
+type HttpInputBusinessMomentEntity struct {
 	ApplicationID  string `json:"applicationId"`
 	Environment    string `json:"environment"`
 	MicroserviceID string `json:"microserviceId"`
@@ -239,6 +239,6 @@ type HttpResponseBusinessMoments struct {
 	ApplicationID string `json:"application_id"`
 	Environment   string `json:"environment"`
 	//MicroserviceID string                    `json:"microservice_id"` // Could omit if empty
-	Moments  []HttpInputBusinessMoment `json:"moments"`
-	Entities []HttpInputEntity         `json:"entities"`
+	Moments  []HttpInputBusinessMoment       `json:"moments"`
+	Entities []HttpInputBusinessMomentEntity `json:"entities"`
 }

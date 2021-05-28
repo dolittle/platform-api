@@ -10,7 +10,7 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-func (s *GitStorage) SaveBusinessMomentEntity(tenantID string, input platform.HttpInputEntity) error {
+func (s *GitStorage) SaveBusinessMomentEntity(tenantID string, input platform.HttpInputBusinessMomentEntity) error {
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"tenat_id":        tenantID,
 		"application_id":  input.ApplicationID,
@@ -142,7 +142,7 @@ func (s *GitStorage) GetBusinessMoments(tenantID string, applicationID string, e
 		ApplicationID: applicationID,
 		Environment:   environment,
 		Moments:       make([]platform.HttpInputBusinessMoment, 0),
-		Entities:      make([]platform.HttpInputEntity, 0),
+		Entities:      make([]platform.HttpInputBusinessMomentEntity, 0),
 	}
 
 	for _, microservice := range microservices {
@@ -172,7 +172,7 @@ func (s *GitStorage) GetBusinessMoments(tenantID string, applicationID string, e
 
 		// Add entities
 		for _, entity := range businessMomentsAdaptor.Extra.Entities {
-			withInfo := platform.HttpInputEntity{
+			withInfo := platform.HttpInputBusinessMomentEntity{
 				ApplicationID:  applicationID,
 				Environment:    environment,
 				MicroserviceID: businessMomentsAdaptor.Dolittle.MicroserviceID,

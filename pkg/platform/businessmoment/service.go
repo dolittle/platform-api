@@ -120,7 +120,7 @@ func (s *service) DeleteEntity(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *service) SaveEntity(w http.ResponseWriter, r *http.Request) {
-	var input platform.HttpInputEntity
+	var input platform.HttpInputBusinessMomentEntity
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
