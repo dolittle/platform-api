@@ -61,6 +61,11 @@ func (s *service) SaveEnvironment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tenantID := applicationInfo.Tenant.ID
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
+	if !allowed {
+		return
+	}
+
 	// This is ugly but will work "12343/"
 	if !s.gitRepo.IsAutomationEnabled(tenantID, applicationID, "") {
 		utils.RespondWithError(
@@ -68,17 +73,6 @@ func (s *service) SaveEnvironment(w http.ResponseWriter, r *http.Request) {
 			http.StatusBadRequest,
 			fmt.Sprintf("Tenant %s with application %s does not allow changes via Studio", tenantID, applicationID),
 		)
-		return
-	}
-
-	allowed, err := s.k8sDolittleRepo.CanModifyApplication(tenantID, applicationInfo.ID, userID)
-	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	if !allowed {
-		utils.RespondWithError(w, http.StatusForbidden, "You are not allowed to make this request")
 		return
 	}
 
@@ -135,7 +129,7 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
-
+	// Today, we do not lookup access as we require the application rbac to be set, for now
 	_, err = s.gitRepo.GetApplication(input.TenantID, input.ID)
 	if err == nil {
 		utils.RespondWithError(w, http.StatusBadRequest, "Application already exists")
@@ -173,11 +167,6 @@ func (s *service) GetLiveApplications(w http.ResponseWriter, r *http.Request) {
 	tenant := k8s.Tenant{
 		ID:   tenantInfo.GUID,
 		Name: tenantInfo.Name,
-	}
-
-	if tenant.ID != "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3" {
-		utils.RespondWithError(w, http.StatusBadRequest, "Currently locked down to tenant 453e04a7-4f9d-42f2-b36c-d51fa2c83fa3")
-		return
 	}
 
 	liveApplications, err := s.k8sDolittleRepo.GetApplications(tenantID)

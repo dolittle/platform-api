@@ -49,11 +49,7 @@ func NewBusinessMomentsConfigmap(microservice k8s.Microservice) *coreV1.ConfigMa
 	}
 }
 
-func (r K8sRepo) GetBusinessMomentsConfigmap(
-	applicationID string,
-	environment string,
-	microserviceID string,
-) (coreV1.ConfigMap, error) {
+func (r K8sRepo) GetBusinessMomentsConfigmap(applicationID string, environment string, microserviceID string) (coreV1.ConfigMap, error) {
 	ctx := context.TODO()
 	client := r.k8sClient
 	namespace := fmt.Sprintf("application-%s", applicationID)

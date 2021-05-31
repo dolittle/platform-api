@@ -246,11 +246,10 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 	microserviceID := vars["microserviceID"]
 	namespace := fmt.Sprintf("application-%s", applicationID)
 
-	tenantID := r.Header.Get("Tenant-ID")
 	userID := r.Header.Get("User-ID")
-	if tenantID == "" || userID == "" {
-		// If the middleware is enabled this shouldn't happen
-		utils.RespondWithError(w, http.StatusForbidden, "Tenant-ID and User-ID is missing from the headers")
+	tenantID := r.Header.Get("Tenant-ID")
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
+	if !allowed {
 		return
 	}
 
@@ -265,18 +264,6 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 				environment,
 			),
 		)
-		return
-	}
-
-	allowed, err := s.k8sDolittleRepo.CanModifyApplication(tenantID, applicationID, userID)
-
-	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	if !allowed {
-		utils.RespondWithError(w, http.StatusForbidden, "You are not allowed to make this request")
 		return
 	}
 
@@ -323,6 +310,14 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 func (s *service) GetLiveByApplicationID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
+
+	userID := r.Header.Get("User-ID")
+	tenantID := r.Header.Get("Tenant-ID")
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
+	if !allowed {
+		return
+	}
+
 	application, err := s.k8sDolittleRepo.GetApplication(applicationID)
 	if err != nil {
 		// TODO change
@@ -354,9 +349,15 @@ func (s *service) GetPodStatus(w http.ResponseWriter, r *http.Request) {
 	microserviceID := vars["microserviceID"]
 	environment := strings.ToLower(vars["environment"])
 
+	userID := r.Header.Get("User-ID")
+	tenantID := r.Header.Get("Tenant-ID")
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
+	if !allowed {
+		return
+	}
+
 	status, err := s.k8sDolittleRepo.GetPodStatus(applicationID, microserviceID, environment)
 	if err != nil {
-		// TODO change
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -383,6 +384,13 @@ func (s *service) GetPodLogs(w http.ResponseWriter, r *http.Request) {
 	// TODO how to ignore?
 	if containerName == "" {
 		containerName = "head"
+	}
+
+	userID := r.Header.Get("User-ID")
+	tenantID := r.Header.Get("Tenant-ID")
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
+	if !allowed {
+		return
 	}
 
 	logData, err := s.k8sDolittleRepo.GetLogs(applicationID, containerName, podName)
