@@ -26,12 +26,18 @@ func NewService(logContext logrus.FieldLogger, gitRepo storage.Repo, k8sDolittle
 }
 
 func (s *service) DeleteMoment(w http.ResponseWriter, r *http.Request) {
-	// Maybe make this include a body
 	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
 	environment := strings.ToLower(vars["environment"])
 	microserviceID := vars["microserviceID"]
 	momentID := strings.ToLower(vars["momentID"])
+
+	logContext := s.logContext.WithFields(logrus.Fields{
+		"application_id":  applicationID,
+		"environment":     environment,
+		"microservice_id": microserviceID,
+		"moment_id":       momentID,
+	})
 
 	userID := r.Header.Get("User-ID")
 	tenantID := r.Header.Get("Tenant-ID")
@@ -42,8 +48,11 @@ func (s *service) DeleteMoment(w http.ResponseWriter, r *http.Request) {
 
 	err := s.gitRepo.DeleteBusinessMoment(tenantID, applicationID, environment, microserviceID, momentID)
 	if err != nil {
-		// TODO add logContext
 		// TODO handle if error not found?
+		logContext.WithFields(logrus.Fields{
+			"error":  err,
+			"method": "s.gitRepo.DeleteBusinessMoment",
+		}).Error("request")
 		utils.RespondWithError(w, http.StatusInternalServerError, "Something has gone wrong")
 		return
 	}
