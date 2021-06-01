@@ -110,6 +110,7 @@ func (s *service) SaveEnvironment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO need to create network policy for the environment
+	// https://app.asana.com/0/1200181647276434/1200407495881663/f
 	utils.RespondWithJSON(w, http.StatusOK, input)
 }
 

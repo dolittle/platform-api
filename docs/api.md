@@ -31,21 +31,36 @@ curl -XGET "localhost:8080/live/application/11b6cf47-5d9f-438f-8116-0d9828654657
 
 
 # BusinessMoments
-## Post
-
-
-```sh
-curl -XPOST localhost:8080/businessmoment -d '
+## BusinessMoment
+### Post
+```json
 {
   "applicationId": "11b6cf47-5d9f-438f-8116-0d9828654657",
   "environment": "Dev",
-  "microserviceId": "934789f9-c1c0-2f4e-acb4-49a3b59b7e50",
+  "microserviceId": "55adce7e-0aea-0346-bdfd-8ef06b91a953",
   "moment": {
     "name": "I am name",
     "uuid": "fake-uuid-123",
-    "filter": "filter func",
-    "mapper": "mapper func",
-    "transform": "transform func"
+    "embeddingCode": "embedding func",
+    "projectionCode": "projection func",
+    "entityTypeId": "fake-entity-1234"
   }
-}'
+}
+```
+
+## Entity
+### Post
+```
+{
+  "applicationId": "11b6cf47-5d9f-438f-8116-0d9828654657",
+  "environment": "Dev",
+  "microserviceId": "55adce7e-0aea-0346-bdfd-8ef06b91a953",
+  "entity": {
+    "entityTypeId": "fake-entity-123",
+    "idNameForRetrival": "id",
+    "name": "I am name",
+    "filterCode": "filter func",
+    "transformCode": "transform func"
+  }
+}
 ```
