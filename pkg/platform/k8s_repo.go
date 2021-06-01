@@ -315,6 +315,7 @@ func (r *K8sRepo) GetLogs(applicationID string, containerName string, podName st
 	return str, nil
 }
 
+// CanModifyApplication confirm user is in the tenant and application and if not set the http response
 func (r *K8sRepo) CanModifyApplicationWithResponse(w http.ResponseWriter, tenantID string, applicationID string, userID string) bool {
 	if tenantID == "" || userID == "" {
 		// If the middleware is enabled this shouldn't happen
@@ -322,7 +323,6 @@ func (r *K8sRepo) CanModifyApplicationWithResponse(w http.ResponseWriter, tenant
 		return false
 	}
 
-	// TODO could be helper function
 	allowed, err := r.CanModifyApplication(tenantID, applicationID, userID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
