@@ -225,15 +225,7 @@ func (s *GitStorage) DeleteBusinessMoment(tenantID string, applicationID string,
 		return nil
 	}
 
-	// Ugly but good enough
-	logContext.WithFields(logrus.Fields{
-		"count": len(microservice.Extra.Moments),
-	}).Info("Confirm array before")
 	microservice.Extra.Moments = append(microservice.Extra.Moments[:index], microservice.Extra.Moments[index+1:]...)
-	logContext.WithFields(logrus.Fields{
-		"count": len(microservice.Extra.Moments),
-	}).Info("Confirm array after")
-
 	data, _ := json.Marshal(microservice)
 	err = s.SaveMicroservice(tenantID, applicationID, environment, microservice.Dolittle.MicroserviceID, data)
 	if err != nil {
