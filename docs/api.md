@@ -28,3 +28,39 @@ curl -XGET "localhost:8080/live/application/11b6cf47-5d9f-438f-8116-0d9828654657
 ```sh
 curl -XGET "localhost:8080/live/application/11b6cf47-5d9f-438f-8116-0d9828654657/pod/dev-order-846fbc7776-x79r/logs" | jq
 ```
+
+
+# BusinessMoments
+## BusinessMoment
+### Post
+```json
+{
+  "applicationId": "11b6cf47-5d9f-438f-8116-0d9828654657",
+  "environment": "Dev",
+  "microserviceId": "55adce7e-0aea-0346-bdfd-8ef06b91a953",
+  "moment": {
+    "name": "I am name",
+    "uuid": "fake-uuid-123",
+    "embeddingCode": "embedding func",
+    "projectionCode": "projection func",
+    "entityTypeId": "fake-entity-1234"
+  }
+}
+```
+
+## Entity
+### Post
+```
+{
+  "applicationId": "11b6cf47-5d9f-438f-8116-0d9828654657",
+  "environment": "Dev",
+  "microserviceId": "55adce7e-0aea-0346-bdfd-8ef06b91a953",
+  "entity": {
+    "entityTypeId": "fake-entity-123",
+    "idNameForRetrival": "id",
+    "name": "I am name",
+    "filterCode": "filter func",
+    "transformCode": "transform func"
+  }
+}
+```

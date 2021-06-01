@@ -43,30 +43,9 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	tenantID := r.Header.Get("Tenant-ID")
 	userID := r.Header.Get("User-ID")
-	if tenantID == "" || userID == "" {
-		// If the middleware is enabled this shouldn't happen
-		utils.RespondWithError(w, http.StatusForbidden, "Tenant-ID and User-ID is missing from the headers")
-		return
-	}
-
 	applicationID := input.Dolittle.ApplicationID
 	environment := input.Environment
-
-	if !s.gitRepo.IsAutomationEnabled(tenantID, applicationID, environment) {
-		utils.RespondWithError(
-			w,
-			http.StatusBadRequest,
-			fmt.Sprintf(
-				"Tenant %s with application %s in environment %s does not allow changes via Studio",
-				tenantID,
-				applicationID,
-				environment,
-			),
-		)
-		return
-	}
 
 	applicationInfo, err := s.k8sDolittleRepo.GetApplication(applicationID)
 	if err != nil {
@@ -82,20 +61,28 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	allowed, err := s.k8sDolittleRepo.CanModifyApplication(tenantID, applicationInfo.ID, userID)
-	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	if !allowed {
-		utils.RespondWithError(w, http.StatusForbidden, "You are not allowed to make this request")
-		return
-	}
-
 	tenant := k8s.Tenant{
 		ID:   applicationInfo.Tenant.ID,
 		Name: applicationInfo.Tenant.Name,
+	}
+
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenant.ID, applicationID, userID)
+	if !allowed {
+		return
+	}
+
+	if !s.gitRepo.IsAutomationEnabled(tenant.ID, applicationID, environment) {
+		utils.RespondWithError(
+			w,
+			http.StatusBadRequest,
+			fmt.Sprintf(
+				"Tenant %s with application %s in environment %s does not allow changes via Studio",
+				tenant.ID,
+				applicationID,
+				environment,
+			),
+		)
+		return
 	}
 
 	switch input.Kind {
@@ -112,6 +99,12 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 			ID:   applicationInfo.ID,
 			Name: applicationInfo.Name,
 		}
+		// TODO replace this with something from the cluster or something from git
+		domainPrefix := "freshteapot-taco"
+		ingress := k8s.Ingress{
+			Host:       fmt.Sprintf("%s.dolittle.cloud", domainPrefix),
+			SecretName: fmt.Sprintf("%s-certificate", domainPrefix),
+		}
 
 		if tenant.ID != ms.Dolittle.TenantID {
 			utils.RespondWithError(w, http.StatusBadRequest, "tenant id in the system doe not match the one in the input")
@@ -122,20 +115,16 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 			utils.RespondWithError(w, http.StatusInternalServerError, "Currently locked down to applicaiton 11b6cf47-5d9f-438f-8116-0d9828654657")
 			return
 		}
+
 		// TODO I cant decide if domainNamePrefix or SecretNamePrefix is better
-		if ms.Extra.Ingress.SecretNamePrefix == "" {
-			utils.RespondWithError(w, http.StatusBadRequest, "Missing extra.ingress.secretNamePrefix")
-			return
-		}
+		//if ms.Extra.Ingress.SecretNamePrefix == "" {
+		//	utils.RespondWithError(w, http.StatusBadRequest, "Missing extra.ingress.secretNamePrefix")
+		//	return
+		//}
 
 		if ms.Extra.Ingress.Host == "" {
 			utils.RespondWithError(w, http.StatusBadRequest, "Missing extra.ingress.host")
 			return
-		}
-
-		ingress := k8s.Ingress{
-			Host:       ms.Extra.Ingress.Host,
-			SecretName: fmt.Sprintf("%s-certificate", ms.Extra.Ingress.SecretNamePrefix),
 		}
 
 		namespace := fmt.Sprintf("application-%s", application.ID)
@@ -244,11 +233,10 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 	microserviceID := vars["microserviceID"]
 	namespace := fmt.Sprintf("application-%s", applicationID)
 
-	tenantID := r.Header.Get("Tenant-ID")
 	userID := r.Header.Get("User-ID")
-	if tenantID == "" || userID == "" {
-		// If the middleware is enabled this shouldn't happen
-		utils.RespondWithError(w, http.StatusForbidden, "Tenant-ID and User-ID is missing from the headers")
+	tenantID := r.Header.Get("Tenant-ID")
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
+	if !allowed {
 		return
 	}
 
@@ -266,25 +254,37 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	allowed, err := s.k8sDolittleRepo.CanModifyApplication(tenantID, applicationID, userID)
-
-	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	if !allowed {
-		utils.RespondWithError(w, http.StatusForbidden, "You are not allowed to make this request")
-		return
-	}
-
-	err = s.simpleRepo.Delete(namespace, microserviceID)
 	errStr := ""
 	statusCode := http.StatusOK
+
+	// Hairy stuff
+	msData, err := s.gitRepo.GetMicroservice(tenantID, applicationID, environment, microserviceID)
+	if err == nil {
+		// LOG THIS
+		var whatKind platform.HttpInputMicroserviceKind
+		err = json.Unmarshal(msData, &whatKind)
+		if err == nil {
+			switch whatKind.Kind {
+			case platform.Simple:
+				err = s.simpleRepo.Delete(namespace, microserviceID)
+			case platform.BusinessMomentsAdaptor:
+				err = s.businessMomentsAdaptorRepo.Delete(namespace, microserviceID)
+			}
+
+			if err != nil {
+				statusCode = http.StatusUnprocessableEntity
+				errStr = err.Error()
+			}
+		}
+	}
+
+	// TODO need to delete from gitrepo
+	err = s.gitRepo.DeleteMicroservice(tenantID, applicationID, environment, microserviceID)
 	if err != nil {
 		statusCode = http.StatusUnprocessableEntity
 		errStr = err.Error()
 	}
+
 	utils.RespondWithJSON(w, statusCode, map[string]string{
 		"namespace":       namespace,
 		"error":           errStr,
@@ -297,6 +297,14 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 func (s *service) GetLiveByApplicationID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
+
+	userID := r.Header.Get("User-ID")
+	tenantID := r.Header.Get("Tenant-ID")
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
+	if !allowed {
+		return
+	}
+
 	application, err := s.k8sDolittleRepo.GetApplication(applicationID)
 	if err != nil {
 		// TODO change
@@ -328,9 +336,15 @@ func (s *service) GetPodStatus(w http.ResponseWriter, r *http.Request) {
 	microserviceID := vars["microserviceID"]
 	environment := strings.ToLower(vars["environment"])
 
+	userID := r.Header.Get("User-ID")
+	tenantID := r.Header.Get("Tenant-ID")
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
+	if !allowed {
+		return
+	}
+
 	status, err := s.k8sDolittleRepo.GetPodStatus(applicationID, microserviceID, environment)
 	if err != nil {
-		// TODO change
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -357,6 +371,13 @@ func (s *service) GetPodLogs(w http.ResponseWriter, r *http.Request) {
 	// TODO how to ignore?
 	if containerName == "" {
 		containerName = "head"
+	}
+
+	userID := r.Header.Get("User-ID")
+	tenantID := r.Header.Get("Tenant-ID")
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
+	if !allowed {
+		return
 	}
 
 	logData, err := s.k8sDolittleRepo.GetLogs(applicationID, containerName, podName)

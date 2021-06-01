@@ -16,6 +16,47 @@ func (s *GitStorage) GetMicroserviceDirectory(tenantID string, applicationID str
 	return fmt.Sprintf("%s/%s/%s/%s", s.Directory, tenantID, applicationID, strings.ToLower(environment))
 }
 
+func (s *GitStorage) DeleteMicroservice(tenantID string, applicationID string, environment string, microserviceID string) error {
+	w, err := s.Repo.Worktree()
+	if err != nil {
+		return err
+	}
+
+	dir := s.GetMicroserviceDirectory(tenantID, applicationID, environment)
+	filename := fmt.Sprintf("%s/ms_%s.json", dir, microserviceID)
+	err = os.Remove(filename)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	// Adds the new file to the staging area.
+	// Need to remove the prefix
+	err = w.AddWithOptions(&git.AddOptions{
+		Path: strings.TrimPrefix(filename, s.Directory+"/"),
+	})
+
+	if err != nil {
+		fmt.Println("w.Add")
+		return err
+	}
+
+	_, err = w.Status()
+	if err != nil {
+		fmt.Println("w.Status")
+		return err
+	}
+
+	err = s.CommitAndPush(w, "upsert microservice")
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
 func (s *GitStorage) SaveMicroservice(tenantID string, applicationID string, environment string, microserviceID string, data []byte) error {
 	w, err := s.Repo.Worktree()
 	if err != nil {

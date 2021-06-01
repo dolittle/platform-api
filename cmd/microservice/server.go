@@ -8,7 +8,9 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/middleware"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/application"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/businessmoment"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice"
+
 	gitStorage "github.com/dolittle-entropy/platform-api/pkg/platform/storage/git"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/tenant"
 	"github.com/gorilla/mux"
@@ -67,6 +69,7 @@ var serverCMD = &cobra.Command{
 		microserviceService := microservice.NewService(gitRepo, k8sRepo, clientset)
 		applicationService := application.NewService(gitRepo, k8sRepo)
 		tenantService := tenant.NewService()
+		businessMomentsService := businessmoment.NewService(logrus.WithField("context", "business-moments-service"), gitRepo, k8sRepo, clientset)
 
 		c := cors.New(cors.Options{
 			OptionsPassthrough: false,
@@ -116,9 +119,33 @@ var serverCMD = &cobra.Command{
 
 		// dev-web-adpator.application-{applicationID}.svc.local - kubernetes
 		// Lookup service not
-		router.Handle("/application/{applicationID}/businessmomentsadaptor/{microserviceID}/save", stdChain.ThenFunc(microserviceService.BusinessMomentsAdaptorSave)).Methods("POST", "OPTIONS")
-		router.Handle("/application/{applicationID}/businessmomentsadaptor/{microserviceID}/rawdata", stdChain.ThenFunc(microserviceService.BusinessMomentsAdaptorRawData)).Methods("GET", "OPTIONS")
-		router.Handle("/application/{applicationID}/businessmomentsadaptor/{microserviceID}/sync", stdChain.ThenFunc(microserviceService.BusinessMomentsAdaptorSync)).Methods("GET", "OPTIONS")
+		router.Handle("/application/{applicationID}/environment/{environment}/businessmomentsadaptor/{microserviceID}/save", stdChain.ThenFunc(microserviceService.BusinessMomentsAdaptorSave)).Methods("POST", "OPTIONS")
+		router.Handle("/application/{applicationID}/environment/{environment}/businessmomentsadaptor/{microserviceID}/rawdata", stdChain.ThenFunc(microserviceService.BusinessMomentsAdaptorRawData)).Methods("GET", "OPTIONS")
+		router.Handle("/application/{applicationID}/environment/{environment}/businessmomentsadaptor/{microserviceID}/sync", stdChain.ThenFunc(microserviceService.BusinessMomentsAdaptorSync)).Methods("GET", "OPTIONS")
+
+		router.Handle(
+			"/businessmomententity",
+			stdChain.ThenFunc(businessMomentsService.SaveEntity),
+		).Methods("POST", "OPTIONS")
+
+		router.Handle(
+			"/businessmoment",
+			stdChain.ThenFunc(businessMomentsService.SaveMoment),
+		).Methods("POST", "OPTIONS")
+		router.Handle(
+			"/application/{applicationID}/environment/{environment}/businessmoments",
+			stdChain.ThenFunc(businessMomentsService.GetMoments),
+		).Methods("GET", "OPTIONS")
+
+		router.Handle(
+			"/application/{applicationID}/environment/{environment}/businessmoments/microservice/{microserviceID}/entity/{entityID}",
+			stdChain.ThenFunc(businessMomentsService.DeleteEntity),
+		).Methods("DELETE", "OPTIONS")
+
+		router.Handle(
+			"/application/{applicationID}/environment/{environment}/businessmoments/microservice/{microserviceID}/moment/{momentID}",
+			stdChain.ThenFunc(businessMomentsService.DeleteMoment),
+		).Methods("DELETE", "OPTIONS")
 
 		srv := &http.Server{
 			Handler: router,

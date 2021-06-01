@@ -13,6 +13,7 @@ import (
 )
 
 func (s *service) handleBusinessMomentsAdaptor(w http.ResponseWriter, r *http.Request, inputBytes []byte, applicationInfo platform.Application) {
+	// Function assumes access check has taken place
 	var ms platform.HttpInputBusinessMomentAdaptorInfo
 	err := json.Unmarshal(inputBytes, &ms)
 	if err != nil {
@@ -26,19 +27,12 @@ func (s *service) handleBusinessMomentsAdaptor(w http.ResponseWriter, r *http.Re
 		Name: applicationInfo.Tenant.Name,
 	}
 
-	// TODO remove when happy with things
-	if tenant.ID != "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3" {
-		utils.RespondWithError(w, http.StatusBadRequest, "Currently locked down to tenant 453e04a7-4f9d-42f2-b36c-d51fa2c83fa3")
-		return
-	}
-	// TODO check tenantID with tenantID in the header
-
 	application := k8s.Application{
 		ID:   applicationInfo.ID,
 		Name: applicationInfo.Name,
 	}
 
-	// TODO get from list in the cluster
+	// TODO replace this with something from the cluster or something from git
 	domainPrefix := "freshteapot-taco"
 	ingress := k8s.Ingress{
 		Host:       fmt.Sprintf("%s.dolittle.cloud", domainPrefix),
@@ -55,8 +49,6 @@ func (s *service) handleBusinessMomentsAdaptor(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	//utils.RespondWithError(w, http.StatusBadRequest, "Before Create")
-	//return
 	namespace := fmt.Sprintf("application-%s", application.ID)
 	err = s.businessMomentsAdaptorRepo.Create(namespace, tenant, application, ingress, ms)
 	if err != nil {
@@ -151,7 +143,7 @@ func (s *service) BusinessMomentsAdaptorSync(w http.ResponseWriter, r *http.Requ
 	url := fmt.Sprintf("%s/sync", strings.TrimSuffix(dnsSRV, "/"))
 
 	utils.RespondWithJSON(w, http.StatusOK, map[string]string{
-		"message":        "TODO businessmomentsadaptor sync buisness moments back to studio",
+		"message":        "TODO businessmomentsadaptor sync business moments back to studio",
 		"namespace":      namespace,
 		"applicationID":  applicationID,
 		"microserviceID": microserviceID,

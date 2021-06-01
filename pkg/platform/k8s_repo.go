@@ -6,8 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
 
+	"github.com/dolittle-entropy/platform-api/pkg/utils"
 	"github.com/thoas/go-funk"
 	v1 "k8s.io/api/apps/v1"
 	authV1 "k8s.io/api/authorization/v1"
@@ -311,6 +313,28 @@ func (r *K8sRepo) GetLogs(applicationID string, containerName string, podName st
 	str := buf.String()
 
 	return str, nil
+}
+
+// CanModifyApplication confirm user is in the tenant and application and if not set the http response
+func (r *K8sRepo) CanModifyApplicationWithResponse(w http.ResponseWriter, tenantID string, applicationID string, userID string) bool {
+	if tenantID == "" || userID == "" {
+		// If the middleware is enabled this shouldn't happen
+		utils.RespondWithError(w, http.StatusForbidden, "Tenant-ID and User-ID is missing from the headers")
+		return false
+	}
+
+	allowed, err := r.CanModifyApplication(tenantID, applicationID, userID)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return false
+	}
+
+	if !allowed {
+		utils.RespondWithError(w, http.StatusForbidden, "You are not allowed to make this request")
+		return false
+	}
+
+	return true
 }
 
 // CanModifyApplication confirm user is in the tenant and application

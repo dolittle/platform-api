@@ -1,5 +1,7 @@
 package platform
 
+import "errors"
+
 type HttpInputApplication struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`
@@ -96,7 +98,7 @@ type GitRepo interface {
 
 const (
 	Simple                 = "simple"
-	BusinessMomentsAdaptor = "buisness-moments-adaptor"
+	BusinessMomentsAdaptor = "business-moments-adaptor"
 	Webhook                = "webhook"
 )
 
@@ -151,6 +153,8 @@ type HttpInputBusinessMomentAdaptorExtra struct {
 	Runtimeimage string                 `json:"runtimeImage"`
 	Ingress      HttpInputSimpleIngress `json:"ingress"`
 	Connector    interface{}            `json:"connector"`
+	Moments      []BusinessMoment       `json:"moments"`
+	Entities     []Entity               `json:"entities"`
 }
 
 type HttpInputBusinessMomentAdaptorConnectorWebhook struct {
@@ -198,6 +202,49 @@ type TerraformCustomer struct {
 }
 
 type StudioConfig struct {
+	BuildOverwrite         bool     `json:"build_overwrite"`
 	AutomationEnabled      bool     `json:"automation_enabled"` // Crude beginning of knowing if the customer allows  automation
 	AutomationEnvironments []string `json:"automation_environments"`
 }
+
+type Entity struct {
+	Name              string `json:"name"`
+	EntityTypeID      string `json:"entityTypeId"`
+	IdNameForRetrival string `json:"idNameForRetrival"`
+	FilterCode        string `json:"filterCode"`
+	TransformCode     string `json:"transformCode"`
+}
+
+type BusinessMoment struct {
+	EntityTypeID   string `json:"entityTypeId"`
+	Name           string `json:"name"`
+	UUID           string `json:"uuid"`
+	EmbeddingCode  string `json:"embeddingCode"`
+	ProjectionCode string `json:"projectionCode"`
+}
+
+type HttpInputBusinessMomentEntity struct {
+	ApplicationID  string `json:"applicationId"`
+	Environment    string `json:"environment"`
+	MicroserviceID string `json:"microserviceId"`
+	Entity         Entity `json:"entity"`
+}
+
+type HttpInputBusinessMoment struct {
+	ApplicationID  string         `json:"applicationId"`
+	Environment    string         `json:"environment"`
+	MicroserviceID string         `json:"microserviceId"`
+	Moment         BusinessMoment `json:"moment"`
+}
+
+type HttpResponseBusinessMoments struct {
+	ApplicationID string `json:"application_id"`
+	Environment   string `json:"environment"`
+	//MicroserviceID string                    `json:"microservice_id"` // Could omit if empty
+	Moments  []HttpInputBusinessMoment       `json:"moments"`
+	Entities []HttpInputBusinessMomentEntity `json:"entities"`
+}
+
+var (
+	ErrNotFound = errors.New("not-found")
+)
