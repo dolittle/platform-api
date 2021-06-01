@@ -43,30 +43,10 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	tenantID := r.Header.Get("Tenant-ID")
+	//tenantID := r.Header.Get("Tenant-ID")
 	userID := r.Header.Get("User-ID")
-	if tenantID == "" || userID == "" {
-		// If the middleware is enabled this shouldn't happen
-		utils.RespondWithError(w, http.StatusForbidden, "Tenant-ID and User-ID is missing from the headers")
-		return
-	}
-
 	applicationID := input.Dolittle.ApplicationID
 	environment := input.Environment
-
-	if !s.gitRepo.IsAutomationEnabled(tenantID, applicationID, environment) {
-		utils.RespondWithError(
-			w,
-			http.StatusBadRequest,
-			fmt.Sprintf(
-				"Tenant %s with application %s in environment %s does not allow changes via Studio",
-				tenantID,
-				applicationID,
-				environment,
-			),
-		)
-		return
-	}
 
 	applicationInfo, err := s.k8sDolittleRepo.GetApplication(applicationID)
 	if err != nil {
@@ -82,20 +62,28 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	allowed, err := s.k8sDolittleRepo.CanModifyApplication(tenantID, applicationInfo.ID, userID)
-	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	if !allowed {
-		utils.RespondWithError(w, http.StatusForbidden, "You are not allowed to make this request")
-		return
-	}
-
 	tenant := k8s.Tenant{
 		ID:   applicationInfo.Tenant.ID,
 		Name: applicationInfo.Tenant.Name,
+	}
+
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenant.ID, applicationID, userID)
+	if !allowed {
+		return
+	}
+
+	if !s.gitRepo.IsAutomationEnabled(tenant.ID, applicationID, environment) {
+		utils.RespondWithError(
+			w,
+			http.StatusBadRequest,
+			fmt.Sprintf(
+				"Tenant %s with application %s in environment %s does not allow changes via Studio",
+				tenant.ID,
+				applicationID,
+				environment,
+			),
+		)
+		return
 	}
 
 	switch input.Kind {
@@ -112,7 +100,7 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 			ID:   applicationInfo.ID,
 			Name: applicationInfo.Name,
 		}
-
+		// TODO replace this with something from the cluster or something from git
 		domainPrefix := "freshteapot-taco"
 		ingress := k8s.Ingress{
 			Host:       fmt.Sprintf("%s.dolittle.cloud", domainPrefix),
