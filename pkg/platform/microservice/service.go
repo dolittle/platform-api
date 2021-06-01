@@ -43,7 +43,6 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	//tenantID := r.Header.Get("Tenant-ID")
 	userID := r.Header.Get("User-ID")
 	applicationID := input.Dolittle.ApplicationID
 	environment := input.Environment
