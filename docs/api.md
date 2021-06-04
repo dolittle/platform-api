@@ -67,3 +67,11 @@ curl -XGET "localhost:8080/live/application/11b6cf47-5d9f-438f-8116-0d9828654657
 
 
 # Configmaps
+```sh
+curl -s -XGET \
+-H 'Content-Type: application/json' \
+-H 'x-shared-secret: change' \
+-H 'Tenant-ID: 453e04a7-4f9d-42f2-b36c-d51fa2c83fa3' \
+-H 'User-ID: be194a45-24b4-4911-9c8d-37125d132b0b' \
+localhost:8080/application/11b6cf47-5d9f-438f-8116-0d9828654657/configmap/hi | jq
+```
