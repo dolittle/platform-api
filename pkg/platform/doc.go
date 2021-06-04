@@ -43,6 +43,15 @@ type ImageInfo struct {
 	Name  string `json:"name"`
 }
 
+type ContainerStatusInfo struct {
+	Image    string `json:"image"`
+	Name     string `json:"name"`
+	Age      string `json:"age"`
+	State    string `json:"state"`
+	Started  string `json:"started"`
+	Restarts int32  `json:"restarts"`
+}
+
 type MicroserviceInfo struct {
 	Name        string      `json:"name"`
 	Environment string      `json:"environment"`
@@ -50,9 +59,9 @@ type MicroserviceInfo struct {
 	Images      []ImageInfo `json:"images"`
 }
 type PodInfo struct {
-	Name       string      `json:"name"`
-	Phase      string      `json:"phase"`
-	Containers []ImageInfo `json:"containers"`
+	Name       string                `json:"name"`
+	Phase      string                `json:"phase"`
+	Containers []ContainerStatusInfo `json:"containers"`
 }
 
 type PodData struct {

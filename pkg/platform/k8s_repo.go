@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 	"github.com/thoas/go-funk"
@@ -267,12 +268,32 @@ func (r *K8sRepo) GetPodStatus(applicationID string, microserviceID string, envi
 		}
 
 		response.Microservice.Name = labelMap["microservice"]
-		containers := funk.Map(pod.Spec.Containers, func(container coreV1.Container) ImageInfo {
-			return ImageInfo{
-				Name:  container.Name,
-				Image: container.Image,
+		// Interesting pod.Status.StartTime.String() might not be the same as pod.CreationTimestamp.Time
+		age := time.Since(pod.CreationTimestamp.Time)
+		started := pod.Status.StartTime.String() // Might need to change
+
+		containers := funk.Map(pod.Status.ContainerStatuses, func(container coreV1.ContainerStatus) ContainerStatusInfo {
+			// Not sure about this logic, I almost want to drop to the cli :P
+			// Much work to do here, to figure out the combinations we actually want to support, this will not be good enough
+			state := "waiting"
+
+			if *container.Started {
+				state = "starting"
 			}
-		}).([]ImageInfo)
+
+			if container.Ready {
+				state = "running"
+			}
+
+			return ContainerStatusInfo{
+				Name:     container.Name,
+				Image:    container.Image,
+				Restarts: container.RestartCount,
+				Started:  started,
+				Age:      age.String(),
+				State:    state,
+			}
+		}).([]ContainerStatusInfo)
 
 		response.Pods = append(response.Pods, PodInfo{
 			Phase:      string(pod.Status.Phase),
