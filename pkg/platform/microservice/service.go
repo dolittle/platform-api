@@ -404,20 +404,37 @@ func (s *service) GetConfigMap(w http.ResponseWriter, r *http.Request) {
 
 	userID := r.Header.Get("User-ID")
 	tenantID := r.Header.Get("Tenant-ID")
-	contentType := strings.ToLower(r.Header.Get("Content-Type"))
-	if contentType == "" {
-		contentType = "application/json"
+	//contentType := strings.ToLower(r.Header.Get("Content-Type"))
+
+	download := r.FormValue("download")
+	fileType := r.FormValue("fileType")
+	if fileType == "" {
+		fileType = "json"
 	}
 
-	filterContentType := funk.ContainsString([]string{
-		"application/json",
-		"application/yaml",
-	}, contentType)
+	filterFileType := funk.ContainsString([]string{
+		"json",
+		"yaml",
+	}, fileType)
 
-	if !filterContentType {
-		utils.RespondWithError(w, http.StatusBadRequest, "Content-Type header not supported")
+	if !filterFileType {
+		utils.RespondWithError(w, http.StatusBadRequest, "File-Type not supported")
 		return
 	}
+
+	//if contentType == "" {
+	//	contentType = "application/json"
+	//}
+
+	//filterContentType := funk.ContainsString([]string{
+	//	"application/json",
+	//	"application/yaml",
+	//}, contentType)
+	//
+	//if !filterContentType {
+	//	utils.RespondWithError(w, http.StatusBadRequest, "Content-Type header not supported")
+	//	return
+	//}
 
 	// Hmm this will let them see things they are not allowed to see.
 	// But it wont let them update it
@@ -445,13 +462,28 @@ func (s *service) GetConfigMap(w http.ResponseWriter, r *http.Request) {
 
 	output, _ := yaml.Marshal(configMap)
 
-	switch contentType {
-	case "application/json":
+	if download == "1" {
+		contentType := ""
+		switch fileType {
+		case "json":
+			contentType = "application/json"
+
+		case "yaml":
+			contentType = "application/yaml"
+		}
+
+		fileName := fmt.Sprintf("%s.%s", configMapName, fileType)
+		w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename=%s`, fileName))
+		w.Header().Set("Content-Type", contentType)
+	}
+
+	switch fileType {
+	case "json":
 		utils.RespondWithJSON(w, http.StatusOK, map[string]interface{}{
 			"json": configMap,
 			"yaml": string(output),
 		})
-	case "application/yaml":
+	case "yaml":
 		utils.RespondWithYAML(w, http.StatusOK, output)
 	}
 
