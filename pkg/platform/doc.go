@@ -99,7 +99,7 @@ type GitRepo interface {
 const (
 	Simple                 = "simple"
 	BusinessMomentsAdaptor = "business-moments-adaptor"
-	Webhook                = "webhook"
+	WebhookIngestor        = "webhook-ingestor"
 )
 
 type HttpInputMicroserviceKind struct {

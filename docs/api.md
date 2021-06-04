@@ -64,3 +64,6 @@ curl -XGET "localhost:8080/live/application/11b6cf47-5d9f-438f-8116-0d9828654657
   }
 }
 ```
+
+
+# Configmaps

@@ -91,60 +91,61 @@ var serverCMD = &cobra.Command{
 		})
 
 		// x-shared-secret not happy with this
-		stdChain := alice.New(c.Handler, middleware.LogTenantUser, middleware.RestrictHandlerWithHeaderName(sharedSecret, "x-shared-secret"), middleware.EnforceJSONHandler)
+		stdChainBase := alice.New(c.Handler, middleware.LogTenantUser, middleware.RestrictHandlerWithHeaderName(sharedSecret, "x-shared-secret"))
+		stdChainWithJSON := stdChainBase.Append(middleware.EnforceJSONHandler)
 
 		//router.NotFoundHandler = http.HandlerFunc(MyNotFound)
 
-		router.Handle("/microservice", stdChain.ThenFunc(microserviceService.Create)).Methods("POST", "OPTIONS")
-		router.Handle("/application", stdChain.ThenFunc(applicationService.Create)).Methods("POST", "OPTIONS")
-		router.Handle("/tenant", stdChain.ThenFunc(tenantService.Create)).Methods("POST", "OPTIONS")
-		router.Handle("/environment", stdChain.ThenFunc(applicationService.SaveEnvironment)).Methods("POST", "OPTIONS")
+		router.Handle("/microservice", stdChainWithJSON.ThenFunc(microserviceService.Create)).Methods("POST", "OPTIONS")
+		router.Handle("/application", stdChainWithJSON.ThenFunc(applicationService.Create)).Methods("POST", "OPTIONS")
+		router.Handle("/tenant", stdChainWithJSON.ThenFunc(tenantService.Create)).Methods("POST", "OPTIONS")
+		router.Handle("/environment", stdChainWithJSON.ThenFunc(applicationService.SaveEnvironment)).Methods("POST", "OPTIONS")
 
-		router.Handle("/application/{applicationID}/environment", stdChain.ThenFunc(applicationService.SaveEnvironment)).Methods("POST", "OPTIONS")
-		router.Handle("/application/{applicationID}/microservices", stdChain.ThenFunc(microserviceService.GetByApplicationID)).Methods("GET", "OPTIONS")
-		router.Handle("/application/{applicationID}", stdChain.ThenFunc(applicationService.GetByID)).Methods("GET", "OPTIONS")
-		router.Handle("/applications", stdChain.ThenFunc(applicationService.GetApplications)).Methods("GET", "OPTIONS")
+		router.Handle("/application/{applicationID}/environment", stdChainWithJSON.ThenFunc(applicationService.SaveEnvironment)).Methods("POST", "OPTIONS")
+		router.Handle("/application/{applicationID}/microservices", stdChainWithJSON.ThenFunc(microserviceService.GetByApplicationID)).Methods("GET", "OPTIONS")
+		router.Handle("/application/{applicationID}", stdChainWithJSON.ThenFunc(applicationService.GetByID)).Methods("GET", "OPTIONS")
+		router.Handle("/applications", stdChainWithJSON.ThenFunc(applicationService.GetApplications)).Methods("GET", "OPTIONS")
 
-		router.Handle("/application/{applicationID}/environment/{environment}/microservice/{microserviceID}", stdChain.ThenFunc(microserviceService.GetByID)).Methods("GET", "OPTIONS")
-		router.Handle("/application/{applicationID}/environment/{environment}/microservice/{microserviceID}", stdChain.ThenFunc(microserviceService.Delete)).Methods("DELETE", "OPTIONS")
+		router.Handle("/application/{applicationID}/environment/{environment}/microservice/{microserviceID}", stdChainWithJSON.ThenFunc(microserviceService.GetByID)).Methods("GET", "OPTIONS")
+		router.Handle("/application/{applicationID}/environment/{environment}/microservice/{microserviceID}", stdChainWithJSON.ThenFunc(microserviceService.Delete)).Methods("DELETE", "OPTIONS")
 
-		router.Handle("/live/applications", stdChain.ThenFunc(applicationService.GetLiveApplications)).Methods("GET", "OPTIONS")
+		router.Handle("/live/applications", stdChainWithJSON.ThenFunc(applicationService.GetLiveApplications)).Methods("GET", "OPTIONS")
 
-		router.Handle("/live/application/{applicationID}/microservices", stdChain.ThenFunc(microserviceService.GetLiveByApplicationID)).Methods("GET", "OPTIONS")
-		router.Handle("/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/podstatus", stdChain.ThenFunc(microserviceService.GetPodStatus)).Methods("GET", "OPTIONS")
-		router.Handle("/live/application/{applicationID}/pod/{podName}/logs", stdChain.ThenFunc(microserviceService.GetPodLogs)).Methods("GET", "OPTIONS")
+		router.Handle("/live/application/{applicationID}/microservices", stdChainWithJSON.ThenFunc(microserviceService.GetLiveByApplicationID)).Methods("GET", "OPTIONS")
+		router.Handle("/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/podstatus", stdChainWithJSON.ThenFunc(microserviceService.GetPodStatus)).Methods("GET", "OPTIONS")
+		router.Handle("/live/application/{applicationID}/configmap/{configMapName}", stdChainBase.ThenFunc(microserviceService.GetConfigMap)).Methods("GET", "OPTIONS")
 
 		// kubectl auth can-i list pods --namespace application-11b6cf47-5d9f-438f-8116-0d9828654657 --as be194a45-24b4-4911-9c8d-37125d132b0b --as-group cc3d1c06-ffeb-488c-8b90-a4536c3e6dfa
-		router.Handle("/test/can-i", stdChain.ThenFunc(microserviceService.CanI)).Methods("POST")
+		router.Handle("/test/can-i", stdChainWithJSON.ThenFunc(microserviceService.CanI)).Methods("POST")
 
 		// dev-web-adpator.application-{applicationID}.svc.local - kubernetes
 		// Lookup service not
-		router.Handle("/application/{applicationID}/environment/{environment}/businessmomentsadaptor/{microserviceID}/save", stdChain.ThenFunc(microserviceService.BusinessMomentsAdaptorSave)).Methods("POST", "OPTIONS")
-		router.Handle("/application/{applicationID}/environment/{environment}/businessmomentsadaptor/{microserviceID}/rawdata", stdChain.ThenFunc(microserviceService.BusinessMomentsAdaptorRawData)).Methods("GET", "OPTIONS")
-		router.Handle("/application/{applicationID}/environment/{environment}/businessmomentsadaptor/{microserviceID}/sync", stdChain.ThenFunc(microserviceService.BusinessMomentsAdaptorSync)).Methods("GET", "OPTIONS")
+		router.Handle("/application/{applicationID}/environment/{environment}/businessmomentsadaptor/{microserviceID}/save", stdChainWithJSON.ThenFunc(microserviceService.BusinessMomentsAdaptorSave)).Methods("POST", "OPTIONS")
+		router.Handle("/application/{applicationID}/environment/{environment}/businessmomentsadaptor/{microserviceID}/rawdata", stdChainWithJSON.ThenFunc(microserviceService.BusinessMomentsAdaptorRawData)).Methods("GET", "OPTIONS")
+		router.Handle("/application/{applicationID}/environment/{environment}/businessmomentsadaptor/{microserviceID}/sync", stdChainWithJSON.ThenFunc(microserviceService.BusinessMomentsAdaptorSync)).Methods("GET", "OPTIONS")
 
 		router.Handle(
 			"/businessmomententity",
-			stdChain.ThenFunc(businessMomentsService.SaveEntity),
+			stdChainWithJSON.ThenFunc(businessMomentsService.SaveEntity),
 		).Methods("POST", "OPTIONS")
 
 		router.Handle(
 			"/businessmoment",
-			stdChain.ThenFunc(businessMomentsService.SaveMoment),
+			stdChainWithJSON.ThenFunc(businessMomentsService.SaveMoment),
 		).Methods("POST", "OPTIONS")
 		router.Handle(
 			"/application/{applicationID}/environment/{environment}/businessmoments",
-			stdChain.ThenFunc(businessMomentsService.GetMoments),
+			stdChainWithJSON.ThenFunc(businessMomentsService.GetMoments),
 		).Methods("GET", "OPTIONS")
 
 		router.Handle(
 			"/application/{applicationID}/environment/{environment}/businessmoments/microservice/{microserviceID}/entity/{entityID}",
-			stdChain.ThenFunc(businessMomentsService.DeleteEntity),
+			stdChainWithJSON.ThenFunc(businessMomentsService.DeleteEntity),
 		).Methods("DELETE", "OPTIONS")
 
 		router.Handle(
 			"/application/{applicationID}/environment/{environment}/businessmoments/microservice/{microserviceID}/moment/{momentID}",
-			stdChain.ThenFunc(businessMomentsService.DeleteMoment),
+			stdChainWithJSON.ThenFunc(businessMomentsService.DeleteMoment),
 		).Methods("DELETE", "OPTIONS")
 
 		srv := &http.Server{

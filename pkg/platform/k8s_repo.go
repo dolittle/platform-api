@@ -413,3 +413,14 @@ func (r *K8sRepo) GetMicroserviceDNS(applicationID string, microserviceID string
 	// curl dev-selfserviceweb.application-fe7736bb-57fc-4166-bb91-6954f4dd4eb7.svc.cluster.local
 	return fmt.Sprintf("%s.application-%s.svc.cluster.local", foundService.Name, applicationID), nil
 }
+
+func (r *K8sRepo) GetConfigMap(applicationID string, name string) (*coreV1.ConfigMap, error) {
+	client := r.k8sClient
+	ctx := context.TODO()
+	namespace := fmt.Sprintf("application-%s", applicationID)
+	configMap, err := client.CoreV1().ConfigMaps(namespace).Get(ctx, name, metaV1.GetOptions{})
+	if err != nil {
+		return configMap, err
+	}
+	return configMap, nil
+}

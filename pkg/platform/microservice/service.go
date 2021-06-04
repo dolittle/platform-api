@@ -12,8 +12,10 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
+	"github.com/thoas/go-funk"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/yaml"
 )
 
 func NewService(gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClient *kubernetes.Clientset) service {
@@ -393,6 +395,66 @@ func (s *service) GetPodLogs(w http.ResponseWriter, r *http.Request) {
 		PodName:        podName,
 		Logs:           logData,
 	})
+}
+
+func (s *service) GetConfigMap(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	applicationID := vars["applicationID"]
+	configMapName := vars["configMapName"]
+
+	userID := r.Header.Get("User-ID")
+	tenantID := r.Header.Get("Tenant-ID")
+	contentType := strings.ToLower(r.Header.Get("Content-Type"))
+	if contentType == "" {
+		contentType = "application/json"
+	}
+
+	filterContentType := funk.ContainsString([]string{
+		"application/json",
+		"application/yaml",
+	}, contentType)
+
+	if !filterContentType {
+		utils.RespondWithError(w, http.StatusBadRequest, "Content-Type header not supported")
+		return
+	}
+
+	// Hmm this will let them see things they are not allowed to see.
+	// But it wont let them update it
+	// TODO when / if we allow update, we will need more protection
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
+	if !allowed {
+		return
+	}
+
+	configMap, err := s.k8sDolittleRepo.GetConfigMap(applicationID, configMapName)
+	if err != nil {
+		if !k8serrors.IsNotFound(err) {
+			fmt.Println(err)
+			utils.RespondWithError(w, http.StatusInternalServerError, "Something went wrong")
+			return
+		}
+
+		utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Config map %s not found in application %s", configMapName, applicationID))
+		return
+	}
+
+	// Little hack to work around https://github.com/kubernetes/client-go/issues/861
+	configMap.APIVersion = "v1"
+	configMap.Kind = "ConfigMap"
+
+	output, _ := yaml.Marshal(configMap)
+
+	switch contentType {
+	case "application/json":
+		utils.RespondWithJSON(w, http.StatusOK, map[string]interface{}{
+			"json": configMap,
+			"yaml": string(output),
+		})
+	case "application/yaml":
+		utils.RespondWithYAML(w, http.StatusOK, output)
+	}
+
 }
 
 func (s *service) CanI(w http.ResponseWriter, r *http.Request) {
