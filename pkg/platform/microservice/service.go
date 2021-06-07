@@ -12,8 +12,11 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
+	"github.com/thoas/go-funk"
+	authV1 "k8s.io/api/authorization/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/yaml"
 )
 
 func NewService(gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClient *kubernetes.Clientset) service {
@@ -395,11 +398,183 @@ func (s *service) GetPodLogs(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (s *service) GetConfigMap(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	applicationID := vars["applicationID"]
+	configMapName := vars["configMapName"]
+
+	userID := r.Header.Get("User-ID")
+	tenantID := r.Header.Get("Tenant-ID")
+	//contentType := strings.ToLower(r.Header.Get("Content-Type"))
+
+	download := r.FormValue("download")
+	fileType := r.FormValue("fileType")
+	if fileType == "" {
+		fileType = "json"
+	}
+
+	filterFileType := funk.ContainsString([]string{
+		"json",
+		"yaml",
+	}, fileType)
+
+	if !filterFileType {
+		utils.RespondWithError(w, http.StatusBadRequest, "File-Type not supported")
+		return
+	}
+
+	// Hmm this will let them see things they are not allowed to see.
+	// But it wont let them update it
+	// TODO when / if we allow update, we will need more protection
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
+	if !allowed {
+		return
+	}
+
+	configMap, err := s.k8sDolittleRepo.GetConfigMap(applicationID, configMapName)
+	if err != nil {
+		if !k8serrors.IsNotFound(err) {
+			fmt.Println(err)
+			utils.RespondWithError(w, http.StatusInternalServerError, "Something went wrong")
+			return
+		}
+
+		utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Config map %s not found in application %s", configMapName, applicationID))
+		return
+	}
+
+	// Little hack to work around https://github.com/kubernetes/client-go/issues/861
+	configMap.APIVersion = "v1"
+	configMap.Kind = "ConfigMap"
+
+	output, _ := yaml.Marshal(configMap)
+
+	if download == "1" {
+		contentType := ""
+		switch fileType {
+		case "json":
+			contentType = "application/json"
+
+		case "yaml":
+			contentType = "application/yaml"
+		}
+
+		fileName := fmt.Sprintf("%s.%s", configMapName, fileType)
+		w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename=%s`, fileName))
+		w.Header().Set("Content-Type", contentType)
+	}
+
+	switch fileType {
+	case "json":
+		utils.RespondWithJSON(w, http.StatusOK, configMap)
+	case "yaml":
+		utils.RespondWithYAML(w, http.StatusOK, output)
+	}
+
+}
+
+func (s *service) GetSecret(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	applicationID := vars["applicationID"]
+	secretName := vars["secretName"]
+
+	userID := r.Header.Get("User-ID")
+	tenantID := r.Header.Get("Tenant-ID")
+
+	download := r.FormValue("download")
+	fileType := r.FormValue("fileType")
+
+	// TODO today being very strict about we allow
+	poormansSecretCheck := funk.Contains([]string{
+		"-secret-env-variables",
+	}, func(filter string) bool {
+		return strings.HasSuffix(secretName, filter)
+	})
+
+	if !poormansSecretCheck {
+		utils.RespondWithError(w, http.StatusForbidden, "Secret endpoint is currently locked down to secrets supported by Dolittle microservices")
+		return
+	}
+
+	if fileType == "" {
+		fileType = "json"
+	}
+
+	filterFileType := funk.ContainsString([]string{
+		"json",
+		"yaml",
+	}, fileType)
+
+	if !filterFileType {
+		utils.RespondWithError(w, http.StatusBadRequest, "File-Type not supported")
+		return
+	}
+
+	// Hmm this will let them see things they are not allowed to see.
+	// But it wont let them update it
+	// TODO when / if we allow update, we will need more protection
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
+	if !allowed {
+		return
+	}
+
+	secret, err := s.k8sDolittleRepo.GetSecret(applicationID, secretName)
+	if err != nil {
+		if !k8serrors.IsNotFound(err) {
+			fmt.Println(err)
+			utils.RespondWithError(w, http.StatusInternalServerError, "Something went wrong")
+			return
+		}
+
+		utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Config map %s not found in application %s", secret, applicationID))
+		return
+	}
+
+	// Little hack to work around https://github.com/kubernetes/client-go/issues/861
+	secret.APIVersion = "v1"
+	secret.Kind = "Secret"
+
+	output, _ := yaml.Marshal(secret)
+
+	if download == "1" {
+		contentType := ""
+		switch fileType {
+		case "json":
+			contentType = "application/json"
+
+		case "yaml":
+			contentType = "application/yaml"
+		}
+
+		fileName := fmt.Sprintf("%s.%s", secret, fileType)
+		w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename=%s`, fileName))
+		w.Header().Set("Content-Type", contentType)
+	}
+
+	switch fileType {
+	case "json":
+		utils.RespondWithJSON(w, http.StatusOK, secret)
+	case "yaml":
+		utils.RespondWithYAML(w, http.StatusOK, output)
+	}
+
+}
+
 func (s *service) CanI(w http.ResponseWriter, r *http.Request) {
+	// To get fine control, we need to lookup the AD group which can be added via terrform
+	// TODO we do not create rbac roles today? meaning this look up will break.
+	// TODO the can access, wont work with new customers due to the rbac setup
+	// TODO bringing online the ad group from microsoft will allow us to check group access
 	type httpInput struct {
-		UserID        string `json:"user_id"`
-		TenantID      string `json:"tenant_id"`
-		ApplicationID string `json:"application_id"`
+		UserID            string `json:"user_id"`
+		TenantID          string `json:"tenant_id"`
+		Group             string `json:"group"`
+		ApplicationID     string `json:"application_id"`
+		ResourceAttribute struct {
+			Verb     string `json:"verb"`
+			Resource string `json:"resource"`
+			Name     string `json:"name"`
+		} `json:"resourceAttribute"`
 	}
 
 	b, err := ioutil.ReadAll(r.Body)
@@ -418,7 +593,21 @@ func (s *service) CanI(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	allowed, err := s.k8sDolittleRepo.CanModifyApplication(input.TenantID, input.ApplicationID, input.UserID)
+	attribute := authV1.ResourceAttributes{
+		Namespace: fmt.Sprintf("application-%s", input.ApplicationID),
+		Verb:      "list",
+		Resource:  "pods",
+	}
+
+	if input.ResourceAttribute.Resource != "" {
+		attribute.Resource = input.ResourceAttribute.Resource
+	}
+
+	if input.ResourceAttribute.Verb != "" {
+		attribute.Verb = input.ResourceAttribute.Verb
+	}
+
+	allowed, err := s.k8sDolittleRepo.CanModifyApplicationWithResourceAttributes(input.TenantID, input.ApplicationID, input.UserID, attribute)
 
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
