@@ -423,20 +423,6 @@ func (s *service) GetConfigMap(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//if contentType == "" {
-	//	contentType = "application/json"
-	//}
-
-	//filterContentType := funk.ContainsString([]string{
-	//	"application/json",
-	//	"application/yaml",
-	//}, contentType)
-	//
-	//if !filterContentType {
-	//	utils.RespondWithError(w, http.StatusBadRequest, "Content-Type header not supported")
-	//	return
-	//}
-
 	// Hmm this will let them see things they are not allowed to see.
 	// But it wont let them update it
 	// TODO when / if we allow update, we will need more protection
