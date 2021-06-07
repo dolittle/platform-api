@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var buildCustomersCMD = &cobra.Command{
+var buildTerraformInfoCMD = &cobra.Command{
 	Use:   "build-terraform-info",
 	Short: "Write tenant info into the git repo",
 	Long: `
