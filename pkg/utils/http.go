@@ -20,9 +20,3 @@ func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	w.WriteHeader(code)
 	w.Write(response)
 }
-
-func RespondWithYAML(w http.ResponseWriter, code int, payload []byte) {
-	w.Header().Set("Content-Type", "application/yaml")
-	w.WriteHeader(code)
-	w.Write(payload)
-}

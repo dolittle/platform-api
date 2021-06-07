@@ -466,10 +466,7 @@ func (s *service) GetConfigMap(w http.ResponseWriter, r *http.Request) {
 
 	switch fileType {
 	case "json":
-		utils.RespondWithJSON(w, http.StatusOK, map[string]interface{}{
-			"json": configMap,
-			"yaml": string(output),
-		})
+		utils.RespondWithJSON(w, http.StatusOK, configMap)
 	case "yaml":
 		utils.RespondWithYAML(w, http.StatusOK, output)
 	}
@@ -556,10 +553,7 @@ func (s *service) GetSecret(w http.ResponseWriter, r *http.Request) {
 
 	switch fileType {
 	case "json":
-		utils.RespondWithJSON(w, http.StatusOK, map[string]interface{}{
-			"json": secret,
-			"yaml": string(output),
-		})
+		utils.RespondWithJSON(w, http.StatusOK, secret)
 	case "yaml":
 		utils.RespondWithYAML(w, http.StatusOK, output)
 	}
