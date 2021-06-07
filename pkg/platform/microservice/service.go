@@ -501,6 +501,7 @@ func (s *service) GetSecret(w http.ResponseWriter, r *http.Request) {
 	download := r.FormValue("download")
 	fileType := r.FormValue("fileType")
 
+	// TODO today being very strict about we allow
 	poormansSecretCheck := funk.Contains([]string{
 		"-secret-env-variables",
 	}, func(filter string) bool {
@@ -583,6 +584,7 @@ func (s *service) CanI(w http.ResponseWriter, r *http.Request) {
 	// To get fine control, we need to lookup the AD group which can be added via terrform
 	// TODO we do not create rbac roles today? meaning this look up will break.
 	// TODO the can access, wont work with new customers due to the rbac setup
+	// TODO bringing online the ad group from microsoft will allow us to check group access
 	type httpInput struct {
 		UserID            string `json:"user_id"`
 		TenantID          string `json:"tenant_id"`

@@ -427,8 +427,9 @@ func (r *K8sRepo) CanModifyApplication(tenantID string, applicationID string, us
 	return r.CanModifyApplicationWithResourceAttributes(tenantID, applicationID, userID, attribute)
 }
 
-// CanModifyApplication confirm user is in the tenant and application
+// CanModifyApplicationWithResourceAttributes confirm user is in the tenant and application
 // Only works when we can use the namespace
+// TODO bringing online the ad group from microsoft will allow us to check group access
 func (r *K8sRepo) CanModifyApplicationWithResourceAttributes(tenantID string, applicationID string, userID string, attribute authV1.ResourceAttributes) (bool, error) {
 	config := rest.CopyConfig(r.baseConfig)
 
