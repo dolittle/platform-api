@@ -358,47 +358,6 @@ func (r *K8sRepo) CanModifyApplicationWithResponse(w http.ResponseWriter, tenant
 	return true
 }
 
-// CanModifyApplication confirm user is in the tenant and application
-// Only works when we can use the namespace
-func (r *K8sRepo) CanModifyApplication(tenantID string, applicationID string, userID string) (bool, error) {
-	config := rest.CopyConfig(r.baseConfig)
-
-	config.Impersonate = rest.ImpersonationConfig{
-		UserName: userID,
-		Groups: []string{
-			fmt.Sprintf("tenant-%s", tenantID),
-		},
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	action := authV1.ResourceAttributes{
-		Namespace: fmt.Sprintf("application-%s", applicationID),
-		Verb:      "list",
-		Resource:  "pods",
-	}
-
-	selfCheck := authV1.SelfSubjectAccessReview{
-		Spec: authV1.SelfSubjectAccessReviewSpec{
-			ResourceAttributes: &action,
-		},
-	}
-
-	resp, err := clientset.AuthorizationV1().
-		SelfSubjectAccessReviews().
-		Create(context.TODO(), &selfCheck, metaV1.CreateOptions{})
-
-	if err != nil {
-		// TODO do we hide this error and log it?
-		return false, err
-	}
-
-	return resp.Status.Allowed, nil
-}
-
 func (r *K8sRepo) GetMicroserviceDNS(applicationID string, microserviceID string) (string, error) {
 	client := r.k8sClient
 	ctx := context.TODO()
@@ -444,4 +403,61 @@ func (r *K8sRepo) GetConfigMap(applicationID string, name string) (*coreV1.Confi
 		return configMap, err
 	}
 	return configMap, nil
+}
+
+func (r *K8sRepo) GetSecret(applicationID string, name string) (*coreV1.Secret, error) {
+	client := r.k8sClient
+	ctx := context.TODO()
+	namespace := fmt.Sprintf("application-%s", applicationID)
+	secret, err := client.CoreV1().Secrets(namespace).Get(ctx, name, metaV1.GetOptions{})
+	if err != nil {
+		return secret, err
+	}
+	return secret, nil
+}
+
+// CanModifyApplication confirm user is in the tenant and application
+// Only works when we can use the namespace
+func (r *K8sRepo) CanModifyApplication(tenantID string, applicationID string, userID string) (bool, error) {
+	attribute := authV1.ResourceAttributes{
+		Namespace: fmt.Sprintf("application-%s", applicationID),
+		Verb:      "list",
+		Resource:  "pods",
+	}
+	return r.CanModifyApplicationWithResourceAttributes(tenantID, applicationID, userID, attribute)
+}
+
+// CanModifyApplication confirm user is in the tenant and application
+// Only works when we can use the namespace
+func (r *K8sRepo) CanModifyApplicationWithResourceAttributes(tenantID string, applicationID string, userID string, attribute authV1.ResourceAttributes) (bool, error) {
+	config := rest.CopyConfig(r.baseConfig)
+
+	config.Impersonate = rest.ImpersonationConfig{
+		UserName: userID,
+		Groups: []string{
+			fmt.Sprintf("tenant-%s", tenantID),
+		},
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	selfCheck := authV1.SelfSubjectAccessReview{
+		Spec: authV1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &attribute,
+		},
+	}
+
+	resp, err := clientset.AuthorizationV1().
+		SelfSubjectAccessReviews().
+		Create(context.TODO(), &selfCheck, metaV1.CreateOptions{})
+
+	if err != nil {
+		// TODO do we hide this error and log it?
+		return false, err
+	}
+
+	return resp.Status.Allowed, nil
 }
