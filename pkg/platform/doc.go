@@ -257,3 +257,14 @@ type HttpResponseBusinessMoments struct {
 var (
 	ErrNotFound = errors.New("not-found")
 )
+
+type TerraformApplication struct {
+	Customer struct {
+		GUID string `json:"guid"`
+		Name string `json:"name"`
+	} `json:"customer"`
+	GroupID string `json:"group_id"`
+	GUID    string `json:"guid"`
+	Kind    string `json:"kind"`
+	Name    string `json:"name"`
+}

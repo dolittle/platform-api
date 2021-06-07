@@ -9,8 +9,11 @@ import (
 // TODO need a better name
 // Interface for writing data for the automation part of the platform
 type Repo interface {
-	SaveTenant(tenant platform.TerraformCustomer) error
-	GetTenant(tenantID string) (platform.TerraformCustomer, error)
+	SaveTerraformApplication(application platform.TerraformApplication) error
+	GetTerraformApplication(tenantID string, applicationID string) (platform.TerraformApplication, error)
+
+	SaveTerraformTenant(tenant platform.TerraformCustomer) error
+	GetTerraformTenant(tenantID string) (platform.TerraformCustomer, error)
 
 	GetApplication(tenantID string, applicationID string) (platform.HttpResponseApplication, error)
 	SaveApplication(application platform.HttpResponseApplication) error

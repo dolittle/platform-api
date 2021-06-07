@@ -158,7 +158,7 @@ func (s *service) GetLiveApplications(w http.ResponseWriter, r *http.Request) {
 	tenantID := r.Header.Get("Tenant-ID")
 
 	// TODO get tenant from syncing the terraform output into the repo (which we might have access to if we use the same repo)
-	tenantInfo, err := s.gitRepo.GetTenant(tenantID)
+	tenantInfo, err := s.gitRepo.GetTerraformTenant(tenantID)
 	if err != nil {
 		// TODO handle not found
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -228,7 +228,7 @@ func (s *service) GetByID(w http.ResponseWriter, r *http.Request) {
 func (s *service) GetApplications(w http.ResponseWriter, r *http.Request) {
 	tenantID := r.Header.Get("Tenant-ID")
 
-	tenantInfo, err := s.gitRepo.GetTenant(tenantID)
+	tenantInfo, err := s.gitRepo.GetTerraformTenant(tenantID)
 	if err != nil {
 		// TODO handle not found
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())

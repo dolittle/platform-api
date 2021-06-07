@@ -13,7 +13,7 @@ var RootCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(createCMD)
-	RootCmd.AddCommand(buildCustomersCMD)
+	RootCmd.AddCommand(buildTerraformInfoCMD)
 	RootCmd.AddCommand(updateRepoCMD)
 	RootCmd.AddCommand(gitTestCMD)
 
