@@ -32,5 +32,6 @@ func SetupStan(logContext logrus.FieldLogger, natsServer string, clusterID strin
 	if err != nil {
 		logContext.Fatalf("Can't connect: %v.\nMake sure a NATS Streaming Server is running at: %s", err, nc.Opts.Url)
 	}
+
 	return sc
 }

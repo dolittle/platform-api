@@ -52,5 +52,9 @@ func init() {
 	RootCmd.AddCommand(serverCMD)
 	viper.SetDefault("rawdatalog.server.secret", "change")
 	viper.SetDefault("rawdatalog.server.listenOn", "localhost:8080")
+
 	viper.BindEnv("rawdatalog.server.listenOn", "LISTEN_ON")
+	viper.BindEnv("rawdatalog.log.stan.clusterID", "STAN_CLUSTER_ID")
+	viper.BindEnv("rawdatalog.log.stan.clientID", "STAN_CLIENT_ID")
+	viper.BindEnv("rawdatalog.log.nats.server", "NATS_SERVER")
 }
