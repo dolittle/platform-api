@@ -23,6 +23,7 @@ var serverCMD = &cobra.Command{
 		logrus.SetFormatter(&logrus.JSONFormatter{})
 		listenOn := viper.GetString("rawdatalog.server.listenOn")
 		webhookRepoType := strings.ToLower(viper.GetString("rawdatalog.server.webhookRepo"))
+		webhookUriPrefix := strings.ToLower(viper.GetString("rawdatalog.server.webhookUriPrefix"))
 		tenantID := viper.GetString("rawdatalog.server.tenantID")
 		applicationID := viper.GetString("rawdatalog.server.applicationID")
 		environment := viper.GetString("rawdatalog.server.environment")
@@ -48,9 +49,8 @@ var serverCMD = &cobra.Command{
 			panic(fmt.Sprintf("WEBHOOK_REPO %s not supported, pick stdout or nats", webhookRepoType))
 		}
 
-		uriPrefix := "/webhook/"
-		service := rawdatalog.NewService(logrus.WithField("service", "raw-data-log"), uriPrefix, repo, tenantID, applicationID, environment)
-		router.PathPrefix(uriPrefix).Handler(stdChain.ThenFunc(service.Webhook)).Methods("POST", "PUT")
+		service := rawdatalog.NewService(logrus.WithField("service", "raw-data-log"), webhookUriPrefix, repo, tenantID, applicationID, environment)
+		router.PathPrefix(webhookUriPrefix).Handler(stdChain.ThenFunc(service.Webhook)).Methods("POST", "PUT")
 
 		srv := &http.Server{
 			Handler:      router,
@@ -59,6 +59,7 @@ var serverCMD = &cobra.Command{
 			ReadTimeout:  15 * time.Second,
 		}
 
+		logrus.WithField("settings", viper.AllSettings()).Info("Starting Server")
 		log.Fatal(srv.ListenAndServe())
 	},
 }
@@ -68,12 +69,14 @@ func init() {
 	viper.SetDefault("rawdatalog.server.secret", "change")
 	viper.SetDefault("rawdatalog.server.listenOn", "localhost:8080")
 	viper.SetDefault("rawdatalog.server.webhookRepo", "stdout")
+	viper.SetDefault("rawdatalog.server.webhookUriPrefix", "/webhook/")
 	viper.SetDefault("rawdatalog.server.tenantID", "tenant-fake-123")
 	viper.SetDefault("rawdatalog.server.applicationID", "application-fake-123")
 	viper.SetDefault("rawdatalog.server.environment", "environment-fake-123")
 
 	viper.BindEnv("rawdatalog.server.listenOn", "LISTEN_ON")
 	viper.BindEnv("rawdatalog.server.webhookRepo", "WEBHOOK_REPO")
+	viper.BindEnv("rawdatalog.server.webhookUriPrefix", "WEBHOOK_PREFIX")
 	viper.BindEnv("rawdatalog.server.tenantID", "DOLITTLE_TENANT_ID")
 	viper.BindEnv("rawdatalog.server.applicationID", "DOLITTLE_APPLICATION_ID")
 	viper.BindEnv("rawdatalog.server.environment", "DOLITTLE_ENVIRONMENT")

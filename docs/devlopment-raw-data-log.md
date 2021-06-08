@@ -48,3 +48,35 @@ STAN_CLUSTER_ID=stan \
 NATS_SERVER=127.0.0.1 \
 go run main.go raw-data-log read-logs
 ```
+
+
+# Docker build
+```sh
+docker build -f ./Dockerfile -t dolittle/platform-api:dev-x
+docker tag dolittle/platform-api:dev-x 508c17455f2a4b4cb7a52fbb1484346d.azurecr.io/dolittle/platform/platform-api:dev-x
+docker push 508c17455f2a4b4cb7a52fbb1484346d.azurecr.io/dolittle/platform/platform-api:dev-x
+az acr login -n 508c17455f2a4b4cb7a52fbb1484346d
+```
+
+
+
+docker tag dolittle/platform-api:dev-x 453e04a74f9d42f2b36cd51fa2c83fa3.azurecr.io/dolittle/platform/platform-api:dev-x
+docker push 453e04a74f9d42f2b36cd51fa2c83fa3.azurecr.io/dolittle/platform/platform-api:dev-x
+az acr login -n 453e04a74f9d42f2b36cd51fa2c83fa3
+
+
+
+
+
+```
+curl -XPOST \
+'https://freshteapot-taco.dolittle.cloud/webhook2/hello/chris' \
+-d '
+{
+  "hello": "world"
+}'
+
+
+``
+
+`
