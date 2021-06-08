@@ -105,12 +105,12 @@ var serverCMD = &cobra.Command{
 		router.Handle("/application/{applicationID}/microservices", stdChainWithJSON.ThenFunc(microserviceService.GetByApplicationID)).Methods("GET", "OPTIONS")
 		router.Handle("/application/{applicationID}", stdChainWithJSON.ThenFunc(applicationService.GetByID)).Methods("GET", "OPTIONS")
 		router.Handle("/applications", stdChainWithJSON.ThenFunc(applicationService.GetApplications)).Methods("GET", "OPTIONS")
+		router.Handle("/application/{applicationID}/personalised-application-info", stdChainWithJSON.ThenFunc(applicationService.GetPersonalisedInfo)).Methods("GET", "OPTIONS")
 
 		router.Handle("/application/{applicationID}/environment/{environment}/microservice/{microserviceID}", stdChainWithJSON.ThenFunc(microserviceService.GetByID)).Methods("GET", "OPTIONS")
 		router.Handle("/application/{applicationID}/environment/{environment}/microservice/{microserviceID}", stdChainWithJSON.ThenFunc(microserviceService.Delete)).Methods("DELETE", "OPTIONS")
 
 		router.Handle("/live/applications", stdChainWithJSON.ThenFunc(applicationService.GetLiveApplications)).Methods("GET", "OPTIONS")
-
 		router.Handle("/live/application/{applicationID}/microservices", stdChainWithJSON.ThenFunc(microserviceService.GetLiveByApplicationID)).Methods("GET", "OPTIONS")
 		router.Handle("/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/podstatus", stdChainWithJSON.ThenFunc(microserviceService.GetPodStatus)).Methods("GET", "OPTIONS")
 		router.Handle("/live/application/{applicationID}/pod/{podName}/logs", stdChainBase.ThenFunc(microserviceService.GetPodLogs)).Methods("GET", "OPTIONS")
@@ -151,8 +151,7 @@ var serverCMD = &cobra.Command{
 		).Methods("DELETE", "OPTIONS")
 
 		srv := &http.Server{
-			Handler: router,
-			//Addr:         "0.0.0.0:8080",
+			Handler:      router,
 			Addr:         listenOn,
 			WriteTimeout: 15 * time.Second,
 			ReadTimeout:  15 * time.Second,

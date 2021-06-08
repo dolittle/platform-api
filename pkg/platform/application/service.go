@@ -156,8 +156,6 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 
 func (s *service) GetLiveApplications(w http.ResponseWriter, r *http.Request) {
 	tenantID := r.Header.Get("Tenant-ID")
-
-	// TODO get tenant from syncing the terraform output into the repo (which we might have access to if we use the same repo)
 	tenantInfo, err := s.gitRepo.GetTerraformTenant(tenantID)
 	if err != nil {
 		// TODO handle not found
@@ -266,4 +264,27 @@ func (s *service) GetApplications(w http.ResponseWriter, r *http.Request) {
 
 	//microservices, err := s.gitRepo.GetMicroservices(tenantID, applicationID)
 	utils.RespondWithJSON(w, http.StatusOK, response)
+}
+
+func (s *service) GetPersonalisedInfo(w http.ResponseWriter, r *http.Request) {
+	tenantID := r.Header.Get("Tenant-ID")
+	vars := mux.Vars(r)
+	applicationID := vars["applicationID"]
+
+	terraformCustomer, err := s.gitRepo.GetTerraformTenant(tenantID)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	terraformApplication, err := s.gitRepo.GetTerraformApplication(tenantID, applicationID)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	utils.RespondWithJSON(w, http.StatusOK, map[string]interface{}{
+		"customer":    terraformCustomer,
+		"application": terraformApplication,
+	})
 }
