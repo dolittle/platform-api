@@ -1,0 +1,58 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    dolittle.io/tenant-id: 453e04a7-4f9d-42f2-b36c-d51fa2c83fa3
+    dolittle.io/application-id: 11b6cf47-5d9f-438f-8116-0d9828654657
+    dolittle.io/microservice-id: 67113383-cf7e-4d8d-9891-9330f1683842
+  labels:
+    tenant: Customer-Chris
+    application: Taco
+    environment: Dev
+    microservice: Webhook2
+  name:  dev-webhook2-secret-env-variables
+  namespace: application-11b6cf47-5d9f-438f-8116-0d9828654657
+type: Opaque
+data:
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  annotations:
+    dolittle.io/tenant-id: 453e04a7-4f9d-42f2-b36c-d51fa2c83fa3
+    dolittle.io/application-id: 11b6cf47-5d9f-438f-8116-0d9828654657
+    dolittle.io/microservice-id: 67113383-cf7e-4d8d-9891-9330f1683842
+  labels:
+    tenant: Customer-Chris
+    application: Taco
+    environment: Dev
+    microservice: Webhook2
+  name: dev-webhook2-env-variables
+  namespace: application-11b6cf47-5d9f-438f-8116-0d9828654657
+data:
+  WEBHOOK_REPO: nats
+  NATS_SERVER: nats.application-11b6cf47-5d9f-438f-8116-0d9828654657.svc.cluster.local
+  STAN_CLUSTER_ID: stan
+  STAN_CLIENT_ID: webhook2
+  LISTEN_ON: 0.0.0.0:80
+  WEBHOOK_PREFIX: /webhook2/
+  DOLITTLE_TENANT_ID: 453e04a7-4f9d-42f2-b36c-d51fa2c83fa3
+  DOLITTLE_APPLICATION_ID: 11b6cf47-5d9f-438f-8116-0d9828654657
+  DOLITTLE_ENVIRONMENT: dev
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  annotations:
+    dolittle.io/tenant-id: 453e04a7-4f9d-42f2-b36c-d51fa2c83fa3
+    dolittle.io/application-id: 11b6cf47-5d9f-438f-8116-0d9828654657
+    dolittle.io/microservice-id: 67113383-cf7e-4d8d-9891-9330f1683842
+  labels:
+    tenant: Customer-Chris
+    application: Taco
+    environment: Dev
+    microservice: Webhook2
+  name: dev-webhook2-config-files
+  namespace: application-11b6cf47-5d9f-438f-8116-0d9828654657
+data:

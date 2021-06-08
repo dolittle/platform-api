@@ -1,0 +1,67 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    dolittle.io/tenant-id: 453e04a7-4f9d-42f2-b36c-d51fa2c83fa3
+    dolittle.io/application-id: 11b6cf47-5d9f-438f-8116-0d9828654657
+    dolittle.io/microservice-id: 67113383-cf7e-4d8d-9891-9330f1683842
+    cert-manager.io/cluster-issuer: "letsencrypt-production"
+  labels:
+    tenant: Customer-Chris
+    application: Taco
+    environment: Dev
+    microservice: Webhook2
+  name: dev-webhook2
+  namespace: application-11b6cf47-5d9f-438f-8116-0d9828654657
+spec:
+  ingressClassName: nginx
+
+  tls:
+    - hosts:
+        - freshteapot-taco.dolittle.cloud
+      secretName: freshteapot-taco-certificate
+
+  rules:
+    - host: freshteapot-taco.dolittle.cloud
+      http:
+        paths:
+          - path: /webhook2/ # This should come via UI
+            pathType: Prefix
+            backend:
+              service:
+                name: dev-webhook2
+                port:
+                  name: http
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  annotations:
+    dolittle.io/tenant-id: 453e04a7-4f9d-42f2-b36c-d51fa2c83fa3
+    dolittle.io/application-id: 11b6cf47-5d9f-438f-8116-0d9828654657
+    dolittle.io/microservice-id: 67113383-cf7e-4d8d-9891-9330f1683842
+  labels:
+    tenant: Customer-Chris
+    application: Taco
+    environment: Dev
+    microservice: Webhook2
+  name: dev-webhook2-ingress
+  namespace: application-11b6cf47-5d9f-438f-8116-0d9828654657
+spec:
+  podSelector:
+    matchLabels:
+      tenant: Customer-Chris
+      application: Taco
+      environment: Dev
+      microservice: Webhook2
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            system: Ingress
+        podSelector:
+          matchLabels:
+            system: Ingress
+            ingress: Nginx
