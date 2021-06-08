@@ -1,11 +1,12 @@
 package rawdatalog
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
-	"github.com/dolittle-entropy/platform-api/pkg/middleware"
 	"github.com/dolittle-entropy/platform-api/pkg/rawdatalog"
 
 	"github.com/gorilla/mux"
@@ -21,21 +22,35 @@ var serverCMD = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
 		listenOn := viper.GetString("rawdatalog.server.listenOn")
+		webhookRepoType := strings.ToLower(viper.GetString("rawdatalog.server.webhookRepo"))
+		tenantID := viper.GetString("rawdatalog.server.tenantID")
+		applicationID := viper.GetString("rawdatalog.server.applicationID")
+		environment := viper.GetString("rawdatalog.server.environment")
 
 		router := mux.NewRouter()
 
-		stdChainBase := alice.New(middleware.LogTenantUser)
-		stdChainWithJSON := stdChainBase.Append(middleware.EnforceJSONHandler)
+		// Not needed, but maybe we want some middlewares?
+		// Secret lookup could be 1
+		stdChain := alice.New()
 
-		natsServer := viper.GetString("rawdatalog.log.nats.server")
-		clusterID := viper.GetString("rawdatalog.log.stan.clusterID")
-		clientID := viper.GetString("rawdatalog.log.stan.clientID")
+		var repo rawdatalog.Repo
+		switch webhookRepoType {
+		case "stdout":
+			repo = rawdatalog.NewStdoutLogRepo(logrus.WithField("repo", "stdout"))
+		case "nats":
+			natsServer := viper.GetString("rawdatalog.log.nats.server")
+			clusterID := viper.GetString("rawdatalog.log.stan.clusterID")
+			clientID := viper.GetString("rawdatalog.log.stan.clientID")
 
-		stanConnection := rawdatalog.SetupStan(logrus.WithField("service", "raw-data-log-writer"), natsServer, clusterID, clientID)
-		repo := rawdatalog.NewStanLogRepo(stanConnection)
-		service := rawdatalog.NewService(logrus.WithField("service", "raw-data-log"), repo)
+			stanConnection := rawdatalog.SetupStan(logrus.WithField("service", "raw-data-log-writer"), natsServer, clusterID, clientID)
+			repo = rawdatalog.NewStanLogRepo(stanConnection)
+		default:
+			panic(fmt.Sprintf("WEBHOOK_REPO %s not supported, pick stdout or nats", webhookRepoType))
+		}
 
-		router.PathPrefix("/webhook/").Handler(stdChainWithJSON.ThenFunc(service.Webhook)).Methods("POST", "PUT")
+		uriPrefix := "/webhook/"
+		service := rawdatalog.NewService(logrus.WithField("service", "raw-data-log"), uriPrefix, repo, tenantID, applicationID, environment)
+		router.PathPrefix(uriPrefix).Handler(stdChain.ThenFunc(service.Webhook)).Methods("POST", "PUT")
 
 		srv := &http.Server{
 			Handler:      router,
@@ -52,9 +67,19 @@ func init() {
 	RootCmd.AddCommand(serverCMD)
 	viper.SetDefault("rawdatalog.server.secret", "change")
 	viper.SetDefault("rawdatalog.server.listenOn", "localhost:8080")
+	viper.SetDefault("rawdatalog.server.webhookRepo", "stdout")
+	viper.SetDefault("rawdatalog.server.tenantID", "tenant-fake-123")
+	viper.SetDefault("rawdatalog.server.applicationID", "application-fake-123")
+	viper.SetDefault("rawdatalog.server.environment", "environment-fake-123")
 
 	viper.BindEnv("rawdatalog.server.listenOn", "LISTEN_ON")
+	viper.BindEnv("rawdatalog.server.webhookRepo", "WEBHOOK_REPO")
+	viper.BindEnv("rawdatalog.server.tenantID", "DOLITTLE_TENANT_ID")
+	viper.BindEnv("rawdatalog.server.applicationID", "DOLITTLE_APPLICATION_ID")
+	viper.BindEnv("rawdatalog.server.environment", "DOLITTLE_ENVIRONMENT")
+
 	viper.BindEnv("rawdatalog.log.stan.clusterID", "STAN_CLUSTER_ID")
 	viper.BindEnv("rawdatalog.log.stan.clientID", "STAN_CLIENT_ID")
 	viper.BindEnv("rawdatalog.log.nats.server", "NATS_SERVER")
+
 }

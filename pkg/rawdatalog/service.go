@@ -2,7 +2,9 @@ package rawdatalog
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
@@ -10,28 +12,51 @@ import (
 )
 
 type service struct {
-	logContext logrus.FieldLogger
-	repo       Repo
+	logContext    logrus.FieldLogger
+	repo          Repo
+	uriPrefix     string
+	tenantID      string
+	applicationID string
+	environment   string
 }
 
-func NewService(logContext logrus.FieldLogger, repo Repo) service {
+func NewService(logContext logrus.FieldLogger, uriPrefix string, repo Repo, tenantID string, applicationID string, environment string) service {
 	return service{
-		logContext: logContext,
-		repo:       repo,
+		logContext:    logContext,
+		uriPrefix:     uriPrefix,
+		repo:          repo,
+		tenantID:      tenantID,
+		applicationID: applicationID,
+		environment:   environment,
 	}
 }
 
 func (s *service) Webhook(w http.ResponseWriter, r *http.Request) {
 	topic := "topic.todo"
-	tenantID := "TODO"
-	applicationID := "TODO"
-	environment := "TODO"
+	tenantID := s.tenantID
+	applicationID := s.applicationID
+	environment := s.environment
+
+	pathname := r.URL.Path
+	pathname = strings.TrimPrefix(pathname, s.uriPrefix)
+	pathname = strings.TrimPrefix(pathname, "/")
+	pathname = strings.TrimSuffix(pathname, "/")
+	parts := strings.Split(pathname, "/")
+
+	labels := map[string]string{}
+	for index, part := range parts {
+		indexStr := fmt.Sprintf("uri-%d", index)
+		labels[indexStr] = part
+	}
+
 	kind := "TODO"
 	metadata := RawMomentMetadata{
 		TenantID:      tenantID,
 		ApplicationID: applicationID,
 		Environment:   environment,
+		Labels:        map[string]string{},
 	}
+	metadata.Labels = labels
 
 	var dst interface{}
 	dec := json.NewDecoder(r.Body)
@@ -46,11 +71,11 @@ func (s *service) Webhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, _ := json.Marshal(dst)
+	//data, _ := json.Marshal(dst)
 	moment := RawMoment{
 		Kind:     kind,
 		When:     time.Now().UTC().Unix(),
-		Data:     data,
+		Data:     dst,
 		Metadata: metadata,
 	}
 
