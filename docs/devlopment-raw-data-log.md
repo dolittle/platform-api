@@ -1,7 +1,6 @@
-
-
 # Port-forward to nats
 ```sh
+kill -9 $(lsof -ti tcp:4222)
 kubectl -n application-11b6cf47-5d9f-438f-8116-0d9828654657 port-forward svc/nats 4222:4222 &
 ```
 
@@ -26,4 +25,26 @@ curl -XPOST \
   "name": "Taco",
   "tenantId": "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3"
 }'
+```
+
+# Setup in k8s
+- hardcoded to customer-chris
+## Nats
+```sh
+go run main.go raw-data-log build-nats --kube-config="/Users/freshteapot/.kube/config" --action=upsert ./k8s/single-server-nats.yml
+```
+
+## Stan with in memory store
+```sh
+go run main.go raw-data-log build-nats --kube-config="/Users/freshteapot/.kube/config" --action=upsert ./k8s/single-server-stan-memory.yml
+```
+
+
+# Read from the logs
+```sh
+TOPIC=topic.todo \
+STAN_CLIENT_ID=nats-reader \
+STAN_CLUSTER_ID=stan \
+NATS_SERVER=127.0.0.1 \
+go run main.go raw-data-log read-logs
 ```
