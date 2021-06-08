@@ -27,6 +27,7 @@ var serverCMD = &cobra.Command{
 		tenantID := viper.GetString("rawdatalog.server.tenantID")
 		applicationID := viper.GetString("rawdatalog.server.applicationID")
 		environment := viper.GetString("rawdatalog.server.environment")
+		topic := viper.GetString("rawdatalog.log.topic")
 
 		router := mux.NewRouter()
 
@@ -37,7 +38,7 @@ var serverCMD = &cobra.Command{
 		var repo rawdatalog.Repo
 		switch webhookRepoType {
 		case "stdout":
-			repo = rawdatalog.NewStdoutLogRepo(logrus.WithField("repo", "stdout"))
+			repo = rawdatalog.NewStdoutLogRepo()
 		case "nats":
 			natsServer := viper.GetString("rawdatalog.log.nats.server")
 			clusterID := viper.GetString("rawdatalog.log.stan.clusterID")
@@ -49,7 +50,7 @@ var serverCMD = &cobra.Command{
 			panic(fmt.Sprintf("WEBHOOK_REPO %s not supported, pick stdout or nats", webhookRepoType))
 		}
 
-		service := rawdatalog.NewService(logrus.WithField("service", "raw-data-log"), webhookUriPrefix, repo, tenantID, applicationID, environment)
+		service := rawdatalog.NewService(logrus.WithField("service", "raw-data-log"), webhookUriPrefix, topic, repo, tenantID, applicationID, environment)
 		router.PathPrefix(webhookUriPrefix).Handler(stdChain.ThenFunc(service.Webhook)).Methods("POST", "PUT")
 
 		srv := &http.Server{
@@ -74,6 +75,11 @@ func init() {
 	viper.SetDefault("rawdatalog.server.applicationID", "application-fake-123")
 	viper.SetDefault("rawdatalog.server.environment", "environment-fake-123")
 
+	viper.SetDefault("rawdatalog.log.topic", "topic.todo")
+	viper.SetDefault("rawdatalog.log.stan.clusterID", "stan")
+	viper.SetDefault("rawdatalog.log.stan.clientID", "webhook-inserter")
+	viper.SetDefault("rawdatalog.log.nats.server", "127.0.0.1")
+
 	viper.BindEnv("rawdatalog.server.listenOn", "LISTEN_ON")
 	viper.BindEnv("rawdatalog.server.webhookRepo", "WEBHOOK_REPO")
 	viper.BindEnv("rawdatalog.server.webhookUriPrefix", "WEBHOOK_PREFIX")
@@ -84,5 +90,6 @@ func init() {
 	viper.BindEnv("rawdatalog.log.stan.clusterID", "STAN_CLUSTER_ID")
 	viper.BindEnv("rawdatalog.log.stan.clientID", "STAN_CLIENT_ID")
 	viper.BindEnv("rawdatalog.log.nats.server", "NATS_SERVER")
+	viper.BindEnv("rawdatalog.log.topic", "TOPIC")
 
 }

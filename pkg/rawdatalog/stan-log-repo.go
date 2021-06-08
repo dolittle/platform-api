@@ -18,7 +18,6 @@ func NewStanLogRepo(sc stan.Conn) Repo {
 
 // topic == subject == stream
 func (r *stanLogRepo) Write(topic string, moment RawMoment) error {
-
 	msg, _ := json.Marshal(moment)
 	err := r.sc.Publish(topic, msg)
 	if err != nil {

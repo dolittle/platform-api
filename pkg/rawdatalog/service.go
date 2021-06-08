@@ -15,12 +15,13 @@ type service struct {
 	logContext    logrus.FieldLogger
 	repo          Repo
 	uriPrefix     string
+	topic         string
 	tenantID      string
 	applicationID string
 	environment   string
 }
 
-func NewService(logContext logrus.FieldLogger, uriPrefix string, repo Repo, tenantID string, applicationID string, environment string) service {
+func NewService(logContext logrus.FieldLogger, uriPrefix string, topic string, repo Repo, tenantID string, applicationID string, environment string) service {
 	return service{
 		logContext:    logContext,
 		uriPrefix:     uriPrefix,
@@ -32,7 +33,7 @@ func NewService(logContext logrus.FieldLogger, uriPrefix string, repo Repo, tena
 }
 
 func (s *service) Webhook(w http.ResponseWriter, r *http.Request) {
-	topic := "topic.todo"
+	topic := s.topic
 	tenantID := s.tenantID
 	applicationID := s.applicationID
 	environment := s.environment
@@ -71,7 +72,6 @@ func (s *service) Webhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//data, _ := json.Marshal(dst)
 	moment := RawMoment{
 		Kind:     kind,
 		When:     time.Now().UTC().Unix(),
