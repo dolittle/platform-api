@@ -46,6 +46,7 @@ var serverCMD = &cobra.Command{
 
 		listenOn := viper.GetString("tools.server.listenOn")
 		sharedSecret := viper.GetString("tools.server.secret")
+		subscriptionID := viper.GetString("tools.server.azure.subscriptionId")
 
 		// create the clientset
 		clientset, err := kubernetes.NewForConfig(config)
@@ -67,7 +68,7 @@ var serverCMD = &cobra.Command{
 		)
 
 		microserviceService := microservice.NewService(gitRepo, k8sRepo, clientset)
-		applicationService := application.NewService(gitRepo, k8sRepo)
+		applicationService := application.NewService(subscriptionID, gitRepo, k8sRepo)
 		tenantService := tenant.NewService()
 		businessMomentsService := businessmoment.NewService(logrus.WithField("context", "business-moments-service"), gitRepo, k8sRepo, clientset)
 
@@ -167,7 +168,9 @@ func init() {
 	viper.BindPFlag("tools.server.kubeConfig", serverCMD.Flags().Lookup("kube-config"))
 	viper.SetDefault("tools.server.secret", "change")
 	viper.SetDefault("tools.server.listenOn", "localhost:8080")
+	viper.SetDefault("tools.server.azure.subscriptionId", "")
 
 	viper.BindEnv("tools.server.secret", "HEADER_SECRET")
 	viper.BindEnv("tools.server.listenOn", "LISTEN_ON")
+	viper.BindEnv("tools.server.azure.subscriptionId", "AZURE_SUBSCRIPTION_ID")
 }
