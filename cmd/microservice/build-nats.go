@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/discovery"
 	memory "k8s.io/client-go/discovery/cached"
 	"k8s.io/client-go/dynamic"
@@ -150,16 +151,16 @@ func doSSA(body []byte, ctx context.Context, cfg *rest.Config) error {
 		return err
 	}
 
-	fmt.Println(string(data), dr)
+	//fmt.Println(string(data), dr)
 	//return nil
 	// 7. Create or Update the object with SSA
 	//     types.ApplyPatchType indicates SSA.
 	//     FieldManager specifies the field owner ID.
-	//_, err = dr.Patch(ctx, obj.GetName(), types.ApplyPatchType, data, metav1.PatchOptions{
-	//	FieldManager: "platform-api",
-	//})
+	_, err = dr.Patch(ctx, obj.GetName(), types.ApplyPatchType, data, metav1.PatchOptions{
+		FieldManager: "platform-api",
+	})
 
-	err = dr.Delete(ctx, obj.GetName(), metav1.DeleteOptions{})
+	//err = dr.Delete(ctx, obj.GetName(), metav1.DeleteOptions{})
 
 	return err
 }
