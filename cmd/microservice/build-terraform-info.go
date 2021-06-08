@@ -90,9 +90,7 @@ func extractTerraformCustomers(data []byte) []platform.TerraformCustomer {
 	var input interface{}
 	json.Unmarshal(data, &input)
 
-	// This would be easier if we added context in terraform
 	jqQuery := `[.|to_entries | .[] | select(.value.value.kind=="dolittle-customer").value.value] | unique_by(.guid) | .[]`
-	//query, err := gojq.Parse(`[.|to_entries | .[] | select(.value.value.customer).value.value.customer] | unique_by(.guid) | .[]`)
 	query, err := gojq.Parse(jqQuery)
 
 	if err != nil {
@@ -129,9 +127,7 @@ func extractTerraformApplications(data []byte) []platform.TerraformApplication {
 	var input interface{}
 	json.Unmarshal(data, &input)
 
-	// This would be easier if we added context in terraform
 	jqQuery := `[.|to_entries | .[] | select(.value.value.kind=="dolittle-application").value.value] | unique_by(.guid) | .[]`
-	//query, err := gojq.Parse(`[.|to_entries | .[] | select(.value.value.customer).value.value.customer] | unique_by(.guid) | .[]`)
 	query, err := gojq.Parse(jqQuery)
 
 	if err != nil {
