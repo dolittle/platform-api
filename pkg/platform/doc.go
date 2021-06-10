@@ -200,6 +200,7 @@ type HttpInputRawDataLogIngestorExtra struct {
 	Ingress                   HttpInputSimpleIngress            `json:"ingress"`
 	Webhooks                  []RawDataLogIngestorWebhookConfig `json:"webhooks"`
 	WebhookStatsAuthorization string                            `json:"webhookStatsAuthorization"`
+	WriteTo                   string                            `json:"writeTo"`
 }
 
 type RawDataLogIngestorWebhookConfig struct {

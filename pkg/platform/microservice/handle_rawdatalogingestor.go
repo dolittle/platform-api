@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
+	"github.com/thoas/go-funk"
 )
 
 func (s *service) handleRawDataLogIngestor(w http.ResponseWriter, r *http.Request, inputBytes []byte, applicationInfo platform.Application) {
@@ -45,6 +47,24 @@ func (s *service) handleRawDataLogIngestor(w http.ResponseWriter, r *http.Reques
 
 	if application.ID != ms.Dolittle.ApplicationID {
 		utils.RespondWithError(w, http.StatusInternalServerError, "Application id in uri does not match application id in body")
+		return
+	}
+
+	// TODO changing writeTo will break this.
+	// TODO does this exist?
+	if ms.Extra.WriteTo == "" {
+		ms.Extra.WriteTo = "nats"
+	}
+
+	writeToCheck := funk.Contains([]string{
+		"stdout",
+		"nats",
+	}, func(filter string) bool {
+		return strings.HasSuffix(ms.Extra.WriteTo, filter)
+	})
+
+	if !writeToCheck {
+		utils.RespondWithError(w, http.StatusForbidden, "writeTo is not valid, leave empty or set to stdout")
 		return
 	}
 

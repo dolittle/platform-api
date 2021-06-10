@@ -39,15 +39,6 @@ var k8sRawDataLogIngestorNats string
 //go:embed k8s/single-server-stan-memory.yml
 var k8sRawDataLogIngestorStanInMemory string
 
-//go:embed k8s/dolittle/config.yml
-var k8sDolittleConfig string
-
-//go:embed k8s/dolittle/ingress.yml
-var k8sDolittleIngress string
-
-//go:embed k8s/dolittle/microservice.yml
-var k8sDolittleMicroservice string
-
 var decUnstructured = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
 
 type RawDataLogIngestorRepo struct {
@@ -84,20 +75,23 @@ func (r RawDataLogIngestorRepo) Create(namespace string, tenant k8s.Tenant, appl
 		"dolittle.io/microservice-id": input.Dolittle.MicroserviceID,
 	}
 
-	action := "upsert"
-	for _, template := range templates {
-		parts := strings.Split(template, `---`)
-		for _, part := range parts {
-			if part == "" {
-				continue
-			}
+	// TODO changing writeTo will break this.
+	if input.Extra.WriteTo != "stdout" {
+		action := "upsert"
+		for _, template := range templates {
+			parts := strings.Split(template, `---`)
+			for _, part := range parts {
+				if part == "" {
+					continue
+				}
 
-			err := doNats(
-				labels, annotations,
-				action, namespace, []byte(part), ctx, config)
-			if err != nil {
-				fmt.Println(err)
-				return err
+				err := doNats(
+					labels, annotations,
+					action, namespace, []byte(part), ctx, config)
+				if err != nil {
+					fmt.Println(err)
+					return err
+				}
 			}
 		}
 	}
@@ -386,7 +380,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, 
 	ingress.Spec.Rules = append(ingress.Spec.Rules, k8s.AddIngressRule(host, ingressRules))
 
 	// Could use config-files
-	natsServer := fmt.Sprintf("nats.%s.svc.cluster.local", namespace)
+
 	webhookPrefix := strings.ToLower(input.Extra.Ingress.Path)
 
 	container := deployment.Spec.Template.Spec.Containers[0]
@@ -400,17 +394,21 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, 
 	}
 
 	// TODO not great, but equally might not be needed
-	stanClientID := "ingestor"
 	configEnvVariables.Data = map[string]string{
-		"WEBHOOK_REPO":            "nats",
-		"NATS_SERVER":             natsServer,
-		"STAN_CLUSTER_ID":         "stan",
-		"STAN_CLIENT_ID":          stanClientID,
+		"WEBHOOK_REPO":            input.Extra.WriteTo,
 		"LISTEN_ON":               "0.0.0.0:8080",
 		"WEBHOOK_PREFIX":          webhookPrefix,
 		"DOLITTLE_TENANT_ID":      tenant.ID,
 		"DOLITTLE_APPLICATION_ID": application.ID,
 		"DOLITTLE_ENVIRONMENT":    environment,
+	}
+
+	if input.Extra.WriteTo == "nats" {
+		stanClientID := "ingestor"
+		natsServer := fmt.Sprintf("nats.%s.svc.cluster.local", namespace)
+		configEnvVariables.Data["NATS_SERVER"] = natsServer
+		configEnvVariables.Data["STAN_CLUSTER_ID"] = "stan"
+		configEnvVariables.Data["STAN_CLIENT_ID"] = stanClientID
 	}
 
 	service.Spec.Ports[0].TargetPort = intstr.IntOrString{
