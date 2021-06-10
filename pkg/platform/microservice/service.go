@@ -9,6 +9,7 @@ import (
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/rawdatalog"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
@@ -24,6 +25,7 @@ func NewService(gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClien
 		gitRepo:                    gitRepo,
 		simpleRepo:                 NewSimpleRepo(k8sClient),
 		businessMomentsAdaptorRepo: NewBusinessMomentsAdaptorRepo(k8sClient),
+		rawDataLogIngestorRepo:     rawdatalog.NewRawDataLogIngestorRepo(k8sDolittleRepo, k8sClient),
 		k8sDolittleRepo:            k8sDolittleRepo,
 	}
 }
@@ -159,6 +161,8 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 	case platform.BusinessMomentsAdaptor:
 		s.handleBusinessMomentsAdaptor(w, r, b, applicationInfo)
 		return
+	case platform.RawDataLogIngestor:
+		s.handleRawDataLogIngestor(w, r, b, applicationInfo)
 	default:
 		utils.RespondWithError(w, http.StatusBadRequest, "Kind not supported")
 	}
@@ -262,6 +266,7 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 
 	// Hairy stuff
 	msData, err := s.gitRepo.GetMicroservice(tenantID, applicationID, environment, microserviceID)
+
 	if err == nil {
 		// LOG THIS
 		var whatKind platform.HttpInputMicroserviceKind
@@ -272,6 +277,8 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 				err = s.simpleRepo.Delete(namespace, microserviceID)
 			case platform.BusinessMomentsAdaptor:
 				err = s.businessMomentsAdaptorRepo.Delete(namespace, microserviceID)
+			case platform.RawDataLogIngestor:
+				err = s.rawDataLogIngestorRepo.Delete(namespace, microserviceID)
 			}
 
 			if err != nil {
@@ -281,11 +288,12 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// TODO need to delete from gitrepo
-	err = s.gitRepo.DeleteMicroservice(tenantID, applicationID, environment, microserviceID)
-	if err != nil {
-		statusCode = http.StatusUnprocessableEntity
-		errStr = err.Error()
+	if statusCode == http.StatusOK {
+		err = s.gitRepo.DeleteMicroservice(tenantID, applicationID, environment, microserviceID)
+		if err != nil {
+			statusCode = http.StatusUnprocessableEntity
+			errStr = err.Error()
+		}
 	}
 
 	utils.RespondWithJSON(w, statusCode, map[string]string{

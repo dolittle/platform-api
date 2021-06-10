@@ -108,7 +108,7 @@ type GitRepo interface {
 const (
 	Simple                 = "simple"
 	BusinessMomentsAdaptor = "business-moments-adaptor"
-	WebhookIngestor        = "webhook-ingestor"
+	RawDataLogIngestor     = "raw-data-log-ingestor"
 )
 
 type HttpInputMicroserviceKind struct {
@@ -131,6 +131,7 @@ type HttpInputDolittle struct {
 type HttpInputSimpleIngress struct {
 	Host             string `json:"host"`
 	SecretNamePrefix string `json:"secretNamePrefix"` // Not happy with this part
+	DomainPrefix     string `json:"domainPrefix"`     // Not happy with this part
 	Path             string `json:"path"`
 	Pathtype         string `json:"pathType"`
 }
@@ -183,6 +184,28 @@ type HttpInputBusinessMomentAdaptorConnectorWebhookConfigBasic struct {
 
 type HttpInputBusinessMomentAdaptorConnectorWebhookConfigBearer struct {
 	Token string `json:"token"`
+}
+
+type HttpInputRawDataLogIngestorInfo struct {
+	Dolittle    HttpInputDolittle                `json:"dolittle"`
+	Name        string                           `json:"name"`
+	Kind        string                           `json:"kind"`
+	Environment string                           `json:"environment"`
+	Extra       HttpInputRawDataLogIngestorExtra `json:"extra"`
+}
+
+type HttpInputRawDataLogIngestorExtra struct {
+	Headimage                 string                            `json:"headImage"`
+	Runtimeimage              string                            `json:"runtimeImage"`
+	Ingress                   HttpInputSimpleIngress            `json:"ingress"`
+	Webhooks                  []RawDataLogIngestorWebhookConfig `json:"webhooks"`
+	WebhookStatsAuthorization string                            `json:"webhookStatsAuthorization"`
+}
+
+type RawDataLogIngestorWebhookConfig struct {
+	Kind          string `json:"kind"`
+	UriSuffix     string `json:"uriSuffix"`
+	Authorization string `json:"authorization"`
 }
 
 type HttpResponseMicroservices struct {

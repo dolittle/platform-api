@@ -124,3 +124,50 @@ curl -XPOST localhost:8080/tenant -d '
 
 
 curl -XPOST https://freshteapot-taco.dolittle.cloud/webhook/api/ -d '{"hello": "world"}'
+
+
+
+curl -XPOST localhost:8080/microservice \
+-H 'Content-Type: application/json' \
+-H 'x-shared-secret: change' \
+-H 'Tenant-ID: 453e04a7-4f9d-42f2-b36c-d51fa2c83fa3' \
+-H 'User-ID: be194a45-24b4-4911-9c8d-37125d132b0b' \
+-d '
+{
+  "dolittle": {
+    "applicationId": "11b6cf47-5d9f-438f-8116-0d9828654657",
+    "tenantId": "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3",
+    "microserviceId": "8d7be4a0-7fcb-dc48-ab2b-28fd8dbdbd3b"
+  },
+  "name": "RawDataLogIngestor",
+  "kind": "raw-data-log-ingestor",
+  "environment": "Dev",
+  "extra": {
+    "headImage": "453e04a74f9d42f2b36cd51fa2c83fa3.azurecr.io/dolittle/platform/platform-api:dev-x",
+    "runtimeImage": "dolittle/runtime:5.6.0",
+    "ingress": {
+      "path": "/api/webhooks",
+      "pathType": "Prefix",
+      "host": "freshteapot-taco.dolittle.cloud",
+      "domainPrefix": "freshteapot-taco"
+    },
+    "webhooks": [
+      {
+        "authorization": "todo auth",
+        "uriSuffix": "abc/abc",
+        "kind": "abc/abc"
+      }
+    ],
+    "webhookStatsAuthorization": "test stats"
+  }
+}
+'
+
+```sh
+curl -XDELETE \
+-H 'Content-Type: application/json' \
+-H 'x-shared-secret: change' \
+-H 'Tenant-ID: 453e04a7-4f9d-42f2-b36c-d51fa2c83fa3' \
+-H 'User-ID: be194a45-24b4-4911-9c8d-37125d132b0b' \
+"localhost:8080/application/11b6cf47-5d9f-438f-8116-0d9828654657/environment/dev/microservice/8d7be4a0-7fcb-dc48-ab2b-28fd8dbdbd3b"
+```
