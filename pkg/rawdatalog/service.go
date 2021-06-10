@@ -27,8 +27,8 @@ type service struct {
 	allowedUriSuffixes       map[string]platform.RawDataLogIngestorWebhookConfig
 }
 
-func NewService(logContext logrus.FieldLogger, uriPrefix string, pathToMicroserviceConfig string, topic string, repo Repo, tenantID string, applicationID string, environment string) service {
-	s := service{
+func NewService(logContext logrus.FieldLogger, uriPrefix string, pathToMicroserviceConfig string, topic string, repo Repo, tenantID string, applicationID string, environment string) *service {
+	s := &service{
 		logContext:               logContext,
 		uriPrefix:                uriPrefix,
 		pathToMicroserviceConfig: pathToMicroserviceConfig,
@@ -81,46 +81,49 @@ func (s *service) watchAndLoadAllowedUriSuffixes() {
 	}
 	defer watcher.Close()
 
-	done := make(chan bool)
-	go func() {
-		for {
-			select {
-			case event, ok := <-watcher.Events:
-				if !ok {
-					s.logContext.WithFields(logrus.Fields{
-						"ok":    ok,
-						"event": event,
-					}).Info("Event")
-					return
-				}
-
-				s.logContext.WithFields(logrus.Fields{
-
-					"event": event,
-				}).Info("Event")
-
-				if event.Op&fsnotify.Write == fsnotify.Write {
-					s.logContext.Info("file written")
-					s.loadAllowedUriSuffixes()
-				}
-			case err, ok := <-watcher.Errors:
-				if !ok {
-					return
-				}
-				s.logContext.WithFields(logrus.Fields{
-					"error": err,
-				}).Fatal("error whilst watching file change")
-			}
-		}
-	}()
-
 	err = watcher.Add(s.pathToMicroserviceConfig)
 	if err != nil {
 		s.logContext.WithFields(logrus.Fields{
 			"error": err,
 		}).Fatal("error whilst starting to watch file change")
 	}
-	<-done
+
+	for {
+		select {
+		case event, ok := <-watcher.Events:
+			if !ok {
+				s.logContext.WithFields(logrus.Fields{
+					"ok":    ok,
+					"event": event,
+				}).Info("Event")
+				return
+			}
+
+			s.logContext.WithFields(logrus.Fields{
+				"event": event,
+			}).Info("Event")
+
+			// https://martensson.io/go-fsnotify-and-kubernetes-configmaps/
+			if event.Op == fsnotify.Remove {
+				watcher.Remove(event.Name)
+				watcher.Add(s.pathToMicroserviceConfig)
+				s.loadAllowedUriSuffixes()
+				continue
+			}
+
+			if event.Op&fsnotify.Write == fsnotify.Write {
+				s.logContext.Info("file written")
+				s.loadAllowedUriSuffixes()
+			}
+		case err, ok := <-watcher.Errors:
+			if !ok {
+				return
+			}
+			s.logContext.WithFields(logrus.Fields{
+				"error": err,
+			}).Fatal("error whilst watching file change")
+		}
+	}
 }
 
 func (s *service) Webhook(w http.ResponseWriter, r *http.Request) {
