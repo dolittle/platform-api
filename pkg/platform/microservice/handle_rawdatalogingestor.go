@@ -68,9 +68,25 @@ func (s *service) handleRawDataLogIngestor(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Create in Kubernetes
 	namespace := fmt.Sprintf("application-%s", application.ID)
-	err = s.rawDataLogIngestorRepo.Create(namespace, tenant, application, ingress, ms)
+
+	// TODO lookup to see if it exists?
+	exists := false
+	//exists := true s.rawDataLogIngestorRepo.Exists(namespace, ms.Environment, ms.Dolittle.MicroserviceID)
+	//exists, err := s.rawDataLogIngestorRepo.Exists(namespace, ms.Environment, ms.Dolittle.MicroserviceID)
+	//if err != nil {
+	//	// TODO change
+	//	utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+	//	return
+	//}
+
+	if !exists {
+		// Create in Kubernetes
+		err = s.rawDataLogIngestorRepo.Create(namespace, tenant, application, ingress, ms)
+	} else {
+		err = s.rawDataLogIngestorRepo.Update(namespace, tenant, application, ingress, ms)
+	}
+
 	if err != nil {
 		// TODO change
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())

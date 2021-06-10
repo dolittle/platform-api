@@ -32,6 +32,7 @@ func NewService(logContext logrus.FieldLogger, uriPrefix string, pathToMicroserv
 		logContext:               logContext,
 		uriPrefix:                uriPrefix,
 		pathToMicroserviceConfig: pathToMicroserviceConfig,
+		topic:                    topic,
 		repo:                     repo,
 		tenantID:                 tenantID,
 		applicationID:            applicationID,

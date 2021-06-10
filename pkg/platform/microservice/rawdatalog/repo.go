@@ -53,6 +53,14 @@ func NewRawDataLogIngestorRepo(k8sDolittleRepo platform.K8sRepo, k8sClient *kube
 	}
 }
 
+func (r RawDataLogIngestorRepo) Exists(namespace string, environment string, microserviceID string) (bool, error) {
+	return false, errors.New("TODO")
+}
+
+func (r RawDataLogIngestorRepo) Update(namespace string, tenant k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputRawDataLogIngestorInfo) error {
+	return errors.New("TODO")
+}
+
 func (r RawDataLogIngestorRepo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputRawDataLogIngestorInfo) error {
 	config := r.k8sDolittleRepo.GetRestConfig()
 	ctx := context.TODO()
@@ -366,6 +374,10 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, 
 		},
 	}
 
+	// TODO update should not allow changes to:
+	// - name
+	// What else?
+
 	// TODO do I need this?
 	// TODO if I remove it, do I remove the config mapping?
 	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, customersTenantID)
@@ -437,9 +449,13 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, 
 			log.Fatal(err)
 			return errors.New("issue")
 		}
-		// TODO update
-		//_, err = client.CoreV1().ConfigMaps(namespace).Update(ctx, microserviceConfigmap, metav1.UpdateOptions{})
-		fmt.Println("Skipping microserviceConfigmap already exists")
+
+		_, err = client.CoreV1().ConfigMaps(namespace).Update(ctx, microserviceConfigmap, metav1.UpdateOptions{})
+		fmt.Println("microserviceConfigmap already exists")
+		if err != nil {
+			fmt.Println("error updating")
+			fmt.Println(err.Error())
+		}
 	}
 
 	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, configEnvVariables, metav1.CreateOptions{})
@@ -448,7 +464,13 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, 
 			log.Fatal(err)
 			return errors.New("issue")
 		}
-		fmt.Println("Skipping configEnvVariables already exists")
+
+		_, err = client.CoreV1().ConfigMaps(namespace).Update(ctx, configEnvVariables, metav1.UpdateOptions{})
+		fmt.Println("configEnvVariables already exists")
+		if err != nil {
+			fmt.Println("error updating")
+			fmt.Println(err.Error())
+		}
 	}
 
 	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, configFiles, metav1.CreateOptions{})
@@ -457,7 +479,13 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, 
 			log.Fatal(err)
 			return errors.New("issue")
 		}
-		fmt.Println("Skipping configFiles already exists")
+
+		_, err = client.CoreV1().ConfigMaps(namespace).Update(ctx, configFiles, metav1.UpdateOptions{})
+		fmt.Println("configFiles already exists")
+		if err != nil {
+			fmt.Println("error updating")
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Secrets
@@ -467,7 +495,13 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, 
 			log.Fatal(err)
 			return errors.New("issue")
 		}
-		fmt.Println("Skipping configSecrets already exists")
+
+		_, err = client.CoreV1().Secrets(namespace).Update(ctx, configSecrets, metav1.UpdateOptions{})
+		fmt.Println("configSecrets already exists")
+		if err != nil {
+			fmt.Println("error updating")
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Ingress
@@ -477,7 +511,13 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, 
 			log.Fatal(err)
 			return errors.New("issue")
 		}
-		fmt.Println("Skipping ingress already exists")
+
+		_, err = client.NetworkingV1().Ingresses(namespace).Update(ctx, ingress, metav1.UpdateOptions{})
+		fmt.Println("Ingress already exists")
+		if err != nil {
+			fmt.Println("error updating")
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Service
@@ -487,7 +527,26 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, 
 			log.Fatal(err)
 			return errors.New("issue")
 		}
-		fmt.Println("Skipping service already exists")
+		// TODO this breaks
+		// I think I need to be strict about what is changeable
+
+		fmt.Println("Skipping service as it already exists")
+		// TODO pretty sure I don't want to update this
+		data, err := json.Marshal(service)
+		if err != nil {
+			return err
+		}
+
+		_, err = client.CoreV1().Services(namespace).Patch(ctx, service.GetName(), types.ApplyPatchType, data, metav1.PatchOptions{
+			FieldManager: "platform-api",
+		})
+
+		//_, err = client.CoreV1().Services(namespace).Update(ctx, service, metav1.UpdateOptions{})
+		fmt.Println("Service already exists")
+		if err != nil {
+			fmt.Println("error updating")
+			fmt.Println(err.Error())
+		}
 	}
 
 	// NetworkPolicy
@@ -497,7 +556,13 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, 
 			log.Fatal(err)
 			return errors.New("issue")
 		}
-		fmt.Println("Skipping network policy already exists")
+
+		fmt.Println("Network Policy already exists")
+		_, err = client.NetworkingV1().NetworkPolicies(namespace).Update(ctx, networkPolicy, metav1.UpdateOptions{})
+		if err != nil {
+			fmt.Println("error updating")
+			fmt.Println(err.Error())
+		}
 	}
 
 	_, err = client.AppsV1().Deployments(namespace).Create(ctx, deployment, metav1.CreateOptions{})
@@ -506,7 +571,13 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, 
 			log.Fatal(err)
 			return errors.New("issue")
 		}
-		fmt.Println("Skipping deployment already exists")
+
+		_, err = client.AppsV1().Deployments(namespace).Update(ctx, deployment, metav1.UpdateOptions{})
+		fmt.Println("Deployment Policy already exists")
+		if err != nil {
+			fmt.Println("error updating")
+			fmt.Println(err.Error())
+		}
 	}
 
 	return nil
