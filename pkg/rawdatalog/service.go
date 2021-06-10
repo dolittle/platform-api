@@ -38,8 +38,8 @@ func NewService(logContext logrus.FieldLogger, uriPrefix string, pathToMicroserv
 		environment:              environment,
 	}
 
+	s.loadAllowedUriSuffixes()
 	go s.watchAndLoadAllowedUriSuffixes()
-
 	return s
 }
 
@@ -68,10 +68,12 @@ func (s *service) loadAllowedUriSuffixes() {
 		allowedUriSuffixes[webhook.UriSuffix] = webhook
 	}
 	s.allowedUriSuffixes = allowedUriSuffixes
+	s.logContext.WithFields(logrus.Fields{
+		"webhooks": s.allowedUriSuffixes,
+	}).Info("allowedUriSuffix updated")
 }
 
 func (s *service) watchAndLoadAllowedUriSuffixes() {
-	s.loadAllowedUriSuffixes()
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -137,8 +139,10 @@ func (s *service) Webhook(w http.ResponseWriter, r *http.Request) {
 	webhook, ok := s.allowedUriSuffixes[pathname]
 	if !ok {
 		s.logContext.WithFields(logrus.Fields{
-			"error":   fmt.Sprintf("uriSuffix not on the list: %s", pathname),
-			"context": "verify webhook configured",
+			"error":            fmt.Sprintf("uriSuffix not on the list: %s", pathname),
+			"webhookUriSuffix": pathname,
+			"webhookUriPrefix": s.uriPrefix,
+			"context":          "verify webhook configured",
 		}).Error("webhook")
 		utils.RespondWithError(w, http.StatusForbidden, "Webhook not supported due to unknown uri suffix")
 		return
