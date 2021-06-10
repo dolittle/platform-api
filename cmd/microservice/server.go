@@ -46,6 +46,7 @@ var serverCMD = &cobra.Command{
 
 		listenOn := viper.GetString("tools.server.listenOn")
 		sharedSecret := viper.GetString("tools.server.secret")
+		subscriptionID := viper.GetString("tools.server.azure.subscriptionId")
 
 		// create the clientset
 		clientset, err := kubernetes.NewForConfig(config)
@@ -67,7 +68,7 @@ var serverCMD = &cobra.Command{
 		)
 
 		microserviceService := microservice.NewService(gitRepo, k8sRepo, clientset)
-		applicationService := application.NewService(gitRepo, k8sRepo)
+		applicationService := application.NewService(subscriptionID, gitRepo, k8sRepo)
 		tenantService := tenant.NewService()
 		businessMomentsService := businessmoment.NewService(logrus.WithField("context", "business-moments-service"), gitRepo, k8sRepo, clientset)
 
@@ -105,12 +106,12 @@ var serverCMD = &cobra.Command{
 		router.Handle("/application/{applicationID}/microservices", stdChainWithJSON.ThenFunc(microserviceService.GetByApplicationID)).Methods("GET", "OPTIONS")
 		router.Handle("/application/{applicationID}", stdChainWithJSON.ThenFunc(applicationService.GetByID)).Methods("GET", "OPTIONS")
 		router.Handle("/applications", stdChainWithJSON.ThenFunc(applicationService.GetApplications)).Methods("GET", "OPTIONS")
+		router.Handle("/application/{applicationID}/personalised-application-info", stdChainWithJSON.ThenFunc(applicationService.GetPersonalisedInfo)).Methods("GET", "OPTIONS")
 
 		router.Handle("/application/{applicationID}/environment/{environment}/microservice/{microserviceID}", stdChainWithJSON.ThenFunc(microserviceService.GetByID)).Methods("GET", "OPTIONS")
 		router.Handle("/application/{applicationID}/environment/{environment}/microservice/{microserviceID}", stdChainWithJSON.ThenFunc(microserviceService.Delete)).Methods("DELETE", "OPTIONS")
 
 		router.Handle("/live/applications", stdChainWithJSON.ThenFunc(applicationService.GetLiveApplications)).Methods("GET", "OPTIONS")
-
 		router.Handle("/live/application/{applicationID}/microservices", stdChainWithJSON.ThenFunc(microserviceService.GetLiveByApplicationID)).Methods("GET", "OPTIONS")
 		router.Handle("/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/podstatus", stdChainWithJSON.ThenFunc(microserviceService.GetPodStatus)).Methods("GET", "OPTIONS")
 		router.Handle("/live/application/{applicationID}/pod/{podName}/logs", stdChainBase.ThenFunc(microserviceService.GetPodLogs)).Methods("GET", "OPTIONS")
@@ -151,8 +152,7 @@ var serverCMD = &cobra.Command{
 		).Methods("DELETE", "OPTIONS")
 
 		srv := &http.Server{
-			Handler: router,
-			//Addr:         "0.0.0.0:8080",
+			Handler:      router,
 			Addr:         listenOn,
 			WriteTimeout: 15 * time.Second,
 			ReadTimeout:  15 * time.Second,
@@ -168,7 +168,9 @@ func init() {
 	viper.BindPFlag("tools.server.kubeConfig", serverCMD.Flags().Lookup("kube-config"))
 	viper.SetDefault("tools.server.secret", "change")
 	viper.SetDefault("tools.server.listenOn", "localhost:8080")
+	viper.SetDefault("tools.server.azure.subscriptionId", "")
 
 	viper.BindEnv("tools.server.secret", "HEADER_SECRET")
 	viper.BindEnv("tools.server.listenOn", "LISTEN_ON")
+	viper.BindEnv("tools.server.azure.subscriptionId", "AZURE_SUBSCRIPTION_ID")
 }

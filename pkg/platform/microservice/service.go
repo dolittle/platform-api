@@ -166,7 +166,7 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 
 func (s *service) GetByID(w http.ResponseWriter, r *http.Request) {
 	tenantID := r.Header.Get("Tenant-ID")
-	tenantInfo, err := s.gitRepo.GetTenant(tenantID)
+	tenantInfo, err := s.gitRepo.GetTerraformTenant(tenantID)
 	if err != nil {
 		// TODO handle not found
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -202,7 +202,7 @@ func (s *service) GetByID(w http.ResponseWriter, r *http.Request) {
 
 func (s *service) GetByApplicationID(w http.ResponseWriter, r *http.Request) {
 	tenantID := r.Header.Get("Tenant-ID")
-	tenantInfo, err := s.gitRepo.GetTenant(tenantID)
+	tenantInfo, err := s.gitRepo.GetTerraformTenant(tenantID)
 	if err != nil {
 		// TODO handle not found
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())

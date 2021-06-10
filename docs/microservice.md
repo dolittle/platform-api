@@ -2,6 +2,7 @@
 ```sh
 GIT_BRANCH="auto-dev" \
 LISTEN_ON="localhost:8080" \
+AZURE_SUBSCRIPTION_ID="XXX" \
 go run main.go microservice server --kube-config="/Users/freshteapot/.kube/config"
 ```
 

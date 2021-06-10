@@ -15,11 +15,11 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
-func NewService(gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo) service {
+func NewService(subscriptionID string, gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo) service {
 	return service{
+		subscriptionID:  subscriptionID,
 		gitRepo:         gitRepo,
 		k8sDolittleRepo: k8sDolittleRepo,
-		//k8sClient:       k8sClient,
 	}
 }
 
@@ -156,9 +156,7 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 
 func (s *service) GetLiveApplications(w http.ResponseWriter, r *http.Request) {
 	tenantID := r.Header.Get("Tenant-ID")
-
-	// TODO get tenant from syncing the terraform output into the repo (which we might have access to if we use the same repo)
-	tenantInfo, err := s.gitRepo.GetTenant(tenantID)
+	tenantInfo, err := s.gitRepo.GetTerraformTenant(tenantID)
 	if err != nil {
 		// TODO handle not found
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -228,7 +226,7 @@ func (s *service) GetByID(w http.ResponseWriter, r *http.Request) {
 func (s *service) GetApplications(w http.ResponseWriter, r *http.Request) {
 	tenantID := r.Header.Get("Tenant-ID")
 
-	tenantInfo, err := s.gitRepo.GetTenant(tenantID)
+	tenantInfo, err := s.gitRepo.GetTerraformTenant(tenantID)
 	if err != nil {
 		// TODO handle not found
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -266,4 +264,29 @@ func (s *service) GetApplications(w http.ResponseWriter, r *http.Request) {
 
 	//microservices, err := s.gitRepo.GetMicroservices(tenantID, applicationID)
 	utils.RespondWithJSON(w, http.StatusOK, response)
+}
+
+func (s *service) GetPersonalisedInfo(w http.ResponseWriter, r *http.Request) {
+	tenantID := r.Header.Get("Tenant-ID")
+	vars := mux.Vars(r)
+	applicationID := vars["applicationID"]
+
+	terraformCustomer, err := s.gitRepo.GetTerraformTenant(tenantID)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	terraformApplication, err := s.gitRepo.GetTerraformApplication(tenantID, applicationID)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	utils.RespondWithJSON(w, http.StatusOK, map[string]interface{}{
+		"customer":       terraformCustomer,
+		"application":    terraformApplication,
+		"subscriptionId": s.subscriptionID,
+		"applicationId":  applicationID,
+	})
 }

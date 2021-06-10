@@ -15,14 +15,15 @@ import (
 	"github.com/spf13/viper"
 )
 
-var buildCustomersCMD = &cobra.Command{
-	Use:   "build-tenant-info",
+var buildTerraformInfoCMD = &cobra.Command{
+	Use:   "build-terraform-info",
 	Short: "Write tenant info into the git repo",
 	Long: `
 	You need  the output from terraform
 
 	terraform output -json
-	go run main.go microservice build-tenant-info /Users/freshteapot/dolittle/git/Operations/Source/V3/Azure/azure.json
+	GIT_BRANCH="auto-dev" \
+	go run main.go microservice build-terraform-info /Users/freshteapot/dolittle/git/Operations/Source/V3/Azure/azure.json
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		gitRepoBranch := viper.GetString("tools.server.gitRepo.branch")
@@ -47,8 +48,15 @@ var buildCustomersCMD = &cobra.Command{
 			"/Users/freshteapot/dolittle/.ssh/test-deploy",
 		)
 
-		customers := extractCustomers(b)
-		err = SaveCustomers(gitRepo, customers)
+		customers := extractTerraformCustomers(b)
+		err = saveTerraformCustomers(gitRepo, customers)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		applications := extractTerraformApplications(b)
+		err = saveTerraformApplications(gitRepo, applications)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -56,10 +64,10 @@ var buildCustomersCMD = &cobra.Command{
 	},
 }
 
-func SaveCustomers(repo storage.Repo, customers []platform.TerraformCustomer) error {
+func saveTerraformCustomers(repo storage.Repo, customers []platform.TerraformCustomer) error {
 	for _, customer := range customers {
 
-		err := repo.SaveTenant(customer)
+		err := repo.SaveTerraformTenant(customer)
 		if err != nil {
 			return err
 		}
@@ -67,13 +75,22 @@ func SaveCustomers(repo storage.Repo, customers []platform.TerraformCustomer) er
 	return nil
 }
 
-func extractCustomers(data []byte) []platform.TerraformCustomer {
+func saveTerraformApplications(repo storage.Repo, applications []platform.TerraformApplication) error {
+	for _, application := range applications {
+
+		err := repo.SaveTerraformApplication(application)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func extractTerraformCustomers(data []byte) []platform.TerraformCustomer {
 	var input interface{}
 	json.Unmarshal(data, &input)
 
-	// This would be easier if we added context in terraform
 	jqQuery := `[.|to_entries | .[] | select(.value.value.kind=="dolittle-customer").value.value] | unique_by(.guid) | .[]`
-	//query, err := gojq.Parse(`[.|to_entries | .[] | select(.value.value.customer).value.value.customer] | unique_by(.guid) | .[]`)
 	query, err := gojq.Parse(jqQuery)
 
 	if err != nil {
@@ -104,4 +121,41 @@ func extractCustomers(data []byte) []platform.TerraformCustomer {
 	}
 
 	return customers
+}
+
+func extractTerraformApplications(data []byte) []platform.TerraformApplication {
+	var input interface{}
+	json.Unmarshal(data, &input)
+
+	jqQuery := `[.|to_entries | .[] | select(.value.value.kind=="dolittle-application").value.value] | unique_by(.guid) | .[]`
+	query, err := gojq.Parse(jqQuery)
+
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	iter := query.Run(input) // or query.RunWithContext
+
+	applications := make([]platform.TerraformApplication, 0)
+	for {
+		v, ok := iter.Next()
+		if !ok {
+			break
+		}
+
+		if err, ok := v.(error); ok {
+			log.Fatalln(err)
+		}
+
+		var a platform.TerraformApplication
+		b, _ := json.Marshal(v)
+		err := json.Unmarshal(b, &a)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		applications = append(applications, a)
+	}
+
+	return applications
 }
