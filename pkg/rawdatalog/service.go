@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
+	"github.com/fsnotify/fsnotify"
 	"github.com/sirupsen/logrus"
 )
 
@@ -36,12 +38,12 @@ func NewService(logContext logrus.FieldLogger, uriPrefix string, pathToMicroserv
 		environment:              environment,
 	}
 
-	s.watchAndLoadAllowedUriSuffixes()
+	go s.watchAndLoadAllowedUriSuffixes()
 
 	return s
 }
 
-func (s *service) watchAndLoadAllowedUriSuffixes() {
+func (s *service) loadAllowedUriSuffixes() {
 	// TODO add watch to the file
 	b, err := ioutil.ReadFile(s.pathToMicroserviceConfig)
 
@@ -61,10 +63,62 @@ func (s *service) watchAndLoadAllowedUriSuffixes() {
 		}).Fatal("loading microservice config")
 	}
 
-	s.allowedUriSuffixes = map[string]platform.RawDataLogIngestorWebhookConfig{}
+	allowedUriSuffixes := map[string]platform.RawDataLogIngestorWebhookConfig{}
 	for _, webhook := range data.Extra.Webhooks {
-		s.allowedUriSuffixes[webhook.UriSuffix] = webhook
+		allowedUriSuffixes[webhook.UriSuffix] = webhook
 	}
+	s.allowedUriSuffixes = allowedUriSuffixes
+}
+
+func (s *service) watchAndLoadAllowedUriSuffixes() {
+	s.loadAllowedUriSuffixes()
+
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer watcher.Close()
+
+	done := make(chan bool)
+	go func() {
+		for {
+			select {
+			case event, ok := <-watcher.Events:
+				if !ok {
+					s.logContext.WithFields(logrus.Fields{
+						"ok":    ok,
+						"event": event,
+					}).Info("Event")
+					return
+				}
+
+				s.logContext.WithFields(logrus.Fields{
+
+					"event": event,
+				}).Info("Event")
+
+				if event.Op&fsnotify.Write == fsnotify.Write {
+					s.logContext.Info("file written")
+					s.loadAllowedUriSuffixes()
+				}
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
+				s.logContext.WithFields(logrus.Fields{
+					"error": err,
+				}).Fatal("error whilst watching file change")
+			}
+		}
+	}()
+
+	err = watcher.Add(s.pathToMicroserviceConfig)
+	if err != nil {
+		s.logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Fatal("error whilst starting to watch file change")
+	}
+	<-done
 }
 
 func (s *service) Webhook(w http.ResponseWriter, r *http.Request) {

@@ -366,6 +366,8 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, 
 		},
 	}
 
+	// TODO do I need this?
+	// TODO if I remove it, do I remove the config mapping?
 	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, customersTenantID)
 	deployment := k8s.NewDeployment(microservice, headImage, runtimeImage)
 	service := k8s.NewService(microservice)
@@ -393,7 +395,6 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, 
 		container,
 	}
 
-	// TODO not great, but equally might not be needed
 	configEnvVariables.Data = map[string]string{
 		"WEBHOOK_REPO":            input.Extra.WriteTo,
 		"LISTEN_ON":               "0.0.0.0:8080",
@@ -401,6 +402,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, 
 		"DOLITTLE_TENANT_ID":      tenant.ID,
 		"DOLITTLE_APPLICATION_ID": application.ID,
 		"DOLITTLE_ENVIRONMENT":    environment,
+		"MICROSERVICE_CONFIG":     "/app/data/microservice_data_from_studio.json",
 	}
 
 	if input.Extra.WriteTo == "nats" {
@@ -410,6 +412,11 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, 
 		configEnvVariables.Data["STAN_CLUSTER_ID"] = "stan"
 		configEnvVariables.Data["STAN_CLIENT_ID"] = stanClientID
 	}
+
+	configFiles.Data = map[string]string{}
+	// We store the config data into the config-Files for the service to pick up on
+	b, _ := json.MarshalIndent(input, "", "  ")
+	configFiles.Data["microservice_data_from_studio.json"] = string(b)
 
 	service.Spec.Ports[0].TargetPort = intstr.IntOrString{
 		Type:   intstr.Int,
