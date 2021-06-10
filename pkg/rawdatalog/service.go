@@ -3,6 +3,7 @@ package rawdatalog
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
@@ -13,31 +14,56 @@ import (
 )
 
 type service struct {
-	logContext         logrus.FieldLogger
-	repo               Repo
-	uriPrefix          string
-	topic              string
-	tenantID           string
-	applicationID      string
-	environment        string
-	allowedUriSuffixes map[string]platform.RawDataLogIngestorWebhookConfig
+	logContext               logrus.FieldLogger
+	repo                     Repo
+	uriPrefix                string
+	pathToMicroserviceConfig string
+	topic                    string
+	tenantID                 string
+	applicationID            string
+	environment              string
+	allowedUriSuffixes       map[string]platform.RawDataLogIngestorWebhookConfig
 }
 
-func NewService(logContext logrus.FieldLogger, uriPrefix string, topic string, repo Repo, tenantID string, applicationID string, environment string) service {
-	return service{
-		logContext:    logContext,
-		uriPrefix:     uriPrefix,
-		repo:          repo,
-		tenantID:      tenantID,
-		applicationID: applicationID,
-		environment:   environment,
-		allowedUriSuffixes: map[string]platform.RawDataLogIngestorWebhookConfig{
-			"abc/abc": {
-				Kind:          "abc/abc",
-				UriSuffix:     "abc/abc",
-				Authorization: "Bearer Test",
-			},
-		},
+func NewService(logContext logrus.FieldLogger, uriPrefix string, pathToMicroserviceConfig string, topic string, repo Repo, tenantID string, applicationID string, environment string) service {
+	s := service{
+		logContext:               logContext,
+		uriPrefix:                uriPrefix,
+		pathToMicroserviceConfig: pathToMicroserviceConfig,
+		repo:                     repo,
+		tenantID:                 tenantID,
+		applicationID:            applicationID,
+		environment:              environment,
+	}
+
+	s.watchAndLoadAllowedUriSuffixes()
+
+	return s
+}
+
+func (s *service) watchAndLoadAllowedUriSuffixes() {
+	// TODO add watch to the file
+	b, err := ioutil.ReadFile(s.pathToMicroserviceConfig)
+
+	var data platform.HttpInputRawDataLogIngestorInfo
+	if err != nil {
+		s.logContext.WithFields(logrus.Fields{
+			"error":                    err,
+			"pathToMicroserviceConfig": s.pathToMicroserviceConfig,
+		}).Fatal("loading microservice config")
+	}
+
+	err = json.Unmarshal(b, &data)
+	if err != nil {
+		s.logContext.WithFields(logrus.Fields{
+			"error":                    err,
+			"pathToMicroserviceConfig": s.pathToMicroserviceConfig,
+		}).Fatal("loading microservice config")
+	}
+
+	s.allowedUriSuffixes = map[string]platform.RawDataLogIngestorWebhookConfig{}
+	for _, webhook := range data.Extra.Webhooks {
+		s.allowedUriSuffixes[webhook.UriSuffix] = webhook
 	}
 }
 
