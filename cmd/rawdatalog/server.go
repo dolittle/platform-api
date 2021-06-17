@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dolittle-entropy/platform-api/pkg/rawdatalog"
+	"github.com/rs/cors"
 
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
@@ -34,7 +35,20 @@ var serverCMD = &cobra.Command{
 
 		// Not needed, but maybe we want some middlewares?
 		// Secret lookup could be 1
-		stdChain := alice.New()
+		c := cors.New(cors.Options{
+			OptionsPassthrough: false,
+			Debug:              true,
+			AllowedOrigins:     []string{"*", "localhost:5000"},
+			AllowedMethods: []string{
+				http.MethodOptions,
+				http.MethodPost,
+				http.MethodPut,
+			},
+			AllowedHeaders:   []string{"*", "authorization", "content-type"},
+			AllowCredentials: false,
+		})
+
+		stdChain := alice.New(c.Handler)
 
 		var repo rawdatalog.Repo
 		switch webhookRepoType {
@@ -61,7 +75,7 @@ var serverCMD = &cobra.Command{
 			applicationID,
 			environment,
 		)
-		router.PathPrefix(webhookUriPrefix).Handler(stdChain.ThenFunc(service.Webhook)).Methods("POST", "PUT")
+		router.PathPrefix(webhookUriPrefix).Handler(stdChain.ThenFunc(service.Webhook)).Methods("POST", "PUT", "OPTIONS")
 
 		srv := &http.Server{
 			Handler:      router,
