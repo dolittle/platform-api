@@ -210,7 +210,7 @@ func (r businessMomentsAdaptorRepo) Create(namespace string, tenant k8s.Tenant, 
 			log.Fatal(err)
 			return errors.New("issue")
 		}
-		fmt.Println("Skipping service already exists")
+		fmt.Println("Skipping network policy already exists")
 	}
 
 	_, err = client.AppsV1().Deployments(namespace).Create(ctx, deployment, metaV1.CreateOptions{})
@@ -308,6 +308,16 @@ func (r businessMomentsAdaptorRepo) Delete(namespace string, microserviceID stri
 	ingresses, _ := client.NetworkingV1().Ingresses(namespace).List(ctx, opts)
 	for _, ingress := range ingresses.Items {
 		err = client.NetworkingV1().Ingresses(namespace).Delete(ctx, ingress.Name, metaV1.DeleteOptions{})
+		if err != nil {
+			log.Fatal(err)
+			return errors.New("issue")
+		}
+	}
+
+	// Remove Network Policy
+	policies, _ := client.NetworkingV1().NetworkPolicies(namespace).List(ctx, opts)
+	for _, policy := range policies.Items {
+		err = client.NetworkingV1().NetworkPolicies(namespace).Delete(ctx, policy.Name, metaV1.DeleteOptions{})
 		if err != nil {
 			log.Fatal(err)
 			return errors.New("issue")

@@ -431,7 +431,7 @@ func (r *K8sRepo) CanModifyApplication(tenantID string, applicationID string, us
 // Only works when we can use the namespace
 // TODO bringing online the ad group from microsoft will allow us to check group access
 func (r *K8sRepo) CanModifyApplicationWithResourceAttributes(tenantID string, applicationID string, userID string, attribute authV1.ResourceAttributes) (bool, error) {
-	config := rest.CopyConfig(r.baseConfig)
+	config := r.GetRestConfig()
 
 	config.Impersonate = rest.ImpersonationConfig{
 		UserName: userID,
@@ -461,4 +461,8 @@ func (r *K8sRepo) CanModifyApplicationWithResourceAttributes(tenantID string, ap
 	}
 
 	return resp.Status.Allowed, nil
+}
+
+func (r *K8sRepo) GetRestConfig() *rest.Config {
+	return rest.CopyConfig(r.baseConfig)
 }

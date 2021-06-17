@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dolittle-entropy/platform-api/pkg/rawdatalog"
+	"github.com/rs/cors"
 
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
@@ -24,6 +25,7 @@ var serverCMD = &cobra.Command{
 		listenOn := viper.GetString("rawdatalog.server.listenOn")
 		webhookRepoType := strings.ToLower(viper.GetString("rawdatalog.server.webhookRepo"))
 		webhookUriPrefix := strings.ToLower(viper.GetString("rawdatalog.server.webhookUriPrefix"))
+		pathToMicroserviceConfig := viper.GetString("rawdatalog.server.microserviceConfig")
 		tenantID := viper.GetString("rawdatalog.server.tenantID")
 		applicationID := viper.GetString("rawdatalog.server.applicationID")
 		environment := viper.GetString("rawdatalog.server.environment")
@@ -33,7 +35,20 @@ var serverCMD = &cobra.Command{
 
 		// Not needed, but maybe we want some middlewares?
 		// Secret lookup could be 1
-		stdChain := alice.New()
+		c := cors.New(cors.Options{
+			OptionsPassthrough: false,
+			Debug:              true,
+			AllowedOrigins:     []string{"*", "localhost:5000"},
+			AllowedMethods: []string{
+				http.MethodOptions,
+				http.MethodPost,
+				http.MethodPut,
+			},
+			AllowedHeaders:   []string{"*", "authorization", "content-type"},
+			AllowCredentials: false,
+		})
+
+		stdChain := alice.New(c.Handler)
 
 		var repo rawdatalog.Repo
 		switch webhookRepoType {
@@ -50,8 +65,17 @@ var serverCMD = &cobra.Command{
 			panic(fmt.Sprintf("WEBHOOK_REPO %s not supported, pick stdout or nats", webhookRepoType))
 		}
 
-		service := rawdatalog.NewService(logrus.WithField("service", "raw-data-log"), webhookUriPrefix, topic, repo, tenantID, applicationID, environment)
-		router.PathPrefix(webhookUriPrefix).Handler(stdChain.ThenFunc(service.Webhook)).Methods("POST", "PUT")
+		service := rawdatalog.NewService(
+			logrus.WithField("service", "raw-data-log"),
+			webhookUriPrefix,
+			pathToMicroserviceConfig,
+			topic,
+			repo,
+			tenantID,
+			applicationID,
+			environment,
+		)
+		router.PathPrefix(webhookUriPrefix).Handler(stdChain.ThenFunc(service.Webhook)).Methods("POST", "PUT", "OPTIONS")
 
 		srv := &http.Server{
 			Handler:      router,
@@ -71,6 +95,7 @@ func init() {
 	viper.SetDefault("rawdatalog.server.listenOn", "localhost:8080")
 	viper.SetDefault("rawdatalog.server.webhookRepo", "stdout")
 	viper.SetDefault("rawdatalog.server.webhookUriPrefix", "/webhook/")
+	viper.SetDefault("rawdatalog.server.microserviceConfig", "/tmp/ms.json")
 	viper.SetDefault("rawdatalog.server.tenantID", "tenant-fake-123")
 	viper.SetDefault("rawdatalog.server.applicationID", "application-fake-123")
 	viper.SetDefault("rawdatalog.server.environment", "environment-fake-123")
@@ -82,6 +107,7 @@ func init() {
 
 	viper.BindEnv("rawdatalog.server.listenOn", "LISTEN_ON")
 	viper.BindEnv("rawdatalog.server.webhookRepo", "WEBHOOK_REPO")
+	viper.BindEnv("rawdatalog.server.microserviceConfig", "MICROSERVICE_CONFIG")
 	viper.BindEnv("rawdatalog.server.webhookUriPrefix", "WEBHOOK_PREFIX")
 	viper.BindEnv("rawdatalog.server.tenantID", "DOLITTLE_TENANT_ID")
 	viper.BindEnv("rawdatalog.server.applicationID", "DOLITTLE_APPLICATION_ID")

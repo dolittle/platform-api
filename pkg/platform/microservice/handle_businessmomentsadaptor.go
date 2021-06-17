@@ -45,7 +45,7 @@ func (s *service) handleBusinessMomentsAdaptor(w http.ResponseWriter, r *http.Re
 	}
 
 	if application.ID != ms.Dolittle.ApplicationID {
-		utils.RespondWithError(w, http.StatusInternalServerError, "Currently locked down to applicaiton 11b6cf47-5d9f-438f-8116-0d9828654657")
+		utils.RespondWithError(w, http.StatusInternalServerError, "Application id in uri does not match application id in body")
 		return
 	}
 

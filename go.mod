@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/Azure/azure-storage-file-go v0.8.0
+	github.com/fsnotify/fsnotify v1.4.9
 	github.com/go-git/go-git/v5 v5.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/itchyny/gojq v0.12.3
