@@ -37,6 +37,11 @@ var serverCMD = &cobra.Command{
 			panic("GIT_BRANCH required")
 		}
 
+		gitSshKeysFolder := viper.GetString("tools.server.gitRepo.git-key")
+		if gitSshKeysFolder == "" {
+			panic("GIT_KEY required")
+		}
+
 		kubeconfig := viper.GetString("tools.server.kubeConfig")
 		// TODO hoist localhost into viper
 		config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
@@ -64,7 +69,7 @@ var serverCMD = &cobra.Command{
 			"/tmp/dolittle-k8s",
 			gitRepoBranch,
 			// TODO fix this, then update deployment
-			"/Users/freshteapot/dolittle/.ssh/test-deploy",
+			gitSshKeysFolder,
 		)
 
 		microserviceService := microservice.NewService(gitRepo, k8sRepo, clientset)
