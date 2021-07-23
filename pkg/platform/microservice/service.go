@@ -1,15 +1,18 @@
 package microservice
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/rawdatalog"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/mongo"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
@@ -629,4 +632,74 @@ func (s *service) CanI(w http.ResponseWriter, r *http.Request) {
 	utils.RespondWithJSON(w, http.StatusNotFound, map[string]string{
 		"allowed": allowedStr,
 	})
+}
+
+func (s *service) GetRuntimeStreamStates(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	applicationID := vars["applicationID"]
+	microserviceID := vars["microserviceID"]
+	environment := strings.ToLower(vars["environment"])
+
+	userID := r.Header.Get("User-ID")
+	tenantID := r.Header.Get("Tenant-ID")
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
+	if !allowed {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	mongoURI := mongo.GetMongoURI(applicationID, environment)
+	fmt.Println(mongoURI)
+	client, err := mongo.SetupMongo(ctx, mongoURI)
+
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	fmt.Println("After 1")
+	dbs := mongo.GetEventStoreDatabases(ctx, client)
+	fmt.Println("After 2")
+	collections := make([]string, 0)
+	latestEvents := make(map[string]platform.RuntimeLatestEvent, 0)
+	latestEventsPerEventType := make(map[string][]platform.RuntimeLatestEvent, 0)
+	for _, db := range dbs {
+		_collections := mongo.GetCollections(ctx, client, db)
+
+		collections = append(collections, _collections...)
+
+		for _, collection := range _collections {
+			if !strings.Contains(collection, "event-log") {
+				continue
+			}
+
+			fmt.Println("db", db, "collection", collection)
+			latest, err := mongo.GetLatestEvent(ctx, client, db, collection)
+			if err != nil {
+				fmt.Println("Failed to get latest event", err)
+				continue
+			}
+			key := fmt.Sprintf("%s.%s", db, collection)
+			latestEvents[key] = latest
+
+			latestEvents, err := mongo.GetLatestEventPerEventType(ctx, client, db, collection)
+			if err != nil {
+				fmt.Println("Failed to get latest event", err)
+				continue
+			}
+			latestEventsPerEventType[key] = latestEvents
+		}
+	}
+
+	fmt.Println("After 3")
+	utils.RespondWithJSON(w, http.StatusOK, map[string]interface{}{
+		"applicaitonID":            applicationID,
+		"microserviceID":           microserviceID,
+		"environment":              environment,
+		"dbs":                      dbs,
+		"collections":              collections,
+		"latestEvents":             latestEvents,
+		"latestEventsPerEventType": latestEventsPerEventType,
+	})
+	return
 }

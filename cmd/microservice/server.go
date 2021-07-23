@@ -119,6 +119,7 @@ var serverCMD = &cobra.Command{
 		router.Handle("/live/applications", stdChainWithJSON.ThenFunc(applicationService.GetLiveApplications)).Methods("GET", "OPTIONS")
 		router.Handle("/live/application/{applicationID}/microservices", stdChainWithJSON.ThenFunc(microserviceService.GetLiveByApplicationID)).Methods("GET", "OPTIONS")
 		router.Handle("/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/podstatus", stdChainWithJSON.ThenFunc(microserviceService.GetPodStatus)).Methods("GET", "OPTIONS")
+		router.Handle("/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/insights/lastevents", stdChainWithJSON.ThenFunc(microserviceService.GetRuntimeStreamStates)).Methods("GET", "OPTIONS")
 		router.Handle("/live/application/{applicationID}/pod/{podName}/logs", stdChainBase.ThenFunc(microserviceService.GetPodLogs)).Methods("GET", "OPTIONS")
 		router.Handle("/live/application/{applicationID}/configmap/{configMapName}", stdChainBase.ThenFunc(microserviceService.GetConfigMap)).Methods("GET", "OPTIONS")
 		router.Handle("/live/application/{applicationID}/secret/{secretName}", stdChainBase.ThenFunc(microserviceService.GetSecret)).Methods("GET", "OPTIONS")
