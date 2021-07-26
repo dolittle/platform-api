@@ -320,3 +320,20 @@ type RuntimeLatestEvent struct {
 	EventTypeId string `bson:"eventTypeId,omitempty"`
 	Occurred    string `bson:"occurred,omitempty"`
 }
+
+type RuntimeState struct {
+	Position                  string      `json:"position,omitempty"`
+	EventProcessor            string      `json:"eventProcessor,omitempty"`
+	SourceStream              string      `json:"sourceStream,omitempty"`
+	FailingPartitions         interface{} `json:"failingPartitions,omitempty"`
+	LastSuccessfullyProcessed string      `json:"lastSuccessfullyProcessed,omitempty"`
+}
+
+type RuntimeStateFailingPartition struct {
+	LastFailed         string `json:"lastFailed"`
+	Partition          string `json:"partition"`
+	Position           string `json:"position"`
+	ProcessingAttempts int32  `json:"processingAttempts"`
+	Reason             string `json:"reason"`
+	RetryTime          string `json:"retryTime"`
+}

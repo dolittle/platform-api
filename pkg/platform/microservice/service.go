@@ -634,10 +634,10 @@ func (s *service) CanI(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *service) GetRuntimeStreamStates(w http.ResponseWriter, r *http.Request) {
+// TODO this name is not correct anymore
+func (s *service) GetInsightsRuntimeV1(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
-	microserviceID := vars["microserviceID"]
 	environment := strings.ToLower(vars["environment"])
 
 	userID := r.Header.Get("User-ID")
@@ -650,6 +650,7 @@ func (s *service) GetRuntimeStreamStates(w http.ResponseWriter, r *http.Request)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	mongoURI := mongo.GetMongoURI(applicationID, environment)
+	// TODO add logs
 	fmt.Println(mongoURI)
 	client, err := mongo.SetupMongo(ctx, mongoURI)
 
@@ -657,49 +658,54 @@ func (s *service) GetRuntimeStreamStates(w http.ResponseWriter, r *http.Request)
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	fmt.Println("After 1")
+
 	dbs := mongo.GetEventStoreDatabases(ctx, client)
-	fmt.Println("After 2")
-	collections := make([]string, 0)
+
 	latestEvents := make(map[string]platform.RuntimeLatestEvent, 0)
 	latestEventsPerEventType := make(map[string][]platform.RuntimeLatestEvent, 0)
+	eventLogCounts := make(map[string]int64, 0)
+	runtimeStates := make(map[string][]platform.RuntimeState, 0)
+
 	for _, db := range dbs {
-		_collections := mongo.GetCollections(ctx, client, db)
+		key := fmt.Sprintf("%s", db)
 
-		collections = append(collections, _collections...)
-
-		for _, collection := range _collections {
-			if !strings.Contains(collection, "event-log") {
-				continue
-			}
-
-			fmt.Println("db", db, "collection", collection)
-			latest, err := mongo.GetLatestEvent(ctx, client, db, collection)
-			if err != nil {
-				fmt.Println("Failed to get latest event", err)
-				continue
-			}
-			key := fmt.Sprintf("%s.%s", db, collection)
-			latestEvents[key] = latest
-
-			latestEvents, err := mongo.GetLatestEventPerEventType(ctx, client, db, collection)
-			if err != nil {
-				fmt.Println("Failed to get latest event", err)
-				continue
-			}
-			latestEventsPerEventType[key] = latestEvents
+		_latestEvents, err := mongo.GetLatestEvent(ctx, client, db)
+		if err != nil {
+			fmt.Println("Failed to get latest event", err)
+			continue
 		}
+
+		latestEvents[key] = _latestEvents
+
+		_latestEventsPerEventType, err := mongo.GetLatestEventPerEventType(ctx, client, db)
+		if err != nil {
+			fmt.Println("Failed to get latest event per event type", err)
+			continue
+		}
+		latestEventsPerEventType[key] = _latestEventsPerEventType
+
+		eventLogCount, err := mongo.GetEventLogCount(ctx, client, db)
+		if err != nil {
+			fmt.Println("Failed to get event log count", err)
+			continue
+		}
+		eventLogCounts[key] = eventLogCount
+
+		_runtimeStates, err := mongo.GetRuntimeStates(ctx, client, db)
+		if err != nil {
+			fmt.Println("Failed to get runtime states", err)
+			continue
+		}
+		runtimeStates[key] = _runtimeStates
 	}
 
-	fmt.Println("After 3")
 	utils.RespondWithJSON(w, http.StatusOK, map[string]interface{}{
 		"applicaitonID":            applicationID,
-		"microserviceID":           microserviceID,
 		"environment":              environment,
-		"dbs":                      dbs,
-		"collections":              collections,
 		"latestEvents":             latestEvents,
 		"latestEventsPerEventType": latestEventsPerEventType,
+		"eventLogCounts":           eventLogCounts,
+		"runtimeStates":            runtimeStates,
 	})
 	return
 }
