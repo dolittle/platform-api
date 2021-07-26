@@ -250,11 +250,12 @@ func GetRuntimeStates(ctx context.Context, client *mongo.Client, database string
 	/*
 			db.getCollection("stream-processor-states").find({
 		    	SourceStream: {
-		        	$ne: UUID("00000000-0000-0000-0000-000000000000")
+		        	$ne: "00000000-0000-0000-0000-000000000000"
 		    	}
 			});
 	*/
 	findOptions := options.Find()
+
 	findOptions.Projection = bson.D{
 		{"EventProcessor", 1},
 		{"SourceStream", 1},
@@ -263,8 +264,15 @@ func GetRuntimeStates(ctx context.Context, client *mongo.Client, database string
 		{"LastSuccessfullyProcessed", 1},
 	}
 
+	// 00000000-0000-0000-0000-000000000000 = AAAAAAAAAAAAAAAAAAAAAA==
+	// I got here by decoding the bson data :(
+	//decoded, err := base64.StdEncoding.DecodeString("AAAAAAAAAAAAAAAAAAAAAA==")
+	//filterSourceStreamUUID := bsonx.Binary(bsontype.BinaryUUID, decoded)
+
 	cursor, err := c.Find(ctx, bson.M{
-		"SourceStream": bson.M{"$ne": "00000000-0000-0000-0000-000000000000"},
+		//"SourceStream": bson.M{
+		//	"$ne": filterSourceStreamUUID,
+		//},
 	}, findOptions)
 
 	if err != nil {
@@ -290,29 +298,39 @@ func GetRuntimeStates(ctx context.Context, client *mongo.Client, database string
 			continue
 		}
 
-		failingPartitions := make([]platform.RuntimeStateFailingPartition, 0)
-		if len(internal.FailingPartitions) >= 0 {
-			for partition, info := range internal.FailingPartitions {
-				document := info.(primitive.M)
-				failingPartitions = append(failingPartitions, platform.RuntimeStateFailingPartition{
-					LastFailed:         document["LastFailed"].(primitive.DateTime).Time().String(),
-					Partition:          partition,
-					Position:           document["Position"].(primitive.Decimal128).String(),
-					ProcessingAttempts: document["ProcessingAttempts"].(int32),
-					Reason:             document["Reason"].(string),
-					RetryTime:          document["RetryTime"].(primitive.DateTime).Time().String(),
-				})
-			}
-
-		}
-
-		states = append(states, platform.RuntimeState{
+		state := platform.RuntimeState{
 			Position:                  internal.Position.String(),
 			EventProcessor:            eventProcessorUUID.String(),
 			SourceStream:              sourceStreamUUID.String(),
-			LastSuccessfullyProcessed: internal.LastSuccessfullyProcessed.Time().String(),
-			FailingPartitions:         failingPartitions,
-		})
+			LastSuccessfullyProcessed: internal.LastSuccessfullyProcessed.Time().Format(time.RFC3339Nano),
+			Kind:                      "na",
+		}
+
+		if state.EventProcessor == state.SourceStream {
+			state.Kind = "handler"
+			failingPartitions := make([]platform.RuntimeStateFailingPartition, 0)
+			if len(internal.FailingPartitions) >= 1 {
+				for partition, info := range internal.FailingPartitions {
+					document := info.(primitive.M)
+					partitionInfo := platform.RuntimeStateFailingPartition{
+						LastFailed:         document["LastFailed"].(primitive.DateTime).Time().Format(time.RFC3339Nano),
+						Partition:          partition,
+						Position:           document["Position"].(primitive.Decimal128).String(),
+						ProcessingAttempts: document["ProcessingAttempts"].(int32),
+						Reason:             document["Reason"].(string),
+						RetryTime:          document["RetryTime"].(primitive.DateTime).Time().Format(time.RFC3339Nano),
+					}
+					failingPartitions = append(failingPartitions, partitionInfo)
+				}
+			}
+			state.FailingPartitions = failingPartitions
+		}
+
+		if state.SourceStream == "00000000-0000-0000-0000-000000000000" {
+			state.Kind = "filter"
+		}
+
+		states = append(states, state)
 	}
 	return states, nil
 }

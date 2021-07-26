@@ -322,11 +322,12 @@ type RuntimeLatestEvent struct {
 }
 
 type RuntimeState struct {
-	Position                  string      `json:"position,omitempty"`
-	EventProcessor            string      `json:"eventProcessor,omitempty"`
-	SourceStream              string      `json:"sourceStream,omitempty"`
-	FailingPartitions         interface{} `json:"failingPartitions,omitempty"`
-	LastSuccessfullyProcessed string      `json:"lastSuccessfullyProcessed,omitempty"`
+	Position                  string                         `json:"position"`
+	EventProcessor            string                         `json:"eventProcessor"`
+	SourceStream              string                         `json:"sourceStream"`
+	FailingPartitions         []RuntimeStateFailingPartition `json:"failingPartitions,omitempty"`
+	LastSuccessfullyProcessed string                         `json:"lastSuccessfullyProcessed"`
+	Kind                      string                         `json:"kind"`
 }
 
 type RuntimeStateFailingPartition struct {
