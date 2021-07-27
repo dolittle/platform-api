@@ -1,18 +1,15 @@
 package microservice
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/rawdatalog"
-	"github.com/dolittle-entropy/platform-api/pkg/platform/mongo"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
@@ -632,80 +629,4 @@ func (s *service) CanI(w http.ResponseWriter, r *http.Request) {
 	utils.RespondWithJSON(w, http.StatusNotFound, map[string]string{
 		"allowed": allowedStr,
 	})
-}
-
-// TODO this name is not correct anymore
-func (s *service) GetInsightsRuntimeV1(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	applicationID := vars["applicationID"]
-	environment := strings.ToLower(vars["environment"])
-
-	userID := r.Header.Get("User-ID")
-	tenantID := r.Header.Get("Tenant-ID")
-	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
-	if !allowed {
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	mongoURI := mongo.GetMongoURI(applicationID, environment)
-	// TODO add logs
-	fmt.Println(mongoURI)
-	client, err := mongo.SetupMongo(ctx, mongoURI)
-
-	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	dbs := mongo.GetEventStoreDatabases(ctx, client)
-
-	latestEvents := make(map[string]platform.RuntimeLatestEvent, 0)
-	latestEventsPerEventType := make(map[string][]platform.RuntimeLatestEvent, 0)
-	eventLogCounts := make(map[string]int64, 0)
-	runtimeStates := make(map[string][]platform.RuntimeState, 0)
-
-	for _, db := range dbs {
-		key := fmt.Sprintf("%s", db)
-
-		_latestEvents, err := mongo.GetLatestEvent(ctx, client, db)
-		if err != nil {
-			fmt.Println("Failed to get latest event", err)
-			continue
-		}
-
-		latestEvents[key] = _latestEvents
-
-		_latestEventsPerEventType, err := mongo.GetLatestEventPerEventType(ctx, client, db)
-		if err != nil {
-			fmt.Println("Failed to get latest event per event type", err)
-			continue
-		}
-		latestEventsPerEventType[key] = _latestEventsPerEventType
-
-		eventLogCount, err := mongo.GetEventLogCount(ctx, client, db)
-		if err != nil {
-			fmt.Println("Failed to get event log count", err)
-			continue
-		}
-		eventLogCounts[key] = eventLogCount
-
-		_runtimeStates, err := mongo.GetRuntimeStates(ctx, client, db)
-		if err != nil {
-			fmt.Println("Failed to get runtime states", err)
-			continue
-		}
-		runtimeStates[key] = _runtimeStates
-	}
-
-	utils.RespondWithJSON(w, http.StatusOK, map[string]interface{}{
-		"applicaitonID":            applicationID,
-		"environment":              environment,
-		"latestEvents":             latestEvents,
-		"latestEventsPerEventType": latestEventsPerEventType,
-		"eventLogCounts":           eventLogCounts,
-		"runtimeStates":            runtimeStates,
-	})
-	return
 }
