@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"strings"
 	"time"
 
@@ -14,10 +16,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func NewService(logContext logrus.FieldLogger, k8sDolittleRepo platform.K8sRepo) service {
+func NewService(logContext logrus.FieldLogger, k8sDolittleRepo platform.K8sRepo, lokiHost string) service {
 	return service{
 		logContext:      logContext,
 		k8sDolittleRepo: k8sDolittleRepo,
+		lokiHost:        lokiHost,
 	}
 }
 
@@ -119,4 +122,39 @@ func (s *service) GetRuntimeV1(w http.ResponseWriter, r *http.Request) {
 		"runtimeStates":            runtimeStates,
 	})
 	return
+}
+
+// ProxyLoki
+func (s *service) ProxyLoki(w http.ResponseWriter, r *http.Request) {
+	tenantID := r.Header.Get("Tenant-ID")
+	r.Header.Del("Tenant-ID")
+	r.Header.Del("User-ID")
+	r.Header.Del("x-shared-secret")
+	r.Header.Set("X-Scope-OrgId", fmt.Sprintf("tenant-%s", tenantID))
+	// Remove prefix
+	parts := strings.Split(r.URL.Path, "/loki")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	r = r.WithContext(ctx)
+
+	r.URL.Path = strings.TrimPrefix(r.URL.Path, parts[0])
+	serveReverseProxy(s.lokiHost, w, r)
+}
+
+func serveReverseProxy(host string, res http.ResponseWriter, req *http.Request) {
+	url, _ := url.Parse("/")
+	url.Host = host
+	// Hard coding to http for now
+	url.Scheme = "http"
+	proxy := httputil.NewSingleHostReverseProxy(url)
+
+	// Update the request
+	req.Host = url.Host
+	req.URL.Host = url.Host
+	req.URL.Scheme = url.Scheme
+
+	req.Header.Set("X-Forwarded-Host", req.Header.Get("Host"))
+	// Note that ServeHttp is non blocking and uses a go routine under the hood
+	proxy.ServeHTTP(res, req)
 }

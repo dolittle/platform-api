@@ -8,4 +8,5 @@ import (
 type service struct {
 	logContext      logrus.FieldLogger
 	k8sDolittleRepo platform.K8sRepo
+	lokiHost        string
 }
