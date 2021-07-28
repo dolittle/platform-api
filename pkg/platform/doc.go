@@ -292,3 +292,49 @@ type TerraformApplication struct {
 	Kind    string `json:"kind"`
 	Name    string `json:"name"`
 }
+
+/*
+- db.getCollection("stream-processor-states").find({IsFailing: { $exists: false }})
+- Get eventstores eventstore_01
+- Get stream-processor-states
+- Failing streams
+	db.getCollection("stream-processor-states").find({IsFailing: { $exists: false }, FailingPartitions: {$ne: {}}})
+- State
+	db.getCollection("stream-processor-states").find({})
+- Event log count
+	db.getCollection("event-log").count()
+*/
+type RuntimeStreamStates struct {
+	Event       string `json:"applicationId"`
+	Environment string `json:"environment"`
+}
+type HttpResponseRuntimeStreamStates struct {
+	ApplicationID  string                `json:"applicationId"`
+	Environment    string                `json:"environment"`
+	MicroserviceID string                `json:"microserviceId"`
+	Data           []RuntimeStreamStates `json:"data"`
+}
+
+type RuntimeLatestEvent struct {
+	Row         string `bson:"row,omitempty"`
+	EventTypeId string `bson:"eventTypeId,omitempty"`
+	Occurred    string `bson:"occurred,omitempty"`
+}
+
+type RuntimeState struct {
+	Position                  string                         `json:"position"`
+	EventProcessor            string                         `json:"eventProcessor"`
+	SourceStream              string                         `json:"sourceStream"`
+	FailingPartitions         []RuntimeStateFailingPartition `json:"failingPartitions,omitempty"`
+	LastSuccessfullyProcessed string                         `json:"lastSuccessfullyProcessed"`
+	Kind                      string                         `json:"kind"`
+}
+
+type RuntimeStateFailingPartition struct {
+	LastFailed         string `json:"lastFailed"`
+	Partition          string `json:"partition"`
+	Position           string `json:"position"`
+	ProcessingAttempts int32  `json:"processingAttempts"`
+	Reason             string `json:"reason"`
+	RetryTime          string `json:"retryTime"`
+}

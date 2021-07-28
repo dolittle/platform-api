@@ -9,6 +9,7 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/application"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/businessmoment"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/insights"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice"
 
 	gitStorage "github.com/dolittle-entropy/platform-api/pkg/platform/storage/git"
@@ -76,6 +77,11 @@ var serverCMD = &cobra.Command{
 		applicationService := application.NewService(subscriptionID, gitRepo, k8sRepo)
 		tenantService := tenant.NewService()
 		businessMomentsService := businessmoment.NewService(logrus.WithField("context", "business-moments-service"), gitRepo, k8sRepo, clientset)
+		insightsService := insights.NewService(
+			logrus.WithField("context", "insights-service"),
+			k8sRepo,
+			"query-frontend.system-monitoring-logs.svc.cluster.local:8080",
+		)
 
 		c := cors.New(cors.Options{
 			OptionsPassthrough: false,
@@ -122,6 +128,9 @@ var serverCMD = &cobra.Command{
 		router.Handle("/live/application/{applicationID}/pod/{podName}/logs", stdChainBase.ThenFunc(microserviceService.GetPodLogs)).Methods("GET", "OPTIONS")
 		router.Handle("/live/application/{applicationID}/configmap/{configMapName}", stdChainBase.ThenFunc(microserviceService.GetConfigMap)).Methods("GET", "OPTIONS")
 		router.Handle("/live/application/{applicationID}/secret/{secretName}", stdChainBase.ThenFunc(microserviceService.GetSecret)).Methods("GET", "OPTIONS")
+
+		router.Handle("/live/application/{applicationID}/environment/{environment}/insights/runtime-v1", stdChainWithJSON.ThenFunc(insightsService.GetRuntimeV1)).Methods("GET", "OPTIONS")
+		router.Handle("/live/insights/loki/api/v1/query_range", stdChainWithJSON.ThenFunc(insightsService.ProxyLoki)).Methods("GET", "OPTIONS")
 
 		// kubectl auth can-i list pods --namespace application-11b6cf47-5d9f-438f-8116-0d9828654657 --as be194a45-24b4-4911-9c8d-37125d132b0b --as-group cc3d1c06-ffeb-488c-8b90-a4536c3e6dfa
 		router.Handle("/test/can-i", stdChainWithJSON.ThenFunc(microserviceService.CanI)).Methods("POST")
