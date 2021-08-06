@@ -1,6 +1,7 @@
 package microservice
 
 import (
+	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/platform/businessmoment"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/insights"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice"
+	"github.com/dolittle-entropy/platform-api/pkg/share"
 
 	gitStorage "github.com/dolittle-entropy/platform-api/pkg/platform/storage/git"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/tenant"
@@ -165,6 +167,26 @@ var serverCMD = &cobra.Command{
 			stdChainWithJSON.ThenFunc(businessMomentsService.DeleteMoment),
 		).Methods("DELETE", "OPTIONS")
 
+		// How do I want to load the data? :)
+
+		pathToDB := viper.GetString("tools.server.pathToDb")
+
+		raw, err := ioutil.ReadFile(pathToDB)
+		if err != nil {
+			panic(err)
+		}
+
+		// Make it work, then we can refactor
+		repo := share.NewRepoFromJSON(raw)
+		logsService := share.NewLogsService(repo)
+
+		//router.Handle("/share/logs/customers", stdChainWithJSON.ThenFunc(logsService.GetCustomers)).Methods("GET", "OPTIONS")
+		//router.Handle("/share/logs/applications/{tenant}", stdChainWithJSON.ThenFunc(logsService.GetApplicationsByTenant)).Methods("GET", "OPTIONS")
+		//router.Handle("/share/logs/latest/{domain}", stdChainWithJSON.ThenFunc(logsService.GetLatestByDomain)).Methods("GET", "OPTIONS")
+		//router.Handle("/share/logs/latest/by/domain/{domain}", stdChainWithJSON.ThenFunc(logsService.GetLatestByDomain)).Methods("GET", "OPTIONS")
+		router.Handle("/share/logs/latest/by/app/{tenant}/{application}/{environment}", stdChainWithJSON.ThenFunc(logsService.GetLatestByApplication)).Methods("GET", "OPTIONS")
+		router.Handle("/share/logs/link", stdChainWithJSON.ThenFunc(logsService.CreateLink)).Methods("POST", "OPTIONS")
+
 		srv := &http.Server{
 			Handler:      router,
 			Addr:         listenOn,
@@ -187,4 +209,6 @@ func init() {
 	viper.BindEnv("tools.server.secret", "HEADER_SECRET")
 	viper.BindEnv("tools.server.listenOn", "LISTEN_ON")
 	viper.BindEnv("tools.server.azure.subscriptionId", "AZURE_SUBSCRIPTION_ID")
+
+	viper.BindEnv("tools.server.pathToDb", "PATH_TO_DB")
 }
