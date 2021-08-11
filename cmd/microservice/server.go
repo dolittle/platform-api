@@ -180,10 +180,6 @@ var serverCMD = &cobra.Command{
 		repo := share.NewRepoFromJSON(raw)
 		logsService := share.NewLogsService(repo)
 
-		//router.Handle("/share/logs/customers", stdChainWithJSON.ThenFunc(logsService.GetCustomers)).Methods("GET", "OPTIONS")
-		//router.Handle("/share/logs/applications/{tenant}", stdChainWithJSON.ThenFunc(logsService.GetApplicationsByTenant)).Methods("GET", "OPTIONS")
-		//router.Handle("/share/logs/latest/{domain}", stdChainWithJSON.ThenFunc(logsService.GetLatestByDomain)).Methods("GET", "OPTIONS")
-		//router.Handle("/share/logs/latest/by/domain/{domain}", stdChainWithJSON.ThenFunc(logsService.GetLatestByDomain)).Methods("GET", "OPTIONS")
 		router.Handle("/share/logs/latest/by/app/{tenant}/{application}/{environment}", stdChainWithJSON.ThenFunc(logsService.GetLatestByApplication)).Methods("GET", "OPTIONS")
 		router.Handle("/share/logs/link", stdChainWithJSON.ThenFunc(logsService.CreateLink)).Methods("POST", "OPTIONS")
 
