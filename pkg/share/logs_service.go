@@ -69,7 +69,6 @@ func (s *DownloadLogsService) GetApplicationsByTenant(w http.ResponseWriter, r *
 
 func (s *DownloadLogsService) GetLatestByApplication(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	// TODO this is not clear
 	environment := vars["environment"]
 	applicationName := vars["application"]
 	tenant := vars["tenant"]
