@@ -17,8 +17,10 @@ func init() {
 	RootCmd.AddCommand(updateRepoCMD)
 	RootCmd.AddCommand(gitTestCMD)
 
-	viper.BindEnv("tools.server.gitRepo.git-key", "GIT_KEY")
-	viper.BindEnv("tools.server.gitRepo.branch", "GIT_BRANCH")
+	viper.BindEnv("tools.server.gitRepo.gitSshKey", "GIT_REPO_SSH_KEY")
+	viper.BindEnv("tools.server.gitRepo.branch", "GIT_REPO_BRANCH")
+	viper.BindEnv("tools.server.gitRepo.url", "GIT_REPO_URL")
 
-	viper.SetDefault("tools.server.gitRepo.git-key", "/Users/freshteapot/dolittle/.ssh/test-deploy")
+	viper.SetDefault("tools.server.gitRepo.gitSshKey", "")
+	viper.SetDefault("tools.server.gitRepo.url", "git@github.com:freshteapot/test-deploy-key.git")
 }
