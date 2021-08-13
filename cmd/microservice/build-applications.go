@@ -35,7 +35,6 @@ var buildApplicationsCMD = &cobra.Command{
 		gitRepo := gitStorage.NewGitStorage(
 			logrus.WithField("context", "git-repo"),
 			gitRepoConfig,
-			"/tmp/dolittle-k8s",
 		)
 
 		ctx := context.TODO()

@@ -21,16 +21,24 @@ func initGit(logContext logrus.FieldLogger) gitStorage.GitStorageConfig {
 		}).Fatal("start up")
 	}
 
-	gitSshKeysFolder := viper.GetString("tools.server.gitRepo.gitSshKey")
+	gitSshKeysFolder := viper.GetString("tools.server.gitRepo.sshKey")
 	if gitSshKeysFolder == "" {
 		logContext.WithFields(logrus.Fields{
 			"error": "GIT_REPO_SSH_KEY required",
 		}).Fatal("start up")
 	}
 
+	gitLocalDirectory := viper.GetString("tools.server.gitRepo.directory")
+	if gitLocalDirectory == "" {
+		logContext.WithFields(logrus.Fields{
+			"error": "GIT_REPO_DIRECTORY required",
+		}).Fatal("start up")
+	}
+
 	return gitStorage.GitStorageConfig{
-		URL:        gitRepoURL,
-		Branch:     gitRepoBranch,
-		PrivateKey: gitSshKeysFolder,
+		URL:            gitRepoURL,
+		Branch:         gitRepoBranch,
+		PrivateKey:     gitSshKeysFolder,
+		LocalDirectory: gitLocalDirectory,
 	}
 }

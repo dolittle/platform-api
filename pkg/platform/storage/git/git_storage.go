@@ -18,25 +18,28 @@ import (
 )
 
 type GitStorageConfig struct {
-	URL        string
-	Branch     string
-	PrivateKey string
+	URL            string
+	Branch         string
+	PrivateKey     string
+	LocalDirectory string
 }
 type GitStorage struct {
 	logContext logrus.FieldLogger
 	Repo       *git.Repository
 	Directory  string
 	publicKeys *gitSsh.PublicKeys
+	config     GitStorageConfig
 }
 
-func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig, directory string) *GitStorage {
+func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *GitStorage {
 
 	//func NewGitStorage(logContext logrus.FieldLogger, url string, directory string, branchName string, privateKeyFile string) *GitStorage {
 	branch := plumbing.NewBranchReferenceName(gitConfig.Branch)
 
 	s := &GitStorage{
 		logContext: logContext,
-		Directory:  directory,
+		Directory:  gitConfig.LocalDirectory,
+		config:     gitConfig,
 	}
 
 	_, err := os.Stat(gitConfig.PrivateKey)
@@ -57,7 +60,7 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig, di
 	// This is not ideal
 	s.publicKeys.HostKeyCallback = ssh.InsecureIgnoreHostKey()
 
-	r, err := git.PlainClone(directory, false, &git.CloneOptions{
+	r, err := git.PlainClone(gitConfig.LocalDirectory, false, &git.CloneOptions{
 		// The intended use of a GitHub personal access token is in replace of your password
 		// because access tokens can easily be revoked.
 		// https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/
@@ -73,7 +76,7 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig, di
 				"error": err,
 			}).Fatal("cloning repo")
 		}
-		r, err = git.PlainOpen(directory)
+		r, err = git.PlainOpen(gitConfig.LocalDirectory)
 		if err != nil {
 			s.logContext.WithFields(logrus.Fields{
 				"error": err,

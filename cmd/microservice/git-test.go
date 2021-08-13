@@ -25,7 +25,6 @@ var gitTestCMD = &cobra.Command{
 		gitRepo := gitStorage.NewGitStorage(
 			logrus.WithField("context", "git-repo"),
 			gitRepoConfig,
-			"/tmp/dolittle-k8s",
 		)
 
 		w, err := gitRepo.Repo.Worktree()
