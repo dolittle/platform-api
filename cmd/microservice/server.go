@@ -80,7 +80,7 @@ var serverCMD = &cobra.Command{
 		logContext.WithFields(logrus.Fields{
 			"settings": viper.Get("tools.server"),
 		}).Info("start up")
-		return
+
 		router := mux.NewRouter()
 
 		k8sRepo := platform.NewK8sRepo(clientset, config)
