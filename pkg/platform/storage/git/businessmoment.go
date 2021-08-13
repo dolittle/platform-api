@@ -54,8 +54,7 @@ func (s *GitStorage) SaveBusinessMomentEntity(tenantID string, input platform.Ht
 	}
 
 	// I guess a possible race condition is possible.
-	data, _ := json.Marshal(microservice)
-	err = s.SaveMicroservice(tenantID, input.ApplicationID, input.Environment, microservice.Dolittle.MicroserviceID, data)
+	err = s.SaveMicroservice(tenantID, input.ApplicationID, input.Environment, microservice.Dolittle.MicroserviceID, microservice)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error":  err,
@@ -110,7 +109,7 @@ func (s *GitStorage) SaveBusinessMoment(tenantID string, input platform.HttpInpu
 		microservice.Extra.Moments = append(microservice.Extra.Moments, input.Moment)
 	}
 
-	data, _ := json.Marshal(microservice)
+	data, _ := json.MarshalIndent(microservice, "", "  ")
 	err = s.SaveMicroservice(tenantID, input.ApplicationID, input.Environment, microservice.Dolittle.MicroserviceID, data)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
@@ -226,8 +225,7 @@ func (s *GitStorage) DeleteBusinessMoment(tenantID string, applicationID string,
 	}
 
 	microservice.Extra.Moments = append(microservice.Extra.Moments[:index], microservice.Extra.Moments[index+1:]...)
-	data, _ := json.Marshal(microservice)
-	err = s.SaveMicroservice(tenantID, applicationID, environment, microservice.Dolittle.MicroserviceID, data)
+	err = s.SaveMicroservice(tenantID, applicationID, environment, microservice.Dolittle.MicroserviceID, microservice)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error":  err,
@@ -288,8 +286,7 @@ func (s *GitStorage) DeleteBusinessMomentEntity(tenantID string, applicationID s
 	// Remove from entity
 	microservice.Extra.Entities = append(microservice.Extra.Entities[:index], microservice.Extra.Entities[index+1:]...)
 
-	data, _ := json.Marshal(microservice)
-	err = s.SaveMicroservice(tenantID, applicationID, environment, microservice.Dolittle.MicroserviceID, data)
+	err = s.SaveMicroservice(tenantID, applicationID, environment, microservice.Dolittle.MicroserviceID, microservice)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error":  err,

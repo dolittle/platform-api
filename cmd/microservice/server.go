@@ -36,27 +36,7 @@ var serverCMD = &cobra.Command{
 		logrus.SetOutput(os.Stdout)
 
 		logContext := logrus.StandardLogger()
-
-		gitRepoURL := viper.GetString("tools.server.gitRepo.url")
-		if gitRepoURL == "" {
-			logContext.WithFields(logrus.Fields{
-				"error": "GIT_REPO_URL required",
-			}).Fatal("start up")
-		}
-
-		gitRepoBranch := viper.GetString("tools.server.gitRepo.branch")
-		if gitRepoBranch == "" {
-			logContext.WithFields(logrus.Fields{
-				"error": "GIT_REPO_BRANCH required",
-			}).Fatal("start up")
-		}
-
-		gitSshKeysFolder := viper.GetString("tools.server.gitRepo.gitSshKey")
-		if gitSshKeysFolder == "" {
-			logContext.WithFields(logrus.Fields{
-				"error": "GIT_REPO_SSH_KEY required",
-			}).Fatal("start up")
-		}
+		gitRepoConfig := initGit(logContext)
 
 		kubeconfig := viper.GetString("tools.server.kubeConfig")
 		// TODO hoist localhost into viper
@@ -87,10 +67,8 @@ var serverCMD = &cobra.Command{
 
 		gitRepo := gitStorage.NewGitStorage(
 			logrus.WithField("context", "git-repo"),
-			gitRepoURL,
+			gitRepoConfig,
 			"/tmp/dolittle-k8s",
-			gitRepoBranch,
-			gitSshKeysFolder,
 		)
 
 		microserviceService := microservice.NewService(gitRepo, k8sRepo, clientset)

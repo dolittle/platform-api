@@ -17,6 +17,11 @@ import (
 	"github.com/thoas/go-funk"
 )
 
+type GitStorageConfig struct {
+	URL        string
+	Branch     string
+	PrivateKey string
+}
 type GitStorage struct {
 	logContext logrus.FieldLogger
 	Repo       *git.Repository
@@ -24,15 +29,17 @@ type GitStorage struct {
 	publicKeys *gitSsh.PublicKeys
 }
 
-func NewGitStorage(logContext logrus.FieldLogger, url string, directory string, branchName string, privateKeyFile string) *GitStorage {
-	branch := plumbing.NewBranchReferenceName(branchName)
+func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig, directory string) *GitStorage {
+
+	//func NewGitStorage(logContext logrus.FieldLogger, url string, directory string, branchName string, privateKeyFile string) *GitStorage {
+	branch := plumbing.NewBranchReferenceName(gitConfig.Branch)
 
 	s := &GitStorage{
 		logContext: logContext,
 		Directory:  directory,
 	}
 
-	_, err := os.Stat(privateKeyFile)
+	_, err := os.Stat(gitConfig.PrivateKey)
 	if err != nil {
 		s.logContext.WithFields(logrus.Fields{
 			"error": err,
@@ -40,7 +47,7 @@ func NewGitStorage(logContext logrus.FieldLogger, url string, directory string, 
 	}
 
 	// Clone the given repository to the given directory
-	s.publicKeys, err = gitSsh.NewPublicKeysFromFile("git", privateKeyFile, "")
+	s.publicKeys, err = gitSsh.NewPublicKeysFromFile("git", gitConfig.PrivateKey, "")
 	if err != nil {
 		s.logContext.WithFields(logrus.Fields{
 			"error": err,
@@ -55,7 +62,7 @@ func NewGitStorage(logContext logrus.FieldLogger, url string, directory string, 
 		// because access tokens can easily be revoked.
 		// https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/
 		Auth:          s.publicKeys,
-		URL:           url,
+		URL:           gitConfig.URL,
 		Progress:      os.Stdout,
 		ReferenceName: branch,
 	})
