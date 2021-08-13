@@ -12,7 +12,7 @@ import (
 func (s *GitStorage) SaveStudioConfig(tenantID string, config platform.StudioConfig) error {
 	dir := s.GetTenantDirectory(tenantID)
 	filename := fmt.Sprintf("%s/studio.json", dir)
-	data, _ := json.Marshal(config)
+	data, _ := json.MarshalIndent(config, "", "  ")
 	return ioutil.WriteFile(filename, data, 0644)
 }
 

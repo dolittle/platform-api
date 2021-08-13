@@ -109,8 +109,7 @@ func (s *GitStorage) SaveBusinessMoment(tenantID string, input platform.HttpInpu
 		microservice.Extra.Moments = append(microservice.Extra.Moments, input.Moment)
 	}
 
-	data, _ := json.MarshalIndent(microservice, "", "  ")
-	err = s.SaveMicroservice(tenantID, input.ApplicationID, input.Environment, microservice.Dolittle.MicroserviceID, data)
+	err = s.SaveMicroservice(tenantID, input.ApplicationID, input.Environment, microservice.Dolittle.MicroserviceID, microservice)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error":  err,

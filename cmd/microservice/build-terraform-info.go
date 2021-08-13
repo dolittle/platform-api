@@ -21,8 +21,12 @@ var buildTerraformInfoCMD = &cobra.Command{
 	Long: `
 	You need  the output from terraform
 
-	terraform output -json
-	GIT_BRANCH="auto-dev" \
+	cd Source/V3/Azure
+	terraform output -json > azure.json
+
+	GIT_REPO_SSH_KEY="/Users/freshteapot/dolittle/.ssh/test-deploy" \
+	GIT_REPO_BRANCH=auto-dev \
+	GIT_REPO_URL="git@github.com:freshteapot/test-deploy-key.git" \
 	go run main.go microservice build-terraform-info /Users/freshteapot/dolittle/git/Operations/Source/V3/Azure/azure.json
 	`,
 	Run: func(cmd *cobra.Command, args []string) {

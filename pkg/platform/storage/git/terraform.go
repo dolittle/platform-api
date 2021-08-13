@@ -15,7 +15,7 @@ func (s *GitStorage) SaveTerraformApplication(applicaiton platform.TerraformAppl
 	tenantID := applicaiton.Customer.GUID
 	applicaitonID := applicaiton.GUID
 
-	data, _ := json.Marshal(applicaiton)
+	data, _ := json.MarshalIndent(applicaiton, "", "  ")
 
 	w, err := s.Repo.Worktree()
 	if err != nil {
@@ -81,7 +81,7 @@ func (s *GitStorage) GetTerraformApplication(tenantID string, applicationID stri
 
 func (s *GitStorage) SaveTerraformTenant(tenant platform.TerraformCustomer) error {
 	tenantID := tenant.GUID
-	data, _ := json.Marshal(tenant)
+	data, _ := json.MarshalIndent(tenant, "", "  ")
 
 	w, err := s.Repo.Worktree()
 	if err != nil {

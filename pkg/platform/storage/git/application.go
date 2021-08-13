@@ -20,7 +20,7 @@ func (s *GitStorage) GetApplicationDirectory(tenantID string, applicationID stri
 func (s *GitStorage) SaveApplication(application platform.HttpResponseApplication) error {
 	applicationID := application.ID
 	tenantID := application.TenantID
-	data, _ := json.Marshal(application)
+	data, _ := json.MarshalIndent(application, "", " ")
 
 	w, err := s.Repo.Worktree()
 	if err != nil {
