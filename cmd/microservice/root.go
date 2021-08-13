@@ -22,5 +22,5 @@ func init() {
 	viper.BindEnv("tools.server.gitRepo.url", "GIT_REPO_URL")
 
 	viper.SetDefault("tools.server.gitRepo.gitSshKey", "")
-	viper.SetDefault("tools.server.gitRepo.url", "git@github.com:freshteapot/test-deploy-key.git")
+	viper.SetDefault("tools.server.gitRepo.url", "")
 }
