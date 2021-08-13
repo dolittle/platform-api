@@ -23,6 +23,7 @@ type GitStorageConfig struct {
 	PrivateKey     string
 	LocalDirectory string
 }
+
 type GitStorage struct {
 	logContext logrus.FieldLogger
 	Repo       *git.Repository
@@ -32,8 +33,6 @@ type GitStorage struct {
 }
 
 func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *GitStorage {
-
-	//func NewGitStorage(logContext logrus.FieldLogger, url string, directory string, branchName string, privateKeyFile string) *GitStorage {
 	branch := plumbing.NewBranchReferenceName(gitConfig.Branch)
 
 	s := &GitStorage{
