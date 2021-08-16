@@ -54,9 +54,7 @@ func (s *service) GetLatestByApplication(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	exists := funk.Contains(applicationInfo.Environments, func(item platform.HttpInputEnvironment) bool {
-		return item.Name == environment
-	})
+	exists := environmentExists(applicationInfo.Environments, environment)
 
 	if !exists {
 		utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Environment %s does not exist", environment))
@@ -137,9 +135,7 @@ func (s *service) CreateLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	exists := funk.Contains(applicationInfo.Environments, func(item platform.HttpInputEnvironment) bool {
-		return item.Name == input.Environment
-	})
+	exists := environmentExists(applicationInfo.Environments, input.Environment)
 
 	if !exists {
 		utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Environment %s does not exist", input.Environment))
@@ -202,6 +198,12 @@ func (s *service) CreateLink(w http.ResponseWriter, r *http.Request) {
 		},
 		Url:     url,
 		Expires: expires.Format(time.RFC3339Nano),
+	})
+}
+
+func environmentExists(environments []platform.HttpInputEnvironment, environment string) bool {
+	return funk.Contains(environments, func(item platform.HttpInputEnvironment) bool {
+		return item.Name == environment
 	})
 }
 
