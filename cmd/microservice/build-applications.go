@@ -2,6 +2,7 @@ package microservice
 
 import (
 	"context"
+	"os"
 	"strings"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
@@ -9,7 +10,6 @@ import (
 	gitStorage "github.com/dolittle-entropy/platform-api/pkg/platform/storage/git"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"github.com/thoas/go-funk"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -22,22 +22,21 @@ var buildApplicationsCMD = &cobra.Command{
 	Long: `
 	It will attempt to update git with data from the cluster and skip those that have been setup.
 
-	GIT_BRANCH="auto-dev" \
+	GIT_REPO_SSH_KEY="/Users/freshteapot/dolittle/.ssh/test-deploy" \
+	GIT_REPO_BRANCH=auto-dev \
+	GIT_REPO_URL="git@github.com:freshteapot/test-deploy-key.git" \
 	go run main.go microservice build-application-info --kube-config="/Users/freshteapot/.kube/config"
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
-		gitRepoBranch := viper.GetString("tools.server.gitRepo.branch")
-		if gitRepoBranch == "" {
-			panic("GIT_BRANCH required")
-		}
 		logrus.SetFormatter(&logrus.JSONFormatter{})
+		logrus.SetOutput(os.Stdout)
+
+		logContext := logrus.StandardLogger()
+		gitRepoConfig := initGit(logContext)
+
 		gitRepo := gitStorage.NewGitStorage(
 			logrus.WithField("context", "git-repo"),
-			"git@github.com:freshteapot/test-deploy-key.git",
-			"/tmp/dolittle-k8s",
-			gitRepoBranch,
-			// TODO fix this, then update deployment
-			"/Users/freshteapot/dolittle/.ssh/test-deploy",
+			gitRepoConfig,
 		)
 
 		ctx := context.TODO()

@@ -19,7 +19,7 @@ type Repo interface {
 	SaveApplication(application platform.HttpResponseApplication) error
 	GetApplications(tenantID string) ([]platform.HttpResponseApplication, error)
 
-	SaveMicroservice(tenantID string, applicationID string, environment string, microserviceID string, data []byte) error
+	SaveMicroservice(tenantID string, applicationID string, environment string, microserviceID string, data interface{}) error
 	GetMicroservice(tenantID string, applicationID string, environment string, microserviceID string) ([]byte, error)
 	DeleteMicroservice(tenantID string, applicationID string, environment string, microserviceID string) error
 	GetMicroservices(tenantID string, applicationID string) ([]platform.HttpMicroserviceBase, error)

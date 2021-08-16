@@ -141,13 +141,12 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 
 		// TODO this could be an event
 		// TODO this should be decoupled
-		storageBytes, _ := json.Marshal(ms)
 		err = s.gitRepo.SaveMicroservice(
 			ms.Dolittle.TenantID,
 			ms.Dolittle.ApplicationID,
 			ms.Environment,
 			ms.Dolittle.MicroserviceID,
-			storageBytes,
+			ms,
 		)
 
 		if err != nil {

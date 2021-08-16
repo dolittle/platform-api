@@ -46,13 +46,13 @@ func (s *service) GetRuntimeV1(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	mongoURI := mongo.GetMongoURI(applicationID, environment)
 
-	logContext.WithFields(logrus.Fields{
-		"mongoURI": mongoURI,
-	}).Info("Connecting to mongo")
-
 	client, err := mongo.SetupMongo(ctx, mongoURI)
 
 	if err != nil {
+		logContext.WithFields(logrus.Fields{
+			"mongoURI": mongoURI,
+			"error":    err,
+		}).Error("Connecting to mongo")
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}

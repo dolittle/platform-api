@@ -17,22 +17,31 @@ import (
 	"github.com/thoas/go-funk"
 )
 
+type GitStorageConfig struct {
+	URL            string
+	Branch         string
+	PrivateKey     string
+	LocalDirectory string
+}
+
 type GitStorage struct {
 	logContext logrus.FieldLogger
 	Repo       *git.Repository
 	Directory  string
 	publicKeys *gitSsh.PublicKeys
+	config     GitStorageConfig
 }
 
-func NewGitStorage(logContext logrus.FieldLogger, url string, directory string, branchName string, privateKeyFile string) *GitStorage {
-	branch := plumbing.NewBranchReferenceName(branchName)
+func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *GitStorage {
+	branch := plumbing.NewBranchReferenceName(gitConfig.Branch)
 
 	s := &GitStorage{
 		logContext: logContext,
-		Directory:  directory,
+		Directory:  gitConfig.LocalDirectory,
+		config:     gitConfig,
 	}
 
-	_, err := os.Stat(privateKeyFile)
+	_, err := os.Stat(gitConfig.PrivateKey)
 	if err != nil {
 		s.logContext.WithFields(logrus.Fields{
 			"error": err,
@@ -40,7 +49,7 @@ func NewGitStorage(logContext logrus.FieldLogger, url string, directory string, 
 	}
 
 	// Clone the given repository to the given directory
-	s.publicKeys, err = gitSsh.NewPublicKeysFromFile("git", privateKeyFile, "")
+	s.publicKeys, err = gitSsh.NewPublicKeysFromFile("git", gitConfig.PrivateKey, "")
 	if err != nil {
 		s.logContext.WithFields(logrus.Fields{
 			"error": err,
@@ -50,12 +59,12 @@ func NewGitStorage(logContext logrus.FieldLogger, url string, directory string, 
 	// This is not ideal
 	s.publicKeys.HostKeyCallback = ssh.InsecureIgnoreHostKey()
 
-	r, err := git.PlainClone(directory, false, &git.CloneOptions{
+	r, err := git.PlainClone(gitConfig.LocalDirectory, false, &git.CloneOptions{
 		// The intended use of a GitHub personal access token is in replace of your password
 		// because access tokens can easily be revoked.
 		// https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/
 		Auth:          s.publicKeys,
-		URL:           url,
+		URL:           gitConfig.URL,
 		Progress:      os.Stdout,
 		ReferenceName: branch,
 	})
@@ -66,7 +75,7 @@ func NewGitStorage(logContext logrus.FieldLogger, url string, directory string, 
 				"error": err,
 			}).Fatal("cloning repo")
 		}
-		r, err = git.PlainOpen(directory)
+		r, err = git.PlainOpen(gitConfig.LocalDirectory)
 		if err != nil {
 			s.logContext.WithFields(logrus.Fields{
 				"error": err,

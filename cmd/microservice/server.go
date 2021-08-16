@@ -1,9 +1,11 @@
 package microservice
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/dolittle-entropy/platform-api/pkg/middleware"
@@ -29,21 +31,12 @@ import (
 var serverCMD = &cobra.Command{
 	Use:   "server",
 	Short: "Server to talk to k8s",
-	Long: `
-
-
-	fetch('http://localhost:8080/ping').then(d => d.text()).then(d=> console.log(d))
-`,
 	Run: func(cmd *cobra.Command, args []string) {
-		gitRepoBranch := viper.GetString("tools.server.gitRepo.branch")
-		if gitRepoBranch == "" {
-			panic("GIT_BRANCH required")
-		}
+		logrus.SetFormatter(&logrus.JSONFormatter{})
+		logrus.SetOutput(os.Stdout)
 
-		gitSshKeysFolder := viper.GetString("tools.server.gitRepo.git-key")
-		if gitSshKeysFolder == "" {
-			panic("GIT_KEY required")
-		}
+		logContext := logrus.StandardLogger()
+		gitRepoConfig := initGit(logContext)
 
 		kubeconfig := viper.GetString("tools.server.kubeConfig")
 		// TODO hoist localhost into viper
@@ -62,17 +55,20 @@ var serverCMD = &cobra.Command{
 			panic(err.Error())
 		}
 
+		// Hide secret
+		serverSettings := viper.Get("tools.server").(map[string]interface{})
+		serverSettings["secret"] = fmt.Sprintf("%s***", sharedSecret[:3])
+		logContext.WithFields(logrus.Fields{
+			"settings": viper.Get("tools.server"),
+		}).Info("start up")
+
 		router := mux.NewRouter()
 
 		k8sRepo := platform.NewK8sRepo(clientset, config)
-		logrus.SetFormatter(&logrus.JSONFormatter{})
+
 		gitRepo := gitStorage.NewGitStorage(
 			logrus.WithField("context", "git-repo"),
-			"git@github.com:freshteapot/test-deploy-key.git",
-			"/tmp/dolittle-k8s",
-			gitRepoBranch,
-			// TODO fix this, then update deployment
-			gitSshKeysFolder,
+			gitRepoConfig,
 		)
 
 		microserviceService := microservice.NewService(gitRepo, k8sRepo, clientset)
@@ -179,7 +175,6 @@ var serverCMD = &cobra.Command{
 		// Make it work, then we can refactor
 		repo := share.NewRepoFromJSON(raw)
 		logsService := share.NewLogsService(repo)
-
 		router.Handle("/share/logs/latest/by/app/{tenant}/{application}/{environment}", stdChainWithJSON.ThenFunc(logsService.GetLatestByApplication)).Methods("GET", "OPTIONS")
 		router.Handle("/share/logs/link", stdChainWithJSON.ThenFunc(logsService.CreateLink)).Methods("POST", "OPTIONS")
 

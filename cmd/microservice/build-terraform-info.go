@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
@@ -12,7 +13,6 @@ import (
 	"github.com/itchyny/gojq"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var buildTerraformInfoCMD = &cobra.Command{
@@ -21,15 +21,20 @@ var buildTerraformInfoCMD = &cobra.Command{
 	Long: `
 	You need  the output from terraform
 
-	terraform output -json
-	GIT_BRANCH="auto-dev" \
+	cd Source/V3/Azure
+	terraform output -json > azure.json
+
+	GIT_REPO_SSH_KEY="/Users/freshteapot/dolittle/.ssh/test-deploy" \
+	GIT_REPO_BRANCH=auto-dev \
+	GIT_REPO_URL="git@github.com:freshteapot/test-deploy-key.git" \
 	go run main.go microservice build-terraform-info /Users/freshteapot/dolittle/git/Operations/Source/V3/Azure/azure.json
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
-		gitRepoBranch := viper.GetString("tools.server.gitRepo.branch")
-		if gitRepoBranch == "" {
-			panic("GIT_BRANCH required")
-		}
+		logrus.SetFormatter(&logrus.JSONFormatter{})
+		logrus.SetOutput(os.Stdout)
+
+		logContext := logrus.StandardLogger()
+		gitRepoConfig := initGit(logContext)
 
 		pathToFile := args[0]
 		b, err := ioutil.ReadFile(pathToFile)
@@ -38,14 +43,9 @@ var buildTerraformInfoCMD = &cobra.Command{
 			return
 		}
 
-		logrus.SetFormatter(&logrus.JSONFormatter{})
 		gitRepo := gitStorage.NewGitStorage(
 			logrus.WithField("context", "git-repo"),
-			"git@github.com:freshteapot/test-deploy-key.git",
-			"/tmp/dolittle-k8s",
-			gitRepoBranch,
-			// TODO fix this, then update deployment
-			"/Users/freshteapot/dolittle/.ssh/test-deploy",
+			gitRepoConfig,
 		)
 
 		customers := extractTerraformCustomers(b)

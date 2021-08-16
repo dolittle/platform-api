@@ -57,7 +57,8 @@ func (s *GitStorage) DeleteMicroservice(tenantID string, applicationID string, e
 
 }
 
-func (s *GitStorage) SaveMicroservice(tenantID string, applicationID string, environment string, microserviceID string, data []byte) error {
+func (s *GitStorage) SaveMicroservice(tenantID string, applicationID string, environment string, microserviceID string, data interface{}) error {
+	storageBytes, _ := json.MarshalIndent(data, "", "  ")
 	w, err := s.Repo.Worktree()
 	if err != nil {
 		return err
@@ -72,7 +73,7 @@ func (s *GitStorage) SaveMicroservice(tenantID string, applicationID string, env
 	}
 
 	filename := fmt.Sprintf("%s/ms_%s.json", dir, microserviceID)
-	err = ioutil.WriteFile(filename, data, 0644)
+	err = ioutil.WriteFile(filename, storageBytes, 0644)
 	if err != nil {
 		fmt.Println("writeFile")
 		return err
