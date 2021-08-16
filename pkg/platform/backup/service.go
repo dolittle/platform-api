@@ -3,6 +3,7 @@ package backup
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -10,6 +11,7 @@ import (
 
 	azureHelpers "github.com/dolittle-entropy/platform-api/pkg/azure"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
@@ -18,9 +20,12 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func NewService(k8sDolittleRepo platform.K8sRepo, k8sClient *kubernetes.Clientset) service {
+func NewService(logContext logrus.FieldLogger, gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClient *kubernetes.Clientset) service {
 	return service{
+		logContext:      logContext,
+		gitRepo:         gitRepo,
 		k8sDolittleRepo: k8sDolittleRepo,
+		k8sClient:       k8sClient,
 	}
 }
 
@@ -29,7 +34,8 @@ func (s *service) GetLatestByApplication(w http.ResponseWriter, r *http.Request)
 	ctx := r.Context()
 	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
-	environment := strings.ToLower(vars["environment"])
+	// Not made to lower due to how we query kubernetes (for now)
+	environment := vars["environment"]
 
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"method":        "GetLatestByApplication",
@@ -38,18 +44,8 @@ func (s *service) GetLatestByApplication(w http.ResponseWriter, r *http.Request)
 		"environment":   environment,
 	})
 
-	tenantInfo, err := s.gitRepo.GetTerraformTenant(tenantID)
-	if err != nil {
-		logContext.WithFields(logrus.Fields{
-			"error": err,
-			"where": "s.gitRepo.GetTerraformTenant(tenantID)",
-		}).Error("lookup error")
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
 	applicationInfo, err := s.gitRepo.GetApplication(tenantID, applicationID)
-	if err == nil {
+	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
 			"where": "s.gitRepo.GetApplication(tenantID, applicationID)",
@@ -59,15 +55,11 @@ func (s *service) GetLatestByApplication(w http.ResponseWriter, r *http.Request)
 	}
 
 	exists := funk.Contains(applicationInfo.Environments, func(item platform.HttpInputEnvironment) bool {
-		found := false
-		if item.Name == environment {
-			found = true
-		}
-		return found
+		return item.Name == environment
 	})
 
-	if exists {
-		utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Environment %s already exists", environment))
+	if !exists {
+		utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Environment %s does not exist", environment))
 		return
 	}
 
@@ -84,7 +76,7 @@ func (s *service) GetLatestByApplication(w http.ResponseWriter, r *http.Request)
 	}
 
 	azureShareName, err := getShareName(ctx, namespace, s.k8sClient, metaV1.ListOptions{
-		LabelSelector: fmt.Sprintf("tenant=%s,application=%s,environment=%s,infrastructure=Mongo", tenantInfo.Name, applicationInfo.Name, environment),
+		LabelSelector: fmt.Sprintf("environment=%s,infrastructure=Mongo", environment),
 	})
 
 	if err != nil {
@@ -107,19 +99,18 @@ func (s *service) GetLatestByApplication(w http.ResponseWriter, r *http.Request)
 	}
 
 	utils.RespondWithJSON(w, http.StatusOK, HTTPDownloadLogsLatestResponse{
-		Tenant: HttpTenant{
-			Name: tenantInfo.Name,
-			ID:   tenantInfo.GUID,
+		Application: platform.ShortInfo{
+			ID:   applicationInfo.ID,
+			Name: applicationInfo.Name,
 		},
-		Application: applicationInfo.Name,
+		Environment: environment,
 		Files:       latest.Files,
 	})
 }
 
 func (s *service) CreateLink(w http.ResponseWriter, r *http.Request) {
+	tenantID := r.Header.Get("Tenant-ID")
 	ctx := r.Context()
-	vars := mux.Vars(r)
-	applicationID := vars["applicationID"]
 
 	var input HTTPDownloadLogsInput
 	decoder := json.NewDecoder(r.Body)
@@ -131,23 +122,13 @@ func (s *service) CreateLink(w http.ResponseWriter, r *http.Request) {
 
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"method":        "CreateLink",
-		"tenantID":      input.TenantID,
-		"applicationID": input.Application,
+		"tenantID":      tenantID,
+		"applicationID": input.ApplicationID,
 		"environment":   input.Environment,
 	})
 
-	tenantInfo, err := s.gitRepo.GetTerraformTenant(input.TenantID)
+	applicationInfo, err := s.gitRepo.GetApplication(tenantID, input.ApplicationID)
 	if err != nil {
-		logContext.WithFields(logrus.Fields{
-			"error": err,
-			"where": "s.gitRepo.GetTerraformTenant(tenantID)",
-		}).Error("lookup error")
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	applicationInfo, err := s.gitRepo.GetApplication(input.TenantID, input.Application)
-	if err == nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
 			"where": "s.gitRepo.GetApplication(tenantID, applicationID)",
@@ -157,20 +138,16 @@ func (s *service) CreateLink(w http.ResponseWriter, r *http.Request) {
 	}
 
 	exists := funk.Contains(applicationInfo.Environments, func(item platform.HttpInputEnvironment) bool {
-		found := false
-		if item.Name == input.Environment {
-			found = true
-		}
-		return found
+		return item.Name == input.Environment
 	})
 
-	if exists {
-		utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Environment %s already exists", input.Environment))
+	if !exists {
+		utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Environment %s does not exist", input.Environment))
 		return
 	}
 
 	// Create link
-	namespace := fmt.Sprintf("application-%s", applicationID)
+	namespace := fmt.Sprintf("application-%s", input.ApplicationID)
 	azureStorageInfo, err := getStorageAccountInfo(r.Context(), namespace, s.k8sClient)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
@@ -182,7 +159,7 @@ func (s *service) CreateLink(w http.ResponseWriter, r *http.Request) {
 	}
 
 	azureShareName, err := getShareName(ctx, namespace, s.k8sClient, metaV1.ListOptions{
-		LabelSelector: fmt.Sprintf("tenant=%s,application=%s,environment=%s,infrastructure=Mongo", tenantInfo.Name, applicationInfo.Name, environment),
+		LabelSelector: fmt.Sprintf("environment=%s,infrastructure=Mongo", input.Environment),
 	})
 
 	if err != nil {
@@ -219,13 +196,16 @@ func (s *service) CreateLink(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.RespondWithJSON(w, http.StatusCreated, HTTPDownloadLogsLinkResponse{
-		Tenant:      tenantInfo.Name,
-		Application: applicationInfo.Name,
-		Url:         url,
-		Expires:     expires.Format(time.RFC3339Nano),
+		Application: platform.ShortInfo{
+			ID:   applicationInfo.ID,
+			Name: applicationInfo.Name,
+		},
+		Url:     url,
+		Expires: expires.Format(time.RFC3339Nano),
 	})
 }
 
+// TODO maybe we should move this into the k8sRepo
 func getStorageAccountInfo(ctx context.Context, namespace string, client *kubernetes.Clientset) (AzureStorageInfo, error) {
 	secret, err := client.CoreV1().Secrets(namespace).Get(ctx, "storage-account-secret", metaV1.GetOptions{})
 	if err != nil {
@@ -244,7 +224,7 @@ func getShareName(ctx context.Context, namespace string, client *kubernetes.Clie
 	}
 
 	if len(crons.Items) == 0 {
-		return "not-found", nil
+		return "", errors.New("not-found")
 	}
 	return crons.Items[0].Spec.JobTemplate.Spec.Template.Spec.Volumes[0].AzureFile.ShareName, nil
 }

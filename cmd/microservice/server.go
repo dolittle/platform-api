@@ -2,7 +2,6 @@ package microservice
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -11,10 +10,10 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/middleware"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/application"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/backup"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/businessmoment"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/insights"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice"
-	"github.com/dolittle-entropy/platform-api/pkg/share"
 
 	gitStorage "github.com/dolittle-entropy/platform-api/pkg/platform/storage/git"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/tenant"
@@ -74,11 +73,22 @@ var serverCMD = &cobra.Command{
 		microserviceService := microservice.NewService(gitRepo, k8sRepo, clientset)
 		applicationService := application.NewService(subscriptionID, gitRepo, k8sRepo)
 		tenantService := tenant.NewService()
-		businessMomentsService := businessmoment.NewService(logrus.WithField("context", "business-moments-service"), gitRepo, k8sRepo, clientset)
+		businessMomentsService := businessmoment.NewService(
+			logrus.WithField("context", "business-moments-service"),
+			gitRepo,
+			k8sRepo,
+			clientset,
+		)
 		insightsService := insights.NewService(
 			logrus.WithField("context", "insights-service"),
 			k8sRepo,
 			"query-frontend.system-monitoring-logs.svc.cluster.local:8080",
+		)
+		backupService := backup.NewService(
+			logrus.WithField("context", "backup-service"),
+			gitRepo,
+			k8sRepo,
+			clientset,
 		)
 
 		c := cors.New(cors.Options{
@@ -163,20 +173,8 @@ var serverCMD = &cobra.Command{
 			stdChainWithJSON.ThenFunc(businessMomentsService.DeleteMoment),
 		).Methods("DELETE", "OPTIONS")
 
-		// How do I want to load the data? :)
-
-		pathToDB := viper.GetString("tools.server.pathToDb")
-
-		raw, err := ioutil.ReadFile(pathToDB)
-		if err != nil {
-			panic(err)
-		}
-
-		// Make it work, then we can refactor
-		repo := share.NewRepoFromJSON(raw)
-		logsService := share.NewLogsService(repo)
-		router.Handle("/share/logs/latest/by/app/{tenant}/{application}/{environment}", stdChainWithJSON.ThenFunc(logsService.GetLatestByApplication)).Methods("GET", "OPTIONS")
-		router.Handle("/share/logs/link", stdChainWithJSON.ThenFunc(logsService.CreateLink)).Methods("POST", "OPTIONS")
+		router.Handle("/backups/logs/latest/by/app/{applicationID}/{environment}", stdChainWithJSON.ThenFunc(backupService.GetLatestByApplication)).Methods("GET", "OPTIONS")
+		router.Handle("/backups/logs/link", stdChainWithJSON.ThenFunc(backupService.CreateLink)).Methods("POST", "OPTIONS")
 
 		srv := &http.Server{
 			Handler:      router,
@@ -200,6 +198,4 @@ func init() {
 	viper.BindEnv("tools.server.secret", "HEADER_SECRET")
 	viper.BindEnv("tools.server.listenOn", "LISTEN_ON")
 	viper.BindEnv("tools.server.azure.subscriptionId", "AZURE_SUBSCRIPTION_ID")
-
-	viper.BindEnv("tools.server.pathToDb", "PATH_TO_DB")
 }
