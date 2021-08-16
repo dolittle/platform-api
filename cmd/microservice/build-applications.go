@@ -22,7 +22,9 @@ var buildApplicationsCMD = &cobra.Command{
 	Long: `
 	It will attempt to update git with data from the cluster and skip those that have been setup.
 
-	GIT_BRANCH="auto-dev" \
+	GIT_REPO_SSH_KEY="/Users/freshteapot/dolittle/.ssh/test-deploy" \
+	GIT_REPO_BRANCH=auto-dev \
+	GIT_REPO_URL="git@github.com:freshteapot/test-deploy-key.git" \
 	go run main.go microservice build-application-info --kube-config="/Users/freshteapot/.kube/config"
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
