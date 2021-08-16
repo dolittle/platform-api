@@ -56,7 +56,8 @@ var serverCMD = &cobra.Command{
 		}
 
 		// Hide secret
-		viper.Set("tools.server.secret", fmt.Sprintf("%s***", sharedSecret[:3]))
+		serverSettings := viper.Get("tools.server").(map[string]interface{})
+		serverSettings["secret"] = fmt.Sprintf("%s***", sharedSecret[:3])
 		logContext.WithFields(logrus.Fields{
 			"settings": viper.Get("tools.server"),
 		}).Info("start up")
