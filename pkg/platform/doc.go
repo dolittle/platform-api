@@ -109,6 +109,7 @@ const (
 	Simple                 = "simple"
 	BusinessMomentsAdaptor = "business-moments-adaptor"
 	RawDataLogIngestor     = "raw-data-log-ingestor"
+	PurchaseOrderAPI       = "purchase-order-api"
 )
 
 type HttpInputMicroserviceKind struct {
