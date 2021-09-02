@@ -31,36 +31,36 @@ func NewService(gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClien
 }
 
 // TODO https://dolittle.freshdesk.com/a/tickets/1352 how to add multiple entries to ingress
-func (s *service) Create(w http.ResponseWriter, r *http.Request) {
-	var input platform.HttpMicroserviceBase
-	b, err := ioutil.ReadAll(r.Body)
+func (s *service) Create(responseWriter http.ResponseWriter, request *http.Request) {
+	var microserviceBase platform.HttpMicroserviceBase
+	requestBytes, err := ioutil.ReadAll(request.Body)
 	if err != nil {
 		fmt.Println(err)
-		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		utils.RespondWithError(responseWriter, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 
-	err = json.Unmarshal(b, &input)
+	err = json.Unmarshal(requestBytes, &microserviceBase)
 
 	if err != nil {
-		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		utils.RespondWithError(responseWriter, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
-	defer r.Body.Close()
+	defer request.Body.Close()
 
-	userID := r.Header.Get("User-ID")
-	applicationID := input.Dolittle.ApplicationID
-	environment := input.Environment
+	userID := request.Header.Get("User-ID")
+	applicationID := microserviceBase.Dolittle.ApplicationID
+	environment := microserviceBase.Environment
 
 	applicationInfo, err := s.k8sDolittleRepo.GetApplication(applicationID)
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
 			fmt.Println(err)
-			utils.RespondWithError(w, http.StatusInternalServerError, "Something went wrong")
+			utils.RespondWithError(responseWriter, http.StatusInternalServerError, "Something went wrong")
 			return
 		}
 
-		utils.RespondWithJSON(w, http.StatusNotFound, map[string]string{
+		utils.RespondWithJSON(responseWriter, http.StatusNotFound, map[string]string{
 			"error": fmt.Sprintf("Application %s not found", applicationID),
 		})
 		return
@@ -71,14 +71,14 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		Name: applicationInfo.Tenant.Name,
 	}
 
-	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenant.ID, applicationID, userID)
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(responseWriter, tenant.ID, applicationID, userID)
 	if !allowed {
 		return
 	}
 
 	if !s.gitRepo.IsAutomationEnabled(tenant.ID, applicationID, environment) {
 		utils.RespondWithError(
-			w,
+			responseWriter,
 			http.StatusBadRequest,
 			fmt.Sprintf(
 				"Tenant %s with application %s in environment %s does not allow changes via Studio",
@@ -90,80 +90,17 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	switch input.Kind {
+	switch microserviceBase.Kind {
 	case platform.Simple:
-		var ms platform.HttpInputSimpleInfo
-		err = json.Unmarshal(b, &ms)
-		if err != nil {
-			fmt.Println(err)
-			utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
-			return
-		}
-
-		application := k8s.Application{
-			ID:   applicationInfo.ID,
-			Name: applicationInfo.Name,
-		}
-		// TODO replace this with something from the cluster or something from git
-		domainPrefix := "freshteapot-taco"
-		ingress := k8s.Ingress{
-			Host:       fmt.Sprintf("%s.dolittle.cloud", domainPrefix),
-			SecretName: fmt.Sprintf("%s-certificate", domainPrefix),
-		}
-
-		if tenant.ID != ms.Dolittle.TenantID {
-			utils.RespondWithError(w, http.StatusBadRequest, "tenant id in the system doe not match the one in the input")
-			return
-		}
-
-		if application.ID != ms.Dolittle.ApplicationID {
-			utils.RespondWithError(w, http.StatusInternalServerError, "Currently locked down to applicaiton 11b6cf47-5d9f-438f-8116-0d9828654657")
-			return
-		}
-
-		// TODO I cant decide if domainNamePrefix or SecretNamePrefix is better
-		//if ms.Extra.Ingress.SecretNamePrefix == "" {
-		//	utils.RespondWithError(w, http.StatusBadRequest, "Missing extra.ingress.secretNamePrefix")
-		//	return
-		//}
-
-		if ms.Extra.Ingress.Host == "" {
-			utils.RespondWithError(w, http.StatusBadRequest, "Missing extra.ingress.host")
-			return
-		}
-
-		namespace := fmt.Sprintf("application-%s", application.ID)
-		err := s.simpleRepo.Create(namespace, tenant, application, ingress, ms)
-		if err != nil {
-			utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-
-		// TODO this could be an event
-		// TODO this should be decoupled
-		err = s.gitRepo.SaveMicroservice(
-			ms.Dolittle.TenantID,
-			ms.Dolittle.ApplicationID,
-			ms.Environment,
-			ms.Dolittle.MicroserviceID,
-			ms,
-		)
-
-		if err != nil {
-			// TODO change
-			utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-
-		utils.RespondWithJSON(w, http.StatusOK, ms)
-		return
+		s.handleSimpleMicroservice(responseWriter, request, requestBytes, applicationInfo)
 	case platform.BusinessMomentsAdaptor:
-		s.handleBusinessMomentsAdaptor(w, r, b, applicationInfo)
-		return
+		s.handleBusinessMomentsAdaptor(responseWriter, request, requestBytes, applicationInfo)
 	case platform.RawDataLogIngestor:
-		s.handleRawDataLogIngestor(w, r, b, applicationInfo)
+		s.handleRawDataLogIngestor(responseWriter, request, requestBytes, applicationInfo)
+	case platform.PurchaseOrderAPI:
+		s.handlePurchaseOrderAPI(responseWriter, request, requestBytes, applicationInfo)
 	default:
-		utils.RespondWithError(w, http.StatusBadRequest, "Kind not supported")
+		utils.RespondWithError(responseWriter, http.StatusBadRequest, fmt.Sprintf("Kind %s is not supported", microserviceBase.Kind))
 	}
 }
 
@@ -278,8 +215,9 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 				err = s.businessMomentsAdaptorRepo.Delete(namespace, microserviceID)
 			case platform.RawDataLogIngestor:
 				err = s.rawDataLogIngestorRepo.Delete(namespace, microserviceID)
+			case platform.PurchaseOrderAPI:
+				err = s.purchaseOrderAPIRepo.Delete(namespace, microserviceID)
 			}
-
 			if err != nil {
 				statusCode = http.StatusUnprocessableEntity
 				errStr = err.Error()
