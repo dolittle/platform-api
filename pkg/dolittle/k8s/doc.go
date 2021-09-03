@@ -27,6 +27,7 @@ type Microservice struct {
 	Environment string      `json:"environment"`
 	// Linked to TenantsCustomer (look at ingress.go for now)
 	ResourceID string `json:"resource_id"`
+	Kind       string `json:"kind"`
 }
 
 type SimpleIngressRule struct {

@@ -109,7 +109,7 @@ const (
 	Simple                 = "simple"
 	BusinessMomentsAdaptor = "business-moments-adaptor"
 	RawDataLogIngestor     = "raw-data-log-ingestor"
-	PurchaseOrderAPI       = "purchase-order-api"
+	PurchaseOrderAPI       = "purchase-order-api" // TODO purchase-order-api VS purchase-order
 )
 
 type HttpInputMicroserviceKind struct {
@@ -277,6 +277,20 @@ type HttpResponseBusinessMoments struct {
 	//MicroserviceID string                    `json:"microservice_id"` // Could omit if empty
 	Moments  []HttpInputBusinessMoment       `json:"moments"`
 	Entities []HttpInputBusinessMomentEntity `json:"entities"`
+}
+
+type HttpInputPurchaseOrderInfo struct {
+	Dolittle    HttpInputDolittle           `json:"dolittle"`
+	Name        string                      `json:"name"`
+	Kind        string                      `json:"kind"`
+	Environment string                      `json:"environment"`
+	Extra       HttpInputPurchaseOrderExtra `json:"extra"`
+}
+
+type HttpInputPurchaseOrderExtra struct {
+	Headimage    string                            `json:"headImage"`
+	Runtimeimage string                            `json:"runtimeImage"`
+	Webhooks     []RawDataLogIngestorWebhookConfig `json:"webhooks"`
 }
 
 var (
