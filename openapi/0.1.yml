@@ -1,0 +1,735 @@
+openapi: "3.0.2"
+info:
+  title: Platform API
+  version: "0.1"
+  description: |
+    The API of the Dolittle platform.
+
+    IMPORTANT
+
+    Currently automation will only work for tenant '17426336-fb8e-4425-8ab7-07d488367be9' (?)
+paths:
+  /microservice:
+    post:
+      summary: Creates a new microservice
+      operationId: createMicroservice
+      tags:
+        - microservices
+      description: |
+        Creates a new microservice
+      requestBody:
+        description: |
+          Information of microservice to create.
+        required: true
+        content:
+          application-json:
+            schema:
+              $ref: "#/components/schemas/HttpMicroserviceBase"
+      responses:
+        "200":
+          description: OK
+          content:
+            application-json:
+              schema:
+                $ref: "#/components/schemas/HttpMicroserviceBase"
+  /application:
+    post:
+      summary: Creates a new application
+      operationId: createApplication
+      tags:
+        - applications
+      description: |
+        Creates a new application
+      requestBody:
+        description: |
+          Information of application to create.
+        required: true
+        content:
+          application-json:
+            schema:
+              $ref: "#/components/schemas/HttpInputApplication"
+      responses:
+        "200":
+          description: OK
+          content:
+            application-json:
+              schema:
+                $ref: "#/components/schemas/HttpInputApplication"
+  /application/{applicationId}:
+    get:
+      summary: Gets application by id
+      operationId: getApplicationById
+      tags:
+        - applications
+      description: |
+        Gets application by id
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          description: The GUID of the application
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application-json:
+              schema:
+                $ref: "#/components/schemas/HttpResponseApplication2"
+  /application/{applicationId}/environment:
+    post:
+      summary: Creates an environment for an application
+      operationId: createEnvironmentForApplication
+      tags:
+        - applications
+      description: |
+        Creates an environment for an application
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          description: The GUID of the application
+          schema:
+            type: string
+      requestBody:
+        description: |
+          Information of environment to create.
+        required: true
+        content:
+          application-json:
+            schema:
+              $ref: "#/components/schemas/HttpInputEnvironment"
+      responses:
+        "200":
+          description: OK
+          content:
+            application-json:
+              schema:
+                $ref: "#/components/schemas/HttpInputEnvironment"
+  /application/{applicationId}/environment/{environment}/microservice/{microserviceId}:
+    get:
+      summary: Gets a microservice
+      operationId: getMicroservice
+      tags:
+        - applications
+      description: |
+        Gets a microservice
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          description: The GUID of the application
+          schema:
+            type: string
+        - name: environment
+          in: path
+          required: true
+          description: The environment
+          schema:
+            type: string
+        - name: microserviceId
+          in: path
+          required: true
+          description: The GUID of the microservice
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application-json:
+              schema:
+                $ref: "#/components/schemas/HttpMicroserviceBase"
+    delete:
+      summary: Deletes a microservice
+      operationId: deleteMicroservice
+      tags:
+        - applications
+      description: |
+        Deletes a microservice
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          description: The GUID of the application
+          schema:
+            type: string
+        - name: environment
+          in: path
+          required: true
+          description: The environment
+          schema:
+            type: string
+        - name: microserviceId
+          in: path
+          required: true
+          description: The GUID of the microservice
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application-json:
+              schema:
+                type: object
+                properties:
+                  namespace:
+                    type: string
+                  error:
+                    type: string
+                  application_id:
+                    type: string
+                  microservice_id:
+                    type: string
+                  action:
+                    type: string
+  /application/{applicationId}/microservice:
+    get:
+      summary: Gets the microservices of an application
+      operationId: GetMicroservicesInApplication
+      tags:
+        - applications
+      description: |
+        Gets the microservices of an application
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          description: The GUID of the application
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application-json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HttpMicroserviceBase"
+  /applications:
+    get:
+      summary: Gets applications
+      operationId: getApplications
+      tags:
+        - applications
+      description: |
+        Gets applications
+      responses:
+        "200":
+          description: OK
+          content:
+            application-json:
+              schema:
+                $ref: "#/components/schemas/HttpResponseApplications"
+  /live/applications:
+    get:
+      summary: Gets applications live from the k8s cluster
+      operationId: getLiveApplications
+      tags:
+        - live/applications
+      description: |
+        Gets applications live from the k8s cluster
+      responses:
+        "200":
+          description: OK
+          content:
+            application-json:
+              schema:
+                $ref: "#/components/schemas/HttpResponseApplications"
+  /live/application/{applicationId}/microservices:
+    get:
+      summary: Gets the live microservices of an application from the k8s cluster
+      operationId: getLiveMicroservices
+      tags:
+        - live/applications
+      description: |
+        Gets the live microservices of an application from the k8s cluster
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          description: The GUID of the application
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application-json:
+              schema:
+                $ref: "#/components/schemas/HttpResponseMicroservices"
+  /tenant:
+    post:
+      summary: Creates a new tenant. (Not in use yet)
+      operationId: createTenant
+      tags:
+        - tenants
+      description: |
+        Creates a new tenant. (Not in use yet)
+      requestBody:
+        description: |
+          Information of tenant to create.
+        required: true
+        content:
+          application-json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: OK
+          content:
+            application-json:
+              schema:
+                type: object
+  /environment:
+    post:
+      summary: Creates a new environment
+      operationId: createEnvironment
+      tags:
+        - environments
+      description: |
+        Creates a new environment
+      requestBody:
+        description: |
+          Information of environment to create.
+        required: true
+        content:
+          application-json:
+            schema:
+              $ref: "#/components/schemas/HttpInputEnvironment"
+      responses:
+        "200":
+          description: OK
+          content:
+            application-json:
+              schema:
+                $ref: "#/components/schemas/HttpInputEnvironment"
+
+components:
+  schemas:
+    #Business moment
+    Entity:
+      type: object
+      required:
+        - name
+        - entityTypeId
+        - idNameForRetrieval
+        - filterCode
+      properties:
+        name:
+          type: string
+        entityTypeId:
+          type: string
+        idNameForRetrieval:
+          type: string
+        filterCode:
+          type: string
+    BusinessMoment:
+      type: object
+      required:
+        - entityTypeId
+        - name
+        - uuid
+        - embeddingCode
+        - projectionCode
+      properties:
+        entityTypeId:
+          type: string
+        name:
+          type: string
+        uuid:
+          type: string
+        embeddingCode:
+          type: string
+        projectionCode:
+          type: string
+
+    #Dolittle
+    HttpInputDolittle:
+      type: object
+      required:
+        - applicationId
+        - tenantId
+        - microserviceId
+      properties:
+        applicationId:
+          description: The GUID of the application
+          type: string
+        tenantId:
+          description: The GUID of the tenant
+          type: string
+        microserviceId:
+          description: The GUID of the microservice
+          type: string
+    # Extras
+    HttpInputExtra:
+      type: object
+      oneOf:
+        - $ref: "#/components/schemas/HttpInputSimpleExtra"
+        - $ref: "#/components/schemas/HttpInputBusinessMomentAdaptorExtra"
+        - $ref: "#/components/schemas/HttpInputRawDataLogIngestorExtra"
+
+    HttpInputSimpleExtra:
+      type: object
+      required:
+        - headImage
+        - runtimeImage
+        - ingress
+      properties:
+        headImage:
+          type: string
+        runtimeImage:
+          type: string
+        ingress:
+          $ref: "#/components/schemas/HttpInputSimpleIngress"
+
+    HttpInputBusinessMomentAdaptorExtra:
+      type: object
+      required:
+        - headImage
+        - runtimeImage
+        - ingress
+        - connector
+        - moments
+        - entities
+      properties:
+        headImage:
+          type: string
+        runtimeImage:
+          type: string
+        ingress:
+          $ref: "#/components/schemas/HttpInputSimpleIngress"
+        connector:
+          $ref: "#/components/schemas/HttpInputBusinessMomentAdaptorConnector"
+        moments:
+          type: array
+          items:
+            $ref: "#/components/schemas/BusinessMoment"
+        entities:
+          type: array
+          items:
+            $ref: "#/components/schemas/Entity"
+
+    HttpInputRawDataLogIngestorExtra:
+      type: object
+      required:
+        - headImage
+        - runtimeImage
+        - ingress
+        - webhooks
+        - webhookStatsAuthorization
+        - writeTo
+      properties:
+        headImage:
+          type: string
+        runtimeImage:
+          type: string
+        ingress:
+          $ref: "#/components/schemas/HttpInputSimpleIngress"
+        webhooks:
+          type: array
+          items:
+            $ref: "#/components/schemas/RawDataLogIngestorWebhookConfig"
+        webhookStatsAuthorization:
+          type: string
+        writeTo:
+          type: string
+
+    # Raw data log ingestor configs
+    RawDataLogIngestorWebhookConfig:
+      type: object
+      required:
+        - kind
+        - uriSuffix
+        - authorization
+      properties:
+        kind:
+          type: string
+        uriSuffix:
+          type: string
+        authorization:
+          type: string
+
+    # Business moment connectors
+    HttpInputBusinessMomentAdaptorConnector:
+      type: object
+      oneOf:
+        - $ref: "#/components/schemas/HttpInputBusinessMomentAdaptorConnectorWebhook"
+    HttpInputBusinessMomentAdaptorConnectorWebhook:
+      type: object
+      required:
+        - kind
+        - config
+      properties:
+        kind:
+          type: string
+        config:
+          $ref: "#/components/schemas/HttpInputBusinessMomentAdaptorConnectorConfig"
+
+    # Business moment connector configs
+    HttpInputBusinessMomentAdaptorConnectorConfig:
+      type: object
+      oneOf:
+        - $ref: "#/components/schemas/HttpInputBusinessMomentAdaptorConnectorWebhookConfigBasic"
+        - $ref: "#/components/schemas/HttpInputBusinessMomentAdaptorConnectorWebhookConfigBearer"
+
+    HttpInputBusinessMomentAdaptorConnectorWebhookConfigBasic:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+
+    HttpInputBusinessMomentAdaptorConnectorWebhookConfigBearer:
+      type: object
+      required:
+        - token
+      properties:
+        username:
+          type: string
+
+    # Ingresses
+    HttpInputIngress:
+      type: object
+      oneOf:
+        - $ref: "#/components/schemas/HttpInputSimpleIngress"
+
+    HttpInputSimpleIngress:
+      type: object
+      required:
+        - host
+        - secretNamePrefix
+        - domainPrefix
+        - path
+        - pathType
+      properties:
+        host:
+          type: string
+        secretNamePrefix:
+          type: string
+        domainPrefix:
+          type: string
+        path:
+          type: string
+        pathType:
+          type: string
+
+    # Input - Business moment
+    HttpInputBusinessMomentEntity:
+      type: object
+      required:
+        - applicationId
+        - environment
+        - microserviceId
+        - entity
+      properties:
+        applicationId:
+          type: string
+        environment:
+          type: string
+        microserviceId:
+          type: string
+        entity:
+          $ref: "#/components/schemas/Entity"
+
+    HttpInputBusinessMoment:
+      type: object
+      required:
+        - applicationId
+        - environment
+        - microserviceId
+        - moment
+      properties:
+        applicationId:
+          type: string
+        environment:
+          type: string
+        microserviceId:
+          type: string
+        moment:
+          $ref: "#/components/schemas/BusinessMoment"
+
+    # Microservice
+    HttpMicroserviceBase:
+      type: object
+      required:
+        - dolittle
+        - name
+        - kind
+        - environment
+        - extra
+      properties:
+        dolittle:
+          $ref: "#/components/schemas/HttpInputDolittle"
+        name:
+          type: string
+        kind:
+          type: string
+        environment:
+          type: string
+        extra:
+          $ref: "#/components/schemas/HttpInputExtra"
+    # Input - Application
+    HttpInputApplication:
+      type: object
+      required:
+        - id
+        - name
+        - tenantId
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        tenantId:
+          type: string
+    # Input - Environment
+    HttpInputEnvironment:
+      type: object
+      required:
+        - name
+        - domainPrefix
+        - host
+        - tenantId
+        - applicationId
+        - automationEnabled
+      properties:
+        name:
+          type: string
+        domainPrefix:
+          type: string
+        host:
+          type: string
+        tenantId:
+          type: string
+        applicationId:
+          type: string
+        automationEnabled:
+          type: boolean
+    # Get - Application
+    # Get application by id
+    HttpResponseApplication2:
+      type: object
+      required:
+        - id
+        - name
+        - tenantId
+        - environments
+        - microservices
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        tenantId:
+          type: string
+        environment:
+          type: array
+          items:
+            $ref: "#/components/schemas/HttpInputEnvironment"
+        microservices:
+          type: array
+          items:
+            $ref: "#/components/schemas/HttpMicroserviceBase"
+    # Get applications
+    HttpResponseApplications:
+      type: object
+      required:
+        - id
+        - name
+        - applications
+      properties:
+        id:
+          type: string
+          description: The tenant id
+        name:
+          type: string
+          description: The tenant name
+        applications:
+          type: array
+          items:
+            $ref: "#/components/schemas/ApplicationShortInfoWithEnvironment"
+    
+    ApplicationShortInfo:
+      type: object
+      required:
+        - name
+        - id
+      properties:
+        name:
+          type: string
+          description: The application name
+        environment:
+          type: string
+          description: The environment
+
+    ApplicationShortInfoWithEnvironment:
+      type: object
+      required:
+        - name
+        - environment
+        - id
+      properties:
+        name:
+          type: string
+          description: The application name
+        environment:
+          type: string
+          description: The environment
+        id:
+          type: string
+          description: The application GUID
+    # Get microservices
+    HttpResponseMicroservices:
+      type: object
+      required:
+        - application
+        - microservices
+      properties:
+        application:
+          $ref: "#/components/schemas/ApplicationShortInfo"
+        microservices:
+          type: array
+          items:
+            $ref: "#/components/schemas/MicroserviceInfo"
+
+    MicroserviceInfo:
+      type: object
+      required:
+        - name
+        - environment
+        - id
+        - images
+      properties:
+        name:
+          type: string
+          description: The microservice name
+        environment:
+          type: string
+          description: The environment
+        id:
+          type: string
+          description: The microservice GUID
+        images:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImageInfo"
+    ImageInfo:
+      type: object
+      required:
+        - image
+        - name
+      properties:
+        image:
+          type: string
+          description: The image
+        name:
+          type: string
+          description: The name
