@@ -2,6 +2,12 @@ package platform
 
 import "errors"
 
+type MicroserviceBase struct {
+	Dolittle    HttpInputDolittle `json:"dolittle"`
+	Name        string            `json:"name"`
+	Kind        string            `json:"kind"`
+	Environment string            `json:"environment"`
+}
 type HttpInputApplication struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`
@@ -117,11 +123,8 @@ type HttpInputMicroserviceKind struct {
 }
 
 type HttpMicroserviceBase struct {
-	Dolittle    HttpInputDolittle `json:"dolittle"`
-	Name        string            `json:"name"`
-	Kind        string            `json:"kind"`
-	Environment string            `json:"environment"`
-	Extra       interface{}       `json:"extra"`
+	MicroserviceBase
+	Extra interface{} `json:"extra"`
 }
 type HttpInputDolittle struct {
 	ApplicationID  string `json:"applicationId"`
@@ -138,11 +141,8 @@ type HttpInputSimpleIngress struct {
 }
 
 type HttpInputSimpleInfo struct {
-	Dolittle    HttpInputDolittle    `json:"dolittle"`
-	Name        string               `json:"name"`
-	Kind        string               `json:"kind"`
-	Environment string               `json:"environment"`
-	Extra       HttpInputSimpleExtra `json:"extra"`
+	MicroserviceBase
+	Extra HttpInputSimpleExtra `json:"extra"`
 }
 
 type HttpInputSimpleExtra struct {
@@ -152,11 +152,8 @@ type HttpInputSimpleExtra struct {
 }
 
 type HttpInputBusinessMomentAdaptorInfo struct {
-	Dolittle    HttpInputDolittle                   `json:"dolittle"`
-	Name        string                              `json:"name"`
-	Kind        string                              `json:"kind"`
-	Environment string                              `json:"environment"`
-	Extra       HttpInputBusinessMomentAdaptorExtra `json:"extra"`
+	MicroserviceBase
+	Extra HttpInputBusinessMomentAdaptorExtra `json:"extra"`
 }
 
 type HttpInputBusinessMomentAdaptorExtra struct {
@@ -188,11 +185,8 @@ type HttpInputBusinessMomentAdaptorConnectorWebhookConfigBearer struct {
 }
 
 type HttpInputRawDataLogIngestorInfo struct {
-	Dolittle    HttpInputDolittle                `json:"dolittle"`
-	Name        string                           `json:"name"`
-	Kind        string                           `json:"kind"`
-	Environment string                           `json:"environment"`
-	Extra       HttpInputRawDataLogIngestorExtra `json:"extra"`
+	MicroserviceBase
+	Extra HttpInputRawDataLogIngestorExtra `json:"extra"`
 }
 
 type HttpInputRawDataLogIngestorExtra struct {
@@ -280,11 +274,8 @@ type HttpResponseBusinessMoments struct {
 }
 
 type HttpInputPurchaseOrderInfo struct {
-	Dolittle    HttpInputDolittle           `json:"dolittle"`
-	Name        string                      `json:"name"`
-	Kind        string                      `json:"kind"`
-	Environment string                      `json:"environment"`
-	Extra       HttpInputPurchaseOrderExtra `json:"extra"`
+	MicroserviceBase
+	Extra HttpInputPurchaseOrderExtra `json:"extra"`
 }
 
 type HttpInputPurchaseOrderExtra struct {
