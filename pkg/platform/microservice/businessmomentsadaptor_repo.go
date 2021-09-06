@@ -25,11 +25,13 @@ import (
 
 type businessMomentsAdaptorRepo struct {
 	k8sClient *kubernetes.Clientset
+	kind      string
 }
 
 func NewBusinessMomentsAdaptorRepo(k8sClient *kubernetes.Clientset) businessMomentsAdaptorRepo {
 	return businessMomentsAdaptorRepo{
-		k8sClient: k8sClient,
+		k8sClient,
+		platform.MicroserviceKinds.BusinessMomentsAdaptor,
 	}
 }
 
@@ -50,6 +52,7 @@ func (r businessMomentsAdaptorRepo) Create(namespace string, tenant k8s.Tenant, 
 		Application: application,
 		Environment: environment,
 		ResourceID:  todoCustomersTenantID,
+		Kind:        r.kind,
 	}
 
 	ingressServiceName := strings.ToLower(fmt.Sprintf("%s-%s", microservice.Environment, microservice.Name))

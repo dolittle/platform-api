@@ -15,11 +15,13 @@ import (
 
 type simpleRepo struct {
 	k8sClient *kubernetes.Clientset
+	kind      string
 }
 
 func NewSimpleRepo(k8sClient *kubernetes.Clientset) simpleRepo {
 	return simpleRepo{
-		k8sClient: k8sClient,
+		k8sClient,
+		platform.MicroserviceKinds.Simple,
 	}
 }
 
@@ -42,6 +44,7 @@ func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.
 		Application: application,
 		Environment: environment,
 		ResourceID:  todoCustomersTenantID,
+		Kind:        r.kind,
 	}
 
 	ingressServiceName := strings.ToLower(fmt.Sprintf("%s-%s", microservice.Environment, microservice.Name))

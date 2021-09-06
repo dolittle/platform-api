@@ -91,13 +91,13 @@ func (s *service) Create(responseWriter http.ResponseWriter, request *http.Reque
 	}
 
 	switch microserviceBase.Kind {
-	case platform.Simple:
+	case platform.MicroserviceKinds.Simple:
 		s.handleSimpleMicroservice(responseWriter, request, requestBytes, applicationInfo)
-	case platform.BusinessMomentsAdaptor:
+	case platform.MicroserviceKinds.BusinessMomentsAdaptor:
 		s.handleBusinessMomentsAdaptor(responseWriter, request, requestBytes, applicationInfo)
-	case platform.RawDataLogIngestor:
+	case platform.MicroserviceKinds.RawDataLogIngestor:
 		s.handleRawDataLogIngestor(responseWriter, request, requestBytes, applicationInfo)
-	case platform.PurchaseOrderAPI:
+	case platform.MicroserviceKinds.PurchaseOrderAPI:
 		s.handlePurchaseOrderAPI(responseWriter, request, requestBytes, applicationInfo)
 	default:
 		utils.RespondWithError(responseWriter, http.StatusBadRequest, fmt.Sprintf("Kind %s is not supported", microserviceBase.Kind))
@@ -209,13 +209,13 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 		err = json.Unmarshal(msData, &whatKind)
 		if err == nil {
 			switch whatKind.Kind {
-			case platform.Simple:
+			case platform.MicroserviceKinds.Simple:
 				err = s.simpleRepo.Delete(namespace, microserviceID)
-			case platform.BusinessMomentsAdaptor:
+			case platform.MicroserviceKinds.BusinessMomentsAdaptor:
 				err = s.businessMomentsAdaptorRepo.Delete(namespace, microserviceID)
-			case platform.RawDataLogIngestor:
+			case platform.MicroserviceKinds.RawDataLogIngestor:
 				err = s.rawDataLogIngestorRepo.Delete(namespace, microserviceID)
-			case platform.PurchaseOrderAPI:
+			case platform.MicroserviceKinds.PurchaseOrderAPI:
 				err = s.purchaseOrderAPIRepo.Delete(namespace, microserviceID)
 			}
 			if err != nil {

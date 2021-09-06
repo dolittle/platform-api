@@ -161,7 +161,7 @@ func (s *service) SaveEntity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if microservice.Kind != platform.BusinessMomentsAdaptor {
+	if microservice.Kind != platform.MicroserviceKinds.BusinessMomentsAdaptor {
 		utils.RespondWithError(w, http.StatusBadRequest, "Not Business moment to find microservice in the storage")
 		return
 	}
@@ -222,7 +222,7 @@ func (s *service) SaveMoment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if microservice.Kind != platform.BusinessMomentsAdaptor {
+	if microservice.Kind != platform.MicroserviceKinds.BusinessMomentsAdaptor {
 		utils.RespondWithError(w, http.StatusBadRequest, "Not Business moment to find microservice in the storage")
 		return
 	}

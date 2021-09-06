@@ -119,12 +119,22 @@ type GitRepo interface {
 	GetAll(tenantID string) ([]Application, error)
 }
 
-const (
-	Simple                 = "simple"
-	BusinessMomentsAdaptor = "business-moments-adaptor"
-	RawDataLogIngestor     = "raw-data-log-ingestor"
-	PurchaseOrderAPI       = "purchase-order-api" // TODO purchase-order-api VS purchase-order
-)
+var MicroserviceKinds struct {
+	Simple                 string
+	BusinessMomentsAdaptor string
+	RawDataLogIngestor     string
+	PurchaseOrderAPI       string
+} = struct {
+	Simple                 string
+	BusinessMomentsAdaptor string
+	RawDataLogIngestor     string
+	PurchaseOrderAPI       string
+}{
+	Simple:                 "simple",
+	BusinessMomentsAdaptor: "business-moments-adaptor",
+	RawDataLogIngestor:     "raw-data-log-ingestor",
+	PurchaseOrderAPI:       "purchase-order-api", // TODO purchase-order-api VS purchase-order
+}
 
 type HttpInputMicroserviceKind struct {
 	Kind string `json:"kind"`

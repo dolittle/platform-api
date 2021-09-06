@@ -23,7 +23,7 @@ func NewPurchaseOrderAPIRepo(k8sClient *kubernetes.Clientset, rawDataLogRepo raw
 	return purchaseOrderAPIRepo{
 		k8sClient,
 		rawDataLogRepo,
-		platform.PurchaseOrderAPI,
+		platform.MicroserviceKinds.PurchaseOrderAPI,
 	}
 }
 
@@ -31,7 +31,6 @@ func (r purchaseOrderAPIRepo) Create(namespace string, tenant k8s.Tenant, applic
 	// TODO not sure where this comes from really, assume dynamic
 
 	environment := input.Environment
-
 	microserviceID := input.Dolittle.MicroserviceID
 	microserviceName := input.Name
 	headImage := input.Extra.Headimage
