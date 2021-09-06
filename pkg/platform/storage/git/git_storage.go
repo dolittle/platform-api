@@ -22,6 +22,7 @@ type GitStorageConfig struct {
 	Branch         string
 	PrivateKey     string
 	LocalDirectory string
+	DirectoryOnly  bool
 }
 
 type GitStorage struct {
@@ -33,6 +34,9 @@ type GitStorage struct {
 }
 
 func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *GitStorage {
+	// TODO should i use directoryOnly
+	directoryOnly := gitConfig.DirectoryOnly
+
 	branch := plumbing.NewBranchReferenceName(gitConfig.Branch)
 
 	s := &GitStorage{
@@ -41,6 +45,18 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *G
 		config:     gitConfig,
 	}
 
+	if directoryOnly {
+		r, err := git.PlainOpen(gitConfig.LocalDirectory)
+		if err != nil {
+			s.logContext.WithFields(logrus.Fields{
+				"error": err,
+			}).Fatal("repo exists")
+		}
+		s.Repo = r
+		return s
+	}
+
+	// Assume using remote repo
 	_, err := os.Stat(gitConfig.PrivateKey)
 	if err != nil {
 		s.logContext.WithFields(logrus.Fields{
