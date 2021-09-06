@@ -7,24 +7,14 @@ import (
 )
 
 func initGit(logContext logrus.FieldLogger) gitStorage.GitStorageConfig {
-	gitRepoURL := viper.GetString("tools.server.gitRepo.url")
-	if gitRepoURL == "" {
-		logContext.WithFields(logrus.Fields{
-			"error": "GIT_REPO_URL required",
-		}).Fatal("start up")
-	}
+	gitDirectoryOnly := viper.GetBool("tools.server.gitRepo.directoryOnly")
+	gitRepoURL := ""
+	gitSshKeysFolder := ""
 
 	gitRepoBranch := viper.GetString("tools.server.gitRepo.branch")
 	if gitRepoBranch == "" {
 		logContext.WithFields(logrus.Fields{
 			"error": "GIT_REPO_BRANCH required",
-		}).Fatal("start up")
-	}
-
-	gitSshKeysFolder := viper.GetString("tools.server.gitRepo.sshKey")
-	if gitSshKeysFolder == "" {
-		logContext.WithFields(logrus.Fields{
-			"error": "GIT_REPO_SSH_KEY required",
 		}).Fatal("start up")
 	}
 
@@ -35,10 +25,27 @@ func initGit(logContext logrus.FieldLogger) gitStorage.GitStorageConfig {
 		}).Fatal("start up")
 	}
 
+	if !gitDirectoryOnly {
+		gitRepoURL = viper.GetString("tools.server.gitRepo.url")
+		if gitRepoURL == "" {
+			logContext.WithFields(logrus.Fields{
+				"error": "GIT_REPO_URL required",
+			}).Fatal("start up")
+		}
+
+		gitSshKeysFolder = viper.GetString("tools.server.gitRepo.sshKey")
+		if gitSshKeysFolder == "" {
+			logContext.WithFields(logrus.Fields{
+				"error": "GIT_REPO_SSH_KEY required",
+			}).Fatal("start up")
+		}
+	}
+
 	return gitStorage.GitStorageConfig{
 		URL:            gitRepoURL,
 		Branch:         gitRepoBranch,
 		PrivateKey:     gitSshKeysFolder,
 		LocalDirectory: gitLocalDirectory,
+		DirectoryOnly:  gitDirectoryOnly,
 	}
 }
