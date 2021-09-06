@@ -61,3 +61,12 @@ func readMicroservice(microservice platform.Microservice, input []byte, applicat
 	info.namespace = fmt.Sprintf("application-%s", info.application.ID)
 	return info, true
 }
+
+func createIngress() k8s.Ingress {
+	// TODO replace this with something from the cluster or something from git
+	domainPrefix := "freshteapot-taco"
+	return k8s.Ingress{
+		Host:       fmt.Sprintf("%s.dolittle.cloud", domainPrefix),
+		SecretName: fmt.Sprintf("%s-certificate", domainPrefix),
+	}
+}
