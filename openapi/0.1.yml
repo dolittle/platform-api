@@ -8,6 +8,19 @@ info:
     IMPORTANT
 
     Currently automation will only work for tenant '17426336-fb8e-4425-8ab7-07d488367be9' (?)
+
+tags:
+  - name: microservices
+    description: Microservices
+  - name: applications
+    description: Applications
+  - name: live/applications
+    description: Live applications
+  - name: tenants
+    description: Tenants
+  - name: environments
+    description: Environments
+
 paths:
   /microservice:
     post:
