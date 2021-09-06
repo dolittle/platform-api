@@ -12,7 +12,7 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 )
 
-var (
+const (
 	todoCustomersTenantID string = "17426336-fb8e-4425-8ab7-07d488367be9"
 )
 
