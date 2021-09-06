@@ -1,4 +1,4 @@
-package purchaseorderapi
+package microservice
 
 import (
 	"context"
@@ -15,20 +15,20 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-type PurchaseOrderAPIRepo struct {
+type purchaseOrderAPIRepo struct {
 	client *kubernetes.Clientset
 	kind   string
 }
 
 // Creates a new instance of purchaseorderapiRepo
-func NewPurchaseOrderAPIRepo(k8sClient *kubernetes.Clientset) PurchaseOrderAPIRepo {
-	return PurchaseOrderAPIRepo{
+func NewPurchaseOrderAPIRepo(k8sClient *kubernetes.Clientset) purchaseOrderAPIRepo {
+	return purchaseOrderAPIRepo{
 		k8sClient,
 		platform.PurchaseOrderAPI,
 	}
 }
 
-func (r PurchaseOrderAPIRepo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, input platform.HttpInputPurchaseOrderInfo) error {
+func (r purchaseOrderAPIRepo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, input platform.HttpInputPurchaseOrderInfo) error {
 	// TODO not sure where this comes from really, assume dynamic
 	customersTenantID := "17426336-fb8e-4425-8ab7-07d488367be9"
 
@@ -97,7 +97,7 @@ func (r PurchaseOrderAPIRepo) Create(namespace string, tenant k8s.Tenant, applic
 	return nil
 }
 
-func (r PurchaseOrderAPIRepo) Delete(namespace string, microserviceID string) error {
+func (r purchaseOrderAPIRepo) Delete(namespace string, microserviceID string) error {
 	// client := r.client
 	// ctx := context.TODO()
 	// // Not possible to filter based on annotations
@@ -179,7 +179,7 @@ func (r PurchaseOrderAPIRepo) Delete(namespace string, microserviceID string) er
 	return nil
 }
 
-func (r *PurchaseOrderAPIRepo) getDeployment(context context.Context, namespace string, microserviceID string) (*v1.Deployment, error) {
+func (r *purchaseOrderAPIRepo) getDeployment(context context.Context, namespace string, microserviceID string) (*v1.Deployment, error) {
 	deployments, err := r.client.AppsV1().Deployments(namespace).List(context, metaV1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -206,7 +206,8 @@ func (r *PurchaseOrderAPIRepo) getDeployment(context context.Context, namespace 
 	}
 	return &foundDeployment, nil
 }
-func (r *PurchaseOrderAPIRepo) scaleDownDeployment(context context.Context, namespace string, deployment *v1.Deployment) error {
+
+func (r *purchaseOrderAPIRepo) scaleDownDeployment(context context.Context, namespace string, deployment *v1.Deployment) error {
 	s, err := r.client.AppsV1().
 		Deployments(namespace).
 		GetScale(context, deployment.Name, metaV1.GetOptions{})
