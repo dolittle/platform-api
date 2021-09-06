@@ -3,15 +3,10 @@ package microservice
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
-	"log"
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/rawdatalog"
-	v1 "k8s.io/api/apps/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -83,29 +78,30 @@ func (r purchaseOrderAPIRepo) Create(namespace string, tenant k8s.Tenant, applic
 	ctx := context.TODO()
 
 	opts := metaV1.CreateOptions{}
+
 	// ConfigMaps
 	_, err = r.client.CoreV1().ConfigMaps(namespace).Create(ctx, microserviceConfigmap, opts)
-	if handleResourceCreationError(err, "microserviceConfigMap") != nil {
+	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("microserviceConfigMap") }) != nil {
 		return err
 	}
 	_, err = r.client.CoreV1().ConfigMaps(namespace).Create(ctx, configEnvVariables, opts)
-	if handleResourceCreationError(err, "configEnvVariables") != nil {
+	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("configEnvVariables") }) != nil {
 		return err
 	}
 	_, err = r.client.CoreV1().ConfigMaps(namespace).Create(ctx, configFiles, opts)
-	if handleResourceCreationError(err, "configFiles") != nil {
+	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("configFiles") }) != nil {
 		return err
 	}
 	_, err = r.client.CoreV1().Secrets(namespace).Create(ctx, configSecrets, opts)
-	if handleResourceCreationError(err, "configSecrets") != nil {
+	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("configSecrets") }) != nil {
 		return err
 	}
 	_, err = r.client.CoreV1().Services(namespace).Create(ctx, service, opts)
-	if handleResourceCreationError(err, "service") != nil {
+	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("service") }) != nil {
 		return err
 	}
 	_, err = r.client.AppsV1().Deployments(namespace).Create(ctx, deployment, opts)
-	if handleResourceCreationError(err, "deployment") != nil {
+	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("deployment") }) != nil {
 		return err
 	}
 
@@ -191,67 +187,5 @@ func (r purchaseOrderAPIRepo) Delete(namespace string, microserviceID string) er
 	// 	return errors.New("todo")
 	// }
 
-	return nil
-}
-
-func (r *purchaseOrderAPIRepo) getDeployment(context context.Context, namespace string, microserviceID string) (*v1.Deployment, error) {
-	deployments, err := r.client.AppsV1().Deployments(namespace).List(context, metaV1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	found := false
-	// Ugly name
-	var foundDeployment v1.Deployment
-	for _, deployment := range deployments.Items {
-		_, ok := deployment.ObjectMeta.Labels["microservice"]
-		if !ok {
-			continue
-		}
-
-		if deployment.ObjectMeta.Annotations["dolittle.io/microservice-id"] == microserviceID {
-			found = true
-			foundDeployment = deployment
-			break
-		}
-	}
-
-	if !found {
-		return nil, errors.New("not-found")
-	}
-	return &foundDeployment, nil
-}
-
-func (r *purchaseOrderAPIRepo) scaleDownDeployment(context context.Context, namespace string, deployment *v1.Deployment) error {
-	s, err := r.client.AppsV1().
-		Deployments(namespace).
-		GetScale(context, deployment.Name, metaV1.GetOptions{})
-	if err != nil {
-		log.Fatal(err)
-		return errors.New("issue")
-	}
-
-	sc := *s
-	if sc.Spec.Replicas != 0 {
-		sc.Spec.Replicas = 0
-		_, err := r.client.AppsV1().
-			Deployments(namespace).
-			UpdateScale(context, deployment.Name, &sc, metaV1.UpdateOptions{})
-		if err != nil {
-			log.Fatal(err)
-			return errors.New("todo")
-		}
-	}
-	return nil
-}
-
-func handleResourceCreationError(creationError error, resourceName string) error {
-	if creationError != nil {
-		if !k8serrors.IsAlreadyExists(creationError) {
-			log.Fatal(creationError)
-			return errors.New("issue")
-		}
-		fmt.Printf("Skipping %s already exists\n", resourceName)
-	}
 	return nil
 }

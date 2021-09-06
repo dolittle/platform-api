@@ -9,9 +9,7 @@ import (
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
-	v1 "k8s.io/api/apps/v1"
 	networkingv1 "k8s.io/api/networking/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
@@ -77,87 +75,47 @@ func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.
 
 	// ConfigMaps
 	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, microserviceConfigmap, metaV1.CreateOptions{})
-
-	if err != nil {
-		if !k8serrors.IsAlreadyExists(err) {
-			log.Fatal(err)
-			return errors.New("issue")
-		}
-		// TODO update
-		//_, err = client.CoreV1().ConfigMaps(namespace).Update(ctx, microserviceConfigmap, metaV1.UpdateOptions{})
-		fmt.Println("Skipping microserviceConfigmap already exists")
+	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("microserviceConfigMap") }) != nil {
+		return err
 	}
 
 	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, configEnvVariables, metaV1.CreateOptions{})
-	if err != nil {
-		if !k8serrors.IsAlreadyExists(err) {
-			log.Fatal(err)
-			return errors.New("issue")
-		}
-		// TODO update
-		fmt.Println("Skipping configEnvVariables already exists")
+	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("configEnvVariables") }) != nil {
+		return err
 	}
 
 	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, configFiles, metaV1.CreateOptions{})
-	if err != nil {
-		if !k8serrors.IsAlreadyExists(err) {
-			log.Fatal(err)
-			return errors.New("issue")
-		}
-		// TODO update
-		fmt.Println("Skipping configFiles already exists")
+	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("configFiles") }) != nil {
+		return err
 	}
 
 	// Secrets
 	_, err = client.CoreV1().Secrets(namespace).Create(ctx, configSecrets, metaV1.CreateOptions{})
-	if err != nil {
-		if !k8serrors.IsAlreadyExists(err) {
-			log.Fatal(err)
-			return errors.New("issue")
-		}
-		// TODO update
-		fmt.Println("Skipping configSecrets already exists")
+	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("configSecrets") }) != nil {
+		return err
 	}
 
 	// Ingress
 	_, err = client.NetworkingV1().Ingresses(namespace).Create(ctx, ingress, metaV1.CreateOptions{})
-	if err != nil {
-		if !k8serrors.IsAlreadyExists(err) {
-			log.Fatal(err)
-			return errors.New("issue")
-		}
-		// TODO update
-		fmt.Println("Skipping ingress already exists")
+	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("ingress") }) != nil {
+		return err
 	}
 
 	// NetworkPolicy
 	_, err = client.NetworkingV1().NetworkPolicies(namespace).Create(ctx, networkPolicy, metaV1.CreateOptions{})
-	if err != nil {
-		if !k8serrors.IsAlreadyExists(err) {
-			log.Fatal(err)
-			return errors.New("issue")
-		}
-		fmt.Println("Skipping network policy already exists")
+	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("networkPolicy") }) != nil {
+		return err
 	}
 
 	// Service
 	_, err = client.CoreV1().Services(namespace).Create(ctx, service, metaV1.CreateOptions{})
-	if err != nil {
-		if !k8serrors.IsAlreadyExists(err) {
-			log.Fatal(err)
-			return errors.New("issue")
-		}
-		// TODO update
-		fmt.Println("Skipping service already exists")
+	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("service") }) != nil {
+		return err
 	}
 
 	_, err = client.AppsV1().Deployments(namespace).Create(ctx, deployment, metaV1.CreateOptions{})
-	if err != nil {
-		if !k8serrors.IsAlreadyExists(err) {
-			log.Fatal(err)
-			return errors.New("issue")
-		}
-		fmt.Println("Skipping deployment already exists")
+	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("deployment") }) != nil {
+		return err
 	}
 
 	return nil
@@ -167,65 +125,28 @@ func (r simpleRepo) Delete(namespace string, microserviceID string) error {
 	client := r.k8sClient
 	ctx := context.TODO()
 	// Not possible to filter based on annotations
-	opts := metaV1.ListOptions{}
-	deployments, err := client.AppsV1().Deployments(namespace).List(ctx, opts)
 
+	deployment, err := k8sGetDeployment(r.k8sClient, ctx, namespace, microserviceID)
 	if err != nil {
 		return err
 	}
 
-	found := false
-	// Ugly name
-	var foundDeployment v1.Deployment
-	for _, deployment := range deployments.Items {
-		_, ok := deployment.ObjectMeta.Labels["microservice"]
-		if !ok {
-			continue
-		}
-
-		if deployment.ObjectMeta.Annotations["dolittle.io/microservice-id"] == microserviceID {
-			found = true
-			foundDeployment = deployment
-			break
-		}
-	}
-
-	if !found {
-		return errors.New("not-found")
-	}
-
 	// Stop deployment
-
-	s, err := client.AppsV1().
-		Deployments(namespace).
-		GetScale(ctx, foundDeployment.Name, metaV1.GetOptions{})
+	err = k8sStopDeployment(r.k8sClient, ctx, namespace, &deployment)
 	if err != nil {
-		log.Fatal(err)
-		return errors.New("issue")
+		return err
 	}
-
-	sc := *s
-	if sc.Spec.Replicas != 0 {
-		sc.Spec.Replicas = 0
-		_, err := client.AppsV1().
-			Deployments(namespace).
-			UpdateScale(ctx, foundDeployment.Name, &sc, metaV1.UpdateOptions{})
-		if err != nil {
-			log.Fatal(err)
-			return errors.New("todo")
-		}
-	}
-
 	// Selector information for microservice, based on labels
-	opts = metaV1.ListOptions{
-		LabelSelector: labels.FormatLabels(foundDeployment.GetObjectMeta().GetLabels()),
+	listOpts := metaV1.ListOptions{
+		LabelSelector: labels.FormatLabels(deployment.GetObjectMeta().GetLabels()),
 	}
+	deleteOpts := metaV1.DeleteOptions{}
 
 	// Remove configmaps
-	configs, _ := client.CoreV1().ConfigMaps(namespace).List(ctx, opts)
+	configs, _ := client.CoreV1().ConfigMaps(namespace).List(ctx, listOpts)
 
 	for _, config := range configs.Items {
-		err = client.CoreV1().ConfigMaps(namespace).Delete(ctx, config.Name, metaV1.DeleteOptions{})
+		err = client.CoreV1().ConfigMaps(namespace).Delete(ctx, config.Name, deleteOpts)
 		if err != nil {
 			log.Fatal(err)
 			return errors.New("todo")
@@ -233,9 +154,9 @@ func (r simpleRepo) Delete(namespace string, microserviceID string) error {
 	}
 
 	// Remove secrets
-	secrets, _ := client.CoreV1().Secrets(namespace).List(ctx, opts)
+	secrets, _ := client.CoreV1().Secrets(namespace).List(ctx, listOpts)
 	for _, secret := range secrets.Items {
-		err = client.CoreV1().Secrets(namespace).Delete(ctx, secret.Name, metaV1.DeleteOptions{})
+		err = client.CoreV1().Secrets(namespace).Delete(ctx, secret.Name, deleteOpts)
 		if err != nil {
 			log.Fatal(err)
 			return errors.New("todo")
@@ -243,9 +164,9 @@ func (r simpleRepo) Delete(namespace string, microserviceID string) error {
 	}
 
 	// Remove Ingress
-	ingresses, _ := client.NetworkingV1().Ingresses(namespace).List(ctx, opts)
+	ingresses, _ := client.NetworkingV1().Ingresses(namespace).List(ctx, listOpts)
 	for _, ingress := range ingresses.Items {
-		err = client.NetworkingV1().Ingresses(namespace).Delete(ctx, ingress.Name, metaV1.DeleteOptions{})
+		err = client.NetworkingV1().Ingresses(namespace).Delete(ctx, ingress.Name, deleteOpts)
 		if err != nil {
 			log.Fatal(err)
 			return errors.New("issue")
@@ -253,9 +174,9 @@ func (r simpleRepo) Delete(namespace string, microserviceID string) error {
 	}
 
 	// Remove Network Policy
-	policies, _ := client.NetworkingV1().NetworkPolicies(namespace).List(ctx, opts)
+	policies, _ := client.NetworkingV1().NetworkPolicies(namespace).List(ctx, listOpts)
 	for _, policy := range policies.Items {
-		err = client.NetworkingV1().NetworkPolicies(namespace).Delete(ctx, policy.Name, metaV1.DeleteOptions{})
+		err = client.NetworkingV1().NetworkPolicies(namespace).Delete(ctx, policy.Name, deleteOpts)
 		if err != nil {
 			log.Fatal(err)
 			return errors.New("issue")
@@ -263,9 +184,9 @@ func (r simpleRepo) Delete(namespace string, microserviceID string) error {
 	}
 
 	// Remove Service
-	services, _ := client.CoreV1().Services(namespace).List(ctx, opts)
+	services, _ := client.CoreV1().Services(namespace).List(ctx, listOpts)
 	for _, service := range services.Items {
-		err = client.CoreV1().Services(namespace).Delete(ctx, service.Name, metaV1.DeleteOptions{})
+		err = client.CoreV1().Services(namespace).Delete(ctx, service.Name, deleteOpts)
 		if err != nil {
 			log.Fatal(err)
 			return errors.New("issue")
@@ -273,9 +194,7 @@ func (r simpleRepo) Delete(namespace string, microserviceID string) error {
 	}
 
 	// Remove deployment
-	err = client.AppsV1().
-		Deployments(namespace).
-		Delete(ctx, foundDeployment.Name, metaV1.DeleteOptions{})
+	err = client.AppsV1().Deployments(namespace).Delete(ctx, deployment.Name, deleteOpts)
 	if err != nil {
 		log.Fatal(err)
 		return errors.New("todo")
