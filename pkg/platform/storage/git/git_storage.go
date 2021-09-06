@@ -147,6 +147,10 @@ func (s *GitStorage) CommitAndPush(w *git.Worktree, msg string) error {
 		return err
 	}
 
+	if s.config.DirectoryOnly {
+		return nil
+	}
+
 	err = s.Repo.Push(&git.PushOptions{
 		Auth: s.publicKeys,
 	})
