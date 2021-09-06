@@ -380,6 +380,8 @@ components:
     # Extras
     HttpInputExtra:
       type: object
+      description: |
+        The extras / metadata for a Microservice
       oneOf:
         - $ref: "#/components/schemas/HttpInputSimpleExtra"
         - $ref: "#/components/schemas/HttpInputBusinessMomentAdaptorExtra"
@@ -387,6 +389,8 @@ components:
 
     HttpInputSimpleExtra:
       type: object
+      description: |
+        A simple metadata structure
       required:
         - headImage
         - runtimeImage
@@ -394,13 +398,19 @@ components:
       properties:
         headImage:
           type: string
+          description: |
+            The image for the Microservice's Head
         runtimeImage:
           type: string
+          description: |
+            The image for the Microservice's Runtime
         ingress:
           $ref: "#/components/schemas/HttpInputSimpleIngress"
 
     HttpInputBusinessMomentAdaptorExtra:
       type: object
+      description: |
+        Metadata for a business moment adaptor
       required:
         - headImage
         - runtimeImage
@@ -411,23 +421,33 @@ components:
       properties:
         headImage:
           type: string
+          description: |
+            The image for the Microservice's Head
         runtimeImage:
           type: string
+          description: |
+            The image for the Microservice's Runtime
         ingress:
           $ref: "#/components/schemas/HttpInputSimpleIngress"
         connector:
           $ref: "#/components/schemas/HttpInputBusinessMomentAdaptorConnector"
         moments:
           type: array
+          description: |
+            The business moments
           items:
             $ref: "#/components/schemas/BusinessMoment"
         entities:
           type: array
+          description: |
+            The entities
           items:
             $ref: "#/components/schemas/Entity"
 
     HttpInputRawDataLogIngestorExtra:
       type: object
+      description: |
+        Metadata for a raw data log ingestor
       required:
         - headImage
         - runtimeImage
@@ -438,8 +458,12 @@ components:
       properties:
         headImage:
           type: string
+          description: |
+            The image for the Microservice's Head
         runtimeImage:
           type: string
+          description: |
+            The image for the Microservice's Runtime
         ingress:
           $ref: "#/components/schemas/HttpInputSimpleIngress"
         webhooks:
@@ -454,6 +478,8 @@ components:
     # Raw data log ingestor configs
     RawDataLogIngestorWebhookConfig:
       type: object
+      description: |
+        The raw data log ingestor webhook config
       required:
         - kind
         - uriSuffix
@@ -461,6 +487,8 @@ components:
       properties:
         kind:
           type: string
+          description: 
+            Webhook kind
         uriSuffix:
           type: string
         authorization:
@@ -469,6 +497,8 @@ components:
     # Business moment connectors
     HttpInputBusinessMomentAdaptorConnector:
       type: object
+      description: |
+        The business moment adaptor connector
       oneOf:
         - $ref: "#/components/schemas/HttpInputBusinessMomentAdaptorConnectorWebhook"
     HttpInputBusinessMomentAdaptorConnectorWebhook:
@@ -479,34 +509,46 @@ components:
       properties:
         kind:
           type: string
+          description: |
+            The business moment adaptor connector kind.
         config:
           $ref: "#/components/schemas/HttpInputBusinessMomentAdaptorConnectorConfig"
 
     # Business moment connector configs
     HttpInputBusinessMomentAdaptorConnectorConfig:
       type: object
+      description: |
+        The business moment adaptor connector config
       oneOf:
         - $ref: "#/components/schemas/HttpInputBusinessMomentAdaptorConnectorWebhookConfigBasic"
         - $ref: "#/components/schemas/HttpInputBusinessMomentAdaptorConnectorWebhookConfigBearer"
 
     HttpInputBusinessMomentAdaptorConnectorWebhookConfigBasic:
       type: object
+      description: |
+        The basic business moment adaptor connector config
       required:
         - username
         - password
       properties:
         username:
           type: string
+          description: |
+            The username of the webhook
         password:
           type: string
+          description: |
+            The password of the webhook
 
     HttpInputBusinessMomentAdaptorConnectorWebhookConfigBearer:
       type: object
       required:
         - token
       properties:
-        username:
+        token:
           type: string
+          description: |
+            The token of the webhook
 
     # Ingresses
     HttpInputIngress:
@@ -516,6 +558,8 @@ components:
 
     HttpInputSimpleIngress:
       type: object
+      description: |
+        A simple ingress structure
       required:
         - host
         - secretNamePrefix
@@ -583,10 +627,16 @@ components:
           $ref: "#/components/schemas/HttpInputDolittle"
         name:
           type: string
+          description: |
+            The name of the Microservice
         kind:
           type: string
+          description: |
+            The Microservice kind
         environment:
           type: string
+          description: |
+            The environment name
         extra:
           $ref: "#/components/schemas/HttpInputExtra"
     # Input - Application
@@ -599,10 +649,16 @@ components:
       properties:
         id:
           type: string
+          description: |
+            The Application ID
         name:
           type: string
+          description: |
+            The Application name
         tenantId:
           type: string
+          description: |
+            The id of the tenant that owns the Application
     # Input - Environment
     HttpInputEnvironment:
       type: object
@@ -616,16 +672,24 @@ components:
       properties:
         name:
           type: string
+          description: |
+            The name of the environment
         domainPrefix:
           type: string
         host:
           type: string
         tenantId:
           type: string
+          description: |
+            The id of the tenant that owns the environment
         applicationId:
           type: string
+          description: |
+            The id of the application that this environment is a part of
         automationEnabled:
           type: boolean
+          description: |
+            A value indicating whether automation is enabled for the environment
     # Get - Application
     # Get application by id
     HttpResponseApplication2:
@@ -639,16 +703,26 @@ components:
       properties:
         id:
           type: string
+          description: |
+            The id of the Application
         name:
           type: string
+          description: |
+            The name of the Application
         tenantId:
           type: string
-        environment:
+          description: |
+            The id of the tenant that owns the application
+        environments:
           type: array
+          description: |
+            The environments that are a part of the Application
           items:
             $ref: "#/components/schemas/HttpInputEnvironment"
         microservices:
           type: array
+          description: |
+            The microservices that are a part of the Application
           items:
             $ref: "#/components/schemas/HttpMicroserviceBase"
     # Get applications
@@ -667,6 +741,8 @@ components:
           description: The tenant name
         applications:
           type: array
+          description: |
+            The Applications
           items:
             $ref: "#/components/schemas/ApplicationShortInfoWithEnvironment"
     
@@ -678,10 +754,10 @@ components:
       properties:
         name:
           type: string
-          description: The application name
+          description: The Application name
         environment:
           type: string
-          description: The environment
+          description: The environment name
 
     ApplicationShortInfoWithEnvironment:
       type: object
@@ -692,13 +768,13 @@ components:
       properties:
         name:
           type: string
-          description: The application name
+          description: The Application name
         environment:
           type: string
-          description: The environment
+          description: The environment name
         id:
           type: string
-          description: The application GUID
+          description: The id of the Application
     # Get microservices
     HttpResponseMicroservices:
       type: object
@@ -723,15 +799,17 @@ components:
       properties:
         name:
           type: string
-          description: The microservice name
+          description: The Microservice name
         environment:
           type: string
-          description: The environment
+          description: The environment name
         id:
           type: string
-          description: The microservice GUID
+          description: The id of the Microservice
         images:
           type: array
+          description: |
+            The images that are deployed for the Microservice
           items:
             $ref: "#/components/schemas/ImageInfo"
     ImageInfo:
