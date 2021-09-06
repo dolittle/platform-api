@@ -34,7 +34,6 @@ type GitStorage struct {
 }
 
 func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *GitStorage {
-	// TODO should i use directoryOnly
 	directoryOnly := gitConfig.DirectoryOnly
 
 	branch := plumbing.NewBranchReferenceName(gitConfig.Branch)
