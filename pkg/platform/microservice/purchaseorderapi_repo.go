@@ -2,7 +2,7 @@ package microservice
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
@@ -45,21 +45,23 @@ func (r purchaseOrderAPIRepo) Create(namespace string, tenant k8s.Tenant, applic
 		ResourceID:  todoCustomersTenantID,
 		Kind:        r.kind,
 	}
-
 	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, todoCustomersTenantID)
 	deployment := k8s.NewDeployment(microservice, headImage, runtimeImage)
 	service := k8s.NewService(microservice)
 	configEnvVariables := k8s.NewEnvVariablesConfigmap(microservice)
 	configFiles := k8s.NewConfigFilesConfigmap(microservice)
 	configSecrets := k8s.NewEnvVariablesSecret(microservice)
-
 	// TODO: Add webhooks
-	// TODO: add rawDataLogMicroserviceID
-	configFiles.Data = map[string]string{}
-	// We store the config data into the config-Files for the service to pick up on
-	b, _ := json.MarshalIndent(input, "", "  ")
-	configFiles.Data["microservice_data_from_studio.json"] = string(b)
 
+	// TODO: add rawDataLogMicroserviceID
+	// configFiles.Data = map[string]string{}
+	// We store the config data into the config-Files for the service to pick up on
+	// b, _ := json.MarshalIndent(input, "", "  ")
+	// configFiles.Data["microservice_data_from_studio.json"] = string(b)
+
+	if err := createRawDataLogIfNotExists(); err != nil {
+		return err
+	}
 	// TODO lookup to see if it exists?
 	// exists, err := r.rawDataLogRepo.Exists(namespace, environment, microserviceID)
 	//exists, err := s.rawDataLogIngestorRepo.Exists(namespace, ms.Environment, ms.Dolittle.MicroserviceID)
@@ -140,4 +142,8 @@ func (r purchaseOrderAPIRepo) Delete(namespace string, microserviceID string) er
 		return err
 	}
 	return nil
+}
+
+func createRawDataLogIfNotExists() error {
+	return errors.New("Not implemented")
 }
