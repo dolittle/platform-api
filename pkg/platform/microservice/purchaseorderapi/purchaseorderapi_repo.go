@@ -28,7 +28,7 @@ func NewPurchaseOrderAPIRepo(k8sClient *kubernetes.Clientset) PurchaseOrderAPIRe
 	}
 }
 
-func (r PurchaseOrderAPIRepo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputPurchaseOrderInfo) error {
+func (r PurchaseOrderAPIRepo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, input platform.HttpInputPurchaseOrderInfo) error {
 	// TODO not sure where this comes from really, assume dynamic
 	customersTenantID := "17426336-fb8e-4425-8ab7-07d488367be9"
 
@@ -56,8 +56,8 @@ func (r PurchaseOrderAPIRepo) Create(namespace string, tenant k8s.Tenant, applic
 	configFiles := k8s.NewConfigFilesConfigmap(microservice)
 	configSecrets := k8s.NewEnvVariablesSecret(microservice)
 
-	// TODO Add webhooks
-	// TODO add rawDataLogMicroserviceID
+	// TODO: Add webhooks
+	// TODO: add rawDataLogMicroserviceID
 	configFiles.Data = map[string]string{}
 	// We store the config data into the config-Files for the service to pick up on
 	b, _ := json.MarshalIndent(input, "", "  ")
