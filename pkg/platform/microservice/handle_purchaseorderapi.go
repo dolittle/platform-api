@@ -8,13 +8,16 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 )
 
-func (s *service) handlePurchaseOrderAPI(w http.ResponseWriter, r *http.Request, inputBytes []byte, applicationInfo platform.Application) {
+func (s *service) handlePurchaseOrderAPI(responseWriter http.ResponseWriter, r *http.Request, inputBytes []byte, applicationInfo platform.Application) {
 	// Function assumes access check has taken place
 	var ms platform.HttpInputPurchaseOrderInfo
-	readMicroservice(&ms, inputBytes, applicationInfo)
-	err = s.purchaseOrderAPIRepo.Create(namespace, tenant, application, ms)
+	msK8sInfo, success := readMicroservice(&ms, inputBytes, applicationInfo, responseWriter)
+	if success == false {
+		return
+	}
+	err := s.purchaseOrderAPIRepo.Create(msK8sInfo.namespace, msK8sInfo.tenant, msK8sInfo.application, ms)
 	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -28,9 +31,9 @@ func (s *service) handlePurchaseOrderAPI(w http.ResponseWriter, r *http.Request,
 
 	if err != nil {
 		// TODO change
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	utils.RespondWithJSON(w, http.StatusOK, ms)
+	utils.RespondWithJSON(responseWriter, http.StatusOK, ms)
 }
