@@ -29,7 +29,6 @@ func NewSimpleRepo(k8sClient *kubernetes.Clientset) simpleRepo {
 
 func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputSimpleInfo) error {
 	// TODO not sure where this comes from really, assume dynamic
-	customersTenantID := "17426336-fb8e-4425-8ab7-07d488367be9"
 
 	environment := input.Environment
 	host := applicationIngress.Host
@@ -46,7 +45,7 @@ func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.
 		Tenant:      tenant,
 		Application: application,
 		Environment: environment,
-		ResourceID:  customersTenantID,
+		ResourceID:  todoCustomersTenantID,
 	}
 
 	ingressServiceName := strings.ToLower(fmt.Sprintf("%s-%s", microservice.Environment, microservice.Name))
@@ -59,7 +58,7 @@ func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.
 		},
 	}
 
-	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, customersTenantID)
+	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, todoCustomersTenantID)
 	deployment := k8s.NewDeployment(microservice, headImage, runtimeImage)
 	service := k8s.NewService(microservice)
 	ingress := k8s.NewIngress(microservice)

@@ -37,10 +37,6 @@ func NewBusinessMomentsAdaptorRepo(k8sClient *kubernetes.Clientset) businessMome
 }
 
 func (r businessMomentsAdaptorRepo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputBusinessMomentAdaptorInfo) error {
-
-	// TODO not sure where this comes from really, assume dynamic
-	customersTenantID := "17426336-fb8e-4425-8ab7-07d488367be9"
-
 	environment := input.Environment
 	host := applicationIngress.Host
 	secretName := applicationIngress.SecretName
@@ -56,7 +52,7 @@ func (r businessMomentsAdaptorRepo) Create(namespace string, tenant k8s.Tenant, 
 		Tenant:      tenant,
 		Application: application,
 		Environment: environment,
-		ResourceID:  customersTenantID,
+		ResourceID:  todoCustomersTenantID,
 	}
 
 	ingressServiceName := strings.ToLower(fmt.Sprintf("%s-%s", microservice.Environment, microservice.Name))
@@ -69,7 +65,7 @@ func (r businessMomentsAdaptorRepo) Create(namespace string, tenant k8s.Tenant, 
 		},
 	}
 
-	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, customersTenantID)
+	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, todoCustomersTenantID)
 	deployment := k8s.NewDeployment(microservice, headImage, runtimeImage)
 	service := k8s.NewService(microservice)
 	ingress := k8s.NewIngress(microservice)

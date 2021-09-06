@@ -9,6 +9,7 @@ import (
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/rawdatalog"
 	v1 "k8s.io/api/apps/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,21 +17,22 @@ import (
 )
 
 type purchaseOrderAPIRepo struct {
-	client *kubernetes.Clientset
-	kind   string
+	client         *kubernetes.Clientset
+	rawDataLogRepo rawdatalog.RawDataLogIngestorRepo
+	kind           string
 }
 
 // Creates a new instance of purchaseorderapiRepo
-func NewPurchaseOrderAPIRepo(k8sClient *kubernetes.Clientset) purchaseOrderAPIRepo {
+func NewPurchaseOrderAPIRepo(k8sClient *kubernetes.Clientset, rawDataLogRepo rawdatalog.RawDataLogIngestorRepo) purchaseOrderAPIRepo {
 	return purchaseOrderAPIRepo{
 		k8sClient,
+		rawDataLogRepo,
 		platform.PurchaseOrderAPI,
 	}
 }
 
 func (r purchaseOrderAPIRepo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, input platform.HttpInputPurchaseOrderInfo) error {
 	// TODO not sure where this comes from really, assume dynamic
-	customersTenantID := "17426336-fb8e-4425-8ab7-07d488367be9"
 
 	environment := input.Environment
 
@@ -45,11 +47,11 @@ func (r purchaseOrderAPIRepo) Create(namespace string, tenant k8s.Tenant, applic
 		Tenant:      tenant,
 		Application: application,
 		Environment: environment,
-		ResourceID:  customersTenantID,
+		ResourceID:  todoCustomersTenantID,
 		Kind:        r.kind,
 	}
 
-	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, customersTenantID)
+	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, todoCustomersTenantID)
 	deployment := k8s.NewDeployment(microservice, headImage, runtimeImage)
 	service := k8s.NewService(microservice)
 	configEnvVariables := k8s.NewEnvVariablesConfigmap(microservice)
@@ -62,6 +64,19 @@ func (r purchaseOrderAPIRepo) Create(namespace string, tenant k8s.Tenant, applic
 	// We store the config data into the config-Files for the service to pick up on
 	b, _ := json.MarshalIndent(input, "", "  ")
 	configFiles.Data["microservice_data_from_studio.json"] = string(b)
+
+	// TODO lookup to see if it exists?
+	// exists, err := r.rawDataLogRepo.Exists(namespace, environment, microserviceID)
+	//exists, err := s.rawDataLogIngestorRepo.Exists(namespace, ms.Environment, ms.Dolittle.MicroserviceID)
+	//if err != nil {
+	//	// TODO change
+	//	utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+	//	return
+	//}
+
+	// if !exists {
+	// 	fmt.Println("Raw Data Log does not exist")
+	// }
 
 	// Assuming the namespace exists
 	var err error
