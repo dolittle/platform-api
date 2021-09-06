@@ -41,7 +41,7 @@ func k8sGetDeployment(client *kubernetes.Clientset, context context.Context, nam
 }
 
 // Stops a deployment by scaling it down to zero
-func k8sScaleDownDeployment(client *kubernetes.Clientset, context context.Context, namespace string, deployment *v1.Deployment) error {
+func k8sStopDeployment(client *kubernetes.Clientset, context context.Context, namespace string, deployment *v1.Deployment) error {
 	s, err := client.AppsV1().Deployments(namespace).GetScale(context, deployment.Name, metaV1.GetOptions{})
 	if err != nil {
 		log.Fatal(err)
