@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
@@ -127,7 +126,6 @@ func (r businessMomentsAdaptorRepo) Create(namespace string, tenant k8s.Tenant, 
 	client := r.k8sClient
 	ctx := context.TODO()
 
-	// ConfigMaps
 	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, microserviceConfigmap, metaV1.CreateOptions{})
 	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("microservice config map") }) != nil {
 		return err
@@ -145,25 +143,21 @@ func (r businessMomentsAdaptorRepo) Create(namespace string, tenant k8s.Tenant, 
 	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("config business moments") }) != nil {
 		return err
 	}
-	// Secrets
 	_, err = client.CoreV1().Secrets(namespace).Create(ctx, configSecrets, metaV1.CreateOptions{})
 	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("config secrets") }) != nil {
 		return err
 	}
 
-	// Ingress
 	_, err = client.NetworkingV1().Ingresses(namespace).Create(ctx, ingress, metaV1.CreateOptions{})
 	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("ingress") }) != nil {
 		return err
 	}
 
-	// Service
 	_, err = client.CoreV1().Services(namespace).Create(ctx, service, metaV1.CreateOptions{})
 	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("service") }) != nil {
 		return err
 	}
 
-	// NetworkPolicy
 	_, err = client.NetworkingV1().NetworkPolicies(namespace).Create(ctx, networkPolicy, metaV1.CreateOptions{})
 	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("network policy") }) != nil {
 		return err
@@ -178,79 +172,40 @@ func (r businessMomentsAdaptorRepo) Create(namespace string, tenant k8s.Tenant, 
 }
 
 func (r businessMomentsAdaptorRepo) Delete(namespace string, microserviceID string) error {
-	client := r.k8sClient
 	ctx := context.TODO()
-	// Not possible to filter based on annotations
-	listOpts := metaV1.ListOptions{}
 	deployment, err := k8sGetDeployment(r.k8sClient, ctx, namespace, microserviceID)
 
-	// Stop deployment
-	err = k8sStopDeployment(r.k8sClient, ctx, namespace, &deployment)
-	if err != nil {
+	if err = k8sStopDeployment(r.k8sClient, ctx, namespace, &deployment); err != nil {
 		return err
 	}
 
 	// Selector information for microservice, based on labels
-	listOpts = metaV1.ListOptions{
+	listOpts := metaV1.ListOptions{
 		LabelSelector: labels.FormatLabels(deployment.GetObjectMeta().GetLabels()),
 	}
 
-	// Remove configmaps
-	configs, _ := client.CoreV1().ConfigMaps(namespace).List(ctx, listOpts)
-
-	for _, config := range configs.Items {
-		err = client.CoreV1().ConfigMaps(namespace).Delete(ctx, config.Name, metaV1.DeleteOptions{})
-		if err != nil {
-			log.Fatal(err)
-			return errors.New("todo")
-		}
+	if err = k8sDeleteConfigmaps(r.k8sClient, ctx, namespace, listOpts); err != nil {
+		return err
 	}
 
-	// Remove secrets
-	secrets, _ := client.CoreV1().Secrets(namespace).List(ctx, listOpts)
-	for _, secret := range secrets.Items {
-		err = client.CoreV1().Secrets(namespace).Delete(ctx, secret.Name, metaV1.DeleteOptions{})
-		if err != nil {
-			log.Fatal(err)
-			return errors.New("todo")
-		}
+	if err = k8sDeleteSecrets(r.k8sClient, ctx, namespace, listOpts); err != nil {
+		return err
 	}
 
-	// Remove Ingress
-	ingresses, _ := client.NetworkingV1().Ingresses(namespace).List(ctx, listOpts)
-	for _, ingress := range ingresses.Items {
-		err = client.NetworkingV1().Ingresses(namespace).Delete(ctx, ingress.Name, metaV1.DeleteOptions{})
-		if err != nil {
-			log.Fatal(err)
-			return errors.New("issue")
-		}
+	if err = k8sDeleteIngresses(r.k8sClient, ctx, namespace, listOpts); err != nil {
+		return err
 	}
 
-	// Remove Network Policy
-	policies, _ := client.NetworkingV1().NetworkPolicies(namespace).List(ctx, listOpts)
-	for _, policy := range policies.Items {
-		err = client.NetworkingV1().NetworkPolicies(namespace).Delete(ctx, policy.Name, metaV1.DeleteOptions{})
-		if err != nil {
-			log.Fatal(err)
-			return errors.New("issue")
-		}
+	if err = k8sDeleteNetworkPolicies(r.k8sClient, ctx, namespace, listOpts); err != nil {
+		return err
 	}
 
-	// Remove Service
-	services, _ := client.CoreV1().Services(namespace).List(ctx, listOpts)
-	for _, service := range services.Items {
-		err = client.CoreV1().Services(namespace).Delete(ctx, service.Name, metaV1.DeleteOptions{})
-		if err != nil {
-			log.Fatal(err)
-			return errors.New("issue")
-		}
+	if err = k8sDeleteServices(r.k8sClient, ctx, namespace, listOpts); err != nil {
+		return err
 	}
 
-	// Remove deployment
-	err = client.AppsV1().Deployments(namespace).Delete(ctx, deployment.Name, metaV1.DeleteOptions{})
-	if err != nil {
-		log.Fatal(err)
-		return errors.New("todo")
+	if err = k8sDeleteDeployment(r.k8sClient, ctx, namespace, &deployment); err != nil {
+		return err
 	}
 
 	return nil
