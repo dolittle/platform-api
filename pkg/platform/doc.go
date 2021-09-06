@@ -2,12 +2,20 @@ package platform
 
 import "errors"
 
+type Microservice interface {
+	GetBase() MicroserviceBase
+}
 type MicroserviceBase struct {
 	Dolittle    HttpInputDolittle `json:"dolittle"`
 	Name        string            `json:"name"`
 	Kind        string            `json:"kind"`
 	Environment string            `json:"environment"`
 }
+
+func (m MicroserviceBase) GetBase() MicroserviceBase {
+	return m
+}
+
 type HttpInputApplication struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`
