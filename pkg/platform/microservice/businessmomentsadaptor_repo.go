@@ -177,6 +177,9 @@ func (r businessMomentsAdaptorRepo) Create(namespace string, tenant k8s.Tenant, 
 func (r businessMomentsAdaptorRepo) Delete(namespace string, microserviceID string) error {
 	ctx := context.TODO()
 	deployment, err := k8sGetDeployment(r.k8sClient, ctx, namespace, microserviceID)
+	if err != nil {
+		return err
+	}
 
 	if err = k8sStopDeployment(r.k8sClient, ctx, namespace, &deployment); err != nil {
 		return err
