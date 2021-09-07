@@ -25,13 +25,13 @@ import (
 
 type businessMomentsAdaptorRepo struct {
 	k8sClient *kubernetes.Clientset
-	kind      string
+	kind      platform.MicroserviceKind
 }
 
 func NewBusinessMomentsAdaptorRepo(k8sClient *kubernetes.Clientset) businessMomentsAdaptorRepo {
 	return businessMomentsAdaptorRepo{
 		k8sClient,
-		platform.MicroserviceKinds.BusinessMomentsAdaptor,
+		platform.MicroserviceKindBusinessMomentsAdaptor,
 	}
 }
 

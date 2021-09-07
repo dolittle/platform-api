@@ -58,7 +58,7 @@ func readMicroservice(microservice platform.Microservice, input []byte, applicat
 	}
 
 	if info.application.ID != microservice.GetBase().Dolittle.ApplicationID {
-		utils.RespondWithError(responseWriter, http.StatusInternalServerError, "Currently locked down to applicaiton 11b6cf47-5d9f-438f-8116-0d9828654657")
+		utils.RespondWithError(responseWriter, http.StatusInternalServerError, "Currently locked down to application 11b6cf47-5d9f-438f-8116-0d9828654657")
 		return info, false
 	}
 

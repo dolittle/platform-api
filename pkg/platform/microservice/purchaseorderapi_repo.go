@@ -15,7 +15,7 @@ import (
 type purchaseOrderAPIRepo struct {
 	k8sClient      *kubernetes.Clientset
 	rawDataLogRepo rawdatalog.RawDataLogIngestorRepo
-	kind           string
+	kind           platform.MicroserviceKind
 }
 
 // Creates a new instance of purchaseorderapiRepo
@@ -23,7 +23,7 @@ func NewPurchaseOrderAPIRepo(k8sClient *kubernetes.Clientset, rawDataLogRepo raw
 	return purchaseOrderAPIRepo{
 		k8sClient,
 		rawDataLogRepo,
-		platform.MicroserviceKinds.PurchaseOrderAPI,
+		platform.MicroserviceKindPurchaseOrderAPI,
 	}
 }
 

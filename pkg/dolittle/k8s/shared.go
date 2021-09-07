@@ -14,6 +14,6 @@ func GetAnnotations(microservice Microservice) map[string]string {
 		"dolittle.io/tenant-id":         microservice.Tenant.ID,
 		"dolittle.io/application-id":    microservice.Application.ID,
 		"dolittle.io/microservice-id":   microservice.ID,
-		"dolittle.io/microservice-kind": microservice.Kind,
+		"dolittle.io/microservice-kind": string(microservice.Kind),
 	}
 }

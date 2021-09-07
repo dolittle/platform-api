@@ -36,7 +36,7 @@ func (s *GitStorage) SaveBusinessMomentEntity(tenantID string, input platform.Ht
 	}
 
 	// Confirm its business moment
-	if microservice.Kind != platform.MicroserviceKinds.BusinessMomentsAdaptor {
+	if microservice.Kind != platform.MicroserviceKindBusinessMomentsAdaptor {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
 		}).Error("not-business-moments-adaptor")
@@ -92,7 +92,7 @@ func (s *GitStorage) SaveBusinessMoment(tenantID string, input platform.HttpInpu
 	}
 
 	// Confirm its business moment
-	if microservice.Kind != platform.MicroserviceKinds.BusinessMomentsAdaptor {
+	if microservice.Kind != platform.MicroserviceKindBusinessMomentsAdaptor {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
 		}).Error("not-business-moments-adaptor")
@@ -149,7 +149,7 @@ func (s *GitStorage) GetBusinessMoments(tenantID string, applicationID string, e
 			continue
 		}
 
-		if microservice.Kind != platform.MicroserviceKinds.BusinessMomentsAdaptor {
+		if microservice.Kind != platform.MicroserviceKindBusinessMomentsAdaptor {
 			continue
 		}
 
@@ -208,7 +208,7 @@ func (s *GitStorage) DeleteBusinessMoment(tenantID string, applicationID string,
 	}
 
 	// Confirm its business moment
-	if microservice.Kind != platform.MicroserviceKinds.BusinessMomentsAdaptor {
+	if microservice.Kind != platform.MicroserviceKindBusinessMomentsAdaptor {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
 		}).Error("not-business-moments-adaptor")
@@ -262,7 +262,7 @@ func (s *GitStorage) DeleteBusinessMomentEntity(tenantID string, applicationID s
 	}
 
 	// Confirm its business moment
-	if microservice.Kind != platform.MicroserviceKinds.BusinessMomentsAdaptor {
+	if microservice.Kind != platform.MicroserviceKindBusinessMomentsAdaptor {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
 		}).Error("not-business-moments-adaptor")
