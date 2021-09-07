@@ -109,16 +109,17 @@ func NewMicroserviceResources(microservice Microservice, customersTenantID strin
 		microservice.Name,
 	)
 	databasePrefix = strings.ToLower(databasePrefix)
+	environment := strings.ToLower(microservice.Environment)
 	return MicroserviceResources{
 		customersTenantID: MicroserviceResource{
 			Readmodels: MicroserviceResourceReadmodels{
-				Host:     fmt.Sprintf("mongodb://dev-mongo.application-%s.svc.cluster.local:27017", microservice.Application.ID),
+				Host:     fmt.Sprintf("mongodb://%s-mongo.application-%s.svc.cluster.local:27017", environment, microservice.Application.ID),
 				Database: fmt.Sprintf("%s_readmodels", databasePrefix),
 				Usessl:   false,
 			},
 			Eventstore: MicroserviceResourceEventstore{
 				Servers: []string{
-					fmt.Sprintf("dev-mongo.application-%s.svc.cluster.local", microservice.Application.ID),
+					fmt.Sprintf("%s-mongo.application-%s.svc.cluster.local", environment, microservice.Application.ID),
 				},
 				Database: fmt.Sprintf("%s_eventstore", databasePrefix),
 			},
