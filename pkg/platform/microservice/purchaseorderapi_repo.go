@@ -22,7 +22,7 @@ type purchaseOrderAPIRepo struct {
 }
 
 // NewPurchaseOrderAPIRepo creates a new instance of purchaseorderapiRepo.
-func NewPurchaseOrderAPIRepo(k8sClient *kubernetes.Clientset, rawDataLogRepo rawdatalog.RawDataLogIngestorRepo) purchaseOrderAPIRepo {
+func NewPurchaseOrderAPIRepo(k8sClient *kubernetes.Clientset, rawDataLogRepo rawdatalog.RawDataLogIngestorRepo) PurchaseOrderAPIRepo {
 	return purchaseOrderAPIRepo{
 		k8sClient,
 		rawDataLogRepo,
