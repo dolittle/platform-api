@@ -13,7 +13,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-var _ = Describe("PurchaseorderapiRepo", func() {
+var _ = Describe("For PurchaseorderapiRepo", func() {
 	var (
 		client         *kubernetes.Clientset
 		config         *rest.Config
