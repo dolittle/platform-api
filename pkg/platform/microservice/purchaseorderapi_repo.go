@@ -3,11 +3,13 @@ package microservice
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/rawdatalog"
 	v1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
@@ -149,6 +151,8 @@ func (r purchaseOrderAPIRepo) createPurchaseOrderMicroservice(namespace, headIma
 	configFiles := k8s.NewConfigFilesConfigmap(microservice)
 	configSecrets := k8s.NewEnvVariablesSecret(microservice)
 
+	r.modifyEnvironmentVariablesConfigMap(configEnvVariables, microservice)
+
 	// ConfigMaps
 	_, err := r.k8sClient.CoreV1().ConfigMaps(namespace).Create(ctx, microserviceConfigmap, opts)
 	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("microservice config map") }) != nil {
@@ -176,6 +180,27 @@ func (r purchaseOrderAPIRepo) createPurchaseOrderMicroservice(namespace, headIma
 	}
 
 	return nil
+}
+
+func (r purchaseOrderAPIRepo) modifyEnvironmentVariablesConfigMap(environmentVariablesConfigMap *corev1.ConfigMap, microservice k8s.Microservice) {
+	resources := k8s.NewMicroserviceResources(microservice, todoCustomersTenantID)
+	mongoDBURL := resources[todoCustomersTenantID].Readmodels.Host
+	readmodelDBName := resources[todoCustomersTenantID].Readmodels.Database
+
+	tenantID := todoCustomersTenantID
+	natsClusterURL := fmt.Sprintf("%s-rawdatalogv1-nats.application-%s.svc.cluster.local:4222", microservice.Environment, microservice.Application.ID)
+
+	environmentVariablesConfigMap.Data = map[string]string{
+		"LOG_LEVEL":                 "debug",
+		"DATABASE_READMODELS_URL":   mongoDBURL,
+		"DATABASE_READMODELS_NAME":  readmodelDBName,
+		"NODE_ENV":                  "production",
+		"TENANT":                    tenantID,
+		"SERVER_PORT":               "8080",
+		"NATS_CLUSTER_URL":          natsClusterURL,
+		"NATS_START_FROM_BEGINNING": "false",
+		"LOG_OUTPUT_FORMAT":         "json",
+	}
 }
 
 func (r purchaseOrderAPIRepo) createWebhookListenerIfNotExists() error {

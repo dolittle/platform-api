@@ -102,25 +102,14 @@ func NewEnvVariablesConfigmap(microservice Microservice) *corev1.ConfigMap {
 	}
 }
 
-func NewMicroserviceConfigmap(microservice Microservice, customersTenantID string) *corev1.ConfigMap {
-	name := fmt.Sprintf("%s-%s-dolittle",
-		microservice.Environment,
-		microservice.Name,
-	)
-
-	labels := GetLabels(microservice)
-	annotations := GetAnnotations(microservice)
-
+func NewMicroserviceResources(microservice Microservice, customersTenantID string) MicroserviceResources {
 	databasePrefix := fmt.Sprintf("%s_%s_%s",
 		microservice.Application.Name,
 		microservice.Environment,
 		microservice.Name,
 	)
-
-	name = strings.ToLower(name)
 	databasePrefix = strings.ToLower(databasePrefix)
-
-	resources := MicroserviceResources{
+	return MicroserviceResources{
 		customersTenantID: MicroserviceResource{
 			Readmodels: MicroserviceResourceReadmodels{
 				Host:     fmt.Sprintf("mongodb://dev-mongo.application-%s.svc.cluster.local:27017", microservice.Application.ID),
@@ -135,6 +124,20 @@ func NewMicroserviceConfigmap(microservice Microservice, customersTenantID strin
 			},
 		},
 	}
+}
+
+func NewMicroserviceConfigmap(microservice Microservice, customersTenantID string) *corev1.ConfigMap {
+	name := fmt.Sprintf("%s-%s-dolittle",
+		microservice.Environment,
+		microservice.Name,
+	)
+
+	labels := GetLabels(microservice)
+	annotations := GetAnnotations(microservice)
+
+	name = strings.ToLower(name)
+
+	resources := NewMicroserviceResources(microservice, customersTenantID)
 
 	endpoints := MicroserviceEndpoints{
 		Public: MicroserviceEndpointPort{
