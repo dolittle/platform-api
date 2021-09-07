@@ -14,7 +14,7 @@ import (
 )
 
 func (s *GitStorage) GetApplicationDirectory(tenantID string, applicationID string) string {
-	return fmt.Sprintf("%s/%s/%s", s.Directory, tenantID, applicationID)
+	return filepath.Join(s.Directory, tenantID, applicationID)
 }
 
 func (s *GitStorage) SaveApplication(application platform.HttpResponseApplication) error {
@@ -34,7 +34,8 @@ func (s *GitStorage) SaveApplication(application platform.HttpResponseApplicatio
 		return err
 	}
 
-	filename := fmt.Sprintf("%s/application.json", dir)
+	// filename := fmt.Sprintf("%s/application.json", dir)
+	filename := filepath.Join(dir, "application.json")
 	err = ioutil.WriteFile(filename, data, 0644)
 	if err != nil {
 		fmt.Println("writeFile")
@@ -69,7 +70,7 @@ func (s *GitStorage) SaveApplication(application platform.HttpResponseApplicatio
 
 func (s *GitStorage) GetApplication(tenantID string, applicationID string) (platform.HttpResponseApplication, error) {
 	dir := s.GetApplicationDirectory(tenantID, applicationID)
-	filename := fmt.Sprintf("%s/application.json", dir)
+	filename := filepath.Join(dir, "application.json")
 	b, err := ioutil.ReadFile(filename)
 
 	var application platform.HttpResponseApplication
@@ -113,20 +114,19 @@ func (s *GitStorage) GetApplications(tenantID string) ([]platform.HttpResponseAp
 		//	fmt.Printf("skipping a dir without errors: %+v \n", info.Name())
 		//	return filepath.SkipDir
 		//}
-
 		// /tmp/dolittle-k8s/453e04a7-4f9d-42f2-b36c-d51fa2c83fa3/11b6cf47-5d9f-438f-8116-0d9828654657/application.json
 		if info.Name() != "application.json" {
 			return nil
 		}
 
-		parent := filepath.Dir(path)
-		parts := strings.Split(parent, "/")
-		applicationID := parts[len(parts)-1]
+		dir := filepath.Dir(path)
+		parentDir := filepath.Base(dir)
+		applicationID := parentDir
 
 		applicationIDs = append(applicationIDs, applicationID)
 		return nil
 	})
-
+	fmt.Println(applicationIDs)
 	applications := make([]platform.HttpResponseApplication, 0)
 
 	if err != nil {
@@ -136,6 +136,7 @@ func (s *GitStorage) GetApplications(tenantID string) ([]platform.HttpResponseAp
 	for _, applicationID := range applicationIDs {
 		application, err := s.GetApplication(tenantID, applicationID)
 		if err != nil {
+			fmt.Println(err)
 			continue
 		}
 		applications = append(applications, application)
