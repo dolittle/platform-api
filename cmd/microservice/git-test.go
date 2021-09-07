@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	gitStorage "github.com/dolittle-entropy/platform-api/pkg/platform/storage/git"
@@ -43,7 +44,7 @@ var gitTestCMD = &cobra.Command{
 		}
 		microserviceID := "test"
 		data := []byte(`hi 1`)
-		filename := fmt.Sprintf("%s/ms_%s.json", dir, microserviceID)
+		filename := filepath.Join(dir, fmt.Sprintf("ms_%s.json", microserviceID))
 		err = ioutil.WriteFile(filename, data, 0644)
 		if err != nil {
 			fmt.Println("writeFile")
