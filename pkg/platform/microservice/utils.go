@@ -13,7 +13,7 @@ import (
 )
 
 // Gets the deployment that is linked to the microserviceID in the given namespace
-func k8sGetDeployment(client *kubernetes.Clientset, context context.Context, namespace string, microserviceID string) (v1.Deployment, error) {
+func K8sGetDeployment(client *kubernetes.Clientset, context context.Context, namespace string, microserviceID string) (v1.Deployment, error) {
 	deployments, err := client.AppsV1().Deployments(namespace).List(context, metaV1.ListOptions{})
 	if err != nil {
 		return v1.Deployment{}, err
@@ -41,7 +41,7 @@ func k8sGetDeployment(client *kubernetes.Clientset, context context.Context, nam
 }
 
 // Stops a deployment by scaling it down to zero
-func k8sStopDeployment(client *kubernetes.Clientset, context context.Context, namespace string, deployment *v1.Deployment) error {
+func K8sStopDeployment(client *kubernetes.Clientset, context context.Context, namespace string, deployment *v1.Deployment) error {
 	s, err := client.AppsV1().Deployments(namespace).GetScale(context, deployment.Name, metaV1.GetOptions{})
 	if err != nil {
 		log.Fatal(err)
@@ -61,7 +61,7 @@ func k8sStopDeployment(client *kubernetes.Clientset, context context.Context, na
 }
 
 // A utility method for handling errors when creating a kubernetes resource
-func k8sHandleResourceCreationError(creationError error, onExists func()) error {
+func K8sHandleResourceCreationError(creationError error, onExists func()) error {
 	if creationError != nil {
 		if !k8serrors.IsAlreadyExists(creationError) {
 			log.Fatal(creationError)
@@ -73,7 +73,7 @@ func k8sHandleResourceCreationError(creationError error, onExists func()) error 
 }
 
 /// Finds and deletes all configmaps in namespace based on the given metaV1.ListOptions
-func k8sDeleteConfigmaps(client *kubernetes.Clientset, ctx context.Context, namespace string, listOpts metaV1.ListOptions) error {
+func K8sDeleteConfigmaps(client *kubernetes.Clientset, ctx context.Context, namespace string, listOpts metaV1.ListOptions) error {
 	configs, _ := client.CoreV1().ConfigMaps(namespace).List(ctx, listOpts)
 	for _, config := range configs.Items {
 		err := client.CoreV1().ConfigMaps(namespace).Delete(ctx, config.Name, metaV1.DeleteOptions{})
@@ -86,7 +86,7 @@ func k8sDeleteConfigmaps(client *kubernetes.Clientset, ctx context.Context, name
 }
 
 /// Finds and deletes all secrets in namespace based on the given metaV1.ListOptions
-func k8sDeleteSecrets(client *kubernetes.Clientset, ctx context.Context, namespace string, listOpts metaV1.ListOptions) error {
+func K8sDeleteSecrets(client *kubernetes.Clientset, ctx context.Context, namespace string, listOpts metaV1.ListOptions) error {
 	secrets, _ := client.CoreV1().Secrets(namespace).List(ctx, listOpts)
 	for _, secret := range secrets.Items {
 		err := client.CoreV1().Secrets(namespace).Delete(ctx, secret.Name, metaV1.DeleteOptions{})
@@ -99,7 +99,7 @@ func k8sDeleteSecrets(client *kubernetes.Clientset, ctx context.Context, namespa
 }
 
 /// Finds and deletes all ingresses in namespace based on the given metaV1.ListOptions
-func k8sDeleteIngresses(client *kubernetes.Clientset, ctx context.Context, namespace string, listOpts metaV1.ListOptions) error {
+func K8sDeleteIngresses(client *kubernetes.Clientset, ctx context.Context, namespace string, listOpts metaV1.ListOptions) error {
 	ingresses, _ := client.NetworkingV1().Ingresses(namespace).List(ctx, listOpts)
 	for _, ingress := range ingresses.Items {
 		err := client.NetworkingV1().Ingresses(namespace).Delete(ctx, ingress.Name, metaV1.DeleteOptions{})
@@ -112,7 +112,7 @@ func k8sDeleteIngresses(client *kubernetes.Clientset, ctx context.Context, names
 }
 
 /// Finds and deletes all network policies in namespace based on the given metaV1.ListOptions
-func k8sDeleteNetworkPolicies(client *kubernetes.Clientset, ctx context.Context, namespace string, listOpts metaV1.ListOptions) error {
+func K8sDeleteNetworkPolicies(client *kubernetes.Clientset, ctx context.Context, namespace string, listOpts metaV1.ListOptions) error {
 	policies, _ := client.NetworkingV1().NetworkPolicies(namespace).List(ctx, listOpts)
 	for _, policy := range policies.Items {
 		err := client.NetworkingV1().NetworkPolicies(namespace).Delete(ctx, policy.Name, metaV1.DeleteOptions{})
@@ -125,7 +125,7 @@ func k8sDeleteNetworkPolicies(client *kubernetes.Clientset, ctx context.Context,
 }
 
 /// Finds and deletes all services in namespace based on the given metaV1.ListOptions
-func k8sDeleteServices(client *kubernetes.Clientset, ctx context.Context, namespace string, listOpts metaV1.ListOptions) error {
+func K8sDeleteServices(client *kubernetes.Clientset, ctx context.Context, namespace string, listOpts metaV1.ListOptions) error {
 	services, _ := client.CoreV1().Services(namespace).List(ctx, listOpts)
 	for _, service := range services.Items {
 		err := client.CoreV1().Services(namespace).Delete(ctx, service.Name, metaV1.DeleteOptions{})
@@ -138,7 +138,7 @@ func k8sDeleteServices(client *kubernetes.Clientset, ctx context.Context, namesp
 }
 
 // Finds and deletes the deployment in the given namespace
-func k8sDeleteDeployment(client *kubernetes.Clientset, ctx context.Context, namespace string, deployment *v1.Deployment) error {
+func K8sDeleteDeployment(client *kubernetes.Clientset, ctx context.Context, namespace string, deployment *v1.Deployment) error {
 	err := client.AppsV1().Deployments(namespace).Delete(ctx, deployment.Name, metaV1.DeleteOptions{})
 	if err != nil {
 		log.Fatal(err)
@@ -147,6 +147,6 @@ func k8sDeleteDeployment(client *kubernetes.Clientset, ctx context.Context, name
 	return nil
 }
 
-func k8sPrintAlreadyExists(resourceName string) {
+func K8sPrintAlreadyExists(resourceName string) {
 	fmt.Printf("Skipping %s already exists\n", resourceName)
 }

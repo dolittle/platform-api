@@ -1,4 +1,4 @@
-package microservice_test
+package purchaseorderapi_test
 
 import (
 	"testing"
@@ -9,5 +9,5 @@ import (
 
 func TestMicroservice(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Microservice Suite")
+	RunSpecs(t, "PurchaseOrderAPI Suite")
 }

@@ -13,8 +13,9 @@ import (
 func (s *service) handleRawDataLogIngestor(responseWriter http.ResponseWriter, r *http.Request, inputBytes []byte, applicationInfo platform.Application) {
 	// Function assumes access check has taken place
 	var ms platform.HttpInputRawDataLogIngestorInfo
-	msK8sInfo, success := readMicroservice(&ms, inputBytes, applicationInfo, responseWriter)
-	if success == false {
+	msK8sInfo, statusErr := s.parser.Parse(inputBytes, &ms, applicationInfo)
+	if statusErr != nil {
+		utils.RespondWithStatusError(responseWriter, statusErr)
 		return
 	}
 	ingress := createIngress()
@@ -49,9 +50,9 @@ func (s *service) handleRawDataLogIngestor(responseWriter http.ResponseWriter, r
 	var err error
 	if !exists {
 		// Create in Kubernetes
-		err = s.rawDataLogIngestorRepo.Create(msK8sInfo.namespace, msK8sInfo.tenant, msK8sInfo.application, ingress, ms)
+		err = s.rawDataLogIngestorRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, ingress, ms)
 	} else {
-		err = s.rawDataLogIngestorRepo.Update(msK8sInfo.namespace, msK8sInfo.tenant, msK8sInfo.application, ingress, ms)
+		err = s.rawDataLogIngestorRepo.Update(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, ingress, ms)
 	}
 
 	if err != nil {

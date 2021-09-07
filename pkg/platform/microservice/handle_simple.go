@@ -12,8 +12,9 @@ func (s *service) handleSimpleMicroservice(responseWriter http.ResponseWriter, r
 	// Function assumes access check has taken place
 
 	var ms platform.HttpInputSimpleInfo
-	msK8sInfo, success := readMicroservice(&ms, inputBytes, applicationInfo, responseWriter)
-	if success == false {
+	msK8sInfo, statusErr := s.parser.Parse(inputBytes, &ms, applicationInfo)
+	if statusErr != nil {
+		utils.RespondWithStatusError(responseWriter, statusErr)
 		return
 	}
 
@@ -30,7 +31,7 @@ func (s *service) handleSimpleMicroservice(responseWriter http.ResponseWriter, r
 		return
 	}
 
-	err := s.simpleRepo.Create(msK8sInfo.namespace, msK8sInfo.tenant, msK8sInfo.application, ingress, ms)
+	err := s.simpleRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, ingress, ms)
 	if err != nil {
 		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
 		return

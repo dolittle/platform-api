@@ -13,16 +13,17 @@ import (
 func (s *service) handleBusinessMomentsAdaptor(responseWriter http.ResponseWriter, r *http.Request, inputBytes []byte, applicationInfo platform.Application) {
 	// Function assumes access check has taken place
 	var ms platform.HttpInputBusinessMomentAdaptorInfo
-	msK8sInfo, success := readMicroservice(&ms, inputBytes, applicationInfo, responseWriter)
-	if success == false {
+	msK8sInfo, statusErr := s.parser.Parse(inputBytes, &ms, applicationInfo)
+	if statusErr != nil {
+		utils.RespondWithStatusError(responseWriter, statusErr)
 		return
 	}
 	ingress := createIngress()
 
-	err := s.businessMomentsAdaptorRepo.Create(msK8sInfo.namespace, msK8sInfo.tenant, msK8sInfo.application, ingress, ms)
-	if err != nil {
+	err := s.businessMomentsAdaptorRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, ingress, ms)
+	if statusErr != nil {
 		// TODO change
-		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
+		utils.RespondWithError(responseWriter, http.StatusInternalServerError, statusErr.Error())
 		return
 	}
 

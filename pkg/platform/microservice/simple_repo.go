@@ -75,42 +75,42 @@ func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.
 	ctx := context.TODO()
 
 	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, microserviceConfigmap, metaV1.CreateOptions{})
-	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("microservice config map") }) != nil {
+	if K8sHandleResourceCreationError(err, func() { K8sPrintAlreadyExists("microservice config map") }) != nil {
 		return err
 	}
 
 	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, configEnvVariables, metaV1.CreateOptions{})
-	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("config env variables") }) != nil {
+	if K8sHandleResourceCreationError(err, func() { K8sPrintAlreadyExists("config env variables") }) != nil {
 		return err
 	}
 
 	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, configFiles, metaV1.CreateOptions{})
-	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("config files") }) != nil {
+	if K8sHandleResourceCreationError(err, func() { K8sPrintAlreadyExists("config files") }) != nil {
 		return err
 	}
 
 	_, err = client.CoreV1().Secrets(namespace).Create(ctx, configSecrets, metaV1.CreateOptions{})
-	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("config secrets") }) != nil {
+	if K8sHandleResourceCreationError(err, func() { K8sPrintAlreadyExists("config secrets") }) != nil {
 		return err
 	}
 
 	_, err = client.NetworkingV1().Ingresses(namespace).Create(ctx, ingress, metaV1.CreateOptions{})
-	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("ingress") }) != nil {
+	if K8sHandleResourceCreationError(err, func() { K8sPrintAlreadyExists("ingress") }) != nil {
 		return err
 	}
 
 	_, err = client.NetworkingV1().NetworkPolicies(namespace).Create(ctx, networkPolicy, metaV1.CreateOptions{})
-	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("network policy") }) != nil {
+	if K8sHandleResourceCreationError(err, func() { K8sPrintAlreadyExists("network policy") }) != nil {
 		return err
 	}
 
 	_, err = client.CoreV1().Services(namespace).Create(ctx, service, metaV1.CreateOptions{})
-	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("service") }) != nil {
+	if K8sHandleResourceCreationError(err, func() { K8sPrintAlreadyExists("service") }) != nil {
 		return err
 	}
 
 	_, err = client.AppsV1().Deployments(namespace).Create(ctx, deployment, metaV1.CreateOptions{})
-	if k8sHandleResourceCreationError(err, func() { k8sPrintAlreadyExists("deployment") }) != nil {
+	if K8sHandleResourceCreationError(err, func() { K8sPrintAlreadyExists("deployment") }) != nil {
 		return err
 	}
 
@@ -120,12 +120,12 @@ func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.
 func (r simpleRepo) Delete(namespace string, microserviceID string) error {
 	ctx := context.TODO()
 
-	deployment, err := k8sGetDeployment(r.k8sClient, ctx, namespace, microserviceID)
+	deployment, err := K8sGetDeployment(r.k8sClient, ctx, namespace, microserviceID)
 	if err != nil {
 		return err
 	}
 
-	if err = k8sStopDeployment(r.k8sClient, ctx, namespace, &deployment); err != nil {
+	if err = K8sStopDeployment(r.k8sClient, ctx, namespace, &deployment); err != nil {
 		return err
 	}
 
@@ -134,27 +134,27 @@ func (r simpleRepo) Delete(namespace string, microserviceID string) error {
 		LabelSelector: labels.FormatLabels(deployment.GetObjectMeta().GetLabels()),
 	}
 
-	if err = k8sDeleteConfigmaps(r.k8sClient, ctx, namespace, listOpts); err != nil {
+	if err = K8sDeleteConfigmaps(r.k8sClient, ctx, namespace, listOpts); err != nil {
 		return err
 	}
 
-	if err = k8sDeleteSecrets(r.k8sClient, ctx, namespace, listOpts); err != nil {
+	if err = K8sDeleteSecrets(r.k8sClient, ctx, namespace, listOpts); err != nil {
 		return err
 	}
 
-	if err = k8sDeleteIngresses(r.k8sClient, ctx, namespace, listOpts); err != nil {
+	if err = K8sDeleteIngresses(r.k8sClient, ctx, namespace, listOpts); err != nil {
 		return err
 	}
 
-	if err = k8sDeleteNetworkPolicies(r.k8sClient, ctx, namespace, listOpts); err != nil {
+	if err = K8sDeleteNetworkPolicies(r.k8sClient, ctx, namespace, listOpts); err != nil {
 		return err
 	}
 
-	if err = k8sDeleteServices(r.k8sClient, ctx, namespace, listOpts); err != nil {
+	if err = K8sDeleteServices(r.k8sClient, ctx, namespace, listOpts); err != nil {
 		return err
 	}
 
-	if err = k8sDeleteDeployment(r.k8sClient, ctx, namespace, &deployment); err != nil {
+	if err = K8sDeleteDeployment(r.k8sClient, ctx, namespace, &deployment); err != nil {
 		return err
 	}
 	return nil

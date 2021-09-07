@@ -98,7 +98,7 @@ func (s *service) Create(responseWriter http.ResponseWriter, request *http.Reque
 	case platform.MicroserviceKindRawDataLogIngestor:
 		s.handleRawDataLogIngestor(responseWriter, request, requestBytes, applicationInfo)
 	case platform.MicroserviceKindPurchaseOrderAPI:
-		s.handlePurchaseOrderAPI(responseWriter, request, requestBytes, applicationInfo)
+		s.purchaseOrderHandler.Create(responseWriter, request, requestBytes, applicationInfo)
 	default:
 		utils.RespondWithError(responseWriter, http.StatusBadRequest, fmt.Sprintf("Kind %s is not supported", microserviceBase.Kind))
 	}
@@ -216,7 +216,7 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 			case platform.MicroserviceKindRawDataLogIngestor:
 				err = s.rawDataLogIngestorRepo.Delete(namespace, microserviceID)
 			case platform.MicroserviceKindPurchaseOrderAPI:
-				err = s.purchaseOrderAPIRepo.Delete(namespace, microserviceID)
+				err = s.purchaseOrderHandler.Delete(namespace, microserviceID)
 			}
 			if err != nil {
 				statusCode = http.StatusUnprocessableEntity
