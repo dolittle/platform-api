@@ -51,7 +51,7 @@ func (r businessMomentsAdaptorRepo) Create(namespace string, tenant k8s.Tenant, 
 		Tenant:      tenant,
 		Application: application,
 		Environment: environment,
-		ResourceID:  todoCustomersTenantID,
+		ResourceID:  TodoCustomersTenantID,
 		Kind:        r.kind,
 	}
 
@@ -65,7 +65,7 @@ func (r businessMomentsAdaptorRepo) Create(namespace string, tenant k8s.Tenant, 
 		},
 	}
 
-	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, todoCustomersTenantID)
+	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, TodoCustomersTenantID)
 	deployment := k8s.NewDeployment(microservice, headImage, runtimeImage)
 	service := k8s.NewService(microservice)
 	ingress := k8s.NewIngress(microservice)

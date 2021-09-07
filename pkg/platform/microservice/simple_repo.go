@@ -43,7 +43,7 @@ func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.
 		Tenant:      tenant,
 		Application: application,
 		Environment: environment,
-		ResourceID:  todoCustomersTenantID,
+		ResourceID:  TodoCustomersTenantID,
 		Kind:        r.kind,
 	}
 
@@ -57,7 +57,7 @@ func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.
 		},
 	}
 
-	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, todoCustomersTenantID)
+	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, TodoCustomersTenantID)
 	deployment := k8s.NewDeployment(microservice, headImage, runtimeImage)
 	service := k8s.NewService(microservice)
 	ingress := k8s.NewIngress(microservice)

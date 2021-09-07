@@ -13,14 +13,14 @@ import (
 )
 
 const (
-	todoCustomersTenantID string = "17426336-fb8e-4425-8ab7-07d488367be9"
+	TodoCustomersTenantID string = "17426336-fb8e-4425-8ab7-07d488367be9"
 )
 
 type service struct {
 	simpleRepo                 simpleRepo
 	businessMomentsAdaptorRepo businessMomentsAdaptorRepo
 	rawDataLogIngestorRepo     rawdatalog.RawDataLogIngestorRepo
-	purchaseOrderAPIRepo       purchaseOrderAPIRepo
+	purchaseOrderAPIRepo       PurchaseOrderAPIRepo
 	k8sDolittleRepo            platform.K8sRepo
 	gitRepo                    storage.Repo
 }

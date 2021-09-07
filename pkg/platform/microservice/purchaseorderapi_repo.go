@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-type purchaseOrderAPIRepo struct {
+type PurchaseOrderAPIRepo struct {
 	k8sClient      *kubernetes.Clientset
 	rawDataLogRepo rawdatalog.RawDataLogIngestorRepo
 	kind           platform.MicroserviceKind
@@ -23,7 +23,7 @@ type purchaseOrderAPIRepo struct {
 
 // NewPurchaseOrderAPIRepo creates a new instance of purchaseorderapiRepo.
 func NewPurchaseOrderAPIRepo(k8sClient *kubernetes.Clientset, rawDataLogRepo rawdatalog.RawDataLogIngestorRepo) PurchaseOrderAPIRepo {
-	return purchaseOrderAPIRepo{
+	return PurchaseOrderAPIRepo{
 		k8sClient,
 		rawDataLogRepo,
 		platform.MicroserviceKindPurchaseOrderAPI,
@@ -31,7 +31,7 @@ func NewPurchaseOrderAPIRepo(k8sClient *kubernetes.Clientset, rawDataLogRepo raw
 }
 
 // Create creates a new PurchaseOrderAPI microservice, and a RawDataLog and WebhookListener if they don't exist.
-func (r purchaseOrderAPIRepo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, input platform.HttpInputPurchaseOrderInfo) error {
+func (r PurchaseOrderAPIRepo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, input platform.HttpInputPurchaseOrderInfo) error {
 	// TODO not sure where this comes from really, assume dynamic
 
 	environment := input.Environment
@@ -46,7 +46,7 @@ func (r purchaseOrderAPIRepo) Create(namespace string, tenant k8s.Tenant, applic
 		Tenant:      tenant,
 		Application: application,
 		Environment: environment,
-		ResourceID:  todoCustomersTenantID,
+		ResourceID:  TodoCustomersTenantID,
 		Kind:        r.kind,
 	}
 
@@ -95,7 +95,7 @@ func (r purchaseOrderAPIRepo) Create(namespace string, tenant k8s.Tenant, applic
 }
 
 // Delete stops the running purchase order api and deletes the kubernetes resources.
-func (r purchaseOrderAPIRepo) Delete(namespace string, microserviceID string) error {
+func (r PurchaseOrderAPIRepo) Delete(namespace string, microserviceID string) error {
 	ctx := context.TODO()
 
 	deployment, err := r.stopDeployment(ctx, namespace, microserviceID)
@@ -125,7 +125,7 @@ func (r purchaseOrderAPIRepo) Delete(namespace string, microserviceID string) er
 	return nil
 }
 
-func (r purchaseOrderAPIRepo) stopDeployment(ctx context.Context, namespace, microserviceID string) (v1.Deployment, error) {
+func (r PurchaseOrderAPIRepo) stopDeployment(ctx context.Context, namespace, microserviceID string) (v1.Deployment, error) {
 	deployment, err := k8sGetDeployment(r.k8sClient, ctx, namespace, microserviceID)
 	if err != nil {
 		return deployment, err
@@ -137,21 +137,21 @@ func (r purchaseOrderAPIRepo) stopDeployment(ctx context.Context, namespace, mic
 	return deployment, nil
 }
 
-func (r purchaseOrderAPIRepo) createRawDataLogIfNotExists() error {
+func (r PurchaseOrderAPIRepo) createRawDataLogIfNotExists() error {
 	return errors.New("Not implemented")
 }
 
-func (r purchaseOrderAPIRepo) createPurchaseOrderMicroservice(namespace, headImage, runtimeImage string, microservice k8s.Microservice, ctx context.Context) error {
+func (r PurchaseOrderAPIRepo) createPurchaseOrderMicroservice(namespace, headImage, runtimeImage string, microservice k8s.Microservice, ctx context.Context) error {
 	opts := metaV1.CreateOptions{}
 
-	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, todoCustomersTenantID)
+	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, TodoCustomersTenantID)
 	deployment := k8s.NewDeployment(microservice, headImage, runtimeImage)
 	service := k8s.NewService(microservice)
 	configEnvVariables := k8s.NewEnvVariablesConfigmap(microservice)
 	configFiles := k8s.NewConfigFilesConfigmap(microservice)
 	configSecrets := k8s.NewEnvVariablesSecret(microservice)
 
-	r.modifyEnvironmentVariablesConfigMap(configEnvVariables, microservice)
+	r.ModifyEnvironmentVariablesConfigMap(configEnvVariables, microservice)
 
 	// ConfigMaps
 	_, err := r.k8sClient.CoreV1().ConfigMaps(namespace).Create(ctx, microserviceConfigmap, opts)
@@ -182,12 +182,12 @@ func (r purchaseOrderAPIRepo) createPurchaseOrderMicroservice(namespace, headIma
 	return nil
 }
 
-func (r purchaseOrderAPIRepo) modifyEnvironmentVariablesConfigMap(environmentVariablesConfigMap *corev1.ConfigMap, microservice k8s.Microservice) {
-	resources := k8s.NewMicroserviceResources(microservice, todoCustomersTenantID)
-	mongoDBURL := resources[todoCustomersTenantID].Readmodels.Host
-	readmodelDBName := resources[todoCustomersTenantID].Readmodels.Database
+func (r PurchaseOrderAPIRepo) ModifyEnvironmentVariablesConfigMap(environmentVariablesConfigMap *corev1.ConfigMap, microservice k8s.Microservice) {
+	resources := k8s.NewMicroserviceResources(microservice, TodoCustomersTenantID)
+	mongoDBURL := resources[TodoCustomersTenantID].Readmodels.Host
+	readmodelDBName := resources[TodoCustomersTenantID].Readmodels.Database
 
-	tenantID := todoCustomersTenantID
+	tenantID := TodoCustomersTenantID
 	natsClusterURL := fmt.Sprintf("%s-rawdatalogv1-nats.application-%s.svc.cluster.local:4222", microservice.Environment, microservice.Application.ID)
 
 	environmentVariablesConfigMap.Data = map[string]string{
@@ -203,10 +203,10 @@ func (r purchaseOrderAPIRepo) modifyEnvironmentVariablesConfigMap(environmentVar
 	}
 }
 
-func (r purchaseOrderAPIRepo) createWebhookListenerIfNotExists() error {
+func (r PurchaseOrderAPIRepo) createWebhookListenerIfNotExists() error {
 	return errors.New("Not implemented")
 }
 
-func (r purchaseOrderAPIRepo) addWebhookEndpoints() error {
+func (r PurchaseOrderAPIRepo) addWebhookEndpoints() error {
 	return errors.New("Not implemented")
 }
