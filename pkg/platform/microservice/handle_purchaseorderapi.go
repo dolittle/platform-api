@@ -12,7 +12,7 @@ func (s *service) handlePurchaseOrderAPI(responseWriter http.ResponseWriter, r *
 	// Function assumes access check has taken place
 	var ms platform.HttpInputPurchaseOrderInfo
 	msK8sInfo, success := readMicroservice(&ms, inputBytes, applicationInfo, responseWriter)
-	if success == false {
+	if !success {
 		return
 	}
 	err := s.purchaseOrderAPIRepo.Create(msK8sInfo.namespace, msK8sInfo.tenant, msK8sInfo.application, ms)
