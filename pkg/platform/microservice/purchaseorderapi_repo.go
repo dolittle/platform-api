@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
@@ -68,9 +69,6 @@ func (r PurchaseOrderAPIRepo) Create(namespace string, tenant k8s.Tenant, applic
 		return err
 	}
 
-	//TODO: Customise the config to adhere to how we create purchase order api
-	// TODO: Add webhooks
-
 	// TODO: add rawDataLogMicroserviceID
 	// configFiles.Data = map[string]string{}
 	// We store the config data into the config-Files for the service to pick up on
@@ -98,15 +96,31 @@ func (r PurchaseOrderAPIRepo) Create(namespace string, tenant k8s.Tenant, applic
 func (r PurchaseOrderAPIRepo) Delete(namespace string, microserviceID string) error {
 	ctx := context.TODO()
 
-	deployment, err := r.stopDeployment(ctx, namespace, microserviceID)
+	deployment, err := r.getAndStopDeployment(ctx, namespace, microserviceID)
 	if err != nil {
 		return err
 	}
 
+	return r.deleteResources(ctx, namespace, deployment)
+}
+
+func (r PurchaseOrderAPIRepo) getAndStopDeployment(ctx context.Context, namespace, microserviceID string) (v1.Deployment, error) {
+	deployment, err := k8sGetDeployment(r.k8sClient, ctx, namespace, microserviceID)
+	if err != nil {
+		return deployment, err
+	}
+
+	if err = k8sStopDeployment(r.k8sClient, ctx, namespace, &deployment); err != nil {
+		return deployment, err
+	}
+	return deployment, nil
+}
+
+func (r PurchaseOrderAPIRepo) deleteResources(ctx context.Context, namespace string, deployment v1.Deployment) error {
 	listOpts := metaV1.ListOptions{
 		LabelSelector: labels.FormatLabels(deployment.GetObjectMeta().GetLabels()),
 	}
-
+	var err error
 	if err = k8sDeleteConfigmaps(r.k8sClient, ctx, namespace, listOpts); err != nil {
 		return err
 	}
@@ -123,18 +137,6 @@ func (r PurchaseOrderAPIRepo) Delete(namespace string, microserviceID string) er
 		return err
 	}
 	return nil
-}
-
-func (r PurchaseOrderAPIRepo) stopDeployment(ctx context.Context, namespace, microserviceID string) (v1.Deployment, error) {
-	deployment, err := k8sGetDeployment(r.k8sClient, ctx, namespace, microserviceID)
-	if err != nil {
-		return deployment, err
-	}
-
-	if err = k8sStopDeployment(r.k8sClient, ctx, namespace, &deployment); err != nil {
-		return deployment, err
-	}
-	return deployment, nil
 }
 
 func (r PurchaseOrderAPIRepo) createRawDataLogIfNotExists() error {
@@ -188,7 +190,7 @@ func (r PurchaseOrderAPIRepo) ModifyEnvironmentVariablesConfigMap(environmentVar
 	readmodelDBName := resources[TodoCustomersTenantID].Readmodels.Database
 
 	tenantID := TodoCustomersTenantID
-	natsClusterURL := fmt.Sprintf("%s-rawdatalogv1-nats.application-%s.svc.cluster.local:4222", microservice.Environment, microservice.Application.ID)
+	natsClusterURL := fmt.Sprintf("%s-rawdatalogv1-nats.application-%s.svc.cluster.local:4222", strings.ToLower(microservice.Environment), microservice.Application.ID)
 
 	environmentVariablesConfigMap.Data = map[string]string{
 		"LOG_LEVEL":                 "debug",
