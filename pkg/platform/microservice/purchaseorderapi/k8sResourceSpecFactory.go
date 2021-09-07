@@ -24,12 +24,12 @@ func (r *k8sResourceSpecFactory) CreateAll(headImage, runtimeImage string, k8sMi
 	resources.ConfigEnvVariables = k8s.NewEnvVariablesConfigmap(k8sMicroservice)
 	resources.ConfigFiles = k8s.NewConfigFilesConfigmap(k8sMicroservice)
 	resources.ConfigSecrets = k8s.NewEnvVariablesSecret(k8sMicroservice)
-	r.ModifyEnvironmentVariablesConfigMap(resources.ConfigEnvVariables, k8sMicroservice)
+	r.modifyEnvironmentVariablesConfigMap(resources.ConfigEnvVariables, k8sMicroservice)
 
 	return resources
 }
 
-func (r *k8sResourceSpecFactory) ModifyEnvironmentVariablesConfigMap(environmentVariablesConfigMap *corev1.ConfigMap, k8sMicroservice k8s.Microservice) {
+func (r *k8sResourceSpecFactory) modifyEnvironmentVariablesConfigMap(environmentVariablesConfigMap *corev1.ConfigMap, k8sMicroservice k8s.Microservice) {
 	resources := k8s.NewMicroserviceResources(k8sMicroservice, microservice.TodoCustomersTenantID)
 	mongoDBURL := resources[microservice.TodoCustomersTenantID].Readmodels.Host
 	readmodelDBName := resources[microservice.TodoCustomersTenantID].Readmodels.Database
