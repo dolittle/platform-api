@@ -34,7 +34,6 @@ func (s *GitStorage) SaveApplication(application platform.HttpResponseApplicatio
 		return err
 	}
 
-	// filename := fmt.Sprintf("%s/application.json", dir)
 	filename := filepath.Join(dir, "application.json")
 	err = ioutil.WriteFile(filename, data, 0644)
 	if err != nil {
@@ -100,21 +99,13 @@ func (s *GitStorage) GetApplication(tenantID string, applicationID string) (plat
 func (s *GitStorage) GetApplications(tenantID string) ([]platform.HttpResponseApplication, error) {
 	applicationIDs := []string{}
 
-	// TODO change
-	rootDirectory := s.Directory + "/"
 	// TODO change to fs when gone to 1.16
-	err := filepath.Walk(rootDirectory, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(s.Directory, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
 			return err
 		}
 
-		// TODO come back to this
-		//if info.IsDir() {
-		//	fmt.Printf("skipping a dir without errors: %+v \n", info.Name())
-		//	return filepath.SkipDir
-		//}
-		// /tmp/dolittle-k8s/453e04a7-4f9d-42f2-b36c-d51fa2c83fa3/11b6cf47-5d9f-438f-8116-0d9828654657/application.json
 		if info.Name() != "application.json" {
 			return nil
 		}
@@ -126,7 +117,6 @@ func (s *GitStorage) GetApplications(tenantID string) ([]platform.HttpResponseAp
 		applicationIDs = append(applicationIDs, applicationID)
 		return nil
 	})
-	fmt.Println(applicationIDs)
 	applications := make([]platform.HttpResponseApplication, 0)
 
 	if err != nil {

@@ -1,9 +1,9 @@
 package git
 
 import (
-	"fmt"
+	"path/filepath"
 )
 
 func (s *GitStorage) GetTenantDirectory(tenantID string) string {
-	return fmt.Sprintf("%s/%s", s.Directory, tenantID)
+	return filepath.Join(s.Directory, tenantID)
 }
