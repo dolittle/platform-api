@@ -48,7 +48,7 @@ func (r *repo) Create(namespace string, tenant k8s.Tenant, application k8s.Appli
 	// 	return err
 	// }
 
-	if err := r.k8sResource.Create(namespace, headImage, runtimeImage, microservice, ctx); err != nil {
+	if err := r.k8sResource.Create(namespace, headImage, runtimeImage, microservice, input.Extra, ctx); err != nil {
 		return err
 	}
 

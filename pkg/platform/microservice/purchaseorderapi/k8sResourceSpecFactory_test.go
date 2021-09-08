@@ -1,6 +1,9 @@
 package purchaseorderapi_test
 
 import (
+	"fmt"
+
+	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	microserviceK8s "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/k8s"
 	. "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/purchaseorderapi"
 	. "github.com/onsi/ginkgo"
@@ -26,6 +29,7 @@ var _ = Describe("For k8sResourceSpecFactory", func() {
 			runtimeImage    string
 			k8sMicroservice k8s.Microservice
 			result          K8sResources
+			rawDataLogName  string
 		)
 
 		BeforeEach(func() {
@@ -39,7 +43,10 @@ var _ = Describe("For k8sResourceSpecFactory", func() {
 					ID:   "12345-789",
 				},
 			}
-			result = factory.CreateAll(headImage, runtimeImage, k8sMicroservice)
+			rawDataLogName = "raw-data-log-123"
+			result = factory.CreateAll(headImage, runtimeImage, k8sMicroservice, platform.HttpInputPurchaseOrderExtra{
+				RawDataLogName: rawDataLogName,
+			})
 		})
 		It("should set the correct head image", func() {
 			Expect(getContainerInDeployment(result.Deployment, "head").Image).To(Equal(headImage))
@@ -66,7 +73,7 @@ var _ = Describe("For k8sResourceSpecFactory", func() {
 			Expect(result.ConfigEnvVariables.Data["SERVER_PORT"]).To(Equal("8080"))
 		})
 		It("should set the correct NATS_CLUSTER_URL", func() {
-			Expect(result.ConfigEnvVariables.Data["NATS_CLUSTER_URL"]).To(Equal("prod-rawdatalogv1-nats.application-12345-789.svc.cluster.local:4222"))
+			Expect(result.ConfigEnvVariables.Data["NATS_CLUSTER_URL"]).To(Equal(fmt.Sprintf("prod-%s-nats.application-12345-789.svc.cluster.local:4222", rawDataLogName)))
 		})
 		It("should set NATS_START_FROM_BEGINNING to 'false'", func() {
 			Expect(result.ConfigEnvVariables.Data["NATS_START_FROM_BEGINNING"]).To(Equal("false"))

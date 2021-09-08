@@ -17,11 +17,11 @@ type Repo interface {
 }
 
 type K8sResource interface {
-	Create(namspace, headImage, runtimeImage string, k8sMicroservice k8s.Microservice, ctx context.Context) error
+	Create(namspace, headImage, runtimeImage string, k8sMicroservice k8s.Microservice, extra platform.HttpInputPurchaseOrderExtra, ctx context.Context) error
 	Delete(namespace, microserviceID string, ctx context.Context) error
 }
 type K8sResourceSpecFactory interface {
-	CreateAll(headImage, runtimeImage string, k8sMicroservice k8s.Microservice) K8sResources
+	CreateAll(headImage, runtimeImage string, k8sMicroservice k8s.Microservice, extra platform.HttpInputPurchaseOrderExtra) K8sResources
 }
 type K8sResources struct {
 	MicroserviceConfigMap *corev1.ConfigMap

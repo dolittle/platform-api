@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
+	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	microserviceK8s "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/k8s"
 	v1 "k8s.io/api/apps/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,10 +26,10 @@ func NewK8sResource(k8sClient *kubernetes.Clientset, specFactory K8sResourceSpec
 }
 
 // Create creates a new PurchaseOrderAPI microservice, and a RawDataLog and WebhookListener if they don't exist.
-func (r *k8sResource) Create(namespace, headImage, runtimeImage string, k8sMicroservice k8s.Microservice, ctx context.Context) error {
+func (r *k8sResource) Create(namespace, headImage, runtimeImage string, k8sMicroservice k8s.Microservice, extra platform.HttpInputPurchaseOrderExtra, ctx context.Context) error {
 	opts := metaV1.CreateOptions{}
 
-	resources := r.specFactory.CreateAll(headImage, runtimeImage, k8sMicroservice)
+	resources := r.specFactory.CreateAll(headImage, runtimeImage, k8sMicroservice, extra)
 
 	// ConfigMaps
 	_, err := r.k8sClient.CoreV1().ConfigMaps(namespace).Create(ctx, resources.MicroserviceConfigMap, opts)

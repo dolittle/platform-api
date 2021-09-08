@@ -289,9 +289,10 @@ type HttpInputPurchaseOrderInfo struct {
 }
 
 type HttpInputPurchaseOrderExtra struct {
-	Headimage    string                            `json:"headImage"`
-	Runtimeimage string                            `json:"runtimeImage"`
-	Webhooks     []RawDataLogIngestorWebhookConfig `json:"webhooks"`
+	Headimage      string                            `json:"headImage"`
+	Runtimeimage   string                            `json:"runtimeImage"`
+	Webhooks       []RawDataLogIngestorWebhookConfig `json:"webhooks"`
+	RawDataLogName string                            `json:"rawDataLogName"`
 }
 
 var (
