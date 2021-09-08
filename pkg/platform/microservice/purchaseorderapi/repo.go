@@ -5,7 +5,7 @@ import (
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
-	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice"
+	microserviceK8s "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/rawdatalog"
 	"k8s.io/client-go/kubernetes"
 )
@@ -41,15 +41,15 @@ func (r *repo) Create(namespace string, tenant k8s.Tenant, application k8s.Appli
 		Tenant:      tenant,
 		Application: application,
 		Environment: environment,
-		ResourceID:  microservice.TodoCustomersTenantID,
+		ResourceID:  microserviceK8s.TodoCustomersTenantID,
 		Kind:        platform.MicroserviceKindPurchaseOrderAPI,
 	}
 
 	ctx := context.TODO()
 
-	if err := r.rawdatalogRepo.EnsureForPurchaseOrderAPI(namespace, environment, tenant, application, input.Extra.Webhooks); err != nil {
-		return err
-	}
+	// if err := r.rawdatalogRepo.EnsureForPurchaseOrderAPI(namespace, environment, tenant, application, input.Extra.Webhooks); err != nil {
+	// 	return err
+	// }
 
 	if err := r.k8sResource.Create(namespace, headImage, runtimeImage, microservice, ctx); err != nil {
 		return err

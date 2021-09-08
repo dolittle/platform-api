@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	. "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 )
 
@@ -18,7 +19,7 @@ func (s *service) handleSimpleMicroservice(responseWriter http.ResponseWriter, r
 		return
 	}
 
-	ingress := createIngress()
+	ingress := CreateIngress()
 
 	// TODO I cant decide if domainNamePrefix or SecretNamePrefix is better
 	//if ms.Extra.Ingress.SecretNamePrefix == "" {

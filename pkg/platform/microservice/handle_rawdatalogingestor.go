@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	// . "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 	"github.com/thoas/go-funk"
 )
@@ -13,12 +14,14 @@ import (
 func (s *service) handleRawDataLogIngestor(responseWriter http.ResponseWriter, r *http.Request, inputBytes []byte, applicationInfo platform.Application) {
 	// Function assumes access check has taken place
 	var ms platform.HttpInputRawDataLogIngestorInfo
-	msK8sInfo, statusErr := s.parser.Parse(inputBytes, &ms, applicationInfo)
-	if statusErr != nil {
-		utils.RespondWithStatusError(responseWriter, statusErr)
-		return
-	}
-	ingress := createIngress()
+
+	//TODO: Fix this when we get to work on rawDataLogIngestorRepo
+	// msK8sInfo, statusErr := s.parser.Parse(inputBytes, &ms, applicationInfo)
+	// if statusErr != nil {
+	// 	utils.RespondWithStatusError(responseWriter, statusErr)
+	// 	return
+	// }
+	// ingress := CreateIngress()
 
 	// TODO changing writeTo will break this.
 	// TODO does this exist?
@@ -50,9 +53,9 @@ func (s *service) handleRawDataLogIngestor(responseWriter http.ResponseWriter, r
 	var err error
 	if !exists {
 		// Create in Kubernetes
-		err = s.rawDataLogIngestorRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, ingress, ms)
+		// err = s.rawDataLogIngestorRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, ingress, ms) //TODO:
 	} else {
-		err = s.rawDataLogIngestorRepo.Update(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, ingress, ms)
+		// err = s.rawDataLogIngestorRepo.Update(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, ingress, ms) //TODO:
 	}
 
 	if err != nil {

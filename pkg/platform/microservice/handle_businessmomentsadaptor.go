@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	. "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
 )
@@ -18,7 +19,7 @@ func (s *service) handleBusinessMomentsAdaptor(responseWriter http.ResponseWrite
 		utils.RespondWithStatusError(responseWriter, statusErr)
 		return
 	}
-	ingress := createIngress()
+	ingress := CreateIngress()
 
 	err := s.businessMomentsAdaptorRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, ingress, ms)
 	if statusErr != nil {

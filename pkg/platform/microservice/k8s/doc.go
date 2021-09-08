@@ -1,4 +1,4 @@
-package microservice
+package k8s
 
 import (
 	"context"
@@ -6,11 +6,31 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	v1 "k8s.io/api/apps/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
+
+const (
+	TodoCustomersTenantID string = "17426336-fb8e-4425-8ab7-07d488367be9"
+)
+
+type MicroserviceK8sInfo struct {
+	Tenant      k8s.Tenant
+	Application k8s.Application
+	Namespace   string
+}
+
+func CreateIngress() k8s.Ingress {
+	// TODO replace this with something from the cluster or something from git
+	domainPrefix := "freshteapot-taco"
+	return k8s.Ingress{
+		Host:       fmt.Sprintf("%s.dolittle.cloud", domainPrefix),
+		SecretName: fmt.Sprintf("%s-certificate", domainPrefix),
+	}
+}
 
 // Gets the deployment that is linked to the microserviceID in the given namespace
 func K8sGetDeployment(client *kubernetes.Clientset, context context.Context, namespace string, microserviceID string) (v1.Deployment, error) {

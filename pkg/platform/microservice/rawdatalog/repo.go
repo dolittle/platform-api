@@ -7,7 +7,7 @@ import (
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
-	platformmicroservice "github.com/dolittle-entropy/platform-api/pkg/platform/microservice"
+	microserviceK8s "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/k8s"
 	v1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/kubernetes"
 
@@ -102,11 +102,12 @@ func (r RawDataLogIngestorRepo) Create(namespace, environment string, tenant k8s
 	}
 
 	// TODO add microservice
-	err := r.doDolittle(namespace, tenant, application, applicationIngress, input)
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
+	// err := r.doDolittle(namespace, tenant, application, applicationIngress, input)
+	// err := r.upsertWebhookIngestor(namespace, tenant, application, applicationIngress, input)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	return err
+	// }
 	return nil
 }
 
@@ -406,7 +407,7 @@ func (r RawDataLogIngestorRepo) upsertWebhookIngestor(namespace string, tenant k
 		Tenant:      tenant,
 		Application: application,
 		Environment: environment,
-		ResourceID:  platformmicroservice.TodoCustomersTenantID,
+		ResourceID:  microserviceK8s.TodoCustomersTenantID,
 	}
 
 	ingressServiceName := strings.ToLower(fmt.Sprintf("%s-%s", microservice.Environment, microservice.Name))
@@ -425,7 +426,7 @@ func (r RawDataLogIngestorRepo) upsertWebhookIngestor(namespace string, tenant k
 
 	// TODO do I need this?
 	// TODO if I remove it, do I remove the config mapping?
-	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, platformmicroservice.TodoCustomersTenantID)
+	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, microserviceK8s.TodoCustomersTenantID)
 	deployment := k8s.NewDeployment(microservice, headImage, runtimeImage)
 	service := k8s.NewService(microservice)
 	ingress := k8s.NewIngress(microservice)

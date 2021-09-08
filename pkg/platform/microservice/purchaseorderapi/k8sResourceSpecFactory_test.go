@@ -1,7 +1,7 @@
 package purchaseorderapi_test
 
 import (
-	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice"
+	microserviceK8s "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/k8s"
 	. "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/purchaseorderapi"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -60,7 +60,7 @@ var _ = Describe("For k8sResourceSpecFactory", func() {
 			Expect(result.ConfigEnvVariables.Data["NODE_ENV"]).To(Equal("production"))
 		})
 		It("should set TENANT to the todo-customer-tenant-id", func() {
-			Expect(result.ConfigEnvVariables.Data["TENANT"]).To(Equal(microservice.TodoCustomersTenantID))
+			Expect(result.ConfigEnvVariables.Data["TENANT"]).To(Equal(microserviceK8s.TodoCustomersTenantID))
 		})
 		It("should set SERVER_PORT to '8080'", func() {
 			Expect(result.ConfigEnvVariables.Data["SERVER_PORT"]).To(Equal("8080"))

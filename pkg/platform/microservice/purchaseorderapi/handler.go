@@ -5,18 +5,19 @@ import (
 	"net/http"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
-	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/parser"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/requests"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 )
 
 type RequestHandler struct {
-	parser  microservice.Parser
+	parser  parser.Parser
 	repo    Repo
 	gitRepo storage.Repo
 }
 
-func NewRequestHandler(parser microservice.Parser, repo Repo, gitRepo storage.Repo) microservice.RequestHandler {
+func NewRequestHandler(parser parser.Parser, repo Repo, gitRepo storage.Repo) requests.RequestHandler {
 	return &RequestHandler{parser, repo, gitRepo}
 }
 

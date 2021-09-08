@@ -1,4 +1,4 @@
-package microservice
+package parser
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	. "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/k8s"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -16,8 +17,8 @@ func NewJsonParser() Parser {
 	return &parser{}
 }
 
-func (p *parser) Parse(requestBytes []byte, microservice platform.Microservice, applicationInfo platform.Application) (microserviceK8sInfo, *errors.StatusError) {
-	info := microserviceK8sInfo{}
+func (p *parser) Parse(requestBytes []byte, microservice platform.Microservice, applicationInfo platform.Application) (MicroserviceK8sInfo, *errors.StatusError) {
+	info := MicroserviceK8sInfo{}
 
 	err := json.Unmarshal(requestBytes, &microservice)
 	if err != nil {
