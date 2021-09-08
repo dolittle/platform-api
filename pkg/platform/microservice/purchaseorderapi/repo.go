@@ -2,24 +2,26 @@ package purchaseorderapi
 
 import (
 	"context"
-	"errors"
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/rawdatalog"
 	"k8s.io/client-go/kubernetes"
 )
 
 type repo struct {
-	k8sClient   *kubernetes.Clientset
-	k8sResource K8sResource
+	k8sClient      *kubernetes.Clientset
+	k8sResource    K8sResource
+	rawdatalogRepo rawdatalog.RawDataLogIngestorRepo
 }
 
 // NewRepo creates a new instance of purchaseorderapiRepo.
-func NewRepo(k8sClient *kubernetes.Clientset, k8sResource K8sResource) Repo {
+func NewRepo(k8sClient *kubernetes.Clientset, k8sResource K8sResource, rawDataLogIngestorRepo rawdatalog.RawDataLogIngestorRepo) Repo {
 	return &repo{
 		k8sClient,
 		k8sResource,
+		rawDataLogIngestorRepo,
 	}
 }
 
@@ -45,19 +47,11 @@ func (r *repo) Create(namespace string, tenant k8s.Tenant, application k8s.Appli
 
 	ctx := context.TODO()
 
-	if err := r.createRawDataLogIfNotExists(); err != nil {
-		return err
-	}
-
-	if err := r.createWebhookListenerIfNotExists(); err != nil {
+	if err := r.rawdatalogRepo.EnsureForPurchaseOrderAPI(namespace, environment, tenant, application, input.Extra.Webhooks); err != nil {
 		return err
 	}
 
 	if err := r.k8sResource.Create(namespace, headImage, runtimeImage, microservice, ctx); err != nil {
-		return err
-	}
-
-	if err := r.addWebhookEndpoints(); err != nil {
 		return err
 	}
 
@@ -68,15 +62,4 @@ func (r *repo) Create(namespace string, tenant k8s.Tenant, application k8s.Appli
 func (r *repo) Delete(namespace string, microserviceID string) error {
 	ctx := context.TODO()
 	return r.k8sResource.Delete(namespace, microserviceID, ctx)
-}
-func (r *repo) createRawDataLogIfNotExists() error {
-	return errors.New("Not implemented")
-}
-
-func (r *repo) createWebhookListenerIfNotExists() error {
-	return errors.New("Not implemented")
-}
-
-func (r *repo) addWebhookEndpoints() error {
-	return errors.New("Not implemented")
 }

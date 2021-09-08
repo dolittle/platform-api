@@ -7,6 +7,7 @@ import (
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	platformmicroservice "github.com/dolittle-entropy/platform-api/pkg/platform/microservice"
 	v1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/kubernetes"
 
@@ -53,15 +54,11 @@ func NewRawDataLogIngestorRepo(k8sDolittleRepo platform.K8sRepo, k8sClient *kube
 	}
 }
 
-func (r RawDataLogIngestorRepo) Exists(namespace string, environment string, microserviceID string) (bool, error) {
+func (r RawDataLogIngestorRepo) Exists(namespace string, environment string) (bool, error) {
 	return false, errors.New("TODO")
 }
 
-func (r RawDataLogIngestorRepo) Update(namespace string, tenant k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputRawDataLogIngestorInfo) error {
-	return errors.New("TODO")
-}
-
-func (r RawDataLogIngestorRepo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputRawDataLogIngestorInfo) error {
+func (r RawDataLogIngestorRepo) Create(namespace, environment string, tenant k8s.Tenant, application k8s.Application, input platform.HttpInputRawDataLogIngestorInfo) error {
 	config := r.k8sDolittleRepo.GetRestConfig()
 	ctx := context.TODO()
 
@@ -111,6 +108,56 @@ func (r RawDataLogIngestorRepo) Create(namespace string, tenant k8s.Tenant, appl
 		return err
 	}
 	return nil
+}
+
+const (
+	RawDataLogIngestorMicroserviceID    = "8e13134a-0a91-4b04-83a1-82ccd09ad51e"
+	RawDataLogIngestorMicroserviceName  = "raw-data-log"
+	RawDataLogIngestorHeadImage         = ""            //TODO: Fill out these
+	RawDataLogIngestorRuntimeImage      = ""            //TODO: Fill out these
+	RawDataLogWebhookStatsAuthorization = "Bearer TODO" //TODO: Fill out these
+)
+
+func (r RawDataLogIngestorRepo) EnsureForPurchaseOrderAPI(namespace, environment string, tenant k8s.Tenant, application k8s.Application, webhooks []platform.RawDataLogIngestorWebhookConfig) error {
+	exists, err := r.Exists(namespace, environment)
+	if err != nil {
+		return err
+	}
+
+	input := platform.HttpInputRawDataLogIngestorInfo{
+		MicroserviceBase: platform.MicroserviceBase{
+			Dolittle: platform.HttpInputDolittle{
+				ApplicationID:  application.ID,
+				TenantID:       tenant.ID,
+				MicroserviceID: RawDataLogIngestorMicroserviceID,
+			},
+			Name:        RawDataLogIngestorMicroserviceName,
+			Kind:        platform.MicroserviceKindRawDataLogIngestor,
+			Environment: environment,
+		},
+		Extra: platform.HttpInputRawDataLogIngestorExtra{
+			Headimage:                 RawDataLogIngestorHeadImage,
+			Runtimeimage:              RawDataLogIngestorRuntimeImage,
+			Ingress:                   platform.HttpInputSimpleIngress{},
+			Webhooks:                  webhooks,
+			WebhookStatsAuthorization: RawDataLogWebhookStatsAuthorization,
+			WriteTo:                   "nats",
+		},
+	}
+
+	if !exists {
+		return r.Create(namespace, environment, tenant, application, input)
+	}
+
+	return r.AddWebhooks(namespace, environment, tenant, application, webhooks)
+}
+
+func (r RawDataLogIngestorRepo) Update(namespace, environment string, tenant k8s.Tenant, application k8s.Application, input platform.HttpInputRawDataLogIngestorInfo) error {
+	return errors.New("TODO")
+}
+
+func (r RawDataLogIngestorRepo) AddWebhooks(namespace string, environment string, tenant k8s.Tenant, application k8s.Application, webhooks []platform.RawDataLogIngestorWebhookConfig) error {
+	return errors.New("TODO")
 }
 
 func (r RawDataLogIngestorRepo) Delete(namespace string, microserviceID string) error {
@@ -341,10 +388,8 @@ func doNats(
 	return doDo(obj, dr, action, ctx)
 }
 
-func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputRawDataLogIngestorInfo) error {
-
+func (r RawDataLogIngestorRepo) upsertWebhookIngestor(namespace string, tenant k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputRawDataLogIngestorInfo) error {
 	// TODO not sure where this comes from really, assume dynamic
-	customersTenantID := "17426336-fb8e-4425-8ab7-07d488367be9"
 
 	environment := input.Environment
 	host := applicationIngress.Host
@@ -361,7 +406,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, 
 		Tenant:      tenant,
 		Application: application,
 		Environment: environment,
-		ResourceID:  customersTenantID,
+		ResourceID:  platformmicroservice.TodoCustomersTenantID,
 	}
 
 	ingressServiceName := strings.ToLower(fmt.Sprintf("%s-%s", microservice.Environment, microservice.Name))
@@ -380,7 +425,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, 
 
 	// TODO do I need this?
 	// TODO if I remove it, do I remove the config mapping?
-	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, customersTenantID)
+	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, platformmicroservice.TodoCustomersTenantID)
 	deployment := k8s.NewDeployment(microservice, headImage, runtimeImage)
 	service := k8s.NewService(microservice)
 	ingress := k8s.NewIngress(microservice)
@@ -428,7 +473,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, 
 	configFiles.Data = map[string]string{}
 	// We store the config data into the config-Files for the service to pick up on
 	b, _ := json.MarshalIndent(input, "", "  ")
-	configFiles.Data["microservice_data_from_studio.json"] = string(b)
+	configFiles.Data["vice/"] = string(b)
 
 	service.Spec.Ports[0].TargetPort = intstr.IntOrString{
 		Type:   intstr.Int,
