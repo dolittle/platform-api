@@ -13,7 +13,7 @@ import (
 )
 
 func (s *GitStorage) GetMicroserviceDirectory(tenantID string, applicationID string, environment string) string {
-	return fmt.Sprintf("%s/%s/%s/%s", s.Directory, tenantID, applicationID, strings.ToLower(environment))
+	return filepath.Join(s.Directory, tenantID, applicationID, strings.ToLower(environment))
 }
 
 func (s *GitStorage) DeleteMicroservice(tenantID string, applicationID string, environment string, microserviceID string) error {
@@ -23,7 +23,7 @@ func (s *GitStorage) DeleteMicroservice(tenantID string, applicationID string, e
 	}
 
 	dir := s.GetMicroserviceDirectory(tenantID, applicationID, environment)
-	filename := fmt.Sprintf("%s/ms_%s.json", dir, microserviceID)
+	filename := filepath.Join(dir, fmt.Sprintf("ms_%s.json", microserviceID))
 	err = os.Remove(filename)
 	if err != nil {
 		fmt.Println(err)
@@ -72,7 +72,7 @@ func (s *GitStorage) SaveMicroservice(tenantID string, applicationID string, env
 		return err
 	}
 
-	filename := fmt.Sprintf("%s/ms_%s.json", dir, microserviceID)
+	filename := filepath.Join(dir, fmt.Sprintf("ms_%s.json", microserviceID))
 	err = ioutil.WriteFile(filename, storageBytes, 0644)
 	if err != nil {
 		fmt.Println("writeFile")
@@ -107,7 +107,7 @@ func (s *GitStorage) SaveMicroservice(tenantID string, applicationID string, env
 
 func (s *GitStorage) GetMicroservice(tenantID string, applicationID string, environment string, microserviceID string) ([]byte, error) {
 	dir := s.GetMicroserviceDirectory(tenantID, applicationID, environment)
-	filename := fmt.Sprintf("%s/ms_%s.json", dir, microserviceID)
+	filename := filepath.Join(dir, fmt.Sprintf("ms_%s.json", microserviceID))
 	return ioutil.ReadFile(filename)
 }
 
