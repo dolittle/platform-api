@@ -40,7 +40,7 @@ func (r *repo) Create(namespace string, tenant k8s.Tenant, application k8s.Appli
 		Application: application,
 		Environment: environment,
 		ResourceID:  microservice.TodoCustomersTenantID,
-		Kind:        MicroserviceKindPurchaseOrderAPI,
+		Kind:        platform.MicroserviceKindPurchaseOrderAPI,
 	}
 
 	ctx := context.TODO()

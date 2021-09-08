@@ -9,10 +9,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-const (
-	MicroserviceKindPurchaseOrderAPI platform.MicroserviceKind = "purchase-order-api"
-)
-
 type Repo interface {
 	// Create creates the microservice by committing it to a persistent storage and applying its kubernetes resources
 	Create(namespace string, tenant k8s.Tenant, application k8s.Application, input platform.HttpInputPurchaseOrderInfo) error

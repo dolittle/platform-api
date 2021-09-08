@@ -17,8 +17,6 @@ const (
 
 // RequestHandler defines a system that can handle HTTP requests for creating and deleting microservices
 type RequestHandler interface {
-	// CanHandle checks whether it can handle the request.
-	CanHandle(kind platform.MicroserviceKind, data []byte) bool
 	// Create handles the creation of a microservice
 	Create(responseWriter http.ResponseWriter, request *http.Request, data []byte, applicationInfo platform.Application) error
 	// Delete handles the deletion of a microservice

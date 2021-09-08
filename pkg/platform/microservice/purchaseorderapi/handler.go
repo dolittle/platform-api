@@ -20,10 +20,6 @@ func NewRequestHandler(parser microservice.Parser, repo Repo, gitRepo storage.Re
 	return &RequestHandler{parser, repo, gitRepo}
 }
 
-func (s *RequestHandler) CanHandle(kind platform.MicroserviceKind, input []byte) bool {
-	return kind == MicroserviceKindPurchaseOrderAPI
-}
-
 func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Request, inputBytes []byte, applicationInfo platform.Application) error {
 	// Function assumes access check has taken place
 	var ms platform.HttpInputPurchaseOrderInfo
