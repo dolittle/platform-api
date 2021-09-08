@@ -7,19 +7,16 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	microserviceK8s "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/rawdatalog"
-	"k8s.io/client-go/kubernetes"
 )
 
 type repo struct {
-	k8sClient      *kubernetes.Clientset
 	k8sResource    K8sResource
 	rawdatalogRepo rawdatalog.RawDataLogIngestorRepo
 }
 
 // NewRepo creates a new instance of purchaseorderapiRepo.
-func NewRepo(k8sClient *kubernetes.Clientset, k8sResource K8sResource, rawDataLogIngestorRepo rawdatalog.RawDataLogIngestorRepo) Repo {
+func NewRepo(k8sResource K8sResource, rawDataLogIngestorRepo rawdatalog.RawDataLogIngestorRepo) Repo {
 	return &repo{
-		k8sClient,
 		k8sResource,
 		rawDataLogIngestorRepo,
 	}

@@ -13,11 +13,11 @@ import (
 
 type k8sResource struct {
 	k8sClient   *kubernetes.Clientset
-	specFactory k8sResourceSpecFactory
+	specFactory K8sResourceSpecFactory
 }
 
 // NewRepo creates a new instance of purchaseorderapiRepo.
-func NewK8sResource(k8sClient *kubernetes.Clientset, specFactory k8sResourceSpecFactory) K8sResource {
+func NewK8sResource(k8sClient *kubernetes.Clientset, specFactory K8sResourceSpecFactory) K8sResource {
 	return &k8sResource{
 		k8sClient,
 		specFactory,

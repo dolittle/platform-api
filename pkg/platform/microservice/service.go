@@ -9,6 +9,8 @@ import (
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/parser"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/purchaseorderapi"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/rawdatalog"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
@@ -21,12 +23,22 @@ import (
 )
 
 func NewService(gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClient *kubernetes.Clientset) service {
+	parser := parser.NewJsonParser()
+	rawDataLogRepo := rawdatalog.NewRawDataLogIngestorRepo(k8sDolittleRepo, k8sClient)
+	specFactory := purchaseorderapi.NewK8sResourceSpecFactory()
+	k8sResources := purchaseorderapi.NewK8sResource(k8sClient, specFactory)
+
 	return service{
 		gitRepo:                    gitRepo,
 		simpleRepo:                 NewSimpleRepo(k8sClient),
 		businessMomentsAdaptorRepo: NewBusinessMomentsAdaptorRepo(k8sClient),
-		rawDataLogIngestorRepo:     rawdatalog.NewRawDataLogIngestorRepo(k8sDolittleRepo, k8sClient),
+		rawDataLogIngestorRepo:     rawDataLogRepo,
 		k8sDolittleRepo:            k8sDolittleRepo,
+		parser:                     parser,
+		purchaseOrderHandler: purchaseorderapi.NewRequestHandler(
+			parser,
+			purchaseorderapi.NewRepo(k8sResources, rawDataLogRepo),
+			gitRepo),
 	}
 }
 

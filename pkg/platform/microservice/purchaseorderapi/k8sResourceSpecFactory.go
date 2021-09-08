@@ -25,7 +25,6 @@ func (r *k8sResourceSpecFactory) CreateAll(headImage, runtimeImage string, k8sMi
 	resources.ConfigFiles = k8s.NewConfigFilesConfigmap(k8sMicroservice)
 	resources.ConfigSecrets = k8s.NewEnvVariablesSecret(k8sMicroservice)
 	r.modifyEnvironmentVariablesConfigMap(resources.ConfigEnvVariables, k8sMicroservice)
-
 	return resources
 }
 
