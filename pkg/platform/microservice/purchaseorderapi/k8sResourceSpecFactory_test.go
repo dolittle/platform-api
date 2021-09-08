@@ -5,6 +5,8 @@ import (
 	. "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/purchaseorderapi"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	appsV1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 )
@@ -27,6 +29,8 @@ var _ = Describe("For k8sResourceSpecFactory", func() {
 		)
 
 		BeforeEach(func() {
+			headImage = "some-head-image"
+			runtimeImage = "some-runtime-image"
 			k8sMicroservice = k8s.Microservice{
 				Environment: "Prod",
 				Name:        "ramanujan",
@@ -37,7 +41,12 @@ var _ = Describe("For k8sResourceSpecFactory", func() {
 			}
 			result = factory.CreateAll(headImage, runtimeImage, k8sMicroservice)
 		})
-
+		It("should set the correct head image", func() {
+			Expect(getContainerInDeployment(result.Deployment, "head").Image).To(Equal(headImage))
+		})
+		It("should set the correct runtime image", func() {
+			Expect(getContainerInDeployment(result.Deployment, "runtime").Image).To(Equal(runtimeImage))
+		})
 		It("should set LOG_LEVEL to 'debug'", func() {
 			Expect(result.ConfigEnvVariables.Data["LOG_LEVEL"]).To(Equal("debug"))
 		})
@@ -67,3 +76,14 @@ var _ = Describe("For k8sResourceSpecFactory", func() {
 		})
 	})
 })
+
+func getContainerInDeployment(deployment *appsV1.Deployment, containerName string) v1.Container {
+	containers := deployment.Spec.Template.Spec.Containers
+	var headContainer v1.Container
+	for i := range containers {
+		if containers[i].Name == containerName {
+			headContainer = containers[i]
+		}
+	}
+	return headContainer
+}
