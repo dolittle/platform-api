@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
@@ -29,7 +30,7 @@ func (s *GitStorage) SaveTerraformApplication(applicaiton platform.TerraformAppl
 		return err
 	}
 
-	filename := fmt.Sprintf("%s/terraform.json", dir)
+	filename := filepath.Join(dir, "terraform.json")
 	err = ioutil.WriteFile(filename, data, 0644)
 	if err != nil {
 		fmt.Println("writeFile")
@@ -63,7 +64,7 @@ func (s *GitStorage) SaveTerraformApplication(applicaiton platform.TerraformAppl
 
 func (s *GitStorage) GetTerraformApplication(tenantID string, applicationID string) (platform.TerraformApplication, error) {
 	dir := s.GetApplicationDirectory(tenantID, applicationID)
-	filename := fmt.Sprintf("%s/terraform.json", dir)
+	filename := filepath.Join(dir, "terraform.json")
 	b, err := ioutil.ReadFile(filename)
 
 	var application platform.TerraformApplication
@@ -95,7 +96,7 @@ func (s *GitStorage) SaveTerraformTenant(tenant platform.TerraformCustomer) erro
 		return err
 	}
 
-	filename := fmt.Sprintf("%s/tenant.json", dir)
+	filename := filepath.Join(dir, "tenant.json")
 	err = ioutil.WriteFile(filename, data, 0644)
 	if err != nil {
 		fmt.Println("writeFile")
@@ -129,7 +130,7 @@ func (s *GitStorage) SaveTerraformTenant(tenant platform.TerraformCustomer) erro
 
 func (s *GitStorage) GetTerraformTenant(tenantID string) (platform.TerraformCustomer, error) {
 	dir := s.GetTenantDirectory(tenantID)
-	filename := fmt.Sprintf("%s/tenant.json", dir)
+	filename := filepath.Join(dir, "tenant.json")
 	b, err := ioutil.ReadFile(filename)
 
 	var tenant platform.TerraformCustomer

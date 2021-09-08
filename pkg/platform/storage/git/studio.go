@@ -2,8 +2,8 @@ package git
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
+	"path/filepath"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/sirupsen/logrus"
@@ -11,14 +11,14 @@ import (
 
 func (s *GitStorage) SaveStudioConfig(tenantID string, config platform.StudioConfig) error {
 	dir := s.GetTenantDirectory(tenantID)
-	filename := fmt.Sprintf("%s/studio.json", dir)
+	filename := filepath.Join(dir, "studio.json")
 	data, _ := json.MarshalIndent(config, "", "  ")
 	return ioutil.WriteFile(filename, data, 0644)
 }
 
 func (s *GitStorage) GetStudioConfig(tenantID string) (platform.StudioConfig, error) {
 	dir := s.GetTenantDirectory(tenantID)
-	filename := fmt.Sprintf("%s/studio.json", dir)
+	filename := filepath.Join(dir, "studio.json")
 	b, err := ioutil.ReadFile(filename)
 
 	var config platform.StudioConfig
