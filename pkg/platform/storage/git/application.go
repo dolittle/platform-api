@@ -126,7 +126,7 @@ func (s *GitStorage) GetApplications(tenantID string) ([]platform.HttpResponseAp
 	for _, applicationID := range applicationIDs {
 		application, err := s.GetApplication(tenantID, applicationID)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println("Skipping application for tenant", tenantID, "with ID", applicationID, "because it failed to load:", err)
 			continue
 		}
 		applications = append(applications, application)
