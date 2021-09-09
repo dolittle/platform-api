@@ -22,13 +22,19 @@ type HttpInputApplication struct {
 	TenantID string `json:"tenantId"`
 }
 
+type TenantId string
+
+type EnvironmentIngress struct {
+	Host         string `json:"host"`
+	DomainPrefix string `json:"domainPrefix"`
+}
 type HttpInputEnvironment struct {
-	Name              string `json:"name"`
-	DomainPrefix      string `json:"domainPrefix"`
-	Host              string `json:"host"`
-	TenantID          string `json:"tenantId"`
-	ApplicationID     string `json:"applicationId"`
-	AutomationEnabled bool   `json:"automationEnabled"`
+	AutomationEnabled bool                            `json:"automationEnabled"`
+	Name              string                          `json:"name"`
+	TenantID          string                          `json:"tenantId"`
+	ApplicationID     string                          `json:"applicationId"`
+	Tenants           []TenantId                      `json:"tenants"`
+	Ingresses         map[TenantId]EnvironmentIngress `json:"ingresses"`
 }
 
 type HttpResponseApplication2 struct {
