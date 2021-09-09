@@ -28,13 +28,14 @@ type EnvironmentIngress struct {
 	Host         string `json:"host"`
 	DomainPrefix string `json:"domainPrefix"`
 }
+type EnvironmentIngresses map[TenantId]EnvironmentIngress
 type HttpInputEnvironment struct {
-	AutomationEnabled bool                            `json:"automationEnabled"`
-	Name              string                          `json:"name"`
-	TenantID          string                          `json:"tenantId"`
-	ApplicationID     string                          `json:"applicationId"`
-	Tenants           []TenantId                      `json:"tenants"`
-	Ingresses         map[TenantId]EnvironmentIngress `json:"ingresses"`
+	AutomationEnabled bool                 `json:"automationEnabled"`
+	Name              string               `json:"name"`
+	TenantID          string               `json:"tenantId"`
+	ApplicationID     string               `json:"applicationId"`
+	Tenants           []TenantId           `json:"tenants"`
+	Ingresses         EnvironmentIngresses `json:"ingresses"`
 }
 
 type HttpResponseApplication2 struct {

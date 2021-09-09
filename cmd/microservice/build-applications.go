@@ -156,7 +156,7 @@ func createOrGetEnvironment(ctx context.Context, client *kubernetes.Clientset, d
 		TenantID:      application.TenantID,
 		ApplicationID: application.ID,
 		Tenants:       getTenants(ctx, client, namespace, environmentName),
-		Ingresses:     make(map[platform.TenantId]platform.EnvironmentIngress),
+		Ingresses:     make(platform.EnvironmentIngresses),
 	}
 }
 
@@ -169,7 +169,7 @@ func getTenants(ctx context.Context, client *kubernetes.Clientset, namespace, en
 	return tenants
 }
 
-func addIngressesIntoEnvironment(environment *platform.HttpInputEnvironment, ctx context.Context, client *kubernetes.Clientset, namespace string, deployment appsV1.Deployment) map[platform.TenantId]platform.EnvironmentIngress {
+func addIngressesIntoEnvironment(environment *platform.HttpInputEnvironment, ctx context.Context, client *kubernetes.Clientset, namespace string, deployment appsV1.Deployment) platform.EnvironmentIngresses {
 	ingresses := environment.Ingresses
 	for _, ingress := range getIngresses(ctx, client, namespace, deployment) {
 		if len(ingress.Spec.TLS) > 0 {
