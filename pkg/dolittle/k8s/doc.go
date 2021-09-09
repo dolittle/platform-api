@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	networkingv1 "k8s.io/api/networking/v1"
 )
 
@@ -26,7 +27,8 @@ type Microservice struct {
 	Application Application `json:"application"`
 	Environment string      `json:"environment"`
 	// Linked to TenantsCustomer (look at ingress.go for now)
-	ResourceID string `json:"resource_id"`
+	ResourceID string                    `json:"resource_id"`
+	Kind       platform.MicroserviceKind `json:"kind"`
 }
 
 type SimpleIngressRule struct {

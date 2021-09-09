@@ -17,11 +17,7 @@ func NewService(microservice Microservice) *corev1.Service {
 
 	labels := GetLabels(microservice)
 
-	annotations := map[string]string{
-		"dolittle.io/tenant-id":       microservice.Tenant.ID,
-		"dolittle.io/application-id":  microservice.Application.ID,
-		"dolittle.io/microservice-id": microservice.ID,
-	}
+	annotations := GetAnnotations(microservice)
 
 	serviceName = strings.ToLower(serviceName)
 	return &corev1.Service{

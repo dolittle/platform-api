@@ -102,6 +102,31 @@ func NewEnvVariablesConfigmap(microservice Microservice) *corev1.ConfigMap {
 	}
 }
 
+func NewMicroserviceResources(microservice Microservice, customersTenantID string) MicroserviceResources {
+	databasePrefix := fmt.Sprintf("%s_%s_%s",
+		microservice.Application.Name,
+		microservice.Environment,
+		microservice.Name,
+	)
+	databasePrefix = strings.ToLower(databasePrefix)
+	environment := strings.ToLower(microservice.Environment)
+	return MicroserviceResources{
+		customersTenantID: MicroserviceResource{
+			Readmodels: MicroserviceResourceReadmodels{
+				Host:     fmt.Sprintf("mongodb://%s-mongo.application-%s.svc.cluster.local:27017", environment, microservice.Application.ID),
+				Database: fmt.Sprintf("%s_readmodels", databasePrefix),
+				Usessl:   false,
+			},
+			Eventstore: MicroserviceResourceEventstore{
+				Servers: []string{
+					fmt.Sprintf("%s-mongo.application-%s.svc.cluster.local", environment, microservice.Application.ID),
+				},
+				Database: fmt.Sprintf("%s_eventstore", databasePrefix),
+			},
+		},
+	}
+}
+
 func NewMicroserviceConfigmap(microservice Microservice, customersTenantID string) *corev1.ConfigMap {
 	name := fmt.Sprintf("%s-%s-dolittle",
 		microservice.Environment,
@@ -111,30 +136,9 @@ func NewMicroserviceConfigmap(microservice Microservice, customersTenantID strin
 	labels := GetLabels(microservice)
 	annotations := GetAnnotations(microservice)
 
-	databasePrefix := fmt.Sprintf("%s_%s_%s",
-		microservice.Application.Name,
-		microservice.Environment,
-		microservice.Name,
-	)
-
 	name = strings.ToLower(name)
-	databasePrefix = strings.ToLower(databasePrefix)
 
-	resources := MicroserviceResources{
-		customersTenantID: MicroserviceResource{
-			Readmodels: MicroserviceResourceReadmodels{
-				Host:     fmt.Sprintf("mongodb://dev-mongo.application-%s.svc.cluster.local:27017", microservice.Application.ID),
-				Database: fmt.Sprintf("%s_readmodels", databasePrefix),
-				Usessl:   false,
-			},
-			Eventstore: MicroserviceResourceEventstore{
-				Servers: []string{
-					fmt.Sprintf("dev-mongo.application-%s.svc.cluster.local", microservice.Application.ID),
-				},
-				Database: fmt.Sprintf("%s_eventstore", databasePrefix),
-			},
-		},
-	}
+	resources := NewMicroserviceResources(microservice, customersTenantID)
 
 	endpoints := MicroserviceEndpoints{
 		Public: MicroserviceEndpointPort{

@@ -2,6 +2,20 @@ package platform
 
 import "errors"
 
+type Microservice interface {
+	GetBase() MicroserviceBase
+}
+type MicroserviceBase struct {
+	Dolittle    HttpInputDolittle `json:"dolittle"`
+	Name        string            `json:"name"`
+	Kind        MicroserviceKind  `json:"kind"`
+	Environment string            `json:"environment"`
+}
+
+func (m MicroserviceBase) GetBase() MicroserviceBase {
+	return m
+}
+
 type HttpInputApplication struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`
@@ -105,22 +119,22 @@ type GitRepo interface {
 	GetAll(tenantID string) ([]Application, error)
 }
 
+type MicroserviceKind string
+
 const (
-	Simple                 = "simple"
-	BusinessMomentsAdaptor = "business-moments-adaptor"
-	RawDataLogIngestor     = "raw-data-log-ingestor"
+	MicroserviceKindSimple                 MicroserviceKind = "simple"
+	MicroserviceKindBusinessMomentsAdaptor MicroserviceKind = "business-moments-adaptor"
+	MicroserviceKindRawDataLogIngestor     MicroserviceKind = "raw-data-log-ingestor"
+	MicroserviceKindPurchaseOrderAPI       MicroserviceKind = "purchase-order-api" // TODO purchase-order-api VS purchase-order
 )
 
 type HttpInputMicroserviceKind struct {
-	Kind string `json:"kind"`
+	Kind MicroserviceKind `json:"kind"`
 }
 
 type HttpMicroserviceBase struct {
-	Dolittle    HttpInputDolittle `json:"dolittle"`
-	Name        string            `json:"name"`
-	Kind        string            `json:"kind"`
-	Environment string            `json:"environment"`
-	Extra       interface{}       `json:"extra"`
+	MicroserviceBase
+	Extra interface{} `json:"extra"`
 }
 type HttpInputDolittle struct {
 	ApplicationID  string `json:"applicationId"`
@@ -137,11 +151,8 @@ type HttpInputSimpleIngress struct {
 }
 
 type HttpInputSimpleInfo struct {
-	Dolittle    HttpInputDolittle    `json:"dolittle"`
-	Name        string               `json:"name"`
-	Kind        string               `json:"kind"`
-	Environment string               `json:"environment"`
-	Extra       HttpInputSimpleExtra `json:"extra"`
+	MicroserviceBase
+	Extra HttpInputSimpleExtra `json:"extra"`
 }
 
 type HttpInputSimpleExtra struct {
@@ -151,11 +162,8 @@ type HttpInputSimpleExtra struct {
 }
 
 type HttpInputBusinessMomentAdaptorInfo struct {
-	Dolittle    HttpInputDolittle                   `json:"dolittle"`
-	Name        string                              `json:"name"`
-	Kind        string                              `json:"kind"`
-	Environment string                              `json:"environment"`
-	Extra       HttpInputBusinessMomentAdaptorExtra `json:"extra"`
+	MicroserviceBase
+	Extra HttpInputBusinessMomentAdaptorExtra `json:"extra"`
 }
 
 type HttpInputBusinessMomentAdaptorExtra struct {
@@ -187,11 +195,8 @@ type HttpInputBusinessMomentAdaptorConnectorWebhookConfigBearer struct {
 }
 
 type HttpInputRawDataLogIngestorInfo struct {
-	Dolittle    HttpInputDolittle                `json:"dolittle"`
-	Name        string                           `json:"name"`
-	Kind        string                           `json:"kind"`
-	Environment string                           `json:"environment"`
-	Extra       HttpInputRawDataLogIngestorExtra `json:"extra"`
+	MicroserviceBase
+	Extra HttpInputRawDataLogIngestorExtra `json:"extra"`
 }
 
 type HttpInputRawDataLogIngestorExtra struct {
@@ -276,6 +281,18 @@ type HttpResponseBusinessMoments struct {
 	//MicroserviceID string                    `json:"microservice_id"` // Could omit if empty
 	Moments  []HttpInputBusinessMoment       `json:"moments"`
 	Entities []HttpInputBusinessMomentEntity `json:"entities"`
+}
+
+type HttpInputPurchaseOrderInfo struct {
+	MicroserviceBase
+	Extra HttpInputPurchaseOrderExtra `json:"extra"`
+}
+
+type HttpInputPurchaseOrderExtra struct {
+	Headimage      string                            `json:"headImage"`
+	Runtimeimage   string                            `json:"runtimeImage"`
+	Webhooks       []RawDataLogIngestorWebhookConfig `json:"webhooks"`
+	RawDataLogName string                            `json:"rawDataLogName"`
 }
 
 var (
