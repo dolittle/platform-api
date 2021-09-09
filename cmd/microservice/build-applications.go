@@ -3,7 +3,6 @@ package microservice
 import (
 	"context"
 	"os"
-	"strings"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
@@ -11,6 +10,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/thoas/go-funk"
+	appsV1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -85,69 +86,93 @@ func extractApplications(ctx context.Context, client *kubernetes.Clientset) []pl
 	}
 
 	for _, ns := range namespaces.Items {
-		nsName := ns.GetObjectMeta().GetName()
-		if !strings.HasPrefix(nsName, "application-") {
-			continue
-		}
-
-		annotationsMap := ns.GetObjectMeta().GetAnnotations()
-		labelMap := ns.GetObjectMeta().GetLabels()
-
-		applicationID := annotationsMap["dolittle.io/application-id"]
-		tenantID := annotationsMap["dolittle.io/tenant-id"]
-
-		application := platform.HttpResponseApplication{
-			TenantID:     tenantID,
-			ID:           applicationID,
-			Name:         labelMap["application"],
-			Environments: make([]platform.HttpInputEnvironment, 0),
-		}
-
-		namespace := nsName
-		obj, err := client.AppsV1().Deployments(namespace).List(ctx, metaV1.ListOptions{})
-		if err != nil {
-			panic(err.Error())
-		}
-
-		for _, item := range obj.Items {
-			_, ok := item.ObjectMeta.Annotations["dolittle.io/tenant-id"]
-			if !ok {
-				continue
-			}
-
-			_, ok = item.ObjectMeta.Annotations["dolittle.io/application-id"]
-			if !ok {
-				continue
-			}
-
-			_, ok = item.ObjectMeta.Labels["application"]
-			if !ok {
-				continue
-			}
-
-			environment := platform.HttpInputEnvironment{
-				Name:          item.ObjectMeta.Labels["environment"],
-				TenantID:      tenantID,
-				ApplicationID: applicationID,
-			}
-
-			index := funk.IndexOf(application.Environments, func(item platform.HttpInputEnvironment) bool {
-				return item.Name == environment.Name
-			})
-
-			if index != -1 {
-				continue
-			}
-
-			application.Environments = append(application.Environments, environment)
-		}
 		// Unique the environments
-		applications = append(applications, application)
+		applications = append(applications, createApplicationFromK8s(ctx, client, ns))
 	}
 
 	return applications
 }
 
+func createApplicationFromK8s(ctx context.Context, client *kubernetes.Clientset, namespace v1.Namespace) platform.HttpResponseApplication {
+	application := createBasicApplicationStructureFromMetadata(client, namespace)
+	addEnvironmentsFromK8sInto(&application, ctx, client, namespace, application.TenantID, application.ID)
+	return application
+}
+
+func createBasicApplicationStructureFromMetadata(client *kubernetes.Clientset, namespace v1.Namespace) platform.HttpResponseApplication {
+	annotationsMap := namespace.GetObjectMeta().GetAnnotations()
+	labelMap := namespace.GetObjectMeta().GetLabels()
+
+	applicationID := annotationsMap["dolittle.io/application-id"]
+	tenantID := annotationsMap["dolittle.io/tenant-id"]
+
+	return platform.HttpResponseApplication{
+		TenantID:     tenantID,
+		ID:           applicationID,
+		Name:         labelMap["application"],
+		Environments: make([]platform.HttpInputEnvironment, 0),
+	}
+}
+
+func addEnvironmentsFromK8sInto(application *platform.HttpResponseApplication, ctx context.Context, client *kubernetes.Clientset, namespace v1.Namespace, tenantID, applicationID string) {
+	namespaceName := namespace.GetObjectMeta().GetName()
+	for _, deployment := range getDeployments(ctx, client, namespaceName) {
+		if !deploymentHasReqiredMetadata(deployment) {
+			continue
+		}
+
+		environment := createEnvironmentFromK8s(deployment, tenantID, applicationID)
+
+		if environmentAlreadyInApplication(application.Environments, environment.Name) {
+			continue
+		}
+
+		application.Environments = append(application.Environments, environment)
+	}
+}
+
+func getDeployments(ctx context.Context, client *kubernetes.Clientset, namespace string) []appsV1.Deployment {
+	deploymentList, err := client.AppsV1().Deployments(namespace).List(ctx, metaV1.ListOptions{})
+	if err != nil {
+		panic(err.Error())
+	}
+	return deploymentList.Items
+}
+
+func createEnvironmentFromK8s(deployment appsV1.Deployment, tenantID, applicationID string) platform.HttpInputEnvironment {
+	return platform.HttpInputEnvironment{
+		Name:          deployment.ObjectMeta.Labels["environment"],
+		TenantID:      tenantID,
+		ApplicationID: applicationID,
+	}
+}
+func deploymentHasReqiredMetadata(deployment appsV1.Deployment) bool {
+	_, ok := deployment.ObjectMeta.Annotations["dolittle.io/tenant-id"]
+	if !ok {
+		return false
+	}
+
+	_, ok = deployment.ObjectMeta.Annotations["dolittle.io/application-id"]
+	if !ok {
+		return false
+	}
+
+	_, ok = deployment.ObjectMeta.Labels["application"]
+	if !ok {
+		return false
+	}
+	return true
+}
+func environmentAlreadyInApplication(environments []platform.HttpInputEnvironment, environmentName string) bool {
+	index := funk.IndexOf(environments, func(item platform.HttpInputEnvironment) bool {
+		return item.Name == environmentName
+	})
+
+	if index != -1 {
+		return false
+	}
+	return true
+}
 func init() {
 	RootCmd.AddCommand(buildApplicationsCMD)
 	buildApplicationsCMD.Flags().String("kube-config", "", "FullPath to kubeconfig")
