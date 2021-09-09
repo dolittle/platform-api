@@ -42,11 +42,11 @@ var k8sRawDataLogIngestorStanInMemory string
 var decUnstructured = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
 
 type RawDataLogIngestorRepo struct {
-	k8sClient       *kubernetes.Clientset
+	k8sClient       kubernetes.Interface
 	k8sDolittleRepo platform.K8sRepo
 }
 
-func NewRawDataLogIngestorRepo(k8sDolittleRepo platform.K8sRepo, k8sClient *kubernetes.Clientset) RawDataLogIngestorRepo {
+func NewRawDataLogIngestorRepo(k8sDolittleRepo platform.K8sRepo, k8sClient kubernetes.Interface) RawDataLogIngestorRepo {
 	return RawDataLogIngestorRepo{
 		k8sClient:       k8sClient,
 		k8sDolittleRepo: k8sDolittleRepo,

@@ -10,7 +10,7 @@ import (
 
 type service struct {
 	logContext            logrus.FieldLogger
-	k8sClient             *kubernetes.Clientset
+	k8sClient             kubernetes.Interface
 	gitRepo               storage.Repo
 	k8sDolittleRepo       platform.K8sRepo
 	k8sBusinessMomentRepo businessmomentsadaptor.Repo

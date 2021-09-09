@@ -22,7 +22,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-func NewService(gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClient *kubernetes.Clientset) service {
+func NewService(gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClient kubernetes.Interface) service {
 	parser := parser.NewJsonParser()
 	rawDataLogRepo := rawdatalog.NewRawDataLogIngestorRepo(k8sDolittleRepo, k8sClient)
 	specFactory := purchaseorderapi.NewK8sResourceSpecFactory()

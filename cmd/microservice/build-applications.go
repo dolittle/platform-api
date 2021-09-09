@@ -77,7 +77,7 @@ func SaveApplications(repo storage.Repo, applications []platform.HttpResponseApp
 	return nil
 }
 
-func extractApplications(ctx context.Context, client *kubernetes.Clientset) []platform.HttpResponseApplication {
+func extractApplications(ctx context.Context, client kubernetes.Interface) []platform.HttpResponseApplication {
 	applications := make([]platform.HttpResponseApplication, 0)
 	namespaces, err := client.CoreV1().Namespaces().List(ctx, metaV1.ListOptions{})
 	if err != nil {

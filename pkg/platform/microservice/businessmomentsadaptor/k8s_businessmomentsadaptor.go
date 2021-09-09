@@ -15,10 +15,10 @@ import (
 )
 
 type K8sRepo struct {
-	k8sClient *kubernetes.Clientset
+	k8sClient kubernetes.Interface
 }
 
-func NewK8sRepo(k8sClient *kubernetes.Clientset) Repo {
+func NewK8sRepo(k8sClient kubernetes.Interface) Repo {
 	return K8sRepo{
 		k8sClient: k8sClient,
 	}
