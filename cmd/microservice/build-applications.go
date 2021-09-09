@@ -126,7 +126,7 @@ func createBasicApplicationStructureFromMetadata(client *kubernetes.Clientset, n
 
 func addEnvironmentsFromK8sInto(application *platform.HttpResponseApplication, ctx context.Context, client *kubernetes.Clientset, namespaceName string) {
 	for _, deployment := range getDeployments(ctx, client, namespaceName) {
-		if !deploymentHasReqiredMetadata(deployment) {
+		if !deploymentHasRequiredMetadata(deployment) {
 			continue
 		}
 
@@ -222,7 +222,7 @@ func getTenantsFromConfigmap(ctx context.Context, client *kubernetes.Clientset, 
 	return tenants
 }
 
-func deploymentHasReqiredMetadata(deployment appsV1.Deployment) bool {
+func deploymentHasRequiredMetadata(deployment appsV1.Deployment) bool {
 	_, ok := deployment.ObjectMeta.Annotations["dolittle.io/tenant-id"]
 	if !ok {
 		return false
