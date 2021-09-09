@@ -419,6 +419,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, 
 
 	if input.Extra.WriteTo == "nats" {
 		stanClientID := "ingestor"
+		// TODO we hardcode nats
 		natsServer := fmt.Sprintf("nats.%s.svc.cluster.local", namespace)
 		configEnvVariables.Data["NATS_SERVER"] = natsServer
 		configEnvVariables.Data["STAN_CLUSTER_ID"] = "stan"
