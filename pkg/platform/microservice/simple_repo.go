@@ -15,11 +15,11 @@ import (
 )
 
 type simpleRepo struct {
-	k8sClient *kubernetes.Clientset
+	k8sClient kubernetes.Interface
 	kind      platform.MicroserviceKind
 }
 
-func NewSimpleRepo(k8sClient *kubernetes.Clientset) simpleRepo {
+func NewSimpleRepo(k8sClient kubernetes.Interface) simpleRepo {
 	return simpleRepo{
 		k8sClient,
 		platform.MicroserviceKindSimple,

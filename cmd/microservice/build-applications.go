@@ -82,7 +82,7 @@ func SaveApplications(repo storage.Repo, applications []platform.HttpResponseApp
 	return nil
 }
 
-func extractApplications(ctx context.Context, client *kubernetes.Clientset) []platform.HttpResponseApplication {
+func extractApplications(ctx context.Context, client kubernetes.Interface) []platform.HttpResponseApplication {
 	applications := make([]platform.HttpResponseApplication, 0)
 
 	for _, namespace := range getNamespaces(ctx, client) {

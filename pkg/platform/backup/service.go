@@ -20,7 +20,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func NewService(logContext logrus.FieldLogger, gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClient *kubernetes.Clientset) service {
+func NewService(logContext logrus.FieldLogger, gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClient kubernetes.Interface) service {
 	return service{
 		logContext:      logContext,
 		gitRepo:         gitRepo,
@@ -208,7 +208,7 @@ func environmentExists(environments []platform.HttpInputEnvironment, environment
 }
 
 // TODO maybe we should move this into the k8sRepo
-func getStorageAccountInfo(ctx context.Context, namespace string, client *kubernetes.Clientset) (AzureStorageInfo, error) {
+func getStorageAccountInfo(ctx context.Context, namespace string, client kubernetes.Interface) (AzureStorageInfo, error) {
 	secret, err := client.CoreV1().Secrets(namespace).Get(ctx, "storage-account-secret", metaV1.GetOptions{})
 	if err != nil {
 		return AzureStorageInfo{}, err
@@ -219,7 +219,7 @@ func getStorageAccountInfo(ctx context.Context, namespace string, client *kubern
 	}, nil
 }
 
-func getShareName(ctx context.Context, namespace string, client *kubernetes.Clientset, opts metaV1.ListOptions) (string, error) {
+func getShareName(ctx context.Context, namespace string, client kubernetes.Interface, opts metaV1.ListOptions) (string, error) {
 	crons, err := client.BatchV1beta1().CronJobs(namespace).List(ctx, opts)
 	if err != nil {
 		return "", err
