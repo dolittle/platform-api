@@ -102,14 +102,28 @@ func (s *service) SaveEnvironment(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *service) validateEnvironmentDoesNotExist(inputEnvironment platform.HttpInputEnvironment, storedEnvironments []platform.HttpInputEnvironment) error {
+	if err := s.validateEnvironmentNameDoesNotExist(inputEnvironment.Name, storedEnvironments); err != nil {
+		return err
+	}
+	if err := s.validateEnvironmentIngressesDoesNotExist(inputEnvironment, storedEnvironments); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *service) validateEnvironmentNameDoesNotExist(inputEnvironmentName string, storedEnvironments []platform.HttpInputEnvironment) error {
 	environmentNameExists := funk.Contains(storedEnvironments, func(storedEnvironment platform.HttpInputEnvironment) bool {
-		return storedEnvironment.Name == inputEnvironment.Name
+		return storedEnvironment.Name == inputEnvironmentName
 	})
 
 	if environmentNameExists {
-		return errors.New(fmt.Sprintf("Environment %s already exists", inputEnvironment.Name))
+		return errors.New(fmt.Sprintf("Environment %s already exists", inputEnvironmentName))
 	}
+	return nil
+}
 
+func (s *service) validateEnvironmentIngressesDoesNotExist(inputEnvironment platform.HttpInputEnvironment, storedEnvironments []platform.HttpInputEnvironment) error {
 	var usedDomainPrefix string
 	// TODO this is not going to work with custom domains.
 	// Simple logic to make sure the domainPrefix is not used
