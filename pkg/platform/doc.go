@@ -27,8 +27,11 @@ type TenantId string
 type EnvironmentIngress struct {
 	Host         string `json:"host"`
 	DomainPrefix string `json:"domainPrefix"`
+	SecretName   string `json:"secretName"`
 }
+
 type EnvironmentIngresses map[TenantId]EnvironmentIngress
+
 type HttpInputEnvironment struct {
 	AutomationEnabled bool                 `json:"automationEnabled"`
 	Name              string               `json:"name"`
@@ -50,6 +53,7 @@ type HttpResponseApplication struct {
 	ID           string                 `json:"id"`
 	Name         string                 `json:"name"`
 	TenantID     string                 `json:"tenantId"`
+	TenantName   string                 `json:"tenantName"`
 	Environments []HttpInputEnvironment `json:"environments"`
 }
 
