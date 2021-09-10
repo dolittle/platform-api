@@ -115,12 +115,9 @@ func createBasicApplicationStructureFromMetadata(client *kubernetes.Clientset, n
 	annotationsMap := namespace.GetObjectMeta().GetAnnotations()
 	labelMap := namespace.GetObjectMeta().GetLabels()
 
-	applicationID := annotationsMap["dolittle.io/application-id"]
-	tenantID := annotationsMap["dolittle.io/tenant-id"]
-
 	return platform.HttpResponseApplication{
-		TenantID:     tenantID,
-		ID:           applicationID,
+		TenantID:     annotationsMap["dolittle.io/tenant-id"],
+		ID:           annotationsMap["dolittle.io/application-id"],
 		Name:         labelMap["application"],
 		Environments: make([]platform.HttpInputEnvironment, 0),
 	}
@@ -225,20 +222,18 @@ func getTenantsFromConfigmap(ctx context.Context, client *kubernetes.Clientset, 
 }
 
 func deploymentHasRequiredMetadata(deployment appsV1.Deployment) bool {
-	_, ok := deployment.ObjectMeta.Annotations["dolittle.io/tenant-id"]
-	if !ok {
+	if _, ok := deployment.ObjectMeta.Annotations["dolittle.io/tenant-id"]; !ok {
 		return false
 	}
 
-	_, ok = deployment.ObjectMeta.Annotations["dolittle.io/application-id"]
-	if !ok {
+	if _, ok := deployment.ObjectMeta.Annotations["dolittle.io/application-id"]; !ok {
 		return false
 	}
 
-	_, ok = deployment.ObjectMeta.Labels["application"]
-	if !ok {
+	if _, ok := deployment.ObjectMeta.Labels["application"]; !ok {
 		return false
 	}
+
 	return true
 }
 
