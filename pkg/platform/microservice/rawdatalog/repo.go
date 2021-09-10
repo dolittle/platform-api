@@ -20,7 +20,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
+	k8slabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -47,28 +47,16 @@ func (r RawDataLogIngestorRepo) Update(namespace string, tenant k8s.Tenant, appl
 	return errors.New("TODO")
 }
 
-<<<<<<< HEAD
-func (r RawDataLogIngestorRepo) Create(namespace string, customer k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputRawDataLogIngestorInfo) error {
-	config := r.k8sDolittleRepo.GetRestConfig()
-	ctx := context.TODO()
-
-	templates := []string{
-		k8sRawDataLogIngestorNats,
-		k8sRawDataLogIngestorStanInMemory,
-	}
-=======
 func (r RawDataLogIngestorRepo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputRawDataLogIngestorInfo) error {
->>>>>>> e41ade0 (Change RawDataLog to use non-dynamic client)
 
 	labels := map[string]string{
-		"tenant":       customer.Name,
-		"application":  application.Name,
-		"environment":  input.Environment,
-		"microservice": input.Name,
+		"tenant":      tenant.Name,
+		"application": application.Name,
+		"environment": input.Environment,
 	}
 
 	annotations := map[string]string{
-		"dolittle.io/tenant-id":       customer.ID,
+		"dolittle.io/tenant-id":       tenant.ID,
 		"dolittle.io/application-id":  application.ID,
 		"dolittle.io/microservice-id": input.Dolittle.MicroserviceID,
 	}
@@ -83,7 +71,7 @@ func (r RawDataLogIngestorRepo) Create(namespace string, tenant k8s.Tenant, appl
 	}
 
 	// TODO add microservice
-	err := r.doDolittle(namespace, customer, application, applicationIngress, input)
+	err := r.doDolittle(namespace, tenant, application, applicationIngress, input)
 	if err != nil {
 		fmt.Println("Could not doDolittle", err)
 		return err
@@ -153,7 +141,7 @@ func (r RawDataLogIngestorRepo) Delete(namespace string, microserviceID string) 
 
 	// Selector information for microservice, based on labels
 	opts = metav1.ListOptions{
-		LabelSelector: labels.FormatLabels(foundDeployment.GetObjectMeta().GetLabels()),
+		LabelSelector: k8slabels.FormatLabels(foundDeployment.GetObjectMeta().GetLabels()),
 	}
 
 	// Remove configmaps
@@ -297,11 +285,15 @@ func (r RawDataLogIngestorRepo) doStatefulService(namespace string, configMap *c
 	return nil
 }
 
-func (r RawDataLogIngestorRepo) doNats(namespace string, labels, annotations labels.Set, input platform.HttpInputRawDataLogIngestorInfo, action string) error {
+func (r RawDataLogIngestorRepo) doNats(namespace string, labels, annotations k8slabels.Set, input platform.HttpInputRawDataLogIngestorInfo, action string) error {
 
 	environment := strings.ToLower(input.Environment)
-	nats := createNatsResources(namespace, environment, labels, annotations)
-	stan := createStanResources(namespace, environment, labels, annotations)
+
+	natsLabels := k8slabels.Merge(labels, k8slabels.Set{"infrastructure": "Nats"})
+	stanLabels := k8slabels.Merge(labels, k8slabels.Set{"infrastructure": "Stan"})
+
+	nats := createNatsResources(namespace, environment, natsLabels, annotations)
+	stan := createStanResources(namespace, environment, stanLabels, annotations)
 
 	if err := r.doStatefulService(namespace, nats.configMap, nats.service, nats.statfulset, action); err != nil {
 		return err
