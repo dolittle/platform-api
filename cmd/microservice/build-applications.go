@@ -88,7 +88,9 @@ func extractApplications(ctx context.Context, client *kubernetes.Clientset) []pl
 	applications := make([]platform.HttpResponseApplication, 0)
 
 	for _, ns := range getNamespaces(ctx, client) {
-		// Creates a single application for a namespace(?)
+		if !strings.HasPrefix(ns.GetObjectMeta().GetName(), "application-") {
+			continue
+		}
 		applications = append(applications, getApplicationFromK8s(ctx, client, ns))
 	}
 
