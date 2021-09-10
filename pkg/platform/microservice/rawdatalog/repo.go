@@ -1,13 +1,11 @@
 package rawdatalog
 
 import (
-	_ "embed"
 	"errors"
 	"log"
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
-	v1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"context"
@@ -15,31 +13,15 @@ import (
 	"fmt"
 	"strings"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	k8sLabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
-	"k8s.io/client-go/discovery"
-	memory "k8s.io/client-go/discovery/cached"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/restmapper"
 )
-
-//go:embed k8s/single-server-nats.yml
-var k8sRawDataLogIngestorNats string
-
-//go:embed k8s/single-server-stan-memory.yml
-var k8sRawDataLogIngestorStanInMemory string
-
-var decUnstructured = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
 
 type RawDataLogIngestorRepo struct {
 	k8sClient       kubernetes.Interface
@@ -62,13 +44,6 @@ func (r RawDataLogIngestorRepo) Update(namespace string, tenant k8s.Tenant, appl
 }
 
 func (r RawDataLogIngestorRepo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputRawDataLogIngestorInfo) error {
-	config := r.k8sDolittleRepo.GetRestConfig()
-	ctx := context.TODO()
-
-	templates := []string{
-		k8sRawDataLogIngestorNats,
-		k8sRawDataLogIngestorStanInMemory,
-	}
 
 	labels := map[string]string{
 		"tenant":       tenant.Name,
@@ -86,28 +61,16 @@ func (r RawDataLogIngestorRepo) Create(namespace string, tenant k8s.Tenant, appl
 	// TODO changing writeTo will break this.
 	if input.Extra.WriteTo != "stdout" {
 		action := "upsert"
-		for _, template := range templates {
-			parts := strings.Split(template, `---`)
-			for _, part := range parts {
-				if part == "" {
-					continue
-				}
-
-				err := doNats(
-					labels, annotations,
-					action, namespace, []byte(part), ctx, config)
-				if err != nil {
-					fmt.Println(err)
-					return err
-				}
-			}
+		if err := r.doNats(namespace, labels, annotations, input, action); err != nil {
+			fmt.Println("Could not doNats", err)
+			return err
 		}
 	}
 
 	// TODO add microservice
 	err := r.doDolittle(namespace, tenant, application, applicationIngress, input)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Could not doDolittle", err)
 		return err
 	}
 	return nil
@@ -134,7 +97,7 @@ func (r RawDataLogIngestorRepo) Delete(namespace string, microserviceID string) 
 
 	found := false
 	// Ugly name
-	var foundDeployment v1.Deployment
+	var foundDeployment appsv1.Deployment
 	for _, deployment := range deployments.Items {
 		_, ok := deployment.ObjectMeta.Labels["microservice"]
 		if !ok {
@@ -249,96 +212,87 @@ func (r RawDataLogIngestorRepo) Delete(namespace string, microserviceID string) 
 	}
 
 	return nil
-
-	return errors.New("TODO")
 }
 
-func getKubernetesData(namespace string, body []byte, cfg *rest.Config) (*unstructured.Unstructured, dynamic.ResourceInterface, error) {
+func (r RawDataLogIngestorRepo) doStatefulService(namespace string, configMap *corev1.ConfigMap, service *corev1.Service, statfulset *appsv1.StatefulSet, action string) error {
+	ctx := context.TODO()
 
-	var dr dynamic.ResourceInterface
-	obj := &unstructured.Unstructured{}
-
-	dc, err := discovery.NewDiscoveryClientForConfig(cfg)
-	if err != nil {
-		return obj, dr, err
-	}
-	mapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(dc))
-
-	dyn, err := dynamic.NewForConfig(cfg)
-	if err != nil {
-		return obj, dr, err
-	}
-
-	_, gvk, err := decUnstructured.Decode(body, nil, obj)
-	if err != nil {
-		return obj, dr, err
-	}
-
-	// 4. Find GVR
-	mapping, err := mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
-	if err != nil {
-		return obj, dr, err
-	}
-
-	obj.SetNamespace(namespace)
-
-	dr = dyn.Resource(mapping.Resource).Namespace(obj.GetNamespace())
-	return obj, dr, nil
-}
-
-func doDo(obj *unstructured.Unstructured, dr dynamic.ResourceInterface, action string, ctx context.Context) error {
-	//data, err := json.Marshal(obj)
-	//fmt.Println(string(data))
-	//return err
 	if action == "delete" {
-		return dr.Delete(ctx, obj.GetName(), metav1.DeleteOptions{})
+		if err := r.k8sClient.AppsV1().StatefulSets(namespace).Delete(ctx, statfulset.GetName(), metav1.DeleteOptions{}); err != nil {
+			return err
+		}
+		if err := r.k8sClient.CoreV1().Services(namespace).Delete(ctx, service.GetName(), metav1.DeleteOptions{}); err != nil {
+			return err
+		}
+		if err := r.k8sClient.CoreV1().ConfigMaps(namespace).Delete(ctx, configMap.GetName(), metav1.DeleteOptions{}); err != nil {
+			return err
+		}
+		return nil
 	}
 
 	if action != "upsert" {
 		return errors.New("action not supported")
 	}
 
-	data, err := json.Marshal(obj)
-	if err != nil {
-		return err
+	if _, err := r.k8sClient.CoreV1().ConfigMaps(namespace).Get(ctx, configMap.GetName(), metav1.GetOptions{}); err != nil {
+		if k8serrors.IsNotFound(err) {
+			if _, err := r.k8sClient.CoreV1().ConfigMaps(namespace).Create(ctx, configMap, metav1.CreateOptions{}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	} else {
+		if _, err := r.k8sClient.CoreV1().ConfigMaps(namespace).Update(ctx, configMap, metav1.UpdateOptions{}); err != nil {
+			return err
+		}
 	}
 
-	_, err = dr.Patch(ctx, obj.GetName(), types.ApplyPatchType, data, metav1.PatchOptions{
-		FieldManager: "platform-api",
-	})
-	return err
+	if _, err := r.k8sClient.CoreV1().Services(namespace).Get(ctx, service.GetName(), metav1.GetOptions{}); err != nil {
+		if k8serrors.IsNotFound(err) {
+			if _, err := r.k8sClient.CoreV1().Services(namespace).Create(ctx, service, metav1.CreateOptions{}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	} else {
+		if _, err := r.k8sClient.CoreV1().Services(namespace).Update(ctx, service, metav1.UpdateOptions{}); err != nil {
+			return err
+		}
+	}
+
+	if _, err := r.k8sClient.AppsV1().StatefulSets(namespace).Get(ctx, statfulset.GetName(), metav1.GetOptions{}); err != nil {
+		if k8serrors.IsNotFound(err) {
+			if _, err := r.k8sClient.AppsV1().StatefulSets(namespace).Create(ctx, statfulset, metav1.CreateOptions{}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	} else {
+		if _, err := r.k8sClient.AppsV1().StatefulSets(namespace).Update(ctx, statfulset, metav1.UpdateOptions{}); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
-// https://ymmt2005.hatenablog.com/entry/2020/04/14/An_example_of_using_dynamic_client_of_k8s.io/client-go
-func doNats(
-	labels map[string]string,
-	annotations map[string]string,
-	action string, namespace string, body []byte, ctx context.Context, cfg *rest.Config) error {
-	obj, dr, err := getKubernetesData(namespace, body, cfg)
-	if err != nil {
+func (r RawDataLogIngestorRepo) doNats(namespace string, labels, annotations labels.Set, input platform.HttpInputRawDataLogIngestorInfo, action string) error {
+
+	environment := strings.ToLower(input.Environment)
+	nats := createNatsResources(namespace, environment, labels, annotations)
+	stan := createStanResources(namespace, environment, labels, annotations)
+
+	if err := r.doStatefulService(namespace, nats.configMap, nats.service, nats.statfulset, action); err != nil {
+		return err
+	}
+	if err := r.doStatefulService(namespace, stan.configMap, stan.service, stan.statfulset, action); err != nil {
 		return err
 	}
 
-	obj.SetNamespace(namespace)
-
-	currentLabels := obj.GetLabels()
-	if currentLabels == nil {
-		currentLabels = map[string]string{}
-	}
-
-	mergedLabels := k8sLabels.Merge(currentLabels, labels)
-
-	obj.SetLabels(mergedLabels)
-
-	currentAnnotations := obj.GetAnnotations()
-	if currentAnnotations == nil {
-		currentAnnotations = map[string]string{}
-	}
-
-	mergedAnnotations := k8sLabels.Merge(currentAnnotations, annotations)
-	obj.SetAnnotations(mergedAnnotations)
-
-	return doDo(obj, dr, action, ctx)
+	return nil
 }
 
 func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputRawDataLogIngestorInfo) error {
@@ -583,45 +537,3 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, 
 
 	return nil
 }
-
-//func doDolittle(
-//	labels map[string]string,
-//	annotations map[string]string,
-//	action string, namespace string, body []byte, ctx context.Context, cfg *rest.Config) error {
-//	obj, dr, err := getKubernetesData(namespace, body, cfg)
-//	if err != nil {
-//		return err
-//	}
-//
-//	obj.SetNamespace(namespace)
-//	currentLabels := obj.GetLabels()
-//	if currentLabels == nil {
-//		labels = map[string]string{}
-//	}
-//
-//	mergedLabels := k8sLabels.Merge(currentLabels, labels)
-//
-//	obj.SetLabels(mergedLabels)
-//
-//	currentAnnotations := obj.GetAnnotations()
-//	if currentAnnotations == nil {
-//		annotations = map[string]string{}
-//	}
-//
-//	if obj.GetKind() == "Service" {
-//		// https://erwinvaneyk.nl/kubernetes-unstructured-to-typed/
-//		//var service corev1.Service
-//		//err = runtime.DefaultUnstructuredConverter.
-//		//	FromUnstructured(unstructured, &cluster)
-//		//assertNoError(err)
-//
-//		//Selector: labels,
-//	}
-//	fmt.Println(obj.GetKind())
-//
-//	mergedAnnotations := k8sLabels.Merge(currentAnnotations, annotations)
-//	obj.SetAnnotations(mergedAnnotations)
-//
-//	return doDo(obj, dr, action, ctx)
-//}
-//
