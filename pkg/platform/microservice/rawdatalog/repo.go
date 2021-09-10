@@ -303,7 +303,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, 
 	// TODO not sure where this comes from really, assume dynamic
 	customersTenantID := "17426336-fb8e-4425-8ab7-07d488367be9"
 
-	environment := input.Environment
+	environment := strings.ToLower(input.Environment)
 	host := applicationIngress.Host
 	secretName := applicationIngress.SecretName
 
@@ -377,7 +377,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, 
 	if input.Extra.WriteTo == "nats" {
 		stanClientID := "ingestor"
 		// TODO we hardcode nats
-		natsServer := fmt.Sprintf("nats.%s.svc.cluster.local", namespace)
+		natsServer := fmt.Sprintf("%s-nats.%s.svc.cluster.local", environment, namespace)
 		configEnvVariables.Data["NATS_SERVER"] = natsServer
 		configEnvVariables.Data["STAN_CLUSTER_ID"] = "stan"
 		configEnvVariables.Data["STAN_CLIENT_ID"] = stanClientID
