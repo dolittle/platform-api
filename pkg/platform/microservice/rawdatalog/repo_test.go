@@ -98,6 +98,12 @@ var _ = Describe("Repo", func() {
 			It("should create a configmap for nats with the correct environment label", func() {
 				Expect(natsConfigMap.Labels["environment"]).To(Equal(input.Environment))
 			})
+			It("should create a configmap for nats with the correct infrastructure label", func() {
+				Expect(natsConfigMap.Labels["infrastructure"]).To(Equal("Nats"))
+			})
+			It("should create a configmap for nats without a microservice label", func() {
+				Expect(natsConfigMap.Labels["microservice"]).To(Equal(""))
+			})
 			It("should create a configmap for nats with 'nats.conf'", func() {
 				Expect(natsConfigMap.Data["nats.conf"]).To(Equal(`
 				pid_file: "/var/run/nats/nats.pid"
@@ -135,14 +141,26 @@ var _ = Describe("Repo", func() {
 			It("should create a service for nats with the correct environment label", func() {
 				Expect(natsService.Labels["environment"]).To(Equal(input.Environment))
 			})
+			It("should create a service for nats with the correct infrastructure label", func() {
+				Expect(natsService.Labels["infrastructure"]).To(Equal("Nats"))
+			})
+			It("should create a service for nats without a microservice label", func() {
+				Expect(natsService.Labels["microservice"]).To(Equal(""))
+			})
 			It("should create a service for nats with the correct tenant label selector", func() {
 				Expect(natsService.Spec.Selector["tenant"]).To(Equal(tenant.Name))
 			})
-			It("should create a service for nats with the correct tenant application selector", func() {
+			It("should create a service for nats with the correct application label selector", func() {
 				Expect(natsService.Spec.Selector["application"]).To(Equal(application.Name))
 			})
-			It("should create a service for nats with the correct tenant environment selector", func() {
+			It("should create a service for nats with the correct environment label selector", func() {
 				Expect(natsService.Spec.Selector["environment"]).To(Equal(input.Environment))
+			})
+			It("should create a service for nats with the correct infrastructure label selector", func() {
+				Expect(natsService.Spec.Selector["infrastructure"]).To(Equal("Nats"))
+			})
+			It("should create a service for nats without a microservice label selector", func() {
+				Expect(natsService.Spec.Selector["microservice"]).To(Equal(""))
 			})
 			It("should create a service for nats with the 'client' port exposed", func() {
 				Expect(natsService.Spec.Ports[0].Name).To(Equal("client"))
@@ -201,14 +219,26 @@ var _ = Describe("Repo", func() {
 			It("should create a statefulset for nats with the correct environment label", func() {
 				Expect(natsStatefulSet.Labels["environment"]).To(Equal(input.Environment))
 			})
+			It("should create a statefulset for nats with the correct infrastructure label", func() {
+				Expect(natsStatefulSet.Labels["infrastructure"]).To(Equal("Nats"))
+			})
+			It("should create a statefulset for nats without a microservice label", func() {
+				Expect(natsStatefulSet.Labels["microservice"]).To(Equal(""))
+			})
 			It("should create a statefulset for nats with the correct tenant label selector", func() {
 				Expect(natsStatefulSet.Spec.Selector.MatchLabels["tenant"]).To(Equal(tenant.Name))
 			})
-			It("should create a statefulset for nats with the correct tenant application selector", func() {
+			It("should create a statefulset for nats with the correct application label selector", func() {
 				Expect(natsStatefulSet.Spec.Selector.MatchLabels["application"]).To(Equal(application.Name))
 			})
-			It("should create a statefulset for nats with the correct tenant environment selector", func() {
+			It("should create a statefulset for nats with the correct environment label selector", func() {
 				Expect(natsStatefulSet.Spec.Selector.MatchLabels["environment"]).To(Equal(input.Environment))
+			})
+			It("should create a statefulset for nats with the correct environment label selector", func() {
+				Expect(natsStatefulSet.Spec.Selector.MatchLabels["infrastructure"]).To(Equal("Nats"))
+			})
+			It("should create a statefulset for nats without a microservice label selector", func() {
+				Expect(natsStatefulSet.Spec.Selector.MatchLabels["microservice"]).To(Equal(""))
 			})
 			It("should create a statefulset for nats with one replica", func() {
 				Expect(*natsStatefulSet.Spec.Replicas).To(Equal(int32(1)))
@@ -228,6 +258,12 @@ var _ = Describe("Repo", func() {
 			It("should create a pod template for nats with the correct environment label", func() {
 				Expect(natsStatefulSet.Spec.Template.Labels["environment"]).To(Equal(input.Environment))
 			})
+			It("should create a pod template for nats with the correct infrastructure label", func() {
+				Expect(natsStatefulSet.Spec.Template.Labels["infrastructure"]).To(Equal("Nats"))
+			})
+			It("should create a pod template for nats without a microservice label", func() {
+				Expect(natsStatefulSet.Spec.Template.Labels["microservice"]).To(Equal(""))
+			})
 			It("should create a pod template for nats that shares the process namespace", func() {
 				Expect(*natsStatefulSet.Spec.Template.Spec.ShareProcessNamespace).To(Equal(true))
 			})
@@ -237,7 +273,7 @@ var _ = Describe("Repo", func() {
 			})
 			It("should create a pod template for nats with a pid volume", func() {
 				Expect(natsStatefulSet.Spec.Template.Spec.Volumes[1].Name).To(Equal("pid"))
-				Expect(natsStatefulSet.Spec.Template.Spec.Volumes[1].EmptyDir).ToNot(BeNil())
+				Expect(natsStatefulSet.Spec.Template.Spec.Volumes[1].EmptyDir).ToNot(Equal(""))
 			})
 			It("should create a container for nats named 'nats'", func() {
 				Expect(natsStatefulSet.Spec.Template.Spec.Containers[0].Name).To(Equal("nats"))
@@ -335,6 +371,12 @@ var _ = Describe("Repo", func() {
 			It("should create a configmap for stan with the correct environment label", func() {
 				Expect(stanConfigMap.Labels["environment"]).To(Equal(input.Environment))
 			})
+			It("should create a configmap for stan with the correct infrastructure label", func() {
+				Expect(stanConfigMap.Labels["infrastructure"]).To(Equal("Stan"))
+			})
+			It("should create a configmap for stan without a microservice label", func() {
+				Expect(stanConfigMap.Labels["microservice"]).To(Equal(""))
+			})
 			It("should create a configmap for stan with 'stan.conf'", func() {
 				Expect(stanConfigMap.Data["stan.conf"]).To(Equal(`
 				port: 4222
@@ -378,14 +420,26 @@ var _ = Describe("Repo", func() {
 			It("should create a service for stan with the correct environment label", func() {
 				Expect(stanService.Labels["environment"]).To(Equal(input.Environment))
 			})
+			It("should create a service for stan with the correct infrastructure label", func() {
+				Expect(stanService.Labels["infrastructure"]).To(Equal("Stan"))
+			})
+			It("should create a service for stan without a microservice label", func() {
+				Expect(stanService.Labels["microservice"]).To(Equal(""))
+			})
 			It("should create a service for stan with the correct tenant label selector", func() {
 				Expect(stanService.Spec.Selector["tenant"]).To(Equal(tenant.Name))
 			})
-			It("should create a service for stan with the correct tenant application selector", func() {
+			It("should create a service for stan with the correct application label selector", func() {
 				Expect(stanService.Spec.Selector["application"]).To(Equal(application.Name))
 			})
-			It("should create a service for stan with the correct tenant environment selector", func() {
+			It("should create a service for stan with the correct environment label selector", func() {
 				Expect(stanService.Spec.Selector["environment"]).To(Equal(input.Environment))
+			})
+			It("should create a service for stan with the correct infrastructure label selector", func() {
+				Expect(stanService.Spec.Selector["infrastructure"]).To(Equal("Stan"))
+			})
+			It("should create a service for stan without a microservice label selector", func() {
+				Expect(stanService.Spec.Selector["microservice"]).To(Equal(""))
 			})
 			It("should create a service for stan with the 'metrics' port exposed", func() {
 				Expect(stanService.Spec.Ports[0].Name).To(Equal("metrics"))
@@ -420,14 +474,26 @@ var _ = Describe("Repo", func() {
 			It("should create a statefulset for stan with the correct environment label", func() {
 				Expect(stanStatefulSet.Labels["environment"]).To(Equal(input.Environment))
 			})
+			It("should create a statefulset for stan with the correct infrastructure label", func() {
+				Expect(stanStatefulSet.Labels["infrastructure"]).To(Equal("Stan"))
+			})
+			It("should create a statefulset for stan without a microservice label", func() {
+				Expect(stanStatefulSet.Labels["microservice"]).To(Equal(""))
+			})
 			It("should create a statefulset for stan with the correct tenant label selector", func() {
 				Expect(stanStatefulSet.Spec.Selector.MatchLabels["tenant"]).To(Equal(tenant.Name))
 			})
-			It("should create a statefulset for stan with the correct tenant application selector", func() {
+			It("should create a statefulset for stan with the correct application label selector", func() {
 				Expect(stanStatefulSet.Spec.Selector.MatchLabels["application"]).To(Equal(application.Name))
 			})
-			It("should create a statefulset for stan with the correct tenant environment selector", func() {
+			It("should create a statefulset for stan with the correct environment label selector", func() {
 				Expect(stanStatefulSet.Spec.Selector.MatchLabels["environment"]).To(Equal(input.Environment))
+			})
+			It("should create a statefulset for stan with the correct infrastructure label selector", func() {
+				Expect(stanStatefulSet.Spec.Selector.MatchLabels["infrastructure"]).To(Equal("Stan"))
+			})
+			It("should create a statefulset for stan without a microservice label selector", func() {
+				Expect(stanStatefulSet.Spec.Selector.MatchLabels["microservice"]).To(Equal(""))
 			})
 			It("should create a statefulset for stan with one replica", func() {
 				Expect(*stanStatefulSet.Spec.Replicas).To(Equal(int32(1)))
@@ -446,6 +512,12 @@ var _ = Describe("Repo", func() {
 			})
 			It("should create a pod template for stan with the correct environment label", func() {
 				Expect(stanStatefulSet.Spec.Template.Labels["environment"]).To(Equal(input.Environment))
+			})
+			It("should create a pod template for stan with the correct infrastructure label", func() {
+				Expect(stanStatefulSet.Spec.Template.Labels["infrastructure"]).To(Equal("Stan"))
+			})
+			It("should create a pod template for stan without a microservice label", func() {
+				Expect(stanStatefulSet.Spec.Template.Labels["microservice"]).To(Equal(""))
 			})
 			It("should create a pod template for stan with the stan config map as a volume", func() {
 				Expect(stanStatefulSet.Spec.Template.Spec.Volumes[0].Name).To(Equal("config-volume"))
