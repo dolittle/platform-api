@@ -162,7 +162,7 @@ func createOrGetEnvironment(ctx context.Context, client *kubernetes.Clientset, d
 func getTenants(ctx context.Context, client *kubernetes.Clientset, namespace, environmentName string) []platform.TenantId {
 	tenants := make([]platform.TenantId, 0)
 
-	for tenantStr, _ := range getTenantsFromConfigmap(ctx, client, namespace, environmentName) {
+	for tenantStr := range getTenantsFromConfigmap(ctx, client, namespace, environmentName) {
 		tenants = append(tenants, platform.TenantId(tenantStr))
 	}
 	return tenants
