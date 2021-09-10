@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
@@ -174,7 +175,11 @@ func addIngressesIntoEnvironment(environment *platform.HttpInputEnvironment, ctx
 		if len(ingress.Spec.TLS) > 0 {
 			// Assume that there is only one Rule, or that only the top one counts
 			// Note that this will override ingresses for tenants, not a problem if they are the same, but confusing if there are different configs
-			ingresses[getTenantFromIngress(ingress)] = extractEnvironmentIngressFromIngressRule(ingress.Spec.Rules[0])
+			tenantID := getTenantFromIngress(ingress)
+			if tenantID == "" {
+				tenantID = platform.TenantId("00000000-0000-0000-0000-000000000000")
+			}
+			ingresses[tenantID] = extractEnvironmentIngressFromIngressRule(ingress.Spec.Rules[0])
 		}
 	}
 	return ingresses
@@ -192,9 +197,12 @@ func extractEnvironmentIngressFromIngressRule(rule netV1.IngressRule) platform.E
 }
 func getTenantFromIngress(ingress netV1.Ingress) platform.TenantId {
 	tenantHeaderAnnotation := ingress.GetObjectMeta().GetAnnotations()["nginx.ingress.kubernetes.io/configuration-snippet"]
-	tenantID := strings.ReplaceAll(tenantHeaderAnnotation, "proxy_set_header Tenant-ID", "")
-	tenantID = strings.ReplaceAll(tenantID, "\"", "")
-	return platform.TenantId(strings.TrimSpace(tenantID))
+	regex := *regexp.MustCompile(`proxy_set_header\s+Tenant-ID\s+"([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})"`)
+	tenantID := regex.FindStringSubmatch(tenantHeaderAnnotation)
+	if tenantID == nil {
+		return platform.TenantId("")
+	}
+	return platform.TenantId(tenantID[1])
 }
 
 func getIngresses(ctx context.Context, client *kubernetes.Clientset, namespace string, deployment appsV1.Deployment) []netV1.Ingress {
