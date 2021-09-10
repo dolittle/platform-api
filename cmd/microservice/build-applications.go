@@ -242,7 +242,7 @@ func environmentAlreadyInApplication(environments []platform.HttpInputEnvironmen
 		return item.Name == environmentName
 	})
 
-	if index != -1 {
+	if index == -1 {
 		return false, index
 	}
 	return true, index
