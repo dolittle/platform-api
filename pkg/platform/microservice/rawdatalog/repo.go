@@ -249,7 +249,7 @@ func (r RawDataLogIngestorRepo) doStatefulService(namespace string, configMap *c
 		return errors.New("action not supported")
 	}
 
-	if _, err := r.k8sClient.CoreV1().ConfigMaps(namespace).Get(ctx, configMap.GetName(), metav1.GetOptions{}); err != nil {
+	if existing, err := r.k8sClient.CoreV1().ConfigMaps(namespace).Get(ctx, configMap.GetName(), metav1.GetOptions{}); err != nil {
 		if k8serrors.IsNotFound(err) {
 			if _, err := r.k8sClient.CoreV1().ConfigMaps(namespace).Create(ctx, configMap, metav1.CreateOptions{}); err != nil {
 				return err
@@ -258,12 +258,13 @@ func (r RawDataLogIngestorRepo) doStatefulService(namespace string, configMap *c
 			return err
 		}
 	} else {
+		configMap.ResourceVersion = existing.ResourceVersion
 		if _, err := r.k8sClient.CoreV1().ConfigMaps(namespace).Update(ctx, configMap, metav1.UpdateOptions{}); err != nil {
 			return err
 		}
 	}
 
-	if _, err := r.k8sClient.CoreV1().Services(namespace).Get(ctx, service.GetName(), metav1.GetOptions{}); err != nil {
+	if existing, err := r.k8sClient.CoreV1().Services(namespace).Get(ctx, service.GetName(), metav1.GetOptions{}); err != nil {
 		if k8serrors.IsNotFound(err) {
 			if _, err := r.k8sClient.CoreV1().Services(namespace).Create(ctx, service, metav1.CreateOptions{}); err != nil {
 				return err
@@ -272,12 +273,13 @@ func (r RawDataLogIngestorRepo) doStatefulService(namespace string, configMap *c
 			return err
 		}
 	} else {
+		service.ResourceVersion = existing.ResourceVersion
 		if _, err := r.k8sClient.CoreV1().Services(namespace).Update(ctx, service, metav1.UpdateOptions{}); err != nil {
 			return err
 		}
 	}
 
-	if _, err := r.k8sClient.AppsV1().StatefulSets(namespace).Get(ctx, statfulset.GetName(), metav1.GetOptions{}); err != nil {
+	if existing, err := r.k8sClient.AppsV1().StatefulSets(namespace).Get(ctx, statfulset.GetName(), metav1.GetOptions{}); err != nil {
 		if k8serrors.IsNotFound(err) {
 			if _, err := r.k8sClient.AppsV1().StatefulSets(namespace).Create(ctx, statfulset, metav1.CreateOptions{}); err != nil {
 				return err
@@ -286,6 +288,7 @@ func (r RawDataLogIngestorRepo) doStatefulService(namespace string, configMap *c
 			return err
 		}
 	} else {
+		statfulset.ResourceVersion = existing.ResourceVersion
 		if _, err := r.k8sClient.AppsV1().StatefulSets(namespace).Update(ctx, statfulset, metav1.UpdateOptions{}); err != nil {
 			return err
 		}
