@@ -95,6 +95,12 @@ type PodData struct {
 	Pods         []PodInfo `json:"pods"`
 }
 
+type MongoDBData struct {
+	Namespace   string `json:"namespace"`
+	Environment string `json:"environment"`
+	Exists      bool   `json:"exists"`
+}
+
 type Tenant struct {
 	Name string `json:"name"`
 	ID   string `json:"id"`

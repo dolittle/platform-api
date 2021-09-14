@@ -244,10 +244,6 @@ func (r *K8sRepo) GetPodStatus(applicationID string, microserviceID string, envi
 
 	response := PodData{
 		Namespace: namespace,
-		Microservice: ShortInfo{
-			Name: "",
-			ID:   microserviceID,
-		},
 	}
 
 	if err != nil {
@@ -461,6 +457,40 @@ func (r *K8sRepo) CanModifyApplicationWithResourceAttributes(tenantID string, ap
 	}
 
 	return resp.Status.Allowed, nil
+}
+
+func (r *K8sRepo) GetMongoDB(applicationID string, environment string) (MongoDBData, error) {
+	client := r.k8sClient
+	ctx := context.TODO()
+	namespace := fmt.Sprintf("application-%s", applicationID)
+	statefulSets, err := client.AppsV1().StatefulSets(namespace).List(ctx, metaV1.ListOptions{})
+
+	response := MongoDBData{
+		Namespace:   namespace,
+		Environment: environment,
+		Exists:      false,
+	}
+
+	if err != nil {
+		return response, err
+	}
+
+	for _, statefulSet := range statefulSets.Items {
+		labelMap := statefulSet.GetLabels()
+
+		if strings.ToLower(labelMap["environment"]) != environment {
+			continue
+		}
+		if labelMap["infrastructure"] != "Mongo" {
+			continue
+		}
+
+		if statefulSet.Status.ReadyReplicas == 1 {
+			response.Exists = true
+		}
+	}
+
+	return response, nil
 }
 
 func (r *K8sRepo) GetRestConfig() *rest.Config {
