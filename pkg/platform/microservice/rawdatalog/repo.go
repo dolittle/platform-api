@@ -252,8 +252,6 @@ func (r RawDataLogIngestorRepo) Delete(namespace string, microserviceID string) 
 	}
 
 	return nil
-
-	return errors.New("TODO")
 }
 
 func getKubernetesData(namespace string, body []byte, cfg *rest.Config) (*unstructured.Unstructured, dynamic.ResourceInterface, error) {
@@ -348,6 +346,14 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 
 	// TODO not sure where this comes from really, assume dynamic
 	// tenantID := "17426336-fb8e-4425-8ab7-07d488367be9"
+	storedApplication, err := r.gitRepo.GetApplication(customer.ID, application.ID)
+	if err != nil {
+		return err
+	}
+	tenantID, err := storedApplication.GetTenantForEnvironment(input.Environment)
+	if err != nil {
+		return err
+	}
 
 	environment := input.Environment
 	host := applicationIngress.Host
@@ -364,7 +370,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 		Tenant:      customer,
 		Application: application,
 		Environment: environment,
-		ResourceID:  tenantID,
+		ResourceID:  string(tenantID),
 	}
 
 	ingressServiceName := strings.ToLower(fmt.Sprintf("%s-%s", microservice.Environment, microservice.Name))
@@ -383,7 +389,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 
 	// TODO do I need this?
 	// TODO if I remove it, do I remove the config mapping?
-	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, tenantID)
+	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, string(tenantID))
 	deployment := k8s.NewDeployment(microservice, headImage, runtimeImage)
 	service := k8s.NewService(microservice)
 	ingress := k8s.NewIngress(microservice)
@@ -441,7 +447,6 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 	deployment.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort = 8080
 
 	// Assuming the namespace exists
-	var err error
 	client := r.k8sClient
 	ctx := context.TODO()
 

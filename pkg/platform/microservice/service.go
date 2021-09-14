@@ -24,7 +24,7 @@ import (
 
 func NewService(gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClient *kubernetes.Clientset) service {
 	parser := parser.NewJsonParser()
-	rawDataLogRepo := rawdatalog.NewRawDataLogIngestorRepo(k8sDolittleRepo, k8sClient)
+	rawDataLogRepo := rawdatalog.NewRawDataLogIngestorRepo(k8sDolittleRepo, k8sClient, gitRepo)
 	specFactory := purchaseorderapi.NewK8sResourceSpecFactory()
 	k8sResources := purchaseorderapi.NewK8sResource(k8sClient, specFactory)
 
