@@ -22,13 +22,23 @@ type HttpInputApplication struct {
 	TenantID string `json:"tenantId"`
 }
 
+type TenantId string
+
+type EnvironmentIngress struct {
+	Host         string `json:"host"`
+	DomainPrefix string `json:"domainPrefix"`
+	SecretName   string `json:"secretName"`
+}
+
+type EnvironmentIngresses map[TenantId]EnvironmentIngress
+
 type HttpInputEnvironment struct {
-	Name              string `json:"name"`
-	DomainPrefix      string `json:"domainPrefix"`
-	Host              string `json:"host"`
-	TenantID          string `json:"tenantId"`
-	ApplicationID     string `json:"applicationId"`
-	AutomationEnabled bool   `json:"automationEnabled"`
+	AutomationEnabled bool                 `json:"automationEnabled"`
+	Name              string               `json:"name"`
+	TenantID          string               `json:"tenantId"`
+	ApplicationID     string               `json:"applicationId"`
+	Tenants           []TenantId           `json:"tenants"`
+	Ingresses         EnvironmentIngresses `json:"ingresses"`
 }
 
 type HttpResponseApplication2 struct {
@@ -43,6 +53,7 @@ type HttpResponseApplication struct {
 	ID           string                 `json:"id"`
 	Name         string                 `json:"name"`
 	TenantID     string                 `json:"tenantId"`
+	TenantName   string                 `json:"tenantName"`
 	Environments []HttpInputEnvironment `json:"environments"`
 }
 
