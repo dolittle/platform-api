@@ -78,23 +78,23 @@ func (s *service) Create(responseWriter http.ResponseWriter, request *http.Reque
 		return
 	}
 
-	tenant := k8s.Tenant{
+	customer := k8s.Tenant{
 		ID:   applicationInfo.Tenant.ID,
 		Name: applicationInfo.Tenant.Name,
 	}
 
-	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(responseWriter, tenant.ID, applicationID, userID)
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(responseWriter, customer.ID, applicationID, userID)
 	if !allowed {
 		return
 	}
 
-	if !s.gitRepo.IsAutomationEnabled(tenant.ID, applicationID, environment) {
+	if !s.gitRepo.IsAutomationEnabled(customer.ID, applicationID, environment) {
 		utils.RespondWithError(
 			responseWriter,
 			http.StatusBadRequest,
 			fmt.Sprintf(
 				"Tenant %s with application %s in environment %s does not allow changes via Studio",
-				tenant.ID,
+				customer.ID,
 				applicationID,
 				environment,
 			),
