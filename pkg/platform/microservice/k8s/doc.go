@@ -23,7 +23,7 @@ type MicroserviceK8sInfo struct {
 	Namespace   string
 }
 
-func CreateIngress() k8s.Ingress {
+func CreateTodoIngress() k8s.Ingress {
 	// TODO replace this with something from the cluster or something from git
 	domainPrefix := "freshteapot-taco"
 	return k8s.Ingress{

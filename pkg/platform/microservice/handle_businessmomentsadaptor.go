@@ -19,7 +19,7 @@ func (s *service) handleBusinessMomentsAdaptor(responseWriter http.ResponseWrite
 		utils.RespondWithStatusError(responseWriter, statusErr)
 		return
 	}
-	ingress := CreateIngress()
+	ingress := CreateTodoIngress()
 
 	err := s.businessMomentsAdaptorRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, ingress, ms)
 	if statusErr != nil {
