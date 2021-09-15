@@ -59,9 +59,10 @@ func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Requ
 	}
 	if !rawDataLogExists {
 		// @joel create it!!!
+		s.rawdatalogRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application)
 	}
 
-	err := s.repo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, tenant, ms)
+	err = s.repo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, tenant, ms)
 	if err != nil {
 		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
 		return nil
