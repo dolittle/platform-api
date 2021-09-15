@@ -93,7 +93,7 @@ func (s *service) Create(responseWriter http.ResponseWriter, request *http.Reque
 			responseWriter,
 			http.StatusBadRequest,
 			fmt.Sprintf(
-				"Tenant %s with application %s in environment %s does not allow changes via Studio",
+				"Customer %s with application %s in environment %s does not allow changes via Studio",
 				customer.ID,
 				applicationID,
 				environment,
