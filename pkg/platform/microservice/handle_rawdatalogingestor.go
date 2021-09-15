@@ -42,6 +42,7 @@ func (s *service) handleRawDataLogIngestor(responseWriter http.ResponseWriter, r
 	}
 
 	// TODO lookup to see if it exists?
+	// @joel update the code here too
 	exists := false
 	//exists := true s.rawDataLogIngestorRepo.Exists(namespace, ms.Environment, ms.Dolittle.MicroserviceID)
 	//exists, err := s.rawDataLogIngestorRepo.Exists(namespace, ms.Environment, ms.Dolittle.MicroserviceID)

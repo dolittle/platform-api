@@ -70,7 +70,7 @@ var serverCMD = &cobra.Command{
 			gitRepoConfig,
 		)
 
-		microserviceService := microservice.NewService(gitRepo, k8sRepo, clientset)
+		microserviceService := microservice.NewService(gitRepo, k8sRepo, clientset, logContext)
 		applicationService := application.NewService(subscriptionID, gitRepo, k8sRepo)
 		tenantService := tenant.NewService()
 		businessMomentsService := businessmoment.NewService(

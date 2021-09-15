@@ -36,6 +36,7 @@ func NewRawDataLogIngestorRepo(k8sDolittleRepo platform.K8sRepo, k8sClient kuber
 }
 
 func (r RawDataLogIngestorRepo) Exists(namespace string, environment string, microserviceID string) (bool, error) {
+
 	return false, errors.New("TODO")
 }
 
@@ -65,6 +66,8 @@ func (r RawDataLogIngestorRepo) Create(namespace string, tenant k8s.Tenant, appl
 			return err
 		}
 	}
+
+	// @joel shoulnd we skip this part and only do the doNats() call?
 
 	// TODO add microservice
 	err := r.doDolittle(namespace, tenant, application, applicationIngress, input)
