@@ -8,58 +8,119 @@ import (
 	. "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/purchaseorderapi"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	v1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-var fakeClient *fake.Clientset = fake.NewSimpleClientset()
 var _ = Describe("For repo", func() {
 	var (
-		repo                   Repo
-		k8sResource            K8sResource
-		k8sResourceSpecFactory K8sResourceSpecFactory
-		k8sClient              kubernetes.Interface
+		repo Repo
 	)
-	k8sClient = fakeClient
-
-	BeforeEach(func() {
-		k8sResourceSpecFactory = NewK8sResourceSpecFactory()
-		k8sResource = NewK8sResource(k8sClient, k8sResourceSpecFactory)
-		repo = NewRepo(k8sResource, k8sResourceSpecFactory, k8sClient)
-	})
 
 	Describe("when checking if purchase order api exists", func() {
 		var (
-			namespace    string
-			tenant       k8s.Tenant
-			application  k8s.Application
-			input        platform.HttpInputPurchaseOrderInfo
-			existsResult bool
-			errResult    error
+			namespace      string
+			tenant         k8s.Tenant
+			application    k8s.Application
+			input          platform.HttpInputPurchaseOrderInfo
+			deploymentInfo fakeDeploymentInfo
+			existsResult   bool
+			errResult      error
 		)
 
 		BeforeEach(func() {
-			input = basicMicroservice
+			input = microservice
 			namespace = fmt.Sprintf("application-%s", input.Dolittle.ApplicationID)
-			tenant = k8s.Tenant{Name: "tenant-name", ID: basicMicroservice.Dolittle.TenantID}
-			application = k8s.Application{Name: "application-name", ID: basicMicroservice.Dolittle.ApplicationID}
+			tenant = k8s.Tenant{Name: "tenant-name", ID: microservice.Dolittle.TenantID}
+			application = k8s.Application{Name: "application-name", ID: microservice.Dolittle.ApplicationID}
+			deploymentInfo = fakeDeploymentInfo{
+				input:       input,
+				tenant:      tenant,
+				application: application,
+			}
 		})
-		Describe("and it does exist", func() {
-			BeforeEach(func() {
-				fakeClient = clientWithDeployment(input.Name, input, tenant, application)
-				existsResult, errResult = repo.Exists(namespace, tenant, application, input)
+		Describe("and there is only one deployment in the namespace", func() {
+			Describe("and it does exist", func() {
+				BeforeEach(func() {
+					deploymentInfo.deployedMicroserviceName = input.Name
+					repo = createRepoWithClient(fake.NewSimpleClientset(createDeployment(deploymentInfo)))
+					existsResult, errResult = repo.Exists(namespace, tenant, application, input)
+				})
+				It("should not fail", func() {
+					Expect(errResult).To(BeNil())
+				})
+				It("should exist", func() {
+					Expect(existsResult).To(BeTrue())
+				})
 			})
-			It("should not fail", func() {
-				Expect(errResult).To(BeNil())
+			Describe("and it does not exist", func() {
+				BeforeEach(func() {
+					deploymentInfo.deployedMicroserviceName = "some-other-ms"
+					repo = createRepoWithClient(fake.NewSimpleClientset(createDeployment(deploymentInfo)))
+					existsResult, errResult = repo.Exists(namespace, tenant, application, input)
+				})
+				It("should not fail", func() {
+					Expect(errResult).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(existsResult).To(BeFalse())
+				})
 			})
-			It("should not exist", func() {
-				Expect(existsResult).To(BeTrue())
+		})
+		Describe("and there are multiple deployments in the namespace", func() {
+			Describe("and it does exist", func() {
+				var (
+					firstDeployment  *v1.Deployment
+					secondDeployment *v1.Deployment
+				)
+				BeforeEach(func() {
+					deploymentInfo.deployedMicroserviceName = input.Name
+					firstDeployment = createDeployment(deploymentInfo)
+					deploymentInfo.deployedMicroserviceName = "some-other-ms"
+					secondDeployment = createDeployment(deploymentInfo)
+					repo = createRepoWithClient(fake.NewSimpleClientset(firstDeployment, secondDeployment))
+					existsResult, errResult = repo.Exists(namespace, tenant, application, input)
+				})
+				It("should not fail", func() {
+					Expect(errResult).To(BeNil())
+				})
+				It("should exist", func() {
+					Expect(existsResult).To(BeTrue())
+				})
+			})
+			Describe("and it does not exist", func() {
+				var (
+					firstDeployment  *v1.Deployment
+					secondDeployment *v1.Deployment
+				)
+				BeforeEach(func() {
+					deploymentInfo.deployedMicroserviceName = "some-ms"
+					firstDeployment = createDeployment(deploymentInfo)
+					deploymentInfo.deployedMicroserviceName = "some-other-ms"
+					secondDeployment = createDeployment(deploymentInfo)
+					repo = createRepoWithClient(fake.NewSimpleClientset(firstDeployment, secondDeployment))
+					existsResult, errResult = repo.Exists(namespace, tenant, application, input)
+				})
+				It("should not fail", func() {
+					Expect(errResult).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(existsResult).To(BeFalse())
+				})
 			})
 		})
 	})
 })
 
-var basicMicroservice platform.HttpInputPurchaseOrderInfo = platform.HttpInputPurchaseOrderInfo{
+type fakeDeploymentInfo struct {
+	deployedMicroserviceName string
+	input                    platform.HttpInputPurchaseOrderInfo
+	tenant                   k8s.Tenant
+	application              k8s.Application
+}
+
+var microservice platform.HttpInputPurchaseOrderInfo = platform.HttpInputPurchaseOrderInfo{
 	MicroserviceBase: platform.MicroserviceBase{
 		Dolittle: platform.HttpInputDolittle{
 			ApplicationID:  "c1e08289-be4b-4557-9457-5de90e0ea54a",
@@ -78,14 +139,20 @@ var basicMicroservice platform.HttpInputPurchaseOrderInfo = platform.HttpInputPu
 	},
 }
 
-func clientWithDeployment(microserviceName string, input platform.HttpInputPurchaseOrderInfo, tenant k8s.Tenant, application k8s.Application) *fake.Clientset {
-	return fake.NewSimpleClientset(k8s.NewDeployment(k8s.Microservice{
-		ID:          input.Dolittle.MicroserviceID,
-		Name:        microserviceName,
-		Tenant:      tenant,
-		Application: application,
-		Environment: input.Environment,
+func createDeployment(info fakeDeploymentInfo) *v1.Deployment {
+	return k8s.NewDeployment(k8s.Microservice{
+		ID:          info.input.Dolittle.MicroserviceID,
+		Name:        info.deployedMicroserviceName,
+		Tenant:      info.tenant,
+		Application: info.application,
+		Environment: info.input.Environment,
 		ResourceID:  "d3c7524d-a51a-4bbd-9a5e-bdf3abbd143c",
 		Kind:        platform.MicroserviceKindPurchaseOrderAPI,
-	}, input.Extra.Headimage, input.Extra.Runtimeimage))
+	}, info.input.Extra.Headimage, info.input.Extra.Runtimeimage)
+}
+
+func createRepoWithClient(client kubernetes.Interface) Repo {
+	k8sResourceSpecFactory := NewK8sResourceSpecFactory()
+	k8sResource := NewK8sResource(client, k8sResourceSpecFactory)
+	return NewRepo(k8sResource, k8sResourceSpecFactory, client)
 }
