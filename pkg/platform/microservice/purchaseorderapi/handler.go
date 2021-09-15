@@ -32,6 +32,14 @@ func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Requ
 	}
 	exists, err := s.repo.Exists(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, ms)
 
+	if err != nil {
+		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
+		return err
+	}
+	if exists {
+		utils.RespondWithError(responseWriter, http.StatusConflict, fmt.Sprintf("A Purchase Order API Microservice with ID %s already exists in %s enironment in application %s under customer %s", ms.Dolittle.MicroserviceID, ms.Environment, ms.Dolittle.ApplicationID, ms.Dolittle.TenantID))
+		return nil
+	}
 	application, err := s.gitRepo.GetApplication(applicationInfo.Tenant.ID, applicationInfo.ID)
 	if err != nil {
 		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
@@ -47,16 +55,6 @@ func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Requ
 		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
 		return err
 	}
-	if exists {
-		utils.RespondWithError(responseWriter, http.StatusConflict, fmt.Sprintf("A Purchase Order API Microservice with ID %s already exists in %s enironment in application %s under customer %s", ms.Dolittle.MicroserviceID, ms.Environment, ms.Dolittle.ApplicationID, ms.Dolittle.TenantID))
-		return nil
-	}
-	err = s.repo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, ms)
-	if err != nil {
-		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
-		return err
-	}
-
 	err = s.gitRepo.SaveMicroservice(
 		ms.Dolittle.TenantID,
 		ms.Dolittle.ApplicationID,
