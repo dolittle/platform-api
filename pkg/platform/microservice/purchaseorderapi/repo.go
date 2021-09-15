@@ -57,7 +57,7 @@ func (r *repo) Create(namespace string, customer k8s.Tenant, application k8s.App
 
 	return nil
 }
-func (r *repo) Exists(namespace string, tenant k8s.Tenant, application k8s.Application, input platform.HttpInputPurchaseOrderInfo) (bool, error) {
+func (r *repo) Exists(namespace string, customer k8s.Tenant, application k8s.Application, tenant platform.TenantId, input platform.HttpInputPurchaseOrderInfo) (bool, error) {
 	// TODO not sure where this comes from really, assume dynamic
 	environment := input.Environment
 	microserviceID := input.Dolittle.MicroserviceID
@@ -68,7 +68,7 @@ func (r *repo) Exists(namespace string, tenant k8s.Tenant, application k8s.Appli
 	microservice := k8s.Microservice{
 		ID:          microserviceID,
 		Name:        microserviceName,
-		Tenant:      tenant,
+		Tenant:      customer,
 		Application: application,
 		Environment: environment,
 		ResourceID:  microserviceK8s.TodoCustomersTenantID,
@@ -77,7 +77,7 @@ func (r *repo) Exists(namespace string, tenant k8s.Tenant, application k8s.Appli
 
 	ctx := context.TODO()
 
-	resources := r.k8sResourceSpecFactory.CreateAll(headImage, runtimeImage, microservice, input.Extra)
+	resources := r.k8sResourceSpecFactory.CreateAll(headImage, runtimeImage, microservice, tenant, input.Extra)
 	exists, err := microserviceK8s.K8sHasDeploymentWithName(r.k8sClient, ctx, namespace, resources.Deployment.Name)
 	if err != nil {
 		return false, fmt.Errorf("Failed to get purchase order api deployment: %v", err)

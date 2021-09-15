@@ -21,8 +21,9 @@ var _ = Describe("For repo", func() {
 	Describe("when checking if purchase order api exists", func() {
 		var (
 			namespace      string
-			tenant         k8s.Tenant
+			customer       k8s.Tenant
 			application    k8s.Application
+			tenant         platform.TenantId
 			input          platform.HttpInputPurchaseOrderInfo
 			deploymentInfo fakeDeploymentInfo
 			existsResult   bool
@@ -31,12 +32,13 @@ var _ = Describe("For repo", func() {
 
 		BeforeEach(func() {
 			input = microservice
+			tenant = "04b557ed-eb92-476a-b9ef-6c99c1ff9f86"
 			namespace = fmt.Sprintf("application-%s", input.Dolittle.ApplicationID)
-			tenant = k8s.Tenant{Name: "tenant-name", ID: microservice.Dolittle.TenantID}
+			customer = k8s.Tenant{Name: "tenant-name", ID: microservice.Dolittle.TenantID}
 			application = k8s.Application{Name: "application-name", ID: microservice.Dolittle.ApplicationID}
 			deploymentInfo = fakeDeploymentInfo{
 				input:       input,
-				tenant:      tenant,
+				tenant:      customer,
 				application: application,
 			}
 		})
@@ -45,7 +47,7 @@ var _ = Describe("For repo", func() {
 				BeforeEach(func() {
 					deploymentInfo.deployedMicroserviceName = input.Name
 					repo = createRepoWithClient(fake.NewSimpleClientset(createDeployment(deploymentInfo)))
-					existsResult, errResult = repo.Exists(namespace, tenant, application, input)
+					existsResult, errResult = repo.Exists(namespace, customer, application, tenant, input)
 				})
 				It("should not fail", func() {
 					Expect(errResult).To(BeNil())
@@ -58,7 +60,7 @@ var _ = Describe("For repo", func() {
 				BeforeEach(func() {
 					deploymentInfo.deployedMicroserviceName = "some-other-ms"
 					repo = createRepoWithClient(fake.NewSimpleClientset(createDeployment(deploymentInfo)))
-					existsResult, errResult = repo.Exists(namespace, tenant, application, input)
+					existsResult, errResult = repo.Exists(namespace, customer, application, tenant, input)
 				})
 				It("should not fail", func() {
 					Expect(errResult).To(BeNil())
@@ -80,7 +82,7 @@ var _ = Describe("For repo", func() {
 					deploymentInfo.deployedMicroserviceName = "some-other-ms"
 					secondDeployment = createDeployment(deploymentInfo)
 					repo = createRepoWithClient(fake.NewSimpleClientset(firstDeployment, secondDeployment))
-					existsResult, errResult = repo.Exists(namespace, tenant, application, input)
+					existsResult, errResult = repo.Exists(namespace, customer, application, tenant, input)
 				})
 				It("should not fail", func() {
 					Expect(errResult).To(BeNil())
@@ -100,7 +102,7 @@ var _ = Describe("For repo", func() {
 					deploymentInfo.deployedMicroserviceName = "some-other-ms"
 					secondDeployment = createDeployment(deploymentInfo)
 					repo = createRepoWithClient(fake.NewSimpleClientset(firstDeployment, secondDeployment))
-					existsResult, errResult = repo.Exists(namespace, tenant, application, input)
+					existsResult, errResult = repo.Exists(namespace, customer, application, tenant, input)
 				})
 				It("should not fail", func() {
 					Expect(errResult).To(BeNil())
