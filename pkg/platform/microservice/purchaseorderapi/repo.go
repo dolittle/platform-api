@@ -59,7 +59,6 @@ func (r *repo) Create(namespace string, tenant k8s.Tenant, application k8s.Appli
 }
 func (r *repo) Exists(namespace string, tenant k8s.Tenant, application k8s.Application, input platform.HttpInputPurchaseOrderInfo) (bool, error) {
 	// TODO not sure where this comes from really, assume dynamic
-
 	environment := input.Environment
 	microserviceID := input.Dolittle.MicroserviceID
 	microserviceName := input.Name

@@ -37,7 +37,7 @@ func NewService(gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClien
 		parser:                     parser,
 		purchaseOrderHandler: purchaseorderapi.NewRequestHandler(
 			parser,
-			purchaseorderapi.NewRepo(k8sResources, specFactory, rawDataLogRepo, k8sClient),
+			purchaseorderapi.NewRepo(k8sResources, specFactory, k8sClient),
 			gitRepo),
 	}
 }
