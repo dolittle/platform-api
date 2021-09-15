@@ -7,6 +7,7 @@ import (
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
 	v1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/kubernetes"
 
@@ -44,12 +45,14 @@ var decUnstructured = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONSc
 type RawDataLogIngestorRepo struct {
 	k8sClient       *kubernetes.Clientset
 	k8sDolittleRepo platform.K8sRepo
+	gitRepo         storage.Repo
 }
 
-func NewRawDataLogIngestorRepo(k8sDolittleRepo platform.K8sRepo, k8sClient *kubernetes.Clientset) RawDataLogIngestorRepo {
+func NewRawDataLogIngestorRepo(k8sDolittleRepo platform.K8sRepo, k8sClient *kubernetes.Clientset, gitRepo storage.Repo) RawDataLogIngestorRepo {
 	return RawDataLogIngestorRepo{
 		k8sClient:       k8sClient,
 		k8sDolittleRepo: k8sDolittleRepo,
+		gitRepo:         gitRepo,
 	}
 }
 
@@ -61,7 +64,7 @@ func (r RawDataLogIngestorRepo) Update(namespace string, tenant k8s.Tenant, appl
 	return errors.New("TODO")
 }
 
-func (r RawDataLogIngestorRepo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputRawDataLogIngestorInfo) error {
+func (r RawDataLogIngestorRepo) Create(namespace string, customer k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputRawDataLogIngestorInfo) error {
 	config := r.k8sDolittleRepo.GetRestConfig()
 	ctx := context.TODO()
 
@@ -71,14 +74,14 @@ func (r RawDataLogIngestorRepo) Create(namespace string, tenant k8s.Tenant, appl
 	}
 
 	labels := map[string]string{
-		"tenant":       tenant.Name,
+		"tenant":       customer.Name,
 		"application":  application.Name,
 		"environment":  input.Environment,
 		"microservice": input.Name,
 	}
 
 	annotations := map[string]string{
-		"dolittle.io/tenant-id":       tenant.ID,
+		"dolittle.io/tenant-id":       customer.ID,
 		"dolittle.io/application-id":  application.ID,
 		"dolittle.io/microservice-id": input.Dolittle.MicroserviceID,
 	}
@@ -105,7 +108,7 @@ func (r RawDataLogIngestorRepo) Create(namespace string, tenant k8s.Tenant, appl
 	}
 
 	// TODO add microservice
-	err := r.doDolittle(namespace, tenant, application, applicationIngress, input)
+	err := r.doDolittle(namespace, customer, application, applicationIngress, input)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -249,8 +252,6 @@ func (r RawDataLogIngestorRepo) Delete(namespace string, microserviceID string) 
 	}
 
 	return nil
-
-	return errors.New("TODO")
 }
 
 func getKubernetesData(namespace string, body []byte, cfg *rest.Config) (*unstructured.Unstructured, dynamic.ResourceInterface, error) {
@@ -341,10 +342,18 @@ func doNats(
 	return doDo(obj, dr, action, ctx)
 }
 
-func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputRawDataLogIngestorInfo) error {
+func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputRawDataLogIngestorInfo) error {
 
 	// TODO not sure where this comes from really, assume dynamic
-	customersTenantID := "17426336-fb8e-4425-8ab7-07d488367be9"
+	// tenantID := "17426336-fb8e-4425-8ab7-07d488367be9"
+	storedApplication, err := r.gitRepo.GetApplication(customer.ID, application.ID)
+	if err != nil {
+		return err
+	}
+	tenantID, err := storedApplication.GetTenantForEnvironment(input.Environment)
+	if err != nil {
+		return err
+	}
 
 	environment := input.Environment
 	host := applicationIngress.Host
@@ -358,10 +367,10 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, 
 	microservice := k8s.Microservice{
 		ID:          microserviceID,
 		Name:        microserviceName,
-		Tenant:      tenant,
+		Tenant:      customer,
 		Application: application,
 		Environment: environment,
-		ResourceID:  customersTenantID,
+		ResourceID:  string(tenantID),
 	}
 
 	ingressServiceName := strings.ToLower(fmt.Sprintf("%s-%s", microservice.Environment, microservice.Name))
@@ -380,7 +389,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, 
 
 	// TODO do I need this?
 	// TODO if I remove it, do I remove the config mapping?
-	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, customersTenantID)
+	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, string(tenantID))
 	deployment := k8s.NewDeployment(microservice, headImage, runtimeImage)
 	service := k8s.NewService(microservice)
 	ingress := k8s.NewIngress(microservice)
@@ -411,7 +420,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, 
 		"WEBHOOK_REPO":            input.Extra.WriteTo,
 		"LISTEN_ON":               "0.0.0.0:8080",
 		"WEBHOOK_PREFIX":          webhookPrefix,
-		"DOLITTLE_TENANT_ID":      tenant.ID,
+		"DOLITTLE_TENANT_ID":      customer.ID,
 		"DOLITTLE_APPLICATION_ID": application.ID,
 		"DOLITTLE_ENVIRONMENT":    environment,
 		"MICROSERVICE_CONFIG":     "/app/data/microservice_data_from_studio.json",
@@ -438,7 +447,6 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, tenant k8s.Tenant, 
 	deployment.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort = 8080
 
 	// Assuming the namespace exists
-	var err error
 	client := r.k8sClient
 	ctx := context.TODO()
 
