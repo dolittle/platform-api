@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
-	microserviceK8s "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/k8s"
 	. "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/purchaseorderapi"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -30,6 +29,7 @@ var _ = Describe("For k8sResourceSpecFactory", func() {
 			k8sMicroservice k8s.Microservice
 			result          K8sResources
 			rawDataLogName  string
+			tenant          platform.TenantId
 		)
 
 		BeforeEach(func() {
@@ -43,8 +43,9 @@ var _ = Describe("For k8sResourceSpecFactory", func() {
 					ID:   "12345-789",
 				},
 			}
+			tenant = "fd93dfc9-8c44-4db7-844f-c0fde955792a"
 			rawDataLogName = "raw-data-log-123"
-			result = factory.CreateAll(headImage, runtimeImage, k8sMicroservice, platform.HttpInputPurchaseOrderExtra{
+			result = factory.CreateAll(headImage, runtimeImage, k8sMicroservice, tenant, platform.HttpInputPurchaseOrderExtra{
 				RawDataLogName: rawDataLogName,
 			})
 		})
@@ -67,7 +68,7 @@ var _ = Describe("For k8sResourceSpecFactory", func() {
 			Expect(result.ConfigEnvVariables.Data["NODE_ENV"]).To(Equal("production"))
 		})
 		It("should set TENANT to the todo-customer-tenant-id", func() {
-			Expect(result.ConfigEnvVariables.Data["TENANT"]).To(Equal(microserviceK8s.TodoCustomersTenantID))
+			Expect(result.ConfigEnvVariables.Data["TENANT"]).To(BeEquivalentTo(tenant))
 		})
 		It("should set SERVER_PORT to '8080'", func() {
 			Expect(result.ConfigEnvVariables.Data["SERVER_PORT"]).To(Equal("8080"))

@@ -26,7 +26,7 @@ func NewRepo(k8sResource K8sResource, k8sResourceSpecFactory K8sResourceSpecFact
 }
 
 // Create creates a new PurchaseOrderAPI microservice, and a RawDataLog and WebhookListener if they don't exist.
-func (r *repo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, input platform.HttpInputPurchaseOrderInfo) error {
+func (r *repo) Create(namespace string, customer k8s.Tenant, application k8s.Application, tenant platform.TenantId, input platform.HttpInputPurchaseOrderInfo) error {
 	// TODO not sure where this comes from really, assume dynamic
 
 	environment := input.Environment
@@ -38,10 +38,10 @@ func (r *repo) Create(namespace string, tenant k8s.Tenant, application k8s.Appli
 	microservice := k8s.Microservice{
 		ID:          microserviceID,
 		Name:        microserviceName,
-		Tenant:      tenant,
+		Tenant:      customer,
 		Application: application,
 		Environment: environment,
-		ResourceID:  microserviceK8s.TodoCustomersTenantID,
+		ResourceID:  string(tenant),
 		Kind:        platform.MicroserviceKindPurchaseOrderAPI,
 	}
 
@@ -51,7 +51,7 @@ func (r *repo) Create(namespace string, tenant k8s.Tenant, application k8s.Appli
 	// 	return err
 	// }
 
-	if err := r.k8sResource.Create(namespace, headImage, runtimeImage, microservice, input.Extra, ctx); err != nil {
+	if err := r.k8sResource.Create(namespace, headImage, runtimeImage, microservice, tenant, input.Extra, ctx); err != nil {
 		return err
 	}
 

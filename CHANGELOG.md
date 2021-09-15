@@ -1,3 +1,24 @@
+# [0.2.1] - 2021-9-15 [PR: #22](https://github.com/dolittle/platform-api/pull/22)
+## Summary
+
+When creating Purchase Order API microservice or RawDataLogIngestor microservice it is important to configure it to the correct tenant. The tenant being used before was just a static tenant, it needs to not be static in order for it to work with actual customers.
+
+There are a few caveats at the moment:
+- It will only use one tenant. For instance if we needed a Purchase Order API to commit events to multiple tenants that wouldn't work with the current solution
+- The added configured tenant is not used for the other microservices yet. Only used for Purchase Order API and RawDataLogIngestor
+- When we want to do this for normal microservices we need to change this to configure for all tenants, not just the first one 
+
+### Added
+
+- A method for getting tenant for environment on the application metadata stored in git
+- Specs for method for getting tenant for environment on the application metadata stored in git 
+
+### Changed
+
+- The tenant used when creating Purchase Order API and RawDataLogIngestor
+- A couple of places in the code 'tenant' parameter was renamed to 'customer' to make it more explicit that the tenant actually represents a Dolittle customer
+
+
 # [0.2.0] - 2021-9-14 [PR: #19](https://github.com/dolittle/platform-api/pull/19)
 ## Summary
 

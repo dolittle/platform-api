@@ -31,6 +31,18 @@ func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Requ
 		return parserError
 	}
 	exists, err := s.repo.Exists(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, ms)
+
+	application, err := s.gitRepo.GetApplication(applicationInfo.Tenant.ID, applicationInfo.ID)
+	if err != nil {
+		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
+		return err
+	}
+	tenant, err := application.GetTenantForEnvironment(ms.Environment)
+	if err != nil {
+		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
+		return err
+	}
+	err = s.repo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, tenant, ms)
 	if err != nil {
 		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
 		return err
