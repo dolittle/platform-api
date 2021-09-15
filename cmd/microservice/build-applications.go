@@ -2,7 +2,9 @@ package microservice
 
 import (
 	"context"
+	"encoding/json"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
@@ -10,8 +12,10 @@ import (
 	gitStorage "github.com/dolittle-entropy/platform-api/pkg/platform/storage/git"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/thoas/go-funk"
+	coreV1 "k8s.io/api/core/v1"
+	netV1 "k8s.io/api/networking/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -58,6 +62,7 @@ var buildApplicationsCMD = &cobra.Command{
 	},
 }
 
+// SaveApplications saves the Applications
 func SaveApplications(repo storage.Repo, applications []platform.HttpResponseApplication) error {
 	for _, application := range applications {
 		studioConfig, _ := repo.GetStudioConfig(application.TenantID)
@@ -79,73 +84,209 @@ func SaveApplications(repo storage.Repo, applications []platform.HttpResponseApp
 
 func extractApplications(ctx context.Context, client kubernetes.Interface) []platform.HttpResponseApplication {
 	applications := make([]platform.HttpResponseApplication, 0)
-	namespaces, err := client.CoreV1().Namespaces().List(ctx, metaV1.ListOptions{})
-	if err != nil {
-		panic(err.Error())
-	}
 
-	for _, ns := range namespaces.Items {
-		nsName := ns.GetObjectMeta().GetName()
-		if !strings.HasPrefix(nsName, "application-") {
-			continue
+	for _, namespace := range getNamespaces(ctx, client) {
+		if isApplicationNamespace(namespace) {
+			applications = append(applications, getApplicationFromK8s(ctx, client, namespace))
 		}
-
-		annotationsMap := ns.GetObjectMeta().GetAnnotations()
-		labelMap := ns.GetObjectMeta().GetLabels()
-
-		applicationID := annotationsMap["dolittle.io/application-id"]
-		tenantID := annotationsMap["dolittle.io/tenant-id"]
-
-		application := platform.HttpResponseApplication{
-			TenantID:     tenantID,
-			ID:           applicationID,
-			Name:         labelMap["application"],
-			Environments: make([]platform.HttpInputEnvironment, 0),
-		}
-
-		namespace := nsName
-		obj, err := client.AppsV1().Deployments(namespace).List(ctx, metaV1.ListOptions{})
-		if err != nil {
-			panic(err.Error())
-		}
-
-		for _, item := range obj.Items {
-			_, ok := item.ObjectMeta.Annotations["dolittle.io/tenant-id"]
-			if !ok {
-				continue
-			}
-
-			_, ok = item.ObjectMeta.Annotations["dolittle.io/application-id"]
-			if !ok {
-				continue
-			}
-
-			_, ok = item.ObjectMeta.Labels["application"]
-			if !ok {
-				continue
-			}
-
-			environment := platform.HttpInputEnvironment{
-				Name:          item.ObjectMeta.Labels["environment"],
-				TenantID:      tenantID,
-				ApplicationID: applicationID,
-			}
-
-			index := funk.IndexOf(application.Environments, func(item platform.HttpInputEnvironment) bool {
-				return item.Name == environment.Name
-			})
-
-			if index != -1 {
-				continue
-			}
-
-			application.Environments = append(application.Environments, environment)
-		}
-		// Unique the environments
-		applications = append(applications, application)
 	}
 
 	return applications
+}
+
+func getNamespaces(ctx context.Context, client *kubernetes.Clientset) []coreV1.Namespace {
+	namespacesList, err := client.CoreV1().Namespaces().List(ctx, metaV1.ListOptions{})
+	if err != nil {
+	}
+	return namespacesList.Items
+}
+
+func isApplicationNamespace(namespace coreV1.Namespace) bool {
+	if !strings.HasPrefix(namespace.GetName(), "application-") {
+		return false
+	}
+	if _, hasAnnotation := namespace.Annotations["dolittle.io/tenant-id"]; !hasAnnotation {
+		return false
+	}
+	if _, hasAnnotation := namespace.Annotations["dolittle.io/application-id"]; !hasAnnotation {
+		return false
+	}
+	if _, hasLabel := namespace.Labels["tenant"]; !hasLabel {
+		return false
+	}
+	if _, hasLabel := namespace.Labels["application"]; !hasLabel {
+		return false
+	}
+
+	return true
+}
+
+func getApplicationFromK8s(ctx context.Context, client *kubernetes.Clientset, namespace coreV1.Namespace) platform.HttpResponseApplication {
+	application := platform.HttpResponseApplication{
+		ID:         namespace.Annotations["dolittle.io/application-id"],
+		Name:       namespace.Labels["application"],
+		TenantID:   namespace.Annotations["dolittle.io/tenant-id"],
+		TenantName: namespace.Labels["tenant"],
+	}
+
+	application.Environments = getApplicationEnvironmentsFromK8s(ctx, client, namespace.GetName(), application.ID, application.TenantID)
+
+	return application
+}
+
+func getApplicationEnvironmentsFromK8s(ctx context.Context, client *kubernetes.Clientset, namespace, applicationID, tenantID string) []platform.HttpInputEnvironment {
+	environments := make([]platform.HttpInputEnvironment, 0)
+	for _, configmap := range getConfigmaps(ctx, client, namespace) {
+		if isEnvironmentTenantsConfig(configmap) {
+			environment := platform.HttpInputEnvironment{
+				AutomationEnabled: false,
+				Name:              configmap.Labels["environment"],
+				TenantID:          tenantID,
+				ApplicationID:     applicationID,
+			}
+
+			environmentLabels := configmap.Labels
+
+			environment.Tenants = getTenantsFromTenantsJson(configmap.Data["tenants.json"])
+			environment.Ingresses = getEnvironmentIngressesFromK8s(ctx, client, namespace, environmentLabels)
+
+			environments = append(environments, environment)
+		}
+	}
+	return environments
+}
+
+func getConfigmaps(ctx context.Context, client *kubernetes.Clientset, namespace string) []coreV1.ConfigMap {
+	configmapList, err := client.CoreV1().ConfigMaps(namespace).List(ctx, metaV1.ListOptions{})
+	if err != nil {
+		panic(err.Error())
+	}
+	return configmapList.Items
+}
+
+func isEnvironmentTenantsConfig(configmap coreV1.ConfigMap) bool {
+	if _, hasAnnotation := configmap.Annotations["dolittle.io/tenant-id"]; !hasAnnotation {
+		return false
+	}
+	if _, hasAnnotation := configmap.Annotations["dolittle.io/application-id"]; !hasAnnotation {
+		return false
+	}
+	if _, hasLabel := configmap.Labels["tenant"]; !hasLabel {
+		return false
+	}
+	if _, hasLabel := configmap.Labels["application"]; !hasLabel {
+		return false
+	}
+	if _, hasLabel := configmap.Labels["environment"]; !hasLabel {
+		return false
+	}
+
+	_, hasTenantsJson := configmap.Data["tenants.json"]
+	return hasTenantsJson
+}
+
+func getTenantsFromTenantsJson(tenantsJsonContent string) []platform.TenantId {
+	tenantObjects := make(map[string]interface{})
+	if err := json.Unmarshal([]byte(tenantsJsonContent), &tenantObjects); err != nil {
+		panic(err.Error())
+	}
+
+	tenants := make([]platform.TenantId, 0)
+	for tenantID := range tenantObjects {
+		tenants = append(tenants, platform.TenantId(tenantID))
+	}
+	return tenants
+}
+
+func getEnvironmentIngressesFromK8s(ctx context.Context, client *kubernetes.Clientset, namespace string, environmentLabels labels.Set) platform.EnvironmentIngresses {
+	ingresses := make(map[platform.TenantId]platform.EnvironmentIngress, 0)
+	for _, ingress := range getIngresses(ctx, client, namespace, environmentLabels) {
+		if !isMicroserviceIngress(ingress) {
+			continue
+		}
+
+		tenantIDFound, tenantID := tryGetTenantFromIngress(ingress)
+		if !tenantIDFound {
+			continue
+		}
+
+		for _, rule := range ingress.Spec.Rules {
+			host := rule.Host
+			domainPrefix := strings.TrimSuffix(host, ".dolittle.cloud")
+
+			secretNameFound, secretName := tryGetIngressSecretNameForHost(ingress, host)
+
+			if secretNameFound {
+				environmentIngress := platform.EnvironmentIngress{
+					Host:         host,
+					DomainPrefix: domainPrefix,
+					SecretName:   secretName,
+				}
+
+				ingresses[tenantID] = environmentIngress
+				break
+			}
+		}
+	}
+	return ingresses
+}
+
+func getIngresses(ctx context.Context, client *kubernetes.Clientset, namespace string, environmentLabels labels.Set) []netV1.Ingress {
+	ingressList, err := client.NetworkingV1().Ingresses(namespace).List(ctx, metaV1.ListOptions{
+		LabelSelector: labels.FormatLabels(environmentLabels),
+	})
+	if err != nil {
+		panic(err.Error())
+	}
+	return ingressList.Items
+}
+
+func isMicroserviceIngress(ingress netV1.Ingress) bool {
+	if _, hasAnnotation := ingress.Annotations["dolittle.io/tenant-id"]; !hasAnnotation {
+		return false
+	}
+	if _, hasAnnotation := ingress.Annotations["dolittle.io/application-id"]; !hasAnnotation {
+		return false
+	}
+	if _, hasAnnotation := ingress.Annotations["dolittle.io/microservice-id"]; !hasAnnotation {
+		return false
+	}
+	if _, hasLabel := ingress.Labels["tenant"]; !hasLabel {
+		return false
+	}
+	if _, hasLabel := ingress.Labels["application"]; !hasLabel {
+		return false
+	}
+	if _, hasLabel := ingress.Labels["environment"]; !hasLabel {
+		return false
+	}
+	if _, hasLabel := ingress.Labels["microservice"]; !hasLabel {
+		return false
+	}
+
+	return true
+}
+
+var tenantFromIngressAnnotationExtractor = regexp.MustCompile(`proxy_set_header\s+Tenant-ID\s+"([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})"`)
+
+func tryGetTenantFromIngress(ingress netV1.Ingress) (bool, platform.TenantId) {
+	tenantHeaderAnnotation := ingress.GetObjectMeta().GetAnnotations()["nginx.ingress.kubernetes.io/configuration-snippet"]
+	tenantID := tenantFromIngressAnnotationExtractor.FindStringSubmatch(tenantHeaderAnnotation)
+	if tenantID == nil {
+		return false, ""
+	}
+	return true, platform.TenantId(tenantID[1])
+}
+
+func tryGetIngressSecretNameForHost(ingress netV1.Ingress, host string) (bool, string) {
+	for _, tlsConfig := range ingress.Spec.TLS {
+		for _, tlsHost := range tlsConfig.Hosts {
+			if tlsHost == host {
+				return true, tlsConfig.SecretName
+			}
+		}
+	}
+	return false, ""
 }
 
 func init() {

@@ -2,6 +2,7 @@ package application
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -82,22 +83,8 @@ func (s *service) SaveEnvironment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO this is not going to work with custom domains.
-	// Simple logic to make sure the domainPrefix is not used
-	// This is not great and should be linked to actual domains
-	exists := funk.Contains(application.Environments, func(environment platform.HttpInputEnvironment) bool {
-		found := false
-		if environment.Name == input.Name {
-			found = true
-		}
-		if environment.DomainPrefix == input.DomainPrefix {
-			found = true
-		}
-		return found
-	})
-
-	if exists {
-		utils.RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("Environment %s already exists", input.Name))
+	if err := s.validateEnvironmentDoesNotExist(input, application.Environments); err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -112,6 +99,51 @@ func (s *service) SaveEnvironment(w http.ResponseWriter, r *http.Request) {
 	// TODO need to create network policy for the environment
 	// https://app.asana.com/0/1200181647276434/1200407495881663/f
 	utils.RespondWithJSON(w, http.StatusOK, input)
+}
+
+func (s *service) validateEnvironmentDoesNotExist(inputEnvironment platform.HttpInputEnvironment, storedEnvironments []platform.HttpInputEnvironment) error {
+	if err := s.validateEnvironmentNameDoesNotExist(inputEnvironment.Name, storedEnvironments); err != nil {
+		return err
+	}
+	if err := s.validateEnvironmentIngressesDoesNotExist(inputEnvironment, storedEnvironments); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *service) validateEnvironmentNameDoesNotExist(inputEnvironmentName string, storedEnvironments []platform.HttpInputEnvironment) error {
+	environmentNameExists := funk.Contains(storedEnvironments, func(storedEnvironment platform.HttpInputEnvironment) bool {
+		return storedEnvironment.Name == inputEnvironmentName
+	})
+
+	if environmentNameExists {
+		return errors.New(fmt.Sprintf("Environment %s already exists", inputEnvironmentName))
+	}
+	return nil
+}
+
+func (s *service) validateEnvironmentIngressesDoesNotExist(inputEnvironment platform.HttpInputEnvironment, storedEnvironments []platform.HttpInputEnvironment) error {
+	var usedDomainPrefix string
+	// TODO this is not going to work with custom domains.
+	// Simple logic to make sure the domainPrefix is not used
+	// This is not great and should be linked to actual domains
+	domainPrefixAlreadyUsed := funk.Contains(storedEnvironments, func(storedEnvironment platform.HttpInputEnvironment) bool {
+		for _, storedIngress := range storedEnvironment.Ingresses {
+			domainPrefixAlreadyUsed := funk.Contains(inputEnvironment.Ingresses, func(_ platform.TenantId, inputIngress platform.EnvironmentIngress) bool {
+				return inputIngress.DomainPrefix == storedIngress.DomainPrefix
+			})
+			if domainPrefixAlreadyUsed {
+				usedDomainPrefix = storedIngress.DomainPrefix
+				return true
+			}
+		}
+		return false
+	})
+	if domainPrefixAlreadyUsed {
+		return errors.New(fmt.Sprintf("Cannot save environment %s because an ingress with domain prefix %s already exists", inputEnvironment.Name, usedDomainPrefix))
+	}
+	return nil
 }
 
 func (s *service) Create(w http.ResponseWriter, r *http.Request) {

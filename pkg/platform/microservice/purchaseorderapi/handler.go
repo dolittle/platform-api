@@ -34,19 +34,37 @@ func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Requ
 		return parserError
 	}
 
-	exists, err := s.rawdatalogRepo.Exists(msK8sInfo.Namespace, ms.Environment, ms.Dolittle.MicroserviceID)
+	application, err := s.gitRepo.GetApplication(applicationInfo.Tenant.ID, applicationInfo.ID)
+	if err != nil {
+		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
+		return err
+	}
+
+	tenant, err := application.GetTenantForEnvironment(ms.Environment)
+	if err != nil {
+		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
+		return err
+	}
+
+	err = s.repo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, tenant, ms)
 	if err != nil {
 		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
 		return nil
 	}
 
-	if !exists {
+	rawDataLogExists, err := s.rawdatalogRepo.Exists(msK8sInfo.Namespace, ms.Environment, ms.Dolittle.MicroserviceID)
+	if err != nil {
+		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
+		return err
+	}
+	if !rawDataLogExists {
 		// @joel create it!!!
-		err := s.repo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, ms)
-		if err != nil {
-			utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
-			return nil
-		}
+	}
+
+	err := s.repo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, tenant, ms)
+	if err != nil {
+		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
+		return nil
 	}
 
 	err = s.gitRepo.SaveMicroservice(
