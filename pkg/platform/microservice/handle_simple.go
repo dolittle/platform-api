@@ -19,7 +19,7 @@ func (s *service) handleSimpleMicroservice(responseWriter http.ResponseWriter, r
 		return
 	}
 
-	ingress := CreateIngress()
+	ingress := CreateTodoIngress()
 
 	// TODO I cant decide if domainNamePrefix or SecretNamePrefix is better
 	//if ms.Extra.Ingress.SecretNamePrefix == "" {
