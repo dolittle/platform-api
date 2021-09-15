@@ -81,12 +81,12 @@ func (r *repo) Exists(namespace string, tenant k8s.Tenant, application k8s.Appli
 
 	ctx := context.TODO()
 
-	deployment, err := microserviceK8s.K8sGetDeployment(r.k8sClient, ctx, namespace, microserviceID)
+	resources := r.k8sResourceSpecFactory.CreateAll(headImage, runtimeImage, microservice, input.Extra)
+	exists, err := microserviceK8s.K8sHasDeploymentWithName(r.k8sClient, ctx, namespace, resources.Deployment.Name)
 	if err != nil {
 		return false, fmt.Errorf("Failed to get purchase order api deployment: %v", err)
 	}
-	resources := r.k8sResourceSpecFactory.CreateAll(headImage, runtimeImage, microservice, input.Extra)
-	return resources.Deployment.Name == deployment.Name, nil
+	return exists, nil
 }
 
 // Delete stops the running purchase order api and deletes the kubernetes resources.
