@@ -49,17 +49,17 @@ func (r RawDataLogIngestorRepo) Update(namespace string, tenant k8s.Tenant, appl
 
 func (r RawDataLogIngestorRepo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputRawDataLogIngestorInfo) error {
 
-	labels := map[string]string{
-		"tenant":      tenant.Name,
-		"application": application.Name,
-		"environment": input.Environment,
+	microservice := k8s.Microservice{
+		Kind:        platform.MicroserviceKindRawDataLogIngestor,
+		ID:          input.Dolittle.MicroserviceID, // TODO: I think the RawDataLogWebhookIngestor should have a fixed ID - not sure if we want to do that here or in the frontend?
+		Name:        "raw-data-log-ingestor",
+		Environment: input.Environment,
+		Application: application,
+		Tenant:      tenant,
 	}
 
-	annotations := map[string]string{
-		"dolittle.io/tenant-id":       tenant.ID,
-		"dolittle.io/application-id":  application.ID,
-		"dolittle.io/microservice-id": input.Dolittle.MicroserviceID,
-	}
+	labels := k8s.GetLabels(microservice)
+	annotations := k8s.GetAnnotations(microservice)
 
 	// TODO changing writeTo will break this.
 	if input.Extra.WriteTo != "stdout" {
@@ -290,7 +290,9 @@ func (r RawDataLogIngestorRepo) doNats(namespace string, labels, annotations k8s
 	environment := strings.ToLower(input.Environment)
 
 	natsLabels := k8slabels.Merge(labels, k8slabels.Set{"infrastructure": "Nats"})
+	natsLabels["microservice"] = ""
 	stanLabels := k8slabels.Merge(labels, k8slabels.Set{"infrastructure": "Stan"})
+	stanLabels["microservice"] = ""
 
 	nats := createNatsResources(namespace, environment, natsLabels, annotations)
 	stan := createStanResources(namespace, environment, stanLabels, annotations)
@@ -352,7 +354,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 
 	// TODO do I need this?
 	// TODO if I remove it, do I remove the config mapping?
-	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, string(tenantID))
+	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, customer.ID)
 	deployment := k8s.NewDeployment(microservice, headImage, runtimeImage)
 	service := k8s.NewService(microservice)
 	ingress := k8s.NewIngress(microservice)
