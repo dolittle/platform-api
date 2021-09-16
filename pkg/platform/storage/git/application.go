@@ -10,6 +10,7 @@ import (
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	git "github.com/go-git/go-git/v5"
+	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )
 
@@ -107,7 +108,11 @@ func (s *GitStorage) GetApplications(customerID string) ([]platform.HttpResponse
 	for _, applicationID := range applicationIDs {
 		application, err := s.GetApplication(customerID, applicationID)
 		if err != nil {
-			s.logContext.Warning("Skipping application for tenant", customerID, "with ID", applicationID, "because it failed to load:", err)
+			s.logContext.WithFields(log.Fields{
+				"customer":    customerID,
+				"application": applicationID,
+				"error":       err,
+			}).Warning("Skipping application because it failed to load")
 			continue
 		}
 		applications = append(applications, application)
@@ -121,7 +126,11 @@ func (s *GitStorage) discoverCustomerApplicationIds(customerID string) ([]string
 	// TODO change to fs when gone to 1.16
 	err := filepath.Walk(s.GetTenantDirectory(customerID), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			s.logContext.Errorf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
+			s.logContext.WithFields(log.Fields{
+				"customer": customerID,
+				"path":     path,
+				"error":    err,
+			}).Error("prevent panic by handling failure accessing a path")
 			return err
 		}
 
