@@ -7,7 +7,7 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
-	"github.com/dolittle-entropy/platform-api/pkg/utils"
+	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 
 	"context"
@@ -29,18 +29,25 @@ type RawDataLogIngestorRepo struct {
 	k8sClient       kubernetes.Interface
 	k8sDolittleRepo platform.K8sRepo
 	gitRepo         storage.Repo
+	logContext      logrus.FieldLogger
 }
 
-func NewRawDataLogIngestorRepo(k8sDolittleRepo platform.K8sRepo, k8sClient *kubernetes.Clientset, gitRepo storage.Repo) RawDataLogIngestorRepo {
+func NewRawDataLogIngestorRepo(k8sDolittleRepo platform.K8sRepo, k8sClient kubernetes.Interface, gitRepo storage.Repo, logContext logrus.FieldLogger) RawDataLogIngestorRepo {
 	return RawDataLogIngestorRepo{
 		k8sClient:       k8sClient,
 		k8sDolittleRepo: k8sDolittleRepo,
 		gitRepo:         gitRepo,
+		logContext:      logContext,
 	}
 }
 
 // Checks whether
-func (r RawDataLogIngestorRepo) Exists(namespace string, environment string, microserviceID string) (bool, error) {
+func (r RawDataLogIngestorRepo) Exists(namespace string, environment string) (bool, error) {
+	r.logContext.WithFields(logrus.Fields{
+		"namespace":   namespace,
+		"environment": environment,
+		"method":      "RawDataLogIngestorRepo.Exists",
+	}).Info("Checking for RawDataLog microservices existence")
 	ctx := context.TODO()
 	deployments, err := r.k8sClient.AppsV1().Deployments(namespace).List(ctx, metaV1.ListOptions{})
 
@@ -51,11 +58,27 @@ func (r RawDataLogIngestorRepo) Exists(namespace string, environment string, mic
 	for _, deployment := range deployments.Items {
 		annotations := deployment.GetAnnotations()
 
+		r.logContext.WithFields(logrus.Fields{
+			"namespace":   namespace,
+			"environment": environment,
+			"method":      "RawDataLogIngestorRepo.Exists",
+		}).Info(fmt.Sprintf("Found these annotations: %v", annotations))
+
 		// the microserviceID is unique per microservice so that's enough for the check
-		if annotations["dolittle.io/microservice-id"] == microserviceID {
+		if annotations["dolittle.io/microservice-kind"] == string(platform.MicroserviceKindRawDataLogIngestor) {
+			r.logContext.WithFields(logrus.Fields{
+				"namespace":   namespace,
+				"environment": environment,
+				"method":      "RawDataLogIngestorRepo.Exists",
+			}).Info("Found a RawDataLog microservice")
 			return true, nil
 		}
 	}
+	r.logContext.WithFields(logrus.Fields{
+		"namespace":   namespace,
+		"environment": environment,
+		"method":      "RawDataLogIngestorRepo.Exists",
+	}).Info("Found a RawDataLog microservice")
 
 	return false, nil
 }
@@ -66,6 +89,12 @@ func (r RawDataLogIngestorRepo) Update(namespace string, tenant k8s.Tenant, appl
 
 func (r RawDataLogIngestorRepo) Create(namespace string, customer k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputRawDataLogIngestorInfo) error {
 
+	r.logContext.WithFields(logrus.Fields{
+		"namespace": namespace,
+		"customer":  customer,
+		"method":    "RawDataLogIngestorRepo.Create",
+	}).Info("Starting to create the RawDataLog")
+
 	labels := map[string]string{
 		"tenant":       customer.Name,
 		"application":  application.Name,
@@ -74,13 +103,15 @@ func (r RawDataLogIngestorRepo) Create(namespace string, customer k8s.Tenant, ap
 	}
 
 	annotations := map[string]string{
-		"dolittle.io/tenant-id":       customer.ID,
-		"dolittle.io/application-id":  application.ID,
-		"dolittle.io/microservice-id": input.Dolittle.MicroserviceID,
+		"dolittle.io/tenant-id":      customer.ID,
+		"dolittle.io/application-id": application.ID,
+		// @joel I don't think the nats/stan should have a microserviceid
+		// "dolittle.io/microservice-id": input.Dolittle.MicroserviceID,
 	}
 
 	// TODO changing writeTo will break this.
 	if input.Extra.WriteTo != "stdout" {
+
 		action := "upsert"
 		if err := r.doNats(namespace, labels, annotations, input, action); err != nil {
 			fmt.Println("Could not doNats", err)
@@ -236,6 +267,7 @@ func (r RawDataLogIngestorRepo) Delete(namespace string, microserviceID string) 
 
 // Creates or deletes the statefulset, service and configmap of the given statefulset, service and configmap
 func (r RawDataLogIngestorRepo) doStatefulService(namespace string, configMap *corev1.ConfigMap, service *corev1.Service, statfulset *appsv1.StatefulSet, action string) error {
+
 	ctx := context.TODO()
 
 	if action == "delete" {
@@ -294,17 +326,28 @@ func (r RawDataLogIngestorRepo) doStatefulService(namespace string, configMap *c
 			return err
 		}
 	} else {
+		// TODO "updates to statefulset spec for fields other than 'replicas', 'template', and 'updateStrategy' are forbidden"
 		statfulset.ResourceVersion = existing.ResourceVersion
-		if _, err := r.k8sClient.AppsV1().StatefulSets(namespace).Update(ctx, statfulset, metaV1.UpdateOptions{}); err != nil {
-			return err
-		}
+		// if _, err := r.k8sClient.AppsV1().StatefulSets(namespace).Update(ctx, statfulset, metaV1.UpdateOptions{}); err != nil {
+		// 	return err
+		// }
 	}
+
+	r.logContext.WithFields(logrus.Fields{
+		"namespace": namespace,
+		"method":    "RawDataLogIngestorRepo.doStatefulService",
+	}).Info("Finished creating statefulservice")
 
 	return nil
 }
 
 // Creates or deletes the given nats and stan statefulsets, services and configmaps
 func (r RawDataLogIngestorRepo) doNats(namespace string, labels, annotations k8slabels.Set, input platform.HttpInputRawDataLogIngestorInfo, action string) error {
+
+	r.logContext.WithFields(logrus.Fields{
+		"namespace": namespace,
+		"method":    "RawDataLogIngestorRepo.doNats",
+	}).Info("Starting to create the nats & stan")
 
 	environment := strings.ToLower(input.Environment)
 
@@ -326,6 +369,10 @@ func (r RawDataLogIngestorRepo) doNats(namespace string, labels, annotations k8s
 
 // Creates the RawDataLog microservice in k8s
 func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputRawDataLogIngestorInfo) error {
+	r.logContext.WithFields(logrus.Fields{
+		"namespace": namespace,
+		"method":    "RawDataLogIngestorRepo.doDolittle",
+	}).Info("Starting to create RawDataLog microservice")
 
 	// TODO not sure where this comes from really, assume dynamic
 	// tenantID := "17426336-fb8e-4425-8ab7-07d488367be9"
@@ -571,6 +618,11 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 			fmt.Println(err.Error())
 		}
 	}
+
+	r.logContext.WithFields(logrus.Fields{
+		"namespace": namespace,
+		"method":    "RawDataLogIngestorRepo.doDolittle",
+	}).Info("Finished creating RawDataLog microservice")
 
 	return nil
 }

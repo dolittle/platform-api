@@ -94,7 +94,7 @@ func extractApplications(ctx context.Context, client kubernetes.Interface) []pla
 	return applications
 }
 
-func getNamespaces(ctx context.Context, client *kubernetes.Clientset) []coreV1.Namespace {
+func getNamespaces(ctx context.Context, client kubernetes.Interface) []coreV1.Namespace {
 	namespacesList, err := client.CoreV1().Namespaces().List(ctx, metaV1.ListOptions{})
 	if err != nil {
 	}
@@ -121,7 +121,7 @@ func isApplicationNamespace(namespace coreV1.Namespace) bool {
 	return true
 }
 
-func getApplicationFromK8s(ctx context.Context, client *kubernetes.Clientset, namespace coreV1.Namespace) platform.HttpResponseApplication {
+func getApplicationFromK8s(ctx context.Context, client kubernetes.Interface, namespace coreV1.Namespace) platform.HttpResponseApplication {
 	application := platform.HttpResponseApplication{
 		ID:         namespace.Annotations["dolittle.io/application-id"],
 		Name:       namespace.Labels["application"],
@@ -134,7 +134,7 @@ func getApplicationFromK8s(ctx context.Context, client *kubernetes.Clientset, na
 	return application
 }
 
-func getApplicationEnvironmentsFromK8s(ctx context.Context, client *kubernetes.Clientset, namespace, applicationID, tenantID string) []platform.HttpInputEnvironment {
+func getApplicationEnvironmentsFromK8s(ctx context.Context, client kubernetes.Interface, namespace, applicationID, tenantID string) []platform.HttpInputEnvironment {
 	environments := make([]platform.HttpInputEnvironment, 0)
 	for _, configmap := range getConfigmaps(ctx, client, namespace) {
 		if isEnvironmentTenantsConfig(configmap) {
@@ -156,7 +156,7 @@ func getApplicationEnvironmentsFromK8s(ctx context.Context, client *kubernetes.C
 	return environments
 }
 
-func getConfigmaps(ctx context.Context, client *kubernetes.Clientset, namespace string) []coreV1.ConfigMap {
+func getConfigmaps(ctx context.Context, client kubernetes.Interface, namespace string) []coreV1.ConfigMap {
 	configmapList, err := client.CoreV1().ConfigMaps(namespace).List(ctx, metaV1.ListOptions{})
 	if err != nil {
 		panic(err.Error())
@@ -198,7 +198,7 @@ func getTenantsFromTenantsJson(tenantsJsonContent string) []platform.TenantId {
 	return tenants
 }
 
-func getEnvironmentIngressesFromK8s(ctx context.Context, client *kubernetes.Clientset, namespace string, environmentLabels labels.Set) platform.EnvironmentIngresses {
+func getEnvironmentIngressesFromK8s(ctx context.Context, client kubernetes.Interface, namespace string, environmentLabels labels.Set) platform.EnvironmentIngresses {
 	ingresses := make(map[platform.TenantId]platform.EnvironmentIngress, 0)
 	for _, ingress := range getIngresses(ctx, client, namespace, environmentLabels) {
 		if !isMicroserviceIngress(ingress) {
@@ -231,7 +231,7 @@ func getEnvironmentIngressesFromK8s(ctx context.Context, client *kubernetes.Clie
 	return ingresses
 }
 
-func getIngresses(ctx context.Context, client *kubernetes.Clientset, namespace string, environmentLabels labels.Set) []netV1.Ingress {
+func getIngresses(ctx context.Context, client kubernetes.Interface, namespace string, environmentLabels labels.Set) []netV1.Ingress {
 	ingressList, err := client.NetworkingV1().Ingresses(namespace).List(ctx, metaV1.ListOptions{
 		LabelSelector: labels.FormatLabels(environmentLabels),
 	})

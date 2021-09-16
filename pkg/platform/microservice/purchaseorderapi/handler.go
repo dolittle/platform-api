@@ -32,12 +32,20 @@ func NewRequestHandler(parser parser.Parser, repo Repo, gitRepo storage.Repo, ra
 // Create creates a new PurchaseOrderAPI microservice and creates a RawDataLog microservice too if it didn't already exist
 func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Request, inputBytes []byte, applicationInfo platform.Application) error {
 	// Function assumes access check has taken place
+
 	var ms platform.HttpInputPurchaseOrderInfo
 	msK8sInfo, parserError := s.parser.Parse(inputBytes, &ms, applicationInfo)
 	if parserError != nil {
 		utils.RespondWithStatusError(responseWriter, parserError)
 		return parserError
 	}
+
+	logContext := s.logContext.WithFields(logrus.Fields{
+		"method":        "Create",
+		"tenantID":      applicationInfo.Tenant.ID,
+		"applicationID": applicationInfo.ID,
+		"environment":   ms.Environment,
+	})
 
 	application, err := s.gitRepo.GetApplication(applicationInfo.Tenant.ID, applicationInfo.ID)
 	if err != nil {
@@ -57,12 +65,13 @@ func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Requ
 		return nil
 	}
 
-	rawDataLogExists, err := s.rawdatalogRepo.Exists(msK8sInfo.Namespace, ms.Environment, ms.Dolittle.MicroserviceID)
+	rawDataLogExists, err := s.rawdatalogRepo.Exists(msK8sInfo.Namespace, ms.Environment)
 	if err != nil {
 		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
 		return err
 	}
 	if !rawDataLogExists {
+		logContext.Info("RawDataLog microservice didn't exist, starting to create it")
 		// @joel create it!!!
 		// TODO create new microserviceID
 		// @joel lookiup the ingress from git repo and hard code the path
@@ -81,7 +90,18 @@ func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Requ
 		})].Ingresses[tenant]
 
 		if !ok {
-			return fmt.Errorf("Failed to get stored ingress for tenant %s in environment %s", string(tenant), environment)
+			return fmt.Errorf("Failed to get stored ingress for tenant %s in environment %s", string(tenant), ms.Environment)
+		}
+
+		webhookConfigs := []platform.RawDataLogIngestorWebhookConfig{}
+
+		for _, webhook := range ms.Extra.Webhooks {
+			webhook := platform.RawDataLogIngestorWebhookConfig{
+				Kind:          webhook.Kind,
+				UriSuffix:     webhook.UriSuffix,
+				Authorization: webhook.Authorization,
+			}
+			webhookConfigs = append(webhookConfigs, webhook)
 		}
 
 		input := platform.HttpInputRawDataLogIngestorInfo{
@@ -107,7 +127,8 @@ func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Requ
 					Pathtype: "Prefix",
 					Path:     "/api/webhooks",
 				},
-				WriteTo: "nats",
+				WriteTo:  "nats",
+				Webhooks: webhookConfigs,
 			},
 		}
 		applicationIngress := k8s.Ingress{

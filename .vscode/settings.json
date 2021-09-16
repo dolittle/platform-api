@@ -2,6 +2,9 @@
     "cSpell.words": [
         "Dolittle",
         "kubernetes",
-        "nats"
+        "nats",
+        "serrors",
+        "statefulservice",
+        "statfulset"
     ]
 }
