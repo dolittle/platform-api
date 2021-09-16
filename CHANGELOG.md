@@ -1,3 +1,24 @@
+# [0.3.0] - 2021-9-16 [PR: #26](https://github.com/dolittle/platform-api/pull/26)
+## Summary
+
+When creating a PurchaseOrderAPI microservice, if the environment doesn't already have a RawDataLog microservice and Stan & Nats it will create them.
+
+### Added
+
+- Creates the missing RawDataLog deployment and Nats & Stan statefulsets when creating a PurchaseOrderAPI microservice if they didn't already exist
+- Save the RawDataLog microservice to the git repo
+- Add logging for the creation of RawDataLog
+
+### Changed
+
+- Describe the outwards facing code change
+
+### Fixed
+
+- Fixes the `NATS_CLUSTER_URL` env to the hardcoded `<env>-nats.namespace...` format
+- Also makes the RawDataLog handler (the specific one) to check for the RawDataLogs existence beforehand
+
+
 # [0.2.2] - 2021-9-16 [PR: #20](https://github.com/dolittle/platform-api/pull/20)
 ## Summary
 
