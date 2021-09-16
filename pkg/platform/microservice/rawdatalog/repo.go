@@ -446,6 +446,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 		"DOLITTLE_APPLICATION_ID": application.ID,
 		"DOLITTLE_ENVIRONMENT":    environment,
 		"MICROSERVICE_CONFIG":     "/app/data/microservice_data_from_studio.json",
+		"TOPIC":                   "purchaseorders",
 	}
 
 	if input.Extra.WriteTo == "nats" {
