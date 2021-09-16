@@ -3,8 +3,6 @@ package utils
 import (
 	"encoding/json"
 	"net/http"
-
-	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 type HTTPMessageResponse struct {
@@ -13,10 +11,6 @@ type HTTPMessageResponse struct {
 
 func RespondWithError(w http.ResponseWriter, code int, message string) {
 	RespondWithJSON(w, code, map[string]string{"message": message})
-}
-
-func RespondWithStatusError(w http.ResponseWriter, err *errors.StatusError) {
-	RespondWithError(w, int(err.ErrStatus.Code), err.Error())
 }
 
 func RespondNoContent(w http.ResponseWriter, code int) {

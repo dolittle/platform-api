@@ -1,4 +1,4 @@
-package microservice
+package simple
 
 import (
 	"context"
@@ -16,38 +16,25 @@ import (
 
 type simpleRepo struct {
 	k8sClient kubernetes.Interface
-	kind      platform.MicroserviceKind
 }
 
-func NewSimpleRepo(k8sClient kubernetes.Interface) simpleRepo {
-	return simpleRepo{
+func NewSimpleRepo(k8sClient kubernetes.Interface) Repo {
+	return &simpleRepo{
 		k8sClient,
-		platform.MicroserviceKindSimple,
 	}
 }
 
-func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputSimpleInfo) error {
+func (r *simpleRepo) Create(namespace string, customer k8s.Tenant, application k8s.Application, ingress k8s.Ingress, tenant platform.TenantId, input platform.HttpInputSimpleInfo) error {
 	// TODO not sure where this comes from really, assume dynamic
-
-	environment := input.Environment
-	host := applicationIngress.Host
-	secretName := applicationIngress.SecretName
-
-	microserviceID := input.Dolittle.MicroserviceID
-	microserviceName := input.Name
-	headImage := input.Extra.Headimage
-	runtimeImage := input.Extra.Runtimeimage
-
 	microservice := k8s.Microservice{
-		ID:          microserviceID,
-		Name:        microserviceName,
-		Tenant:      tenant,
+		ID:          input.Dolittle.MicroserviceID,
+		Name:        input.Name,
+		Tenant:      customer,
 		Application: application,
-		Environment: environment,
-		ResourceID:  TodoCustomersTenantID,
-		Kind:        r.kind,
+		Environment: input.Environment,
+		ResourceID:  string(tenant),
+		Kind:        platform.MicroserviceKindSimple,
 	}
-
 	ingressServiceName := strings.ToLower(fmt.Sprintf("%s-%s", microservice.Environment, microservice.Name))
 	ingressRules := []k8s.SimpleIngressRule{
 		{
@@ -58,17 +45,17 @@ func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.
 		},
 	}
 
-	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, TodoCustomersTenantID)
-	deployment := k8s.NewDeployment(microservice, headImage, runtimeImage)
+	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, string(tenant))
+	deployment := k8s.NewDeployment(microservice, input.Extra.Headimage, input.Extra.Runtimeimage)
 	service := k8s.NewService(microservice)
-	ingress := k8s.NewIngress(microservice)
+	ingressResource := k8s.NewIngress(microservice)
 	networkPolicy := k8s.NewNetworkPolicy(microservice)
 	configEnvVariables := k8s.NewEnvVariablesConfigmap(microservice)
 	configFiles := k8s.NewConfigFilesConfigmap(microservice)
 	configSecrets := k8s.NewEnvVariablesSecret(microservice)
 
-	ingress.Spec.TLS = k8s.AddIngressTLS([]string{host}, secretName)
-	ingress.Spec.Rules = append(ingress.Spec.Rules, k8s.AddIngressRule(host, ingressRules))
+	ingressResource.Spec.TLS = k8s.AddIngressTLS([]string{ingress.Host}, ingress.SecretName)
+	ingressResource.Spec.Rules = append(ingressResource.Spec.Rules, k8s.AddIngressRule(ingress.Host, ingressRules))
 
 	// Assuming the namespace exists
 	var err error
@@ -95,7 +82,7 @@ func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.
 		return err
 	}
 
-	_, err = client.NetworkingV1().Ingresses(namespace).Create(ctx, ingress, metaV1.CreateOptions{})
+	_, err = client.NetworkingV1().Ingresses(namespace).Create(ctx, ingressResource, metaV1.CreateOptions{})
 	if K8sHandleResourceCreationError(err, func() { K8sPrintAlreadyExists("ingress") }) != nil {
 		return err
 	}
@@ -118,7 +105,7 @@ func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.
 	return nil
 }
 
-func (r simpleRepo) Delete(namespace string, microserviceID string) error {
+func (r *simpleRepo) Delete(namespace, microserviceID string) error {
 	ctx := context.TODO()
 
 	deployment, err := K8sGetDeployment(r.k8sClient, ctx, namespace, microserviceID)

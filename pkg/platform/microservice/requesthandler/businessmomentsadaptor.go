@@ -1,4 +1,4 @@
-package microservice
+package requesthandler
 
 import (
 	"fmt"
@@ -6,12 +6,25 @@ import (
 	"strings"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/businessmomentsadaptor"
 	. "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/k8s"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/simple"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
 )
 
-func (s *service) handleBusinessMomentsAdaptor(responseWriter http.ResponseWriter, r *http.Request, inputBytes []byte, applicationInfo platform.Application) {
+type businessMomentsAdapterHandler struct {
+	parser             Parser
+	repo               businessmomentsadaptor.Repo
+	storedEnvironments StoredEnvironments
+	gitRepo            storage.Repo
+}
+
+func NewbusinessMomentsAdapterHandler(parser Parser, repo businessmomentsadaptor.Repo, storedEnvironments StoredEnvironments, gitRepo storage.Repo) Handler {
+	return &businessMomentsAdapterHandler{parser, repo, storedEnvironments, gitRepo}
+}
+func (s *businessMomentsAdapterHandler) Create(request *http.Request, inputBytes []byte, applicationInfo platform.Application) (platform.Microservice, *Error) {
 	// Function assumes access check has taken place
 	var ms platform.HttpInputBusinessMomentAdaptorInfo
 	msK8sInfo, statusErr := s.parser.Parse(inputBytes, &ms, applicationInfo)
@@ -45,9 +58,16 @@ func (s *service) handleBusinessMomentsAdaptor(responseWriter http.ResponseWrite
 	utils.RespondWithJSON(responseWriter, http.StatusOK, ms)
 }
 
+func (s *businessMomentsAdapterHandler) Delete(namespace string, microserviceID string) *Error {
+	if err := s.repo.Delete(namespace, microserviceID); err != nil {
+		return NewInternalError(err)
+	}
+	return nil
+}
+
 // TODO notes from talking with Gøran
 // acl stuff later look more at CanModifyApplication
-func (s *service) BusinessMomentsAdaptorSave(w http.ResponseWriter, r *http.Request) {
+func (s *businessMomentsAdapterHandler) BusinessMomentsAdaptorSave(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
 	microserviceID := vars["microserviceID"]
@@ -72,7 +92,7 @@ func (s *service) BusinessMomentsAdaptorSave(w http.ResponseWriter, r *http.Requ
 	})
 }
 
-func (s *service) BusinessMomentsAdaptorRawData(w http.ResponseWriter, r *http.Request) {
+func (s *businessMomentsAdapterHandler) BusinessMomentsAdaptorRawData(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
 	microserviceID := vars["microserviceID"]
@@ -97,7 +117,7 @@ func (s *service) BusinessMomentsAdaptorRawData(w http.ResponseWriter, r *http.R
 	})
 }
 
-func (s *service) BusinessMomentsAdaptorSync(w http.ResponseWriter, r *http.Request) {
+func (s *businessMomentsAdapterHandler) BusinessMomentsAdaptorSync(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
 	microserviceID := vars["microserviceID"]

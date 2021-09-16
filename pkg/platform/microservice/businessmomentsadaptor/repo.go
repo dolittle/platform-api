@@ -1,4 +1,4 @@
-package microservice
+package businessmomentsadaptor
 
 // configmap needs to include WH_AUTHORIZATION
 // hook into the deployment
