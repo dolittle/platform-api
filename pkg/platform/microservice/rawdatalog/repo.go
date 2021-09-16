@@ -6,6 +6,7 @@ import (
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
+
 	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
@@ -88,26 +89,23 @@ func (r RawDataLogIngestorRepo) Update(namespace string, tenant k8s.Tenant, appl
 }
 
 func (r RawDataLogIngestorRepo) Create(namespace string, customer k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputRawDataLogIngestorInfo) error {
-
 	r.logContext.WithFields(logrus.Fields{
 		"namespace": namespace,
 		"customer":  customer,
 		"method":    "RawDataLogIngestorRepo.Create",
 	}).Info("Starting to create the RawDataLog")
 
-	labels := map[string]string{
-		"tenant":       customer.Name,
-		"application":  application.Name,
-		"environment":  input.Environment,
-		"microservice": input.Name,
+	microservice := k8s.Microservice{
+		Kind:        platform.MicroserviceKindRawDataLogIngestor,
+		ID:          input.Dolittle.MicroserviceID, // TODO: I think the RawDataLogWebhookIngestor should have a fixed ID - not sure if we want to do that here or in the frontend?
+		Name:        "raw-data-log-ingestor",
+		Environment: input.Environment,
+		Application: application,
+		Tenant:      customer,
 	}
 
-	annotations := map[string]string{
-		"dolittle.io/tenant-id":      customer.ID,
-		"dolittle.io/application-id": application.ID,
-		// @joel I don't think the nats/stan should have a microserviceid
-		// "dolittle.io/microservice-id": input.Dolittle.MicroserviceID,
-	}
+	labels := k8s.GetLabels(microservice)
+	annotations := k8s.GetAnnotations(microservice)
 
 	// TODO changing writeTo will break this.
 	if input.Extra.WriteTo != "stdout" {
@@ -267,17 +265,16 @@ func (r RawDataLogIngestorRepo) Delete(namespace string, microserviceID string) 
 
 // Creates or deletes the statefulset, service and configmap of the given statefulset, service and configmap
 func (r RawDataLogIngestorRepo) doStatefulService(namespace string, configMap *corev1.ConfigMap, service *corev1.Service, statfulset *appsv1.StatefulSet, action string) error {
-
 	ctx := context.TODO()
 
 	if action == "delete" {
-		if err := r.k8sClient.AppsV1().StatefulSets(namespace).Delete(ctx, statfulset.GetName(), metaV1.DeleteOptions{}); err != nil {
+		if err := r.k8sClient.AppsV1().StatefulSets(namespace).Delete(ctx, statfulset.GetName(), metav1.DeleteOptions{}); err != nil {
 			return err
 		}
-		if err := r.k8sClient.CoreV1().Services(namespace).Delete(ctx, service.GetName(), metaV1.DeleteOptions{}); err != nil {
+		if err := r.k8sClient.CoreV1().Services(namespace).Delete(ctx, service.GetName(), metav1.DeleteOptions{}); err != nil {
 			return err
 		}
-		if err := r.k8sClient.CoreV1().ConfigMaps(namespace).Delete(ctx, configMap.GetName(), metaV1.DeleteOptions{}); err != nil {
+		if err := r.k8sClient.CoreV1().ConfigMaps(namespace).Delete(ctx, configMap.GetName(), metav1.DeleteOptions{}); err != nil {
 			return err
 		}
 		return nil
@@ -287,9 +284,9 @@ func (r RawDataLogIngestorRepo) doStatefulService(namespace string, configMap *c
 		return errors.New("action not supported")
 	}
 
-	if existing, err := r.k8sClient.CoreV1().ConfigMaps(namespace).Get(ctx, configMap.GetName(), metaV1.GetOptions{}); err != nil {
+	if existing, err := r.k8sClient.CoreV1().ConfigMaps(namespace).Get(ctx, configMap.GetName(), metav1.GetOptions{}); err != nil {
 		if k8serrors.IsNotFound(err) {
-			if _, err := r.k8sClient.CoreV1().ConfigMaps(namespace).Create(ctx, configMap, metaV1.CreateOptions{}); err != nil {
+			if _, err := r.k8sClient.CoreV1().ConfigMaps(namespace).Create(ctx, configMap, metav1.CreateOptions{}); err != nil {
 				return err
 			}
 		} else {
@@ -297,14 +294,14 @@ func (r RawDataLogIngestorRepo) doStatefulService(namespace string, configMap *c
 		}
 	} else {
 		configMap.ResourceVersion = existing.ResourceVersion
-		if _, err := r.k8sClient.CoreV1().ConfigMaps(namespace).Update(ctx, configMap, metaV1.UpdateOptions{}); err != nil {
+		if _, err := r.k8sClient.CoreV1().ConfigMaps(namespace).Update(ctx, configMap, metav1.UpdateOptions{}); err != nil {
 			return err
 		}
 	}
 
-	if existing, err := r.k8sClient.CoreV1().Services(namespace).Get(ctx, service.GetName(), metaV1.GetOptions{}); err != nil {
+	if existing, err := r.k8sClient.CoreV1().Services(namespace).Get(ctx, service.GetName(), metav1.GetOptions{}); err != nil {
 		if k8serrors.IsNotFound(err) {
-			if _, err := r.k8sClient.CoreV1().Services(namespace).Create(ctx, service, metaV1.CreateOptions{}); err != nil {
+			if _, err := r.k8sClient.CoreV1().Services(namespace).Create(ctx, service, metav1.CreateOptions{}); err != nil {
 				return err
 			}
 		} else {
@@ -312,38 +309,35 @@ func (r RawDataLogIngestorRepo) doStatefulService(namespace string, configMap *c
 		}
 	} else {
 		service.ResourceVersion = existing.ResourceVersion
-		if _, err := r.k8sClient.CoreV1().Services(namespace).Update(ctx, service, metaV1.UpdateOptions{}); err != nil {
+		if _, err := r.k8sClient.CoreV1().Services(namespace).Update(ctx, service, metav1.UpdateOptions{}); err != nil {
 			return err
 		}
 	}
 
-	if existing, err := r.k8sClient.AppsV1().StatefulSets(namespace).Get(ctx, statfulset.GetName(), metaV1.GetOptions{}); err != nil {
+	if existing, err := r.k8sClient.AppsV1().StatefulSets(namespace).Get(ctx, statfulset.GetName(), metav1.GetOptions{}); err != nil {
 		if k8serrors.IsNotFound(err) {
-			if _, err := r.k8sClient.AppsV1().StatefulSets(namespace).Create(ctx, statfulset, metaV1.CreateOptions{}); err != nil {
+			if _, err := r.k8sClient.AppsV1().StatefulSets(namespace).Create(ctx, statfulset, metav1.CreateOptions{}); err != nil {
 				return err
 			}
 		} else {
 			return err
 		}
 	} else {
-		// TODO "updates to statefulset spec for fields other than 'replicas', 'template', and 'updateStrategy' are forbidden"
+		// TODO this probably won't work, as it's mostly forbidden to k8s to update the statefulset spec 
 		statfulset.ResourceVersion = existing.ResourceVersion
-		// if _, err := r.k8sClient.AppsV1().StatefulSets(namespace).Update(ctx, statfulset, metaV1.UpdateOptions{}); err != nil {
-		// 	return err
-		// }
+		if _, err := r.k8sClient.AppsV1().StatefulSets(namespace).Update(ctx, statfulset, metav1.UpdateOptions{}); err != nil {
+			return err
+		}
 	}
-
 	r.logContext.WithFields(logrus.Fields{
 		"namespace": namespace,
 		"method":    "RawDataLogIngestorRepo.doStatefulService",
-	}).Info("Finished creating statefulservice")
+	}).Info("Finished creating statefulservice"
 
 	return nil
 }
 
-// Creates or deletes the given nats and stan statefulsets, services and configmaps
 func (r RawDataLogIngestorRepo) doNats(namespace string, labels, annotations k8slabels.Set, input platform.HttpInputRawDataLogIngestorInfo, action string) error {
-
 	r.logContext.WithFields(logrus.Fields{
 		"namespace": namespace,
 		"method":    "RawDataLogIngestorRepo.doNats",
@@ -352,7 +346,9 @@ func (r RawDataLogIngestorRepo) doNats(namespace string, labels, annotations k8s
 	environment := strings.ToLower(input.Environment)
 
 	natsLabels := k8slabels.Merge(labels, k8slabels.Set{"infrastructure": "Nats"})
+	natsLabels["microservice"] = ""
 	stanLabels := k8slabels.Merge(labels, k8slabels.Set{"infrastructure": "Stan"})
+	stanLabels["microservice"] = ""
 
 	nats := createNatsResources(namespace, environment, natsLabels, annotations)
 	stan := createStanResources(namespace, environment, stanLabels, annotations)
@@ -419,7 +415,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 
 	// TODO do I need this?
 	// TODO if I remove it, do I remove the config mapping?
-	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, string(tenantID))
+	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, customer.ID)
 	deployment := k8s.NewDeployment(microservice, headImage, runtimeImage)
 	service := k8s.NewService(microservice)
 	ingress := k8s.NewIngress(microservice)
