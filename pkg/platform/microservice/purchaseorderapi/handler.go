@@ -71,11 +71,6 @@ func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Requ
 		return err
 	}
 	if !rawDataLogExists {
-		logContext.Info("RawDataLog microservice didn't exist, starting to create it")
-		// @joel create it!!!
-		// TODO create new microserviceID
-		// @joel lookiup the ingress from git repo and hard code the path
-
 		storedIngress := platform.EnvironmentIngress{}
 		application, err := s.gitRepo.GetApplication(ms.Dolittle.TenantID, ms.Dolittle.ApplicationID)
 		if err != nil {
@@ -116,12 +111,12 @@ func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Requ
 				},
 			},
 			Extra: platform.HttpInputRawDataLogIngestorExtra{
+				// TODO these images won't evolve automatically
 				Headimage:    "dolittle/platform-api:latest",
 				Runtimeimage: "dolittle/runtime:6.1.0",
 				Ingress: platform.HttpInputSimpleIngress{
-					Host:         storedIngress.Host,
-					DomainPrefix: storedIngress.DomainPrefix,
-					// @joel it wants a prefix but we got the whoel secretname?
+					Host:             storedIngress.Host,
+					DomainPrefix:     storedIngress.DomainPrefix,
 					SecretNamePrefix: storedIngress.SecretName,
 					// TODO this is now hardcoded
 					Pathtype: "Prefix",

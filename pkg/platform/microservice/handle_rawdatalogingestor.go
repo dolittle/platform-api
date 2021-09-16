@@ -49,16 +49,11 @@ func (s *service) handleRawDataLogIngestor(responseWriter http.ResponseWriter, r
 		return
 	}
 
-	// TODO lookup to see if it exists?
-	// @joel update the code here too
-	exists := false
-	//exists := true s.rawDataLogIngestorRepo.Exists(namespace, ms.Environment, ms.Dolittle.MicroserviceID)
-	//exists, err := s.rawDataLogIngestorRepo.Exists(namespace, ms.Environment, ms.Dolittle.MicroserviceID)
-	//if err != nil {
-	//	// TODO change
-	//	utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-	//	return
-	//}
+	exists, err := s.rawDataLogIngestorRepo.Exists(msK8sInfo.Namespace, ms.Environment)
+	if err != nil {
+		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
+		return
+	}
 	if !exists {
 		// Create in Kubernetes
 		err = s.rawDataLogIngestorRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, ingress, ms) //TODO:
