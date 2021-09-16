@@ -3,6 +3,7 @@ package rawdatalog_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/mock"
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
@@ -33,7 +34,7 @@ var _ = Describe("Repo", func() {
 		k8sRepo = platform.NewK8sRepo(clientSet, config)
 		gitRepo = new(mocks.Repo)
 
-		rawDataLogRepo = NewRawDataLogIngestorRepo(k8sRepo, clientSet, gitRepo)
+		rawDataLogRepo = NewRawDataLogIngestorRepo(k8sRepo, clientSet, gitRepo, logrus.New())
 	})
 
 	Describe("when creating RawDataLog", func() {

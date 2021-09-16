@@ -34,8 +34,7 @@ func (r *k8sResourceSpecFactory) modifyEnvironmentVariablesConfigMap(environment
 	mongoDBURL := resources[tenantID].Readmodels.Host
 	readmodelDBName := resources[tenantID].Readmodels.Database
 
-	rawDataLogName := extra.RawDataLogName
-	natsClusterURL := fmt.Sprintf("%s-%s-nats.application-%s.svc.cluster.local:4222", strings.ToLower(k8sMicroservice.Environment), rawDataLogName, k8sMicroservice.Application.ID)
+	natsClusterURL := fmt.Sprintf("%s-nats.application-%s.svc.cluster.local:4222", strings.ToLower(k8sMicroservice.Environment), k8sMicroservice.Application.ID)
 
 	environmentVariablesConfigMap.Data = map[string]string{
 		"LOG_LEVEL":                 "debug",

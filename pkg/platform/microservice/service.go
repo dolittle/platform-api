@@ -15,6 +15,7 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	authV1 "k8s.io/api/authorization/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -22,9 +23,9 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-func NewService(gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClient kubernetes.Interface) service {
+func NewService(gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClient kubernetes.Interface, logContext logrus.FieldLogger) service {
 	parser := parser.NewJsonParser()
-	rawDataLogRepo := rawdatalog.NewRawDataLogIngestorRepo(k8sDolittleRepo, k8sClient, gitRepo)
+	rawDataLogRepo := rawdatalog.NewRawDataLogIngestorRepo(k8sDolittleRepo, k8sClient, gitRepo, logContext)
 	specFactory := purchaseorderapi.NewK8sResourceSpecFactory()
 	k8sResources := purchaseorderapi.NewK8sResource(k8sClient, specFactory)
 
@@ -38,7 +39,9 @@ func NewService(gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClien
 		purchaseOrderHandler: purchaseorderapi.NewRequestHandler(
 			parser,
 			purchaseorderapi.NewRepo(k8sResources, rawDataLogRepo),
-			gitRepo),
+			gitRepo,
+			rawDataLogRepo,
+			logContext),
 	}
 }
 
