@@ -48,7 +48,7 @@ func (r RawDataLogIngestorRepo) Exists(namespace string, environment string) (bo
 		"namespace":   namespace,
 		"environment": environment,
 		"method":      "RawDataLogIngestorRepo.Exists",
-	}).Info("Checking for RawDataLog microservices existence")
+	}).Debug("Checking for RawDataLog microservices existence")
 	ctx := context.TODO()
 	deployments, err := r.k8sClient.AppsV1().Deployments(namespace).List(ctx, metaV1.ListOptions{})
 
@@ -59,19 +59,13 @@ func (r RawDataLogIngestorRepo) Exists(namespace string, environment string) (bo
 	for _, deployment := range deployments.Items {
 		annotations := deployment.GetAnnotations()
 
-		r.logContext.WithFields(logrus.Fields{
-			"namespace":   namespace,
-			"environment": environment,
-			"method":      "RawDataLogIngestorRepo.Exists",
-		}).Info(fmt.Sprintf("Found these annotations: %v", annotations))
-
 		// the microserviceID is unique per microservice so that's enough for the check
 		if annotations["dolittle.io/microservice-kind"] == string(platform.MicroserviceKindRawDataLogIngestor) {
 			r.logContext.WithFields(logrus.Fields{
 				"namespace":   namespace,
 				"environment": environment,
 				"method":      "RawDataLogIngestorRepo.Exists",
-			}).Info("Found a RawDataLog microservice")
+			}).Debug("Found a RawDataLog microservice")
 			return true, nil
 		}
 	}
@@ -79,7 +73,7 @@ func (r RawDataLogIngestorRepo) Exists(namespace string, environment string) (bo
 		"namespace":   namespace,
 		"environment": environment,
 		"method":      "RawDataLogIngestorRepo.Exists",
-	}).Info("Found a RawDataLog microservice")
+	}).Debug("Didn't find a RawDataLog microservice")
 
 	return false, nil
 }
@@ -93,7 +87,7 @@ func (r RawDataLogIngestorRepo) Create(namespace string, customer k8s.Tenant, ap
 		"namespace": namespace,
 		"customer":  customer,
 		"method":    "RawDataLogIngestorRepo.Create",
-	}).Info("Starting to create the RawDataLog")
+	}).Debug("Starting to create the RawDataLog microservice")
 
 	microservice := k8s.Microservice{
 		Kind:        platform.MicroserviceKindRawDataLogIngestor,
@@ -332,7 +326,7 @@ func (r RawDataLogIngestorRepo) doStatefulService(namespace string, configMap *c
 	r.logContext.WithFields(logrus.Fields{
 		"namespace": namespace,
 		"method":    "RawDataLogIngestorRepo.doStatefulService",
-	}).Info("Finished creating statefulservice")
+	}).Debug("Finished creating statefulservice")
 
 	return nil
 }
@@ -341,7 +335,7 @@ func (r RawDataLogIngestorRepo) doNats(namespace string, labels, annotations k8s
 	r.logContext.WithFields(logrus.Fields{
 		"namespace": namespace,
 		"method":    "RawDataLogIngestorRepo.doNats",
-	}).Info("Starting to create the nats & stan")
+	}).Debug("Starting to create the nats and stan")
 
 	environment := strings.ToLower(input.Environment)
 
@@ -368,7 +362,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 	r.logContext.WithFields(logrus.Fields{
 		"namespace": namespace,
 		"method":    "RawDataLogIngestorRepo.doDolittle",
-	}).Info("Starting to create RawDataLog microservice")
+	}).Debug("Starting to create RawDataLog microservice")
 
 	// TODO not sure where this comes from really, assume dynamic
 	// tenantID := "17426336-fb8e-4425-8ab7-07d488367be9"
@@ -620,7 +614,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 	r.logContext.WithFields(logrus.Fields{
 		"namespace": namespace,
 		"method":    "RawDataLogIngestorRepo.doDolittle",
-	}).Info("Finished creating RawDataLog microservice")
+	}).Debug("Finished creating RawDataLog microservice")
 
 	return nil
 }
