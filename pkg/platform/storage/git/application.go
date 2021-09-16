@@ -2,7 +2,6 @@ package git
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -38,30 +37,47 @@ func (s *GitStorage) SaveApplication(application platform.HttpResponseApplicatio
 	filename := filepath.Join(dir, "application.json")
 	err = ioutil.WriteFile(filename, data, 0644)
 	if err != nil {
-		fmt.Println("writeFile")
+		s.logContext.WithFields(log.Fields{
+			"customer":    tenantID,
+			"application": applicationID,
+			"error":       err,
+		}).Error("Failed to write 'application.json'")
 		return err
 	}
 
 	// Adds the new file to the staging area.
 	// Need to remove the prefix
+	addPath := strings.TrimPrefix(filename, s.Directory+string(os.PathSeparator))
 	err = w.AddWithOptions(&git.AddOptions{
-		Path: strings.TrimPrefix(filename, s.Directory+"/"),
+		Path: addPath,
 	})
-
 	if err != nil {
-		fmt.Println("w.Add")
+		s.logContext.WithFields(log.Fields{
+			"customer":    tenantID,
+			"application": applicationID,
+			"path":        addPath,
+			"error":       err,
+		}).Error("Failed to add path to worktree")
 		return err
 	}
 
 	_, err = w.Status()
 	if err != nil {
-		fmt.Println("w.Status")
+		s.logContext.WithFields(log.Fields{
+			"customer":    tenantID,
+			"application": applicationID,
+			"error":       err,
+		}).Error("Failed to get worktree status")
 		return err
 	}
 
 	err = s.CommitAndPush(w, "upsert application")
-
 	if err != nil {
+		s.logContext.WithFields(log.Fields{
+			"customer":    tenantID,
+			"application": applicationID,
+			"error":       err,
+		}).Error("Failed to commit and push worktree")
 		return err
 	}
 
