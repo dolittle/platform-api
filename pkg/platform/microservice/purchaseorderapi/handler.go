@@ -131,6 +131,17 @@ func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Requ
 			SecretName: storedIngress.SecretName,
 		}
 		s.rawdatalogRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, applicationIngress, input)
+
+		err = s.gitRepo.SaveMicroservice(
+			input.Dolittle.TenantID,
+			input.Dolittle.ApplicationID,
+			input.Environment,
+			input.Dolittle.MicroserviceID,
+			input)
+		if err != nil {
+			utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
+			return nil
+		}
 	}
 
 	err = s.repo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, tenant, ms)
