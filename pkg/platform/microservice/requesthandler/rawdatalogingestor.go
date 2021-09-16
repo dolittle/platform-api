@@ -3,30 +3,29 @@ package requesthandler
 import (
 	_ "embed"
 	"errors"
-	"net/http"
 	"strings"
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/rawdatalog"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
+	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )
 
 type rawDataLogIngestorHandler struct {
-	parser  Parser
-	repo    rawdatalog.RawDataLogIngestorRepo
-	gitRepo storage.Repo
+	*handler
+	repo rawdatalog.RawDataLogIngestorRepo
 }
 
-func NewRawDataLogIngestorHandler(parser Parser, repo rawdatalog.RawDataLogIngestorRepo, gitRepo storage.Repo) Handler {
-	return &rawDataLogIngestorHandler{parser, repo, gitRepo}
-}
-func (s *rawDataLogIngestorHandler) CanHandle(kind platform.MicroserviceKind) bool {
-	return kind == platform.MicroserviceKindRawDataLogIngestor
+func NewRawDataLogIngestorHandler(parser Parser, repo rawdatalog.RawDataLogIngestorRepo, gitRepo storage.Repo, logContext logrus.FieldLogger) Handler {
+	return &rawDataLogIngestorHandler{
+		repo:    repo,
+		handler: newHandler(parser, gitRepo, platform.MicroserviceKindRawDataLogIngestor, logContext),
+	}
 }
 
-func (s *rawDataLogIngestorHandler) Create(request *http.Request, inputBytes []byte, applicationInfo platform.Application) (platform.Microservice, *Error) {
+func (s *rawDataLogIngestorHandler) Create(inputBytes []byte, applicationInfo platform.Application) (platform.Microservice, *Error) {
 	// Function assumes access check has taken place
 	var ms platform.HttpInputRawDataLogIngestorInfo
 

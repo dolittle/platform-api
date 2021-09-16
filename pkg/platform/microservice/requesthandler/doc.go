@@ -2,7 +2,6 @@ package requesthandler
 
 import (
 	"fmt"
-	"net/http"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/businessmomentsadaptor"
@@ -19,11 +18,26 @@ import (
 // Handler defines a system that can handle HTTP requests for creating and deleting microservices
 type Handler interface {
 	// Create handles the creation of a microservice
-	Create(request *http.Request, input []byte, applicationInfo platform.Application) (platform.Microservice, *Error)
+	Create(input []byte, applicationInfo platform.Application) (platform.Microservice, *Error)
 	// Delete handles the deletion of a microservice
 	Delete(namespace, microserviceID string) *Error
 	// CanHandle checks whether it can handle this microservice kind
 	CanHandle(kind platform.MicroserviceKind) bool
+}
+
+type handler struct {
+	parser     Parser
+	gitRepo    storage.Repo
+	kind       platform.MicroserviceKind
+	logContext logrus.FieldLogger
+}
+
+func newHandler(parser Parser, gitRepo storage.Repo, kind platform.MicroserviceKind, logContext logrus.FieldLogger) *handler {
+	return &handler{parser, gitRepo, platform.MicroserviceKindBusinessMomentsAdaptor, logContext}
+}
+
+func (h *handler) CanHandle(kind platform.MicroserviceKind) bool {
+	return kind == h.kind
 }
 
 // Defines a parser that can parse the HTTP request input data to a microservice
@@ -38,10 +52,10 @@ type Handlers []Handler
 func CreateHandlers(parser Parser, k8sClient kubernetes.Interface, gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, logContext logrus.FieldLogger) Handlers {
 	rawDataLogRepo := rawdatalog.NewRawDataLogIngestorRepo(k8sDolittleRepo, k8sClient, gitRepo, logContext)
 	return []Handler{
-		NewSimpleHandler(parser, simple.NewSimpleRepo(k8sClient), gitRepo),
+		NewSimpleHandler(parser, simple.NewSimpleRepo(k8sClient), gitRepo, logContext),
 		createPurchaseOrderApiHandler(parser, k8sClient, gitRepo, rawDataLogRepo, logContext),
-		NewRawDataLogIngestorHandler(parser, rawDataLogRepo, gitRepo),
-		NewBusinessMomentsAdapterHandler(parser, businessmomentsadaptor.NewBusinessMomentsAdaptorRepo(k8sClient), gitRepo),
+		NewRawDataLogIngestorHandler(parser, rawDataLogRepo, gitRepo, logContext),
+		NewBusinessMomentsAdapterHandler(parser, businessmomentsadaptor.NewBusinessMomentsAdaptorRepo(k8sClient), gitRepo, logContext),
 	}
 }
 func createPurchaseOrderApiHandler(parser Parser, k8sClient kubernetes.Interface, gitRepo storage.Repo, rawDataLogRepo rawdatalog.RawDataLogIngestorRepo, logContext logrus.FieldLogger) Handler {

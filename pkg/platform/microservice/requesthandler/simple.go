@@ -3,9 +3,9 @@ package requesthandler
 import (
 	_ "embed"
 	"errors"
-	"net/http"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	"github.com/sirupsen/logrus"
 
 	. "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/simple"
@@ -13,20 +13,17 @@ import (
 )
 
 type simpleHandler struct {
-	parser  Parser
-	repo    simple.Repo
-	gitRepo storage.Repo
+	*handler
+	repo simple.Repo
 }
 
-func NewSimpleHandler(parser Parser, repo simple.Repo, gitRepo storage.Repo) Handler {
-	return &simpleHandler{parser, repo, gitRepo}
+func NewSimpleHandler(parser Parser, repo simple.Repo, gitRepo storage.Repo, logContext logrus.FieldLogger) Handler {
+	return &simpleHandler{
+		repo:    repo,
+		handler: newHandler(parser, gitRepo, platform.MicroserviceKindBusinessMomentsAdaptor, logContext),
+	}
 }
-
-func (s *simpleHandler) CanHandle(kind platform.MicroserviceKind) bool {
-	return kind == platform.MicroserviceKindSimple
-}
-
-func (s *simpleHandler) Create(request *http.Request, inputBytes []byte, applicationInfo platform.Application) (platform.Microservice, *Error) {
+func (s *simpleHandler) Create(inputBytes []byte, applicationInfo platform.Application) (platform.Microservice, *Error) {
 	// Function assumes access check has taken place
 
 	var ms platform.HttpInputSimpleInfo

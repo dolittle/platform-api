@@ -96,12 +96,11 @@ func (s *service) Create(responseWriter http.ResponseWriter, request *http.Reque
 	if err != nil {
 		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
 	}
-	ms, createError := handler.Create(request, requestBytes, applicationInfo)
+	ms, createError := handler.Create(requestBytes, applicationInfo)
 	if createError != nil {
 		utils.RespondWithError(responseWriter, createError.StatusCode, createError.Error())
 	}
 	utils.RespondWithJSON(responseWriter, http.StatusOK, ms)
-
 }
 
 func (s *service) GetByID(w http.ResponseWriter, r *http.Request) {

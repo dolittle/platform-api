@@ -1,29 +1,26 @@
 package requesthandler
 
 import (
-	"net/http"
-
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/businessmomentsadaptor"
 	. "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
+	"github.com/sirupsen/logrus"
 )
 
 type businessMomentsAdapterHandler struct {
-	parser  Parser
-	repo    businessmomentsadaptor.Repo
-	gitRepo storage.Repo
+	*handler
+	repo businessmomentsadaptor.Repo
 }
 
-func NewBusinessMomentsAdapterHandler(parser Parser, repo businessmomentsadaptor.Repo, gitRepo storage.Repo) Handler {
-	return &businessMomentsAdapterHandler{parser, repo, gitRepo}
+func NewBusinessMomentsAdapterHandler(parser Parser, repo businessmomentsadaptor.Repo, gitRepo storage.Repo, logContext logrus.FieldLogger) Handler {
+	return &businessMomentsAdapterHandler{
+		repo:    repo,
+		handler: newHandler(parser, gitRepo, platform.MicroserviceKindBusinessMomentsAdaptor, logContext),
+	}
 }
 
-func (s *businessMomentsAdapterHandler) CanHandle(kind platform.MicroserviceKind) bool {
-	return kind == platform.MicroserviceKindBusinessMomentsAdaptor
-}
-
-func (s *businessMomentsAdapterHandler) Create(request *http.Request, inputBytes []byte, applicationInfo platform.Application) (platform.Microservice, *Error) {
+func (s *businessMomentsAdapterHandler) Create(inputBytes []byte, applicationInfo platform.Application) (platform.Microservice, *Error) {
 	// Function assumes access check has taken place
 	var ms platform.HttpInputBusinessMomentAdaptorInfo
 	msK8sInfo, statusErr := s.parser.Parse(inputBytes, &ms, applicationInfo)

@@ -2,7 +2,6 @@ package requesthandler
 
 import (
 	_ "embed"
-	"net/http"
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
@@ -14,23 +13,21 @@ import (
 )
 
 type purchaseOrderApiHandler struct {
-	parser         Parser
+	*handler
 	repo           purchaseorderapi.Repo
-	gitRepo        storage.Repo
 	rawdatalogRepo rawdatalog.RawDataLogIngestorRepo
-	logContext     logrus.FieldLogger
 }
 
 func NewPurchaseOrderApiHandler(parser Parser, repo purchaseorderapi.Repo, gitRepo storage.Repo, rawDataLogIngestorRepo rawdatalog.RawDataLogIngestorRepo, logContext logrus.FieldLogger) Handler {
-	return &purchaseOrderApiHandler{parser, repo, gitRepo, rawDataLogIngestorRepo, logContext}
-}
-
-func (s *purchaseOrderApiHandler) CanHandle(kind platform.MicroserviceKind) bool {
-	return kind == platform.MicroserviceKindPurchaseOrderAPI
+	return &purchaseOrderApiHandler{
+		repo:           repo,
+		rawdatalogRepo: rawDataLogIngestorRepo,
+		handler:        newHandler(parser, gitRepo, platform.MicroserviceKindPurchaseOrderAPI, logContext),
+	}
 }
 
 // Create creates a new PurchaseOrderAPI microservice and creates a RawDataLog microservice too if it didn't already exist
-func (s *purchaseOrderApiHandler) Create(request *http.Request, inputBytes []byte, applicationInfo platform.Application) (platform.Microservice, *Error) {
+func (s *purchaseOrderApiHandler) Create(inputBytes []byte, applicationInfo platform.Application) (platform.Microservice, *Error) {
 	// Function assumes access check has taken place
 	var ms platform.HttpInputPurchaseOrderInfo
 	msK8sInfo, parserError := s.parser.Parse(inputBytes, &ms, applicationInfo)
