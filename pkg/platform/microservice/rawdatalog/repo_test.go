@@ -3,6 +3,7 @@ package rawdatalog_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/mock"
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
@@ -14,6 +15,7 @@ import (
 	"k8s.io/client-go/testing"
 
 	. "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/rawdatalog"
+	mocks "github.com/dolittle-entropy/platform-api/pkg/platform/storage/mocks"
 )
 
 var _ = Describe("Repo", func() {
@@ -22,13 +24,16 @@ var _ = Describe("Repo", func() {
 		config         *rest.Config
 		k8sRepo        platform.K8sRepo
 		rawDataLogRepo RawDataLogIngestorRepo
+		gitRepo        *mocks.Repo
 	)
 
 	BeforeEach(func() {
 		clientSet = fake.NewSimpleClientset()
 		config = &rest.Config{}
 		k8sRepo = platform.NewK8sRepo(clientSet, config)
-		rawDataLogRepo = NewRawDataLogIngestorRepo(k8sRepo, clientSet)
+		gitRepo = new(mocks.Repo)
+
+		rawDataLogRepo = NewRawDataLogIngestorRepo(k8sRepo, clientSet, gitRepo)
 	})
 
 	Describe("when creating RawDataLog", func() {
@@ -38,6 +43,7 @@ var _ = Describe("Repo", func() {
 			application        k8s.Application
 			applicationIngress k8s.Ingress
 			input              platform.HttpInputRawDataLogIngestorInfo
+			storedApplication  platform.HttpResponseApplication
 		)
 
 		BeforeEach(func() {
@@ -55,6 +61,20 @@ var _ = Describe("Repo", func() {
 					Environment: "LoisMay",
 				},
 			}
+			storedApplication = platform.HttpResponseApplication{
+				Environments: []platform.HttpInputEnvironment{
+					{
+						Name: "LoisMay",
+						Tenants: []platform.TenantId{
+							"f4679b71-1215-4a60-8483-53b0d5f2bb47",
+						},
+					},
+				},
+			}
+			gitRepo.
+				On("GetApplication", mock.AnythingOfType("string"), mock.AnythingOfType("string")).
+				Return(storedApplication, nil)
+
 		})
 
 		JustBeforeEach(func() {
