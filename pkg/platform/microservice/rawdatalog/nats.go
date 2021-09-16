@@ -74,7 +74,7 @@ func createNatsResources(namespace, environment string, labels, annotations labe
 				{
 					Name:       "leafnodes",
 					Port:       7422,
-					TargetPort: intstr.FromString("leafnodes"),
+					TargetPort: intstr.FromString("client"),
 				},
 				{
 					Name: "gateways",
