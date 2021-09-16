@@ -14,12 +14,12 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-type K8sRepo struct {
+type k8sRepo struct {
 	k8sClient kubernetes.Interface
 }
 
-func NewK8sRepo(k8sClient kubernetes.Interface) Repo {
-	return K8sRepo{
+func NewK8sRepo(k8sClient kubernetes.Interface) K8sRepo {
+	return &k8sRepo{
 		k8sClient: k8sClient,
 	}
 }
@@ -49,7 +49,7 @@ func NewBusinessMomentsConfigmap(microservice k8s.Microservice) *coreV1.ConfigMa
 	}
 }
 
-func (r K8sRepo) GetBusinessMomentsConfigmap(applicationID string, environment string, microserviceID string) (coreV1.ConfigMap, error) {
+func (r *k8sRepo) GetBusinessMomentsConfigmap(applicationID string, environment string, microserviceID string) (coreV1.ConfigMap, error) {
 	ctx := context.TODO()
 	client := r.k8sClient
 	namespace := fmt.Sprintf("application-%s", applicationID)
@@ -91,7 +91,7 @@ func (r K8sRepo) GetBusinessMomentsConfigmap(applicationID string, environment s
 	return foundConfigmap, nil
 }
 
-func (r K8sRepo) SaveBusinessMomentsConfigmap(newConfigmap coreV1.ConfigMap, data []byte) error {
+func (r *k8sRepo) SaveBusinessMomentsConfigmap(newConfigmap coreV1.ConfigMap, data []byte) error {
 	ctx := context.TODO()
 	client := r.k8sClient
 	annotationsMap := newConfigmap.GetObjectMeta().GetAnnotations()

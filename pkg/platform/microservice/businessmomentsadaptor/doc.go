@@ -8,13 +8,13 @@ import (
 	coreV1 "k8s.io/api/core/v1"
 )
 
-type K8sRepoRepo interface {
+type K8sRepo interface {
 	SaveBusinessMomentsConfigmap(newConfigmap coreV1.ConfigMap, data []byte) error
-	GetBusinessMomentsConfigmap(applicationID string, environment string, microserviceID string) (coreV1.ConfigMap, error)
+	GetBusinessMomentsConfigmap(applicationID, environment, microserviceID string) (coreV1.ConfigMap, error)
 }
 type Repo interface {
 	Create(namespace string, customer k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, tenant platform.TenantId, input platform.HttpInputBusinessMomentAdaptorInfo) error
-	Delete(namespace string, microserviceID string) error
+	Delete(namespace, microserviceID string) error
 }
 
 var (

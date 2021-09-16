@@ -13,14 +13,13 @@ import (
 )
 
 type simpleHandler struct {
-	parser             Parser
-	repo               simple.Repo
-	storedEnvironments StoredEnvironments
-	gitRepo            storage.Repo
+	parser  Parser
+	repo    simple.Repo
+	gitRepo storage.Repo
 }
 
-func NewSimpleHandler(parser Parser, repo simple.Repo, storedEnvironments StoredEnvironments, gitRepo storage.Repo) Handler {
-	return &simpleHandler{parser, repo, storedEnvironments, gitRepo}
+func NewSimpleHandler(parser Parser, repo simple.Repo, gitRepo storage.Repo) Handler {
+	return &simpleHandler{parser, repo, gitRepo}
 }
 
 func (s *simpleHandler) Create(request *http.Request, inputBytes []byte, applicationInfo platform.Application) (platform.Microservice, *Error) {
@@ -44,7 +43,7 @@ func (s *simpleHandler) Create(request *http.Request, inputBytes []byte, applica
 		return nil, NewBadRequest(errors.New("Missing extra.ingress.host"))
 	}
 
-	tenant, err := s.storedEnvironments.GetTenant(applicationInfo.Tenant.ID, applicationInfo.ID, ms.Environment)
+	tenant, err := getFirstTenant(s.gitRepo, applicationInfo.Tenant.ID, applicationInfo.ID, ms.Environment)
 	if err != nil {
 		return nil, NewInternalError(err)
 	}

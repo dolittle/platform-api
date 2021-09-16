@@ -20,11 +20,3 @@ type Parser interface {
 	// Parses the bytes of an HTTP request and stores the result in the value pointed to by microservice.
 	Parse(requestBytes []byte, microservice platform.Microservice, applicationInfo platform.Application) (k8s.MicroserviceK8sInfo, *Error)
 }
-
-// StoredEnvironments knows about the configured environments in the persisted applications structure
-type StoredEnvironments interface {
-	// GetTenant gets the first configured tenant in the environment
-	GetTenant(customerID, applicationID, environment string) (platform.TenantId, error)
-	// GetIngress gets the first configured ingress in the environment
-	GetIngress(customerID, applicationID, environment string) (platform.EnvironmentIngress, error)
-}

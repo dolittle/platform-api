@@ -14,14 +14,13 @@ import (
 )
 
 type rawDataLogIngestorHandler struct {
-	parser             Parser
-	repo               rawdatalog.RawDataLogIngestorRepo
-	storedEnvironments StoredEnvironments
-	gitRepo            storage.Repo
+	parser  Parser
+	repo    rawdatalog.RawDataLogIngestorRepo
+	gitRepo storage.Repo
 }
 
-func NewRawDataLogIngestorHandler(parser Parser, repo rawdatalog.RawDataLogIngestorRepo, storedEnvironments StoredEnvironments, gitRepo storage.Repo) Handler {
-	return &rawDataLogIngestorHandler{parser, repo, storedEnvironments, gitRepo}
+func NewRawDataLogIngestorHandler(parser Parser, repo rawdatalog.RawDataLogIngestorRepo, gitRepo storage.Repo) Handler {
+	return &rawDataLogIngestorHandler{parser, repo, gitRepo}
 }
 
 func (s *rawDataLogIngestorHandler) Create(request *http.Request, inputBytes []byte, applicationInfo platform.Application) (platform.Microservice, *Error) {
@@ -33,7 +32,7 @@ func (s *rawDataLogIngestorHandler) Create(request *http.Request, inputBytes []b
 	if statusErr != nil {
 		return nil, statusErr
 	}
-	storedIngress, err := s.storedEnvironments.GetIngress(applicationInfo.Tenant.ID, applicationInfo.ID, ms.Environment)
+	storedIngress, err := getFirstIngress(s.gitRepo, applicationInfo.Tenant.ID, applicationInfo.ID, ms.Environment)
 	if err != nil {
 		return nil, NewInternalError(err)
 	}

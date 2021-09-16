@@ -10,14 +10,13 @@ import (
 )
 
 type purchaseOrderApiHandler struct {
-	parser             Parser
-	repo               purchaseorderapi.Repo
-	storedEnvironments StoredEnvironments
-	gitRepo            storage.Repo
+	parser  Parser
+	repo    purchaseorderapi.Repo
+	gitRepo storage.Repo
 }
 
-func NewPurchaseOrderApiHandler(parser Parser, repo purchaseorderapi.Repo, storedEnvironments StoredEnvironments, gitRepo storage.Repo) Handler {
-	return &purchaseOrderApiHandler{parser, repo, storedEnvironments, gitRepo}
+func NewPurchaseOrderApiHandler(parser Parser, repo purchaseorderapi.Repo, gitRepo storage.Repo) Handler {
+	return &purchaseOrderApiHandler{parser, repo, gitRepo}
 }
 
 func (s *purchaseOrderApiHandler) Create(request *http.Request, inputBytes []byte, applicationInfo platform.Application) (platform.Microservice, *Error) {
@@ -28,7 +27,7 @@ func (s *purchaseOrderApiHandler) Create(request *http.Request, inputBytes []byt
 		return nil, parserError
 	}
 
-	tenant, err := s.storedEnvironments.GetTenant(applicationInfo.Tenant.ID, applicationInfo.ID, ms.Environment)
+	tenant, err := getFirstTenant(s.gitRepo, applicationInfo.Tenant.ID, applicationInfo.ID, ms.Environment)
 	if err != nil {
 		return nil, NewInternalError(err)
 	}

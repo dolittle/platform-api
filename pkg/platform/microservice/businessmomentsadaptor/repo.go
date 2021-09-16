@@ -29,14 +29,14 @@ type businessMomentsAdaptorRepo struct {
 	kind      platform.MicroserviceKind
 }
 
-func NewBusinessMomentsAdaptorRepo(k8sClient kubernetes.Interface) businessMomentsAdaptorRepo {
-	return businessMomentsAdaptorRepo{
+func NewBusinessMomentsAdaptorRepo(k8sClient kubernetes.Interface) Repo {
+	return &businessMomentsAdaptorRepo{
 		k8sClient,
 		platform.MicroserviceKindBusinessMomentsAdaptor,
 	}
 }
 
-func (r businessMomentsAdaptorRepo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputBusinessMomentAdaptorInfo) error {
+func (r *businessMomentsAdaptorRepo) Create(namespace string, customer k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, tenant platform.TenantId, input platform.HttpInputBusinessMomentAdaptorInfo) error {
 	environment := input.Environment
 	host := applicationIngress.Host
 	secretName := applicationIngress.SecretName
@@ -49,10 +49,10 @@ func (r businessMomentsAdaptorRepo) Create(namespace string, tenant k8s.Tenant, 
 	microservice := k8s.Microservice{
 		ID:          microserviceID,
 		Name:        microserviceName,
-		Tenant:      tenant,
+		Tenant:      customer,
 		Application: application,
 		Environment: environment,
-		ResourceID:  TodoCustomersTenantID,
+		ResourceID:  string(tenant),
 		Kind:        r.kind,
 	}
 
@@ -66,7 +66,7 @@ func (r businessMomentsAdaptorRepo) Create(namespace string, tenant k8s.Tenant, 
 		},
 	}
 
-	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, TodoCustomersTenantID)
+	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, string(tenant))
 	deployment := k8s.NewDeployment(microservice, headImage, runtimeImage)
 	service := k8s.NewService(microservice)
 	ingress := k8s.NewIngress(microservice)
@@ -175,7 +175,7 @@ func (r businessMomentsAdaptorRepo) Create(namespace string, tenant k8s.Tenant, 
 	return nil
 }
 
-func (r businessMomentsAdaptorRepo) Delete(namespace string, microserviceID string) error {
+func (r *businessMomentsAdaptorRepo) Delete(namespace, microserviceID string) error {
 	ctx := context.TODO()
 	deployment, err := K8sGetDeployment(r.k8sClient, ctx, namespace, microserviceID)
 	if err != nil {

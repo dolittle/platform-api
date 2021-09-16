@@ -9,16 +9,8 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-type storedEnvironments struct {
-	gitRepo storage.Repo
-}
-
-func NewStoredEnvironments(gitRepo storage.Repo) StoredEnvironments {
-	return &storedEnvironments{gitRepo}
-}
-
-func (e *storedEnvironments) GetTenant(customerID, applicationID, environment string) (platform.TenantId, error) {
-	application, err := e.gitRepo.GetApplication(customerID, applicationID)
+func getFirstTenant(gitRepo storage.Repo, customerID, applicationID, environment string) (platform.TenantId, error) {
+	application, err := gitRepo.GetApplication(customerID, applicationID)
 	if err != nil {
 		return "", err
 	}
@@ -30,9 +22,9 @@ func (e *storedEnvironments) GetTenant(customerID, applicationID, environment st
 	return tenant, nil
 }
 
-func (e *storedEnvironments) GetIngress(customerID, applicationID, environment string) (platform.EnvironmentIngress, error) {
+func getFirstIngress(gitRepo storage.Repo, customerID, applicationID, environment string) (platform.EnvironmentIngress, error) {
 	ingress := platform.EnvironmentIngress{}
-	application, err := e.gitRepo.GetApplication(customerID, applicationID)
+	application, err := gitRepo.GetApplication(customerID, applicationID)
 	if err != nil {
 		return ingress, err
 	}

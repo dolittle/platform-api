@@ -1,44 +1,40 @@
 package requesthandler
 
 import (
-	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/businessmomentsadaptor"
 	. "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/k8s"
-	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/simple"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
-	"github.com/dolittle-entropy/platform-api/pkg/utils"
-	"github.com/gorilla/mux"
 )
 
 type businessMomentsAdapterHandler struct {
-	parser             Parser
-	repo               businessmomentsadaptor.Repo
-	storedEnvironments StoredEnvironments
-	gitRepo            storage.Repo
+	parser  Parser
+	repo    businessmomentsadaptor.Repo
+	gitRepo storage.Repo
 }
 
-func NewbusinessMomentsAdapterHandler(parser Parser, repo businessmomentsadaptor.Repo, storedEnvironments StoredEnvironments, gitRepo storage.Repo) Handler {
-	return &businessMomentsAdapterHandler{parser, repo, storedEnvironments, gitRepo}
+func NewbusinessMomentsAdapterHandler(parser Parser, repo businessmomentsadaptor.Repo, gitRepo storage.Repo) Handler {
+	return &businessMomentsAdapterHandler{parser, repo, gitRepo}
 }
 func (s *businessMomentsAdapterHandler) Create(request *http.Request, inputBytes []byte, applicationInfo platform.Application) (platform.Microservice, *Error) {
 	// Function assumes access check has taken place
 	var ms platform.HttpInputBusinessMomentAdaptorInfo
 	msK8sInfo, statusErr := s.parser.Parse(inputBytes, &ms, applicationInfo)
 	if statusErr != nil {
-		utils.RespondWithStatusError(responseWriter, statusErr)
-		return
+		return ms, statusErr
 	}
 	ingress := CreateTodoIngress()
 
-	err := s.businessMomentsAdaptorRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, ingress, ms)
-	if statusErr != nil {
+	tenant, err := getFirstTenant(s.gitRepo, applicationInfo.Tenant.ID, applicationInfo.ID, ms.Environment)
+	if err != nil {
+		return nil, NewInternalError(err)
+	}
+	err = s.repo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, ingress, tenant, ms)
+	if err != nil {
 		// TODO change
-		utils.RespondWithError(responseWriter, http.StatusInternalServerError, statusErr.Error())
-		return
+		return ms, NewInternalError(err)
 	}
 
 	// TODO this could be an event
@@ -51,11 +47,9 @@ func (s *businessMomentsAdapterHandler) Create(request *http.Request, inputBytes
 		ms,
 	)
 	if err != nil {
-		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
-		return
+		return ms, NewInternalError(err)
 	}
-
-	utils.RespondWithJSON(responseWriter, http.StatusOK, ms)
+	return ms, nil
 }
 
 func (s *businessMomentsAdapterHandler) Delete(namespace string, microserviceID string) *Error {
@@ -63,81 +57,4 @@ func (s *businessMomentsAdapterHandler) Delete(namespace string, microserviceID 
 		return NewInternalError(err)
 	}
 	return nil
-}
-
-// TODO notes from talking with Gøran
-// acl stuff later look more at CanModifyApplication
-func (s *businessMomentsAdapterHandler) BusinessMomentsAdaptorSave(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	applicationID := vars["applicationID"]
-	microserviceID := vars["microserviceID"]
-	namespace := fmt.Sprintf("application-%s", applicationID)
-	tenantID := r.Header.Get("Tenant-ID")
-
-	dnsSRV, err := s.k8sDolittleRepo.GetMicroserviceDNS(applicationID, microserviceID)
-	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	url := fmt.Sprintf("%s/save", strings.TrimSuffix(dnsSRV, "/"))
-
-	utils.RespondWithJSON(w, http.StatusOK, map[string]string{
-		"message":        "TODO businessmomentsadaptor save",
-		"namespace":      namespace,
-		"applicationID":  applicationID,
-		"microserviceID": microserviceID,
-		"tenantID":       tenantID,
-		"saveUrl":        url,
-	})
-}
-
-func (s *businessMomentsAdapterHandler) BusinessMomentsAdaptorRawData(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	applicationID := vars["applicationID"]
-	microserviceID := vars["microserviceID"]
-	namespace := fmt.Sprintf("application-%s", applicationID)
-	tenantID := r.Header.Get("Tenant-ID")
-
-	dnsSRV, err := s.k8sDolittleRepo.GetMicroserviceDNS(applicationID, microserviceID)
-	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	url := fmt.Sprintf("%s/rawdata", strings.TrimSuffix(dnsSRV, "/"))
-
-	utils.RespondWithJSON(w, http.StatusOK, map[string]string{
-		"message":        "TODO businessmomentsadaptor get rawdata",
-		"namespace":      namespace,
-		"applicationID":  applicationID,
-		"microserviceID": microserviceID,
-		"tenantID":       tenantID,
-		"rawDataUrl":     url,
-	})
-}
-
-func (s *businessMomentsAdapterHandler) BusinessMomentsAdaptorSync(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	applicationID := vars["applicationID"]
-	microserviceID := vars["microserviceID"]
-	namespace := fmt.Sprintf("application-%s", applicationID)
-	tenantID := r.Header.Get("Tenant-ID")
-
-	dnsSRV, err := s.k8sDolittleRepo.GetMicroserviceDNS(applicationID, microserviceID)
-	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	url := fmt.Sprintf("%s/sync", strings.TrimSuffix(dnsSRV, "/"))
-
-	utils.RespondWithJSON(w, http.StatusOK, map[string]string{
-		"message":        "TODO businessmomentsadaptor sync business moments back to studio",
-		"namespace":      namespace,
-		"applicationID":  applicationID,
-		"microserviceID": microserviceID,
-		"tenantID":       tenantID,
-		"syncUrl":        url,
-	})
 }
