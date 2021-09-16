@@ -96,13 +96,32 @@ func (s *GitStorage) GetApplication(tenantID string, applicationID string) (plat
 	return application, nil
 }
 
-func (s *GitStorage) GetApplications(tenantID string) ([]platform.HttpResponseApplication, error) {
+func (s *GitStorage) GetApplications(customerID string) ([]platform.HttpResponseApplication, error) {
+	applicationIDs, err := s.discoverCustomerApplicationIds(customerID)
+	applications := make([]platform.HttpResponseApplication, 0)
+
+	if err != nil {
+		return applications, err
+	}
+
+	for _, applicationID := range applicationIDs {
+		application, err := s.GetApplication(customerID, applicationID)
+		if err != nil {
+			s.logContext.Warning("Skipping application for tenant", customerID, "with ID", applicationID, "because it failed to load:", err)
+			continue
+		}
+		applications = append(applications, application)
+	}
+
+	return applications, nil
+}
+func (s *GitStorage) discoverCustomerApplicationIds(customerID string) ([]string, error) {
 	applicationIDs := []string{}
 
 	// TODO change to fs when gone to 1.16
-	err := filepath.Walk(s.Directory, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(filepath.Join(s.Directory, customerID), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
+			s.logContext.Errorf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
 			return err
 		}
 
@@ -117,20 +136,6 @@ func (s *GitStorage) GetApplications(tenantID string) ([]platform.HttpResponseAp
 		applicationIDs = append(applicationIDs, applicationID)
 		return nil
 	})
-	applications := make([]platform.HttpResponseApplication, 0)
 
-	if err != nil {
-		return applications, err
-	}
-
-	for _, applicationID := range applicationIDs {
-		application, err := s.GetApplication(tenantID, applicationID)
-		if err != nil {
-			fmt.Println("Skipping application for tenant", tenantID, "with ID", applicationID, "because it failed to load:", err)
-			continue
-		}
-		applications = append(applications, application)
-	}
-
-	return applications, nil
+	return applicationIDs, err
 }
