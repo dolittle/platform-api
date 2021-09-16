@@ -15,7 +15,6 @@ import (
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
-	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/businessmomentsadaptor"
 	. "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/k8s"
 	networkingv1 "k8s.io/api/networking/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -74,7 +73,7 @@ func (r *businessMomentsAdaptorRepo) Create(namespace string, customer k8s.Tenan
 	configEnvVariables := k8s.NewEnvVariablesConfigmap(microservice)
 	configFiles := k8s.NewConfigFilesConfigmap(microservice)
 	configSecrets := k8s.NewEnvVariablesSecret(microservice)
-	configBusinessMoments := businessmomentsadaptor.NewBusinessMomentsConfigmap(microservice)
+	configBusinessMoments := NewBusinessMomentsConfigmap(microservice)
 	ingress.Spec.TLS = k8s.AddIngressTLS([]string{host}, secretName)
 	ingress.Spec.Rules = append(ingress.Spec.Rules, k8s.AddIngressRule(host, ingressRules))
 

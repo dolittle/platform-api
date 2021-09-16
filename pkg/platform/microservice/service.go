@@ -9,9 +9,7 @@ import (
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
-	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/parser"
-	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/purchaseorderapi"
-	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/rawdatalog"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/requesthandler"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
@@ -23,22 +21,13 @@ import (
 )
 
 func NewService(gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClient kubernetes.Interface) service {
-	parser := parser.NewJsonParser()
-	rawDataLogRepo := rawdatalog.NewRawDataLogIngestorRepo(k8sDolittleRepo, k8sClient, gitRepo)
-	specFactory := purchaseorderapi.NewK8sResourceSpecFactory()
-	k8sResources := purchaseorderapi.NewK8sResource(k8sClient, specFactory)
+	parser := requesthandler.NewJsonParser()
 
 	return service{
-		gitRepo:                    gitRepo,
-		simpleRepo:                 NewSimpleRepo(k8sClient),
-		businessMomentsAdaptorRepo: NewBusinessMomentsAdaptorRepo(k8sClient),
-		rawDataLogIngestorRepo:     rawDataLogRepo,
-		k8sDolittleRepo:            k8sDolittleRepo,
-		parser:                     parser,
-		purchaseOrderHandler: purchaseorderapi.NewRequestHandler(
-			parser,
-			purchaseorderapi.NewRepo(k8sResources, rawDataLogRepo),
-			gitRepo),
+		gitRepo:         gitRepo,
+		k8sDolittleRepo: k8sDolittleRepo,
+		parser:          parser,
+		handlers:        requesthandler.CreateHandlers(parser, k8sClient, gitRepo, k8sDolittleRepo),
 	}
 }
 
@@ -102,18 +91,16 @@ func (s *service) Create(responseWriter http.ResponseWriter, request *http.Reque
 		return
 	}
 
-	switch microserviceBase.Kind {
-	case platform.MicroserviceKindSimple:
-		s.handleSimpleMicroservice(responseWriter, request, requestBytes, applicationInfo)
-	case platform.MicroserviceKindBusinessMomentsAdaptor:
-		s.handleBusinessMomentsAdaptor(responseWriter, request, requestBytes, applicationInfo)
-	case platform.MicroserviceKindRawDataLogIngestor:
-		s.handleRawDataLogIngestor(responseWriter, request, requestBytes, applicationInfo)
-	case platform.MicroserviceKindPurchaseOrderAPI:
-		s.purchaseOrderHandler.Create(responseWriter, request, requestBytes, applicationInfo)
-	default:
-		utils.RespondWithError(responseWriter, http.StatusBadRequest, fmt.Sprintf("Kind %s is not supported", microserviceBase.Kind))
+	handler, err := s.handlers.GetForKind(microserviceBase.Kind)
+	if err != nil {
+		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
 	}
+	ms, createError := handler.Create(request, requestBytes, applicationInfo)
+	if createError != nil {
+		utils.RespondWithError(responseWriter, createError.StatusCode, createError.Error())
+	}
+	utils.RespondWithJSON(responseWriter, http.StatusOK, ms)
+
 }
 
 func (s *service) GetByID(w http.ResponseWriter, r *http.Request) {
@@ -220,16 +207,11 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 		var whatKind platform.HttpInputMicroserviceKind
 		err = json.Unmarshal(msData, &whatKind)
 		if err == nil {
-			switch whatKind.Kind {
-			case platform.MicroserviceKindSimple:
-				err = s.simpleRepo.Delete(namespace, microserviceID)
-			case platform.MicroserviceKindBusinessMomentsAdaptor:
-				err = s.businessMomentsAdaptorRepo.Delete(namespace, microserviceID)
-			case platform.MicroserviceKindRawDataLogIngestor:
-				err = s.rawDataLogIngestorRepo.Delete(namespace, microserviceID)
-			case platform.MicroserviceKindPurchaseOrderAPI:
-				err = s.purchaseOrderHandler.Delete(namespace, microserviceID)
+			handler, err := s.handlers.GetForKind(whatKind.Kind)
+			if err == nil {
+				err = handler.Delete(namespace, microserviceID)
 			}
+
 			if err != nil {
 				statusCode = http.StatusUnprocessableEntity
 				errStr = err.Error()

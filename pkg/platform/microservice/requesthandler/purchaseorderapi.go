@@ -19,6 +19,10 @@ func NewPurchaseOrderApiHandler(parser Parser, repo purchaseorderapi.Repo, gitRe
 	return &purchaseOrderApiHandler{parser, repo, gitRepo}
 }
 
+func (s *purchaseOrderApiHandler) CanHandle(kind platform.MicroserviceKind) bool {
+	return kind == platform.MicroserviceKindPurchaseOrderAPI
+}
+
 func (s *purchaseOrderApiHandler) Create(request *http.Request, inputBytes []byte, applicationInfo platform.Application) (platform.Microservice, *Error) {
 	// Function assumes access check has taken place
 	var ms platform.HttpInputPurchaseOrderInfo

@@ -13,5 +13,5 @@ type service struct {
 	k8sClient             kubernetes.Interface
 	gitRepo               storage.Repo
 	k8sDolittleRepo       platform.K8sRepo
-	k8sBusinessMomentRepo businessmomentsadaptor.Repo
+	k8sBusinessMomentRepo businessmomentsadaptor.K8sRepo
 }

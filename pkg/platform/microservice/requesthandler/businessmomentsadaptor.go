@@ -15,9 +15,14 @@ type businessMomentsAdapterHandler struct {
 	gitRepo storage.Repo
 }
 
-func NewbusinessMomentsAdapterHandler(parser Parser, repo businessmomentsadaptor.Repo, gitRepo storage.Repo) Handler {
+func NewBusinessMomentsAdapterHandler(parser Parser, repo businessmomentsadaptor.Repo, gitRepo storage.Repo) Handler {
 	return &businessMomentsAdapterHandler{parser, repo, gitRepo}
 }
+
+func (s *businessMomentsAdapterHandler) CanHandle(kind platform.MicroserviceKind) bool {
+	return kind == platform.MicroserviceKindBusinessMomentsAdaptor
+}
+
 func (s *businessMomentsAdapterHandler) Create(request *http.Request, inputBytes []byte, applicationInfo platform.Application) (platform.Microservice, *Error) {
 	// Function assumes access check has taken place
 	var ms platform.HttpInputBusinessMomentAdaptorInfo

@@ -22,6 +22,10 @@ func NewSimpleHandler(parser Parser, repo simple.Repo, gitRepo storage.Repo) Han
 	return &simpleHandler{parser, repo, gitRepo}
 }
 
+func (s *simpleHandler) CanHandle(kind platform.MicroserviceKind) bool {
+	return kind == platform.MicroserviceKindSimple
+}
+
 func (s *simpleHandler) Create(request *http.Request, inputBytes []byte, applicationInfo platform.Application) (platform.Microservice, *Error) {
 	// Function assumes access check has taken place
 

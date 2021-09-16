@@ -22,6 +22,9 @@ type rawDataLogIngestorHandler struct {
 func NewRawDataLogIngestorHandler(parser Parser, repo rawdatalog.RawDataLogIngestorRepo, gitRepo storage.Repo) Handler {
 	return &rawDataLogIngestorHandler{parser, repo, gitRepo}
 }
+func (s *rawDataLogIngestorHandler) CanHandle(kind platform.MicroserviceKind) bool {
+	return kind == platform.MicroserviceKindRawDataLogIngestor
+}
 
 func (s *rawDataLogIngestorHandler) Create(request *http.Request, inputBytes []byte, applicationInfo platform.Application) (platform.Microservice, *Error) {
 	// Function assumes access check has taken place
