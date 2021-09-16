@@ -40,12 +40,12 @@ func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Requ
 		return parserError
 	}
 
-	logContext := s.logContext.WithFields(logrus.Fields{
+	s.logContext.WithFields(logrus.Fields{
 		"method":        "Create",
 		"tenantID":      applicationInfo.Tenant.ID,
 		"applicationID": applicationInfo.ID,
 		"environment":   ms.Environment,
-	})
+	}).Debug("Starting to create a PurchaseOrderAPI microservice")
 
 	application, err := s.gitRepo.GetApplication(applicationInfo.Tenant.ID, applicationInfo.ID)
 	if err != nil {
