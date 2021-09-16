@@ -119,7 +119,7 @@ func (s *GitStorage) discoverCustomerApplicationIds(customerID string) ([]string
 	applicationIDs := []string{}
 
 	// TODO change to fs when gone to 1.16
-	err := filepath.Walk(filepath.Join(s.Directory, customerID), func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(s.GetTenantDirectory(customerID), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			s.logContext.Errorf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
 			return err
