@@ -2,15 +2,19 @@ package purchaseorderapi
 
 import (
 	_ "embed"
+	"fmt"
 	"net/http"
 
+	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/parser"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/rawdatalog"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/requests"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 )
 
 type RequestHandler struct {
@@ -25,6 +29,7 @@ func NewRequestHandler(parser parser.Parser, repo Repo, gitRepo storage.Repo, ra
 	return &RequestHandler{parser, repo, gitRepo, rawDataLogIngestorRepo, logContext}
 }
 
+// Create creates a new PurchaseOrderAPI microservice and creates a RawDataLog microservice too if it didn't already exist
 func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Request, inputBytes []byte, applicationInfo platform.Application) error {
 	// Function assumes access check has taken place
 	var ms platform.HttpInputPurchaseOrderInfo
@@ -59,7 +64,57 @@ func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Requ
 	}
 	if !rawDataLogExists {
 		// @joel create it!!!
-		s.rawdatalogRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application)
+		// TODO create new microserviceID
+		// @joel lookiup the ingress from git repo and hard code the path
+
+		storedIngress := platform.EnvironmentIngress{}
+		application, err := s.gitRepo.GetApplication(ms.Dolittle.TenantID, ms.Dolittle.ApplicationID)
+		if err != nil {
+			return err
+		}
+		tenant, err := application.GetTenantForEnvironment(ms.Environment)
+		if err != nil {
+			return err
+		}
+		storedIngress, ok := application.Environments[funk.IndexOf(application.Environments, func(e platform.HttpInputEnvironment) bool {
+			return e.Name == ms.Environment
+		})].Ingresses[tenant]
+
+		if !ok {
+			return fmt.Errorf("Failed to get stored ingress for tenant %s in environment %s", string(tenant), environment)
+		}
+
+		input := platform.HttpInputRawDataLogIngestorInfo{
+			MicroserviceBase: platform.MicroserviceBase{
+				Name:        ms.Extra.RawDataLogName,
+				Kind:        platform.MicroserviceKindRawDataLogIngestor,
+				Environment: ms.Environment,
+				Dolittle: platform.HttpInputDolittle{
+					ApplicationID:  ms.Dolittle.ApplicationID,
+					TenantID:       ms.Dolittle.TenantID,
+					MicroserviceID: uuid.New().String(),
+				},
+			},
+			Extra: platform.HttpInputRawDataLogIngestorExtra{
+				Headimage:    "dolittle/platform-api:latest",
+				Runtimeimage: "dolittle/runtime:6.1.0",
+				Ingress: platform.HttpInputSimpleIngress{
+					Host:         storedIngress.Host,
+					DomainPrefix: storedIngress.DomainPrefix,
+					// @joel it wants a prefix but we got the whoel secretname?
+					SecretNamePrefix: storedIngress.SecretName,
+					// TODO this is now hardcoded
+					Pathtype: "Prefix",
+					Path:     "/api/webhooks",
+				},
+				WriteTo: "nats",
+			},
+		}
+		applicationIngress := k8s.Ingress{
+			Host:       storedIngress.Host,
+			SecretName: storedIngress.SecretName,
+		}
+		s.rawdatalogRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, applicationIngress, input)
 	}
 
 	err = s.repo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, tenant, ms)

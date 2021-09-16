@@ -39,6 +39,7 @@ func NewRawDataLogIngestorRepo(k8sDolittleRepo platform.K8sRepo, k8sClient *kube
 	}
 }
 
+// Checks whether
 func (r RawDataLogIngestorRepo) Exists(namespace string, environment string, microserviceID string) (bool, error) {
 	ctx := context.TODO()
 	deployments, err := r.k8sClient.AppsV1().Deployments(namespace).List(ctx, metaV1.ListOptions{})
@@ -50,6 +51,7 @@ func (r RawDataLogIngestorRepo) Exists(namespace string, environment string, mic
 	for _, deployment := range deployments.Items {
 		annotations := deployment.GetAnnotations()
 
+		// the microserviceID is unique per microservice so that's enough for the check
 		if annotations["dolittle.io/microservice-id"] == microserviceID {
 			return true, nil
 		}
@@ -86,9 +88,6 @@ func (r RawDataLogIngestorRepo) Create(namespace string, customer k8s.Tenant, ap
 		}
 	}
 
-	// @joel shoulnd we skip this part and only do the doNats() call?
-
-	// TODO add microservice
 	err := r.doDolittle(namespace, customer, application, applicationIngress, input)
 	if err != nil {
 		fmt.Println("Could not doDolittle", err)
@@ -235,6 +234,7 @@ func (r RawDataLogIngestorRepo) Delete(namespace string, microserviceID string) 
 	return nil
 }
 
+// Creates or deletes the statefulset, service and configmap of the given statefulset, service and configmap
 func (r RawDataLogIngestorRepo) doStatefulService(namespace string, configMap *corev1.ConfigMap, service *corev1.Service, statfulset *appsv1.StatefulSet, action string) error {
 	ctx := context.TODO()
 
@@ -303,6 +303,7 @@ func (r RawDataLogIngestorRepo) doStatefulService(namespace string, configMap *c
 	return nil
 }
 
+// Creates or deletes the given nats and stan statefulsets, services and configmaps
 func (r RawDataLogIngestorRepo) doNats(namespace string, labels, annotations k8slabels.Set, input platform.HttpInputRawDataLogIngestorInfo, action string) error {
 
 	environment := strings.ToLower(input.Environment)
@@ -323,6 +324,7 @@ func (r RawDataLogIngestorRepo) doNats(namespace string, labels, annotations k8s
 	return nil
 }
 
+// Creates the RawDataLog microservice in k8s
 func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputRawDataLogIngestorInfo) error {
 
 	// TODO not sure where this comes from really, assume dynamic
