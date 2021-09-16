@@ -13,6 +13,7 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	authV1 "k8s.io/api/authorization/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -20,14 +21,14 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-func NewService(gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClient kubernetes.Interface) service {
+func NewService(gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClient kubernetes.Interface, logContext logrus.FieldLogger) service {
 	parser := requesthandler.NewJsonParser()
 
 	return service{
 		gitRepo:         gitRepo,
 		k8sDolittleRepo: k8sDolittleRepo,
 		parser:          parser,
-		handlers:        requesthandler.CreateHandlers(parser, k8sClient, gitRepo, k8sDolittleRepo),
+		handlers:        requesthandler.CreateHandlers(parser, k8sClient, gitRepo, k8sDolittleRepo, logContext),
 	}
 }
 

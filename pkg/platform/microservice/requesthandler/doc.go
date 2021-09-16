@@ -11,6 +11,7 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/rawdatalog"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/simple"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
+	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"k8s.io/client-go/kubernetes"
 )
@@ -34,23 +35,25 @@ type Parser interface {
 type Handlers []Handler
 
 // CreateHandlers creates all the handlers for handling requests for the different microservice kinds
-func CreateHandlers(parser Parser, k8sClient kubernetes.Interface, gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo) Handlers {
-	rawDataLogRepo := rawdatalog.NewRawDataLogIngestorRepo(k8sDolittleRepo, k8sClient, gitRepo)
+func CreateHandlers(parser Parser, k8sClient kubernetes.Interface, gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, logContext logrus.FieldLogger) Handlers {
+	rawDataLogRepo := rawdatalog.NewRawDataLogIngestorRepo(k8sDolittleRepo, k8sClient, gitRepo, logContext)
 	return []Handler{
 		NewSimpleHandler(parser, simple.NewSimpleRepo(k8sClient), gitRepo),
-		createPurchaseOrderApiHandler(parser, k8sClient, gitRepo, rawDataLogRepo),
+		createPurchaseOrderApiHandler(parser, k8sClient, gitRepo, rawDataLogRepo, logContext),
 		NewRawDataLogIngestorHandler(parser, rawDataLogRepo, gitRepo),
 		NewBusinessMomentsAdapterHandler(parser, businessmomentsadaptor.NewBusinessMomentsAdaptorRepo(k8sClient), gitRepo),
 	}
 }
-func createPurchaseOrderApiHandler(parser Parser, k8sClient kubernetes.Interface, gitRepo storage.Repo, rawDataLogRepo rawdatalog.RawDataLogIngestorRepo) Handler {
+func createPurchaseOrderApiHandler(parser Parser, k8sClient kubernetes.Interface, gitRepo storage.Repo, rawDataLogRepo rawdatalog.RawDataLogIngestorRepo, logContext logrus.FieldLogger) Handler {
 	specFactory := purchaseorderapi.NewK8sResourceSpecFactory()
 	k8sResources := purchaseorderapi.NewK8sResource(k8sClient, specFactory)
 
 	return NewPurchaseOrderApiHandler(
 		parser,
 		purchaseorderapi.NewRepo(k8sResources, rawDataLogRepo),
-		gitRepo)
+		gitRepo,
+		rawDataLogRepo,
+		logContext)
 }
 
 func (h Handlers) GetForKind(kind platform.MicroserviceKind) (Handler, error) {
