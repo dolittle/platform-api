@@ -13,7 +13,6 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
-	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	authV1 "k8s.io/api/authorization/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"

@@ -60,15 +60,10 @@ func (s *rawDataLogIngestorHandler) Create(request *http.Request, inputBytes []b
 		return nil, NewForbidden(errors.New("writeTo is not valid, leave empty or set to stdout"))
 	}
 
-	// TODO lookup to see if it exists?
-	exists := false
-	//exists := true s.rawDataLogIngestorRepo.Exists(namespace, ms.Environment, ms.Dolittle.MicroserviceID)
-	//exists, err := s.rawDataLogIngestorRepo.Exists(namespace, ms.Environment, ms.Dolittle.MicroserviceID)
-	//if err != nil {
-	//	// TODO change
-	//	utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-	//	return
-	//}
+	exists, err := s.repo.Exists(msK8sInfo.Namespace, ms.Environment)
+	if err != nil {
+		return ms, NewInternalError(err)
+	}
 	if !exists {
 		// Create in Kubernetes
 		err = s.repo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, ingress, ms) //TODO:
