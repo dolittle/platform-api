@@ -1,8 +1,6 @@
 package purchaseorderapi_test
 
 import (
-	"fmt"
-
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	. "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/purchaseorderapi"
 	. "github.com/onsi/ginkgo"
@@ -74,7 +72,7 @@ var _ = Describe("For k8sResourceSpecFactory", func() {
 			Expect(result.ConfigEnvVariables.Data["SERVER_PORT"]).To(Equal("8080"))
 		})
 		It("should set the correct NATS_CLUSTER_URL", func() {
-			Expect(result.ConfigEnvVariables.Data["NATS_CLUSTER_URL"]).To(Equal(fmt.Sprintf("prod-%s-nats.application-12345-789.svc.cluster.local:4222", rawDataLogName)))
+			Expect(result.ConfigEnvVariables.Data["NATS_CLUSTER_URL"]).To(Equal("prod-nats.application-12345-789.svc.cluster.local:4222"))
 		})
 		It("should set NATS_START_FROM_BEGINNING to 'false'", func() {
 			Expect(result.ConfigEnvVariables.Data["NATS_START_FROM_BEGINNING"]).To(Equal("false"))
