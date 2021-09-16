@@ -290,7 +290,9 @@ func (r RawDataLogIngestorRepo) doNats(namespace string, labels, annotations k8s
 	environment := strings.ToLower(input.Environment)
 
 	natsLabels := k8slabels.Merge(labels, k8slabels.Set{"infrastructure": "Nats"})
+	natsLabels["microservice"] = ""
 	stanLabels := k8slabels.Merge(labels, k8slabels.Set{"infrastructure": "Stan"})
+	stanLabels["microservice"] = ""
 
 	nats := createNatsResources(namespace, environment, natsLabels, annotations)
 	stan := createStanResources(namespace, environment, stanLabels, annotations)
