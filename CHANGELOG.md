@@ -1,3 +1,14 @@
+# [0.4.2] - 2021-9-17 [PR: #28](https://github.com/dolittle/platform-api/pull/28)
+## Summary
+
+Add handling of an error
+
+### Fixed
+
+- An error that was not handled
+- Moved saving of purchase order api to git repo right after the microservice is created
+
+
 # [0.4.1] - 2021-9-17 [PR: #25](https://github.com/dolittle/platform-api/pull/25)
 ## Summary
 
