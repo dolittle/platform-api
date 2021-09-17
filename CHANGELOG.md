@@ -1,3 +1,14 @@
+# [0.4.1] - 2021-9-17 [PR: #25](https://github.com/dolittle/platform-api/pull/25)
+## Summary
+
+When getting applications from git repo start walking the directory from the customer folder, instead of the root of the repo.
+
+### Changed
+
+- When getting applications from git repo start searching from the customer folder
+- Use the logger
+
+
 # [0.4.0] - 2021-9-17 [PR: #24](https://github.com/dolittle/platform-api/pull/24)
 ## Summary
 
