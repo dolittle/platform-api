@@ -70,6 +70,20 @@ func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Requ
 		return nil
 	}
 
+	err = s.gitRepo.SaveMicroservice(
+		ms.Dolittle.TenantID,
+		ms.Dolittle.ApplicationID,
+		ms.Environment,
+		ms.Dolittle.MicroserviceID,
+		ms,
+	)
+
+	if err != nil {
+		// TODO change
+		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
+		return err
+	}
+
 	rawDataLogExists, err := s.rawdatalogRepo.Exists(msK8sInfo.Namespace, ms.Environment)
 	if err != nil {
 		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
@@ -150,20 +164,6 @@ func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Requ
 			utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
 			return nil
 		}
-	}
-
-	err = s.gitRepo.SaveMicroservice(
-		ms.Dolittle.TenantID,
-		ms.Dolittle.ApplicationID,
-		ms.Environment,
-		ms.Dolittle.MicroserviceID,
-		ms,
-	)
-
-	if err != nil {
-		// TODO change
-		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
-		return err
 	}
 
 	utils.RespondWithJSON(responseWriter, http.StatusOK, ms)
