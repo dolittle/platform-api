@@ -1,3 +1,18 @@
+# [0.4.0] - 2021-9-17 [PR: #24](https://github.com/dolittle/platform-api/pull/24)
+## Summary
+
+Checks whether a purchase order api microservice already exists by comparing the name of the deployment If it already exists it will return with an error and write a response with StatusInternalServerError
+
+### Added
+
+- Check for whether purchase order api exists when creating it
+
+### Changed
+
+- Changed some parameters and variables from *kubernetes.ClientSet to kubernetes.Interface in order to write specs
+- Temporarily removed the dependency to rawDataLogIngestorRepo from purchaseorderapi repo in order to make it easier to write specs
+
+
 # [0.3.0] - 2021-9-16 [PR: #26](https://github.com/dolittle/platform-api/pull/26)
 ## Summary
 
