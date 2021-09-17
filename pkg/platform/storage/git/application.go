@@ -2,7 +2,6 @@ package git
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	git "github.com/go-git/go-git/v5"
+	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )
 
@@ -37,30 +37,47 @@ func (s *GitStorage) SaveApplication(application platform.HttpResponseApplicatio
 	filename := filepath.Join(dir, "application.json")
 	err = ioutil.WriteFile(filename, data, 0644)
 	if err != nil {
-		fmt.Println("writeFile")
+		s.logContext.WithFields(log.Fields{
+			"customer":    tenantID,
+			"application": applicationID,
+			"error":       err,
+		}).Error("Failed to write 'application.json'")
 		return err
 	}
 
 	// Adds the new file to the staging area.
 	// Need to remove the prefix
+	addPath := strings.TrimPrefix(filename, s.Directory+string(os.PathSeparator))
 	err = w.AddWithOptions(&git.AddOptions{
-		Path: strings.TrimPrefix(filename, s.Directory+"/"),
+		Path: addPath,
 	})
-
 	if err != nil {
-		fmt.Println("w.Add")
+		s.logContext.WithFields(log.Fields{
+			"customer":    tenantID,
+			"application": applicationID,
+			"path":        addPath,
+			"error":       err,
+		}).Error("Failed to add path to worktree")
 		return err
 	}
 
 	_, err = w.Status()
 	if err != nil {
-		fmt.Println("w.Status")
+		s.logContext.WithFields(log.Fields{
+			"customer":    tenantID,
+			"application": applicationID,
+			"error":       err,
+		}).Error("Failed to get worktree status")
 		return err
 	}
 
 	err = s.CommitAndPush(w, "upsert application")
-
 	if err != nil {
+		s.logContext.WithFields(log.Fields{
+			"customer":    tenantID,
+			"application": applicationID,
+			"error":       err,
+		}).Error("Failed to commit and push worktree")
 		return err
 	}
 
@@ -96,13 +113,40 @@ func (s *GitStorage) GetApplication(tenantID string, applicationID string) (plat
 	return application, nil
 }
 
-func (s *GitStorage) GetApplications(tenantID string) ([]platform.HttpResponseApplication, error) {
+func (s *GitStorage) GetApplications(customerID string) ([]platform.HttpResponseApplication, error) {
+	applicationIDs, err := s.discoverCustomerApplicationIds(customerID)
+	applications := make([]platform.HttpResponseApplication, 0)
+
+	if err != nil {
+		return applications, err
+	}
+
+	for _, applicationID := range applicationIDs {
+		application, err := s.GetApplication(customerID, applicationID)
+		if err != nil {
+			s.logContext.WithFields(log.Fields{
+				"customer":    customerID,
+				"application": applicationID,
+				"error":       err,
+			}).Warning("Skipping application because it failed to load")
+			continue
+		}
+		applications = append(applications, application)
+	}
+
+	return applications, nil
+}
+func (s *GitStorage) discoverCustomerApplicationIds(customerID string) ([]string, error) {
 	applicationIDs := []string{}
 
 	// TODO change to fs when gone to 1.16
-	err := filepath.Walk(s.Directory, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(s.GetTenantDirectory(customerID), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
+			s.logContext.WithFields(log.Fields{
+				"customer": customerID,
+				"path":     path,
+				"error":    err,
+			}).Error("prevent panic by handling failure accessing a path")
 			return err
 		}
 
@@ -117,20 +161,6 @@ func (s *GitStorage) GetApplications(tenantID string) ([]platform.HttpResponseAp
 		applicationIDs = append(applicationIDs, applicationID)
 		return nil
 	})
-	applications := make([]platform.HttpResponseApplication, 0)
 
-	if err != nil {
-		return applications, err
-	}
-
-	for _, applicationID := range applicationIDs {
-		application, err := s.GetApplication(tenantID, applicationID)
-		if err != nil {
-			fmt.Println("Skipping application for tenant", tenantID, "with ID", applicationID, "because it failed to load:", err)
-			continue
-		}
-		applications = append(applications, application)
-	}
-
-	return applications, nil
+	return applicationIDs, err
 }
