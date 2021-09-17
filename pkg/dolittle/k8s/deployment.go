@@ -108,18 +108,28 @@ func NewDeployment(microservice Microservice, headImage string, runtimeImage str
 							},
 							VolumeMounts: []apiv1.VolumeMount{
 								{
+									MountPath: "/app/.dolittle/tenants.json",
+									SubPath:   "tenants.json",
+									Name:      "tenants-config",
+								},
+								{
 									MountPath: "/app/.dolittle/resources.json",
 									SubPath:   "resources.json",
 									Name:      "dolittle-config",
 								},
 								{
-									MountPath: "/app/data",
-									Name:      "config-files",
+									MountPath: "/app/.dolittle/clients.json",
+									SubPath:   "clients.json",
+									Name:      "dolittle-config",
 								},
 								{
 									MountPath: "/app/.dolittle/event-horizons.json",
 									SubPath:   "event-horizons.json",
 									Name:      "dolittle-config",
+								},
+								{
+									MountPath: "/app/data",
+									Name:      "config-files",
 								},
 							},
 						},

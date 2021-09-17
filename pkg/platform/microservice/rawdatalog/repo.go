@@ -1,14 +1,14 @@
 package rawdatalog
 
 import (
-	_ "embed"
 	"errors"
 	"log"
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
+
 	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
-	v1 "k8s.io/api/apps/v1"
+	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 
 	"context"
@@ -16,48 +16,66 @@ import (
 	"fmt"
 	"strings"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
-	k8sLabels "k8s.io/apimachinery/pkg/labels"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8slabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
-	"k8s.io/client-go/discovery"
-	memory "k8s.io/client-go/discovery/cached"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/restmapper"
 )
 
-//go:embed k8s/single-server-nats.yml
-var k8sRawDataLogIngestorNats string
-
-//go:embed k8s/single-server-stan-memory.yml
-var k8sRawDataLogIngestorStanInMemory string
-
-var decUnstructured = yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
-
 type RawDataLogIngestorRepo struct {
-	k8sClient       *kubernetes.Clientset
+	k8sClient       kubernetes.Interface
 	k8sDolittleRepo platform.K8sRepo
 	gitRepo         storage.Repo
+	logContext      logrus.FieldLogger
 }
 
-func NewRawDataLogIngestorRepo(k8sDolittleRepo platform.K8sRepo, k8sClient *kubernetes.Clientset, gitRepo storage.Repo) RawDataLogIngestorRepo {
+func NewRawDataLogIngestorRepo(k8sDolittleRepo platform.K8sRepo, k8sClient kubernetes.Interface, gitRepo storage.Repo, logContext logrus.FieldLogger) RawDataLogIngestorRepo {
 	return RawDataLogIngestorRepo{
 		k8sClient:       k8sClient,
 		k8sDolittleRepo: k8sDolittleRepo,
 		gitRepo:         gitRepo,
+		logContext:      logContext,
 	}
 }
 
-func (r RawDataLogIngestorRepo) Exists(namespace string, environment string, microserviceID string) (bool, error) {
-	return false, errors.New("TODO")
+// Checks whether
+func (r RawDataLogIngestorRepo) Exists(namespace string, environment string) (bool, error) {
+	r.logContext.WithFields(logrus.Fields{
+		"namespace":   namespace,
+		"environment": environment,
+		"method":      "RawDataLogIngestorRepo.Exists",
+	}).Debug("Checking for RawDataLog microservices existence")
+	ctx := context.TODO()
+	deployments, err := r.k8sClient.AppsV1().Deployments(namespace).List(ctx, metaV1.ListOptions{})
+
+	if err != nil {
+		return false, err
+	}
+
+	for _, deployment := range deployments.Items {
+		annotations := deployment.GetAnnotations()
+
+		// the microserviceID is unique per microservice so that's enough for the check
+		if annotations["dolittle.io/microservice-kind"] == string(platform.MicroserviceKindRawDataLogIngestor) {
+			r.logContext.WithFields(logrus.Fields{
+				"namespace":   namespace,
+				"environment": environment,
+				"method":      "RawDataLogIngestorRepo.Exists",
+			}).Debug("Found a RawDataLog microservice")
+			return true, nil
+		}
+	}
+	r.logContext.WithFields(logrus.Fields{
+		"namespace":   namespace,
+		"environment": environment,
+		"method":      "RawDataLogIngestorRepo.Exists",
+	}).Debug("Didn't find a RawDataLog microservice")
+
+	return false, nil
 }
 
 func (r RawDataLogIngestorRepo) Update(namespace string, tenant k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputRawDataLogIngestorInfo) error {
@@ -65,52 +83,37 @@ func (r RawDataLogIngestorRepo) Update(namespace string, tenant k8s.Tenant, appl
 }
 
 func (r RawDataLogIngestorRepo) Create(namespace string, customer k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputRawDataLogIngestorInfo) error {
-	config := r.k8sDolittleRepo.GetRestConfig()
-	ctx := context.TODO()
+	r.logContext.WithFields(logrus.Fields{
+		"namespace": namespace,
+		"customer":  customer,
+		"method":    "RawDataLogIngestorRepo.Create",
+	}).Debug("Starting to create the RawDataLog microservice")
 
-	templates := []string{
-		k8sRawDataLogIngestorNats,
-		k8sRawDataLogIngestorStanInMemory,
+	microservice := k8s.Microservice{
+		Kind:        platform.MicroserviceKindRawDataLogIngestor,
+		ID:          input.Dolittle.MicroserviceID, // TODO: I think the RawDataLogWebhookIngestor should have a fixed ID - not sure if we want to do that here or in the frontend?
+		Name:        "raw-data-log-ingestor",
+		Environment: input.Environment,
+		Application: application,
+		Tenant:      customer,
 	}
 
-	labels := map[string]string{
-		"tenant":       customer.Name,
-		"application":  application.Name,
-		"environment":  input.Environment,
-		"microservice": input.Name,
-	}
-
-	annotations := map[string]string{
-		"dolittle.io/tenant-id":       customer.ID,
-		"dolittle.io/application-id":  application.ID,
-		"dolittle.io/microservice-id": input.Dolittle.MicroserviceID,
-	}
+	labels := k8s.GetLabels(microservice)
+	annotations := k8s.GetAnnotations(microservice)
 
 	// TODO changing writeTo will break this.
 	if input.Extra.WriteTo != "stdout" {
-		action := "upsert"
-		for _, template := range templates {
-			parts := strings.Split(template, `---`)
-			for _, part := range parts {
-				if part == "" {
-					continue
-				}
 
-				err := doNats(
-					labels, annotations,
-					action, namespace, []byte(part), ctx, config)
-				if err != nil {
-					fmt.Println(err)
-					return err
-				}
-			}
+		action := "upsert"
+		if err := r.doNats(namespace, labels, annotations, input, action); err != nil {
+			fmt.Println("Could not doNats", err)
+			return err
 		}
 	}
 
-	// TODO add microservice
 	err := r.doDolittle(namespace, customer, application, applicationIngress, input)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Could not doDolittle", err)
 		return err
 	}
 	return nil
@@ -128,7 +131,7 @@ func (r RawDataLogIngestorRepo) Delete(namespace string, microserviceID string) 
 	client := r.k8sClient
 	ctx := context.TODO()
 	// Not possible to filter based on annotations
-	opts := metav1.ListOptions{}
+	opts := metaV1.ListOptions{}
 	deployments, err := client.AppsV1().Deployments(namespace).List(ctx, opts)
 
 	if err != nil {
@@ -137,7 +140,7 @@ func (r RawDataLogIngestorRepo) Delete(namespace string, microserviceID string) 
 
 	found := false
 	// Ugly name
-	var foundDeployment v1.Deployment
+	var foundDeployment appsv1.Deployment
 	for _, deployment := range deployments.Items {
 		_, ok := deployment.ObjectMeta.Labels["microservice"]
 		if !ok {
@@ -158,7 +161,7 @@ func (r RawDataLogIngestorRepo) Delete(namespace string, microserviceID string) 
 	// Stop deployment
 	s, err := client.AppsV1().
 		Deployments(namespace).
-		GetScale(ctx, foundDeployment.Name, metav1.GetOptions{})
+		GetScale(ctx, foundDeployment.Name, metaV1.GetOptions{})
 	if err != nil {
 		log.Fatal(err)
 		return errors.New("issue")
@@ -169,7 +172,7 @@ func (r RawDataLogIngestorRepo) Delete(namespace string, microserviceID string) 
 		sc.Spec.Replicas = 0
 		_, err := client.AppsV1().
 			Deployments(namespace).
-			UpdateScale(ctx, foundDeployment.Name, &sc, metav1.UpdateOptions{})
+			UpdateScale(ctx, foundDeployment.Name, &sc, metaV1.UpdateOptions{})
 		if err != nil {
 			log.Fatal(err)
 			return errors.New("todo")
@@ -177,15 +180,15 @@ func (r RawDataLogIngestorRepo) Delete(namespace string, microserviceID string) 
 	}
 
 	// Selector information for microservice, based on labels
-	opts = metav1.ListOptions{
-		LabelSelector: labels.FormatLabels(foundDeployment.GetObjectMeta().GetLabels()),
+	opts = metaV1.ListOptions{
+		LabelSelector: k8slabels.FormatLabels(foundDeployment.GetObjectMeta().GetLabels()),
 	}
 
 	// Remove configmaps
 	configs, _ := client.CoreV1().ConfigMaps(namespace).List(ctx, opts)
 
 	for _, config := range configs.Items {
-		err = client.CoreV1().ConfigMaps(namespace).Delete(ctx, config.Name, metav1.DeleteOptions{})
+		err = client.CoreV1().ConfigMaps(namespace).Delete(ctx, config.Name, metaV1.DeleteOptions{})
 		if err != nil {
 			log.Fatal(err)
 			return errors.New("todo")
@@ -195,7 +198,7 @@ func (r RawDataLogIngestorRepo) Delete(namespace string, microserviceID string) 
 	// Remove secrets
 	secrets, _ := client.CoreV1().Secrets(namespace).List(ctx, opts)
 	for _, secret := range secrets.Items {
-		err = client.CoreV1().Secrets(namespace).Delete(ctx, secret.Name, metav1.DeleteOptions{})
+		err = client.CoreV1().Secrets(namespace).Delete(ctx, secret.Name, metaV1.DeleteOptions{})
 		if err != nil {
 			log.Fatal(err)
 			return errors.New("todo")
@@ -205,7 +208,7 @@ func (r RawDataLogIngestorRepo) Delete(namespace string, microserviceID string) 
 	// Remove Ingress
 	ingresses, _ := client.NetworkingV1().Ingresses(namespace).List(ctx, opts)
 	for _, ingress := range ingresses.Items {
-		err = client.NetworkingV1().Ingresses(namespace).Delete(ctx, ingress.Name, metav1.DeleteOptions{})
+		err = client.NetworkingV1().Ingresses(namespace).Delete(ctx, ingress.Name, metaV1.DeleteOptions{})
 		if err != nil {
 			log.Fatal(err)
 			return errors.New("issue")
@@ -215,7 +218,7 @@ func (r RawDataLogIngestorRepo) Delete(namespace string, microserviceID string) 
 	// Remove Network Policy
 	policies, _ := client.NetworkingV1().NetworkPolicies(namespace).List(ctx, opts)
 	for _, policy := range policies.Items {
-		err = client.NetworkingV1().NetworkPolicies(namespace).Delete(ctx, policy.Name, metav1.DeleteOptions{})
+		err = client.NetworkingV1().NetworkPolicies(namespace).Delete(ctx, policy.Name, metaV1.DeleteOptions{})
 		if err != nil {
 			log.Fatal(err)
 			return errors.New("issue")
@@ -225,7 +228,7 @@ func (r RawDataLogIngestorRepo) Delete(namespace string, microserviceID string) 
 	// Remove Service
 	services, _ := client.CoreV1().Services(namespace).List(ctx, opts)
 	for _, service := range services.Items {
-		err = client.CoreV1().Services(namespace).Delete(ctx, service.Name, metav1.DeleteOptions{})
+		err = client.CoreV1().Services(namespace).Delete(ctx, service.Name, metaV1.DeleteOptions{})
 		if err != nil {
 			log.Fatal(err)
 			return errors.New("issue")
@@ -235,7 +238,7 @@ func (r RawDataLogIngestorRepo) Delete(namespace string, microserviceID string) 
 	// Remove statefulset
 	statefulSets, _ := client.AppsV1().StatefulSets(namespace).List(ctx, opts)
 	for _, stateful := range statefulSets.Items {
-		err = client.AppsV1().StatefulSets(namespace).Delete(ctx, stateful.Name, metav1.DeleteOptions{})
+		err = client.AppsV1().StatefulSets(namespace).Delete(ctx, stateful.Name, metaV1.DeleteOptions{})
 		if err != nil {
 			log.Fatal(err)
 			return errors.New("issue")
@@ -245,7 +248,7 @@ func (r RawDataLogIngestorRepo) Delete(namespace string, microserviceID string) 
 	// Remove deployment
 	err = client.AppsV1().
 		Deployments(namespace).
-		Delete(ctx, foundDeployment.Name, metav1.DeleteOptions{})
+		Delete(ctx, foundDeployment.Name, metaV1.DeleteOptions{})
 	if err != nil {
 		log.Fatal(err)
 		return errors.New("todo")
@@ -254,95 +257,112 @@ func (r RawDataLogIngestorRepo) Delete(namespace string, microserviceID string) 
 	return nil
 }
 
-func getKubernetesData(namespace string, body []byte, cfg *rest.Config) (*unstructured.Unstructured, dynamic.ResourceInterface, error) {
+// Creates or deletes the statefulset, service and configmap of the given statefulset, service and configmap
+func (r RawDataLogIngestorRepo) doStatefulService(namespace string, configMap *corev1.ConfigMap, service *corev1.Service, statfulset *appsv1.StatefulSet, action string) error {
+	ctx := context.TODO()
 
-	var dr dynamic.ResourceInterface
-	obj := &unstructured.Unstructured{}
-
-	dc, err := discovery.NewDiscoveryClientForConfig(cfg)
-	if err != nil {
-		return obj, dr, err
-	}
-	mapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(dc))
-
-	dyn, err := dynamic.NewForConfig(cfg)
-	if err != nil {
-		return obj, dr, err
-	}
-
-	_, gvk, err := decUnstructured.Decode(body, nil, obj)
-	if err != nil {
-		return obj, dr, err
-	}
-
-	// 4. Find GVR
-	mapping, err := mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
-	if err != nil {
-		return obj, dr, err
-	}
-
-	obj.SetNamespace(namespace)
-
-	dr = dyn.Resource(mapping.Resource).Namespace(obj.GetNamespace())
-	return obj, dr, nil
-}
-
-func doDo(obj *unstructured.Unstructured, dr dynamic.ResourceInterface, action string, ctx context.Context) error {
-	//data, err := json.Marshal(obj)
-	//fmt.Println(string(data))
-	//return err
 	if action == "delete" {
-		return dr.Delete(ctx, obj.GetName(), metav1.DeleteOptions{})
+		if err := r.k8sClient.AppsV1().StatefulSets(namespace).Delete(ctx, statfulset.GetName(), metaV1.DeleteOptions{}); err != nil {
+			return err
+		}
+		if err := r.k8sClient.CoreV1().Services(namespace).Delete(ctx, service.GetName(), metaV1.DeleteOptions{}); err != nil {
+			return err
+		}
+		if err := r.k8sClient.CoreV1().ConfigMaps(namespace).Delete(ctx, configMap.GetName(), metaV1.DeleteOptions{}); err != nil {
+			return err
+		}
+		return nil
 	}
 
 	if action != "upsert" {
 		return errors.New("action not supported")
 	}
 
-	data, err := json.Marshal(obj)
-	if err != nil {
+	if existing, err := r.k8sClient.CoreV1().ConfigMaps(namespace).Get(ctx, configMap.GetName(), metaV1.GetOptions{}); err != nil {
+		if k8serrors.IsNotFound(err) {
+			if _, err := r.k8sClient.CoreV1().ConfigMaps(namespace).Create(ctx, configMap, metaV1.CreateOptions{}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	} else {
+		configMap.ResourceVersion = existing.ResourceVersion
+		if _, err := r.k8sClient.CoreV1().ConfigMaps(namespace).Update(ctx, configMap, metaV1.UpdateOptions{}); err != nil {
+			return err
+		}
+	}
+
+	if existing, err := r.k8sClient.CoreV1().Services(namespace).Get(ctx, service.GetName(), metaV1.GetOptions{}); err != nil {
+		if k8serrors.IsNotFound(err) {
+			if _, err := r.k8sClient.CoreV1().Services(namespace).Create(ctx, service, metaV1.CreateOptions{}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	} else {
+		service.ResourceVersion = existing.ResourceVersion
+		if _, err := r.k8sClient.CoreV1().Services(namespace).Update(ctx, service, metaV1.UpdateOptions{}); err != nil {
+			return err
+		}
+	}
+
+	if existing, err := r.k8sClient.AppsV1().StatefulSets(namespace).Get(ctx, statfulset.GetName(), metaV1.GetOptions{}); err != nil {
+		if k8serrors.IsNotFound(err) {
+			if _, err := r.k8sClient.AppsV1().StatefulSets(namespace).Create(ctx, statfulset, metaV1.CreateOptions{}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	} else {
+		// TODO this probably won't work, as it's mostly forbidden to k8s to update the statefulset spec
+		statfulset.ResourceVersion = existing.ResourceVersion
+		if _, err := r.k8sClient.AppsV1().StatefulSets(namespace).Update(ctx, statfulset, metaV1.UpdateOptions{}); err != nil {
+			return err
+		}
+	}
+	r.logContext.WithFields(logrus.Fields{
+		"namespace": namespace,
+		"method":    "RawDataLogIngestorRepo.doStatefulService",
+	}).Debug("Finished creating statefulservice")
+
+	return nil
+}
+
+func (r RawDataLogIngestorRepo) doNats(namespace string, labels, annotations k8slabels.Set, input platform.HttpInputRawDataLogIngestorInfo, action string) error {
+	r.logContext.WithFields(logrus.Fields{
+		"namespace": namespace,
+		"method":    "RawDataLogIngestorRepo.doNats",
+	}).Debug("Starting to create the nats and stan")
+
+	environment := strings.ToLower(input.Environment)
+
+	natsLabels := k8slabels.Merge(labels, k8slabels.Set{"infrastructure": "Nats"})
+	natsLabels["microservice"] = ""
+	stanLabels := k8slabels.Merge(labels, k8slabels.Set{"infrastructure": "Stan"})
+	stanLabels["microservice"] = ""
+
+	nats := createNatsResources(namespace, environment, natsLabels, annotations)
+	stan := createStanResources(namespace, environment, stanLabels, annotations)
+
+	if err := r.doStatefulService(namespace, nats.configMap, nats.service, nats.statfulset, action); err != nil {
+		return err
+	}
+	if err := r.doStatefulService(namespace, stan.configMap, stan.service, stan.statfulset, action); err != nil {
 		return err
 	}
 
-	_, err = dr.Patch(ctx, obj.GetName(), types.ApplyPatchType, data, metav1.PatchOptions{
-		FieldManager: "platform-api",
-	})
-	return err
+	return nil
 }
 
-// https://ymmt2005.hatenablog.com/entry/2020/04/14/An_example_of_using_dynamic_client_of_k8s.io/client-go
-func doNats(
-	labels map[string]string,
-	annotations map[string]string,
-	action string, namespace string, body []byte, ctx context.Context, cfg *rest.Config) error {
-	obj, dr, err := getKubernetesData(namespace, body, cfg)
-	if err != nil {
-		return err
-	}
-
-	obj.SetNamespace(namespace)
-
-	currentLabels := obj.GetLabels()
-	if currentLabels == nil {
-		currentLabels = map[string]string{}
-	}
-
-	mergedLabels := k8sLabels.Merge(currentLabels, labels)
-
-	obj.SetLabels(mergedLabels)
-
-	currentAnnotations := obj.GetAnnotations()
-	if currentAnnotations == nil {
-		currentAnnotations = map[string]string{}
-	}
-
-	mergedAnnotations := k8sLabels.Merge(currentAnnotations, annotations)
-	obj.SetAnnotations(mergedAnnotations)
-
-	return doDo(obj, dr, action, ctx)
-}
-
+// Creates the RawDataLog microservice in k8s
 func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputRawDataLogIngestorInfo) error {
+	r.logContext.WithFields(logrus.Fields{
+		"namespace": namespace,
+		"method":    "RawDataLogIngestorRepo.doDolittle",
+	}).Debug("Starting to create RawDataLog microservice")
 
 	// TODO not sure where this comes from really, assume dynamic
 	// tenantID := "17426336-fb8e-4425-8ab7-07d488367be9"
@@ -355,7 +375,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 		return err
 	}
 
-	environment := input.Environment
+	environment := strings.ToLower(input.Environment)
 	host := applicationIngress.Host
 	secretName := applicationIngress.SecretName
 
@@ -363,6 +383,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 	microserviceName := input.Name
 	headImage := input.Extra.Headimage
 	runtimeImage := input.Extra.Runtimeimage
+	kind := input.Kind
 
 	microservice := k8s.Microservice{
 		ID:          microserviceID,
@@ -371,6 +392,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 		Application: application,
 		Environment: environment,
 		ResourceID:  string(tenantID),
+		Kind:        kind,
 	}
 
 	ingressServiceName := strings.ToLower(fmt.Sprintf("%s-%s", microservice.Environment, microservice.Name))
@@ -424,12 +446,13 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 		"DOLITTLE_APPLICATION_ID": application.ID,
 		"DOLITTLE_ENVIRONMENT":    environment,
 		"MICROSERVICE_CONFIG":     "/app/data/microservice_data_from_studio.json",
+		"TOPIC":                   "purchaseorders",
 	}
 
 	if input.Extra.WriteTo == "nats" {
 		stanClientID := "ingestor"
 		// TODO we hardcode nats
-		natsServer := fmt.Sprintf("nats.%s.svc.cluster.local", namespace)
+		natsServer := fmt.Sprintf("%s-nats.%s.svc.cluster.local", environment, namespace)
 		configEnvVariables.Data["NATS_SERVER"] = natsServer
 		configEnvVariables.Data["STAN_CLUSTER_ID"] = "stan"
 		configEnvVariables.Data["STAN_CLIENT_ID"] = stanClientID
@@ -451,7 +474,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 	ctx := context.TODO()
 
 	// ConfigMaps
-	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, microserviceConfigmap, metav1.CreateOptions{})
+	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, microserviceConfigmap, metaV1.CreateOptions{})
 
 	if err != nil {
 		if !k8serrors.IsAlreadyExists(err) {
@@ -459,7 +482,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 			return errors.New("issue")
 		}
 
-		_, err = client.CoreV1().ConfigMaps(namespace).Update(ctx, microserviceConfigmap, metav1.UpdateOptions{})
+		_, err = client.CoreV1().ConfigMaps(namespace).Update(ctx, microserviceConfigmap, metaV1.UpdateOptions{})
 		fmt.Println("microserviceConfigmap already exists")
 		if err != nil {
 			fmt.Println("error updating")
@@ -467,14 +490,14 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 		}
 	}
 
-	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, configEnvVariables, metav1.CreateOptions{})
+	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, configEnvVariables, metaV1.CreateOptions{})
 	if err != nil {
 		if !k8serrors.IsAlreadyExists(err) {
 			log.Fatal(err)
 			return errors.New("issue")
 		}
 
-		_, err = client.CoreV1().ConfigMaps(namespace).Update(ctx, configEnvVariables, metav1.UpdateOptions{})
+		_, err = client.CoreV1().ConfigMaps(namespace).Update(ctx, configEnvVariables, metaV1.UpdateOptions{})
 		fmt.Println("configEnvVariables already exists")
 		if err != nil {
 			fmt.Println("error updating")
@@ -482,14 +505,14 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 		}
 	}
 
-	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, configFiles, metav1.CreateOptions{})
+	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, configFiles, metaV1.CreateOptions{})
 	if err != nil {
 		if !k8serrors.IsAlreadyExists(err) {
 			log.Fatal(err)
 			return errors.New("issue")
 		}
 
-		_, err = client.CoreV1().ConfigMaps(namespace).Update(ctx, configFiles, metav1.UpdateOptions{})
+		_, err = client.CoreV1().ConfigMaps(namespace).Update(ctx, configFiles, metaV1.UpdateOptions{})
 		fmt.Println("configFiles already exists")
 		if err != nil {
 			fmt.Println("error updating")
@@ -498,14 +521,14 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 	}
 
 	// Secrets
-	_, err = client.CoreV1().Secrets(namespace).Create(ctx, configSecrets, metav1.CreateOptions{})
+	_, err = client.CoreV1().Secrets(namespace).Create(ctx, configSecrets, metaV1.CreateOptions{})
 	if err != nil {
 		if !k8serrors.IsAlreadyExists(err) {
 			log.Fatal(err)
 			return errors.New("issue")
 		}
 
-		_, err = client.CoreV1().Secrets(namespace).Update(ctx, configSecrets, metav1.UpdateOptions{})
+		_, err = client.CoreV1().Secrets(namespace).Update(ctx, configSecrets, metaV1.UpdateOptions{})
 		fmt.Println("configSecrets already exists")
 		if err != nil {
 			fmt.Println("error updating")
@@ -514,14 +537,14 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 	}
 
 	// Ingress
-	_, err = client.NetworkingV1().Ingresses(namespace).Create(ctx, ingress, metav1.CreateOptions{})
+	_, err = client.NetworkingV1().Ingresses(namespace).Create(ctx, ingress, metaV1.CreateOptions{})
 	if err != nil {
 		if !k8serrors.IsAlreadyExists(err) {
 			log.Fatal(err)
 			return errors.New("issue")
 		}
 
-		_, err = client.NetworkingV1().Ingresses(namespace).Update(ctx, ingress, metav1.UpdateOptions{})
+		_, err = client.NetworkingV1().Ingresses(namespace).Update(ctx, ingress, metaV1.UpdateOptions{})
 		fmt.Println("Ingress already exists")
 		if err != nil {
 			fmt.Println("error updating")
@@ -530,7 +553,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 	}
 
 	// Service
-	_, err = client.CoreV1().Services(namespace).Create(ctx, service, metav1.CreateOptions{})
+	_, err = client.CoreV1().Services(namespace).Create(ctx, service, metaV1.CreateOptions{})
 	if err != nil {
 		if !k8serrors.IsAlreadyExists(err) {
 			log.Fatal(err)
@@ -546,11 +569,11 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 			return err
 		}
 
-		_, err = client.CoreV1().Services(namespace).Patch(ctx, service.GetName(), types.ApplyPatchType, data, metav1.PatchOptions{
+		_, err = client.CoreV1().Services(namespace).Patch(ctx, service.GetName(), types.ApplyPatchType, data, metaV1.PatchOptions{
 			FieldManager: "platform-api",
 		})
 
-		//_, err = client.CoreV1().Services(namespace).Update(ctx, service, metav1.UpdateOptions{})
+		//_, err = client.CoreV1().Services(namespace).Update(ctx, service, metaV1.UpdateOptions{})
 		fmt.Println("Service already exists")
 		if err != nil {
 			fmt.Println("error updating")
@@ -559,7 +582,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 	}
 
 	// NetworkPolicy
-	_, err = client.NetworkingV1().NetworkPolicies(namespace).Create(ctx, networkPolicy, metav1.CreateOptions{})
+	_, err = client.NetworkingV1().NetworkPolicies(namespace).Create(ctx, networkPolicy, metaV1.CreateOptions{})
 	if err != nil {
 		if !k8serrors.IsAlreadyExists(err) {
 			log.Fatal(err)
@@ -567,21 +590,21 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 		}
 
 		fmt.Println("Network Policy already exists")
-		_, err = client.NetworkingV1().NetworkPolicies(namespace).Update(ctx, networkPolicy, metav1.UpdateOptions{})
+		_, err = client.NetworkingV1().NetworkPolicies(namespace).Update(ctx, networkPolicy, metaV1.UpdateOptions{})
 		if err != nil {
 			fmt.Println("error updating")
 			fmt.Println(err.Error())
 		}
 	}
 
-	_, err = client.AppsV1().Deployments(namespace).Create(ctx, deployment, metav1.CreateOptions{})
+	_, err = client.AppsV1().Deployments(namespace).Create(ctx, deployment, metaV1.CreateOptions{})
 	if err != nil {
 		if !k8serrors.IsAlreadyExists(err) {
 			log.Fatal(err)
 			return errors.New("issue")
 		}
 
-		_, err = client.AppsV1().Deployments(namespace).Update(ctx, deployment, metav1.UpdateOptions{})
+		_, err = client.AppsV1().Deployments(namespace).Update(ctx, deployment, metaV1.UpdateOptions{})
 		fmt.Println("Deployment Policy already exists")
 		if err != nil {
 			fmt.Println("error updating")
@@ -589,47 +612,10 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 		}
 	}
 
+	r.logContext.WithFields(logrus.Fields{
+		"namespace": namespace,
+		"method":    "RawDataLogIngestorRepo.doDolittle",
+	}).Debug("Finished creating RawDataLog microservice")
+
 	return nil
 }
-
-//func doDolittle(
-//	labels map[string]string,
-//	annotations map[string]string,
-//	action string, namespace string, body []byte, ctx context.Context, cfg *rest.Config) error {
-//	obj, dr, err := getKubernetesData(namespace, body, cfg)
-//	if err != nil {
-//		return err
-//	}
-//
-//	obj.SetNamespace(namespace)
-//	currentLabels := obj.GetLabels()
-//	if currentLabels == nil {
-//		labels = map[string]string{}
-//	}
-//
-//	mergedLabels := k8sLabels.Merge(currentLabels, labels)
-//
-//	obj.SetLabels(mergedLabels)
-//
-//	currentAnnotations := obj.GetAnnotations()
-//	if currentAnnotations == nil {
-//		annotations = map[string]string{}
-//	}
-//
-//	if obj.GetKind() == "Service" {
-//		// https://erwinvaneyk.nl/kubernetes-unstructured-to-typed/
-//		//var service corev1.Service
-//		//err = runtime.DefaultUnstructuredConverter.
-//		//	FromUnstructured(unstructured, &cluster)
-//		//assertNoError(err)
-//
-//		//Selector: labels,
-//	}
-//	fmt.Println(obj.GetKind())
-//
-//	mergedAnnotations := k8sLabels.Merge(currentAnnotations, annotations)
-//	obj.SetAnnotations(mergedAnnotations)
-//
-//	return doDo(obj, dr, action, ctx)
-//}
-//

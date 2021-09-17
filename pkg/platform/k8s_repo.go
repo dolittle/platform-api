@@ -22,10 +22,10 @@ import (
 
 type K8sRepo struct {
 	baseConfig *rest.Config
-	k8sClient  *kubernetes.Clientset
+	k8sClient  kubernetes.Interface
 }
 
-func NewK8sRepo(k8sClient *kubernetes.Clientset, config *rest.Config) K8sRepo {
+func NewK8sRepo(k8sClient kubernetes.Interface, config *rest.Config) K8sRepo {
 	return K8sRepo{
 		baseConfig: config,
 		k8sClient:  k8sClient,

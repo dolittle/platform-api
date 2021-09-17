@@ -1,3 +1,52 @@
+# [0.3.0] - 2021-9-16 [PR: #26](https://github.com/dolittle/platform-api/pull/26)
+## Summary
+
+When creating a PurchaseOrderAPI microservice, if the environment doesn't already have a RawDataLog microservice and Stan & Nats it will create them.
+
+### Added
+
+- Creates the missing RawDataLog deployment and Nats & Stan statefulsets when creating a PurchaseOrderAPI microservice if they didn't already exist
+- Save the RawDataLog microservice to the git repo
+- Add logging for the creation of RawDataLog
+
+### Changed
+
+- Describe the outwards facing code change
+
+### Fixed
+
+- Fixes the `NATS_CLUSTER_URL` env to the hardcoded `<env>-nats.namespace...` format
+- Also makes the RawDataLog handler (the specific one) to check for the RawDataLogs existence beforehand
+
+
+# [0.2.2] - 2021-9-16 [PR: #20](https://github.com/dolittle/platform-api/pull/20)
+## Summary
+
+I've changed the setup of NATS+STAN resources in the RawDataLogRepo:
+1. The name now includes the environment (to allow more than one)
+2. Removed the pod-anti-affinity settings on the STAN statefulset so that we can have more than 3 in total
+3. Added the Dolittle labels to the statefulsets (and pod templates) so that they are covered by the network policies
+4. Changed the setup so they are created with the non-dynamic Kubernetes client (to make it easier to test - the dynamic client requires a connection to a cluster to work).
+
+The tests are quite big, but I'm not verse with Ginkgo yet, so improvements on the structure are welcome :)
+
+I tried this out locally, and it does not work with the k3d cluster (the nats pod doesn't allow any connections). But with the docker cluster it works.
+
+#### Asana tasks
+- https://app.asana.com/0/1200747172416688/1200762338877903/f
+- https://app.asana.com/0/1200879032451150/1200931738686016/f
+
+### Changed
+
+- The creation of NATS+STAN resources now includes environment in the name, has labels to work with existing networkpolicies
+- Change creation of RawDataLog for NATS+STAN resources to use the non-dynamic (hardcoded) Kubernetes client.
+- Changed `*kubernetes.ClientSet` to `kubernetes.Interface` everywhere to enable the use of the Fake client.
+
+### Fixed
+
+- The wrong tenant id was given when creating config map for rawdatalogingestor microservice
+
+
 # [0.2.1] - 2021-9-15 [PR: #22](https://github.com/dolittle/platform-api/pull/22)
 ## Summary
 
