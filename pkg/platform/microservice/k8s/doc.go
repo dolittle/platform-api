@@ -33,7 +33,8 @@ func CreateTodoIngress() k8s.Ingress {
 }
 
 // Gets the deployment that is linked to the microserviceID in the given namespace
-func K8sGetDeployment(client kubernetes.Interface, context context.Context, namespace string, microserviceID string) (v1.Deployment, error) {
+// Caveat: This will only get the first deployment that has the given dolittle.io/microservice-id annotation
+func K8sGetDeployment(client kubernetes.Interface, context context.Context, namespace, microserviceID string) (v1.Deployment, error) {
 	deployments, err := client.AppsV1().Deployments(namespace).List(context, metaV1.ListOptions{})
 	if err != nil {
 		return v1.Deployment{}, err
@@ -58,6 +59,29 @@ func K8sGetDeployment(client kubernetes.Interface, context context.Context, name
 		return v1.Deployment{}, errors.New("not-found")
 	}
 	return foundDeployment, nil
+}
+
+// K8sHasDeploymentWithName gets the microservice deployment that is has a specific name in the given namespace
+func K8sHasDeploymentWithName(client kubernetes.Interface, context context.Context, namespace, name string) (bool, error) {
+	deployments, err := client.AppsV1().Deployments(namespace).List(context, metaV1.ListOptions{})
+	if err != nil {
+		return false, err
+	}
+
+	found := false
+	for _, deployment := range deployments.Items {
+		_, ok := deployment.ObjectMeta.Labels["microservice"]
+		if !ok {
+			continue
+		}
+
+		if deployment.Name == name {
+			found = true
+			break
+		}
+	}
+
+	return found, nil
 }
 
 // Stops a deployment by scaling it down to zero

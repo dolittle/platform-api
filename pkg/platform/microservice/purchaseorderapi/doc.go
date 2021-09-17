@@ -14,6 +14,8 @@ type Repo interface {
 	Create(namespace string, customer k8s.Tenant, application k8s.Application, tenant platform.TenantId, input platform.HttpInputPurchaseOrderInfo) error
 	// Delete deletes the microservice by deleting its kubernetes resources
 	Delete(namespace, microserviceID string) error
+	// Exists checks whether the purchase order api has already been created
+	Exists(namespace string, customer k8s.Tenant, application k8s.Application, tenant platform.TenantId, input platform.HttpInputPurchaseOrderInfo) (bool, error)
 }
 
 type K8sResource interface {

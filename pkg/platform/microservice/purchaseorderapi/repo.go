@@ -2,22 +2,26 @@ package purchaseorderapi
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
-	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/rawdatalog"
+	microserviceK8s "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/k8s"
+	"k8s.io/client-go/kubernetes"
 )
 
 type repo struct {
-	k8sResource    K8sResource
-	rawdatalogRepo rawdatalog.RawDataLogIngestorRepo
+	k8sResource            K8sResource
+	k8sClient              kubernetes.Interface
+	k8sResourceSpecFactory K8sResourceSpecFactory
 }
 
 // NewRepo creates a new instance of purchaseorderapiRepo.
-func NewRepo(k8sResource K8sResource, rawDataLogIngestorRepo rawdatalog.RawDataLogIngestorRepo) Repo {
+func NewRepo(k8sResource K8sResource, k8sResourceSpecFactory K8sResourceSpecFactory, k8sClient kubernetes.Interface) Repo {
 	return &repo{
 		k8sResource,
-		rawDataLogIngestorRepo,
+		k8sClient,
+		k8sResourceSpecFactory,
 	}
 }
 
@@ -48,6 +52,32 @@ func (r *repo) Create(namespace string, customer k8s.Tenant, application k8s.App
 	}
 
 	return nil
+}
+func (r *repo) Exists(namespace string, customer k8s.Tenant, application k8s.Application, tenant platform.TenantId, input platform.HttpInputPurchaseOrderInfo) (bool, error) {
+	environment := input.Environment
+	microserviceID := input.Dolittle.MicroserviceID
+	microserviceName := input.Name
+	headImage := input.Extra.Headimage
+	runtimeImage := input.Extra.Runtimeimage
+
+	microservice := k8s.Microservice{
+		ID:          microserviceID,
+		Name:        microserviceName,
+		Tenant:      customer,
+		Application: application,
+		Environment: environment,
+		ResourceID:  microserviceK8s.TodoCustomersTenantID,
+		Kind:        platform.MicroserviceKindPurchaseOrderAPI,
+	}
+
+	ctx := context.TODO()
+
+	resources := r.k8sResourceSpecFactory.CreateAll(headImage, runtimeImage, microservice, tenant, input.Extra)
+	exists, err := microserviceK8s.K8sHasDeploymentWithName(r.k8sClient, ctx, namespace, resources.Deployment.Name)
+	if err != nil {
+		return false, fmt.Errorf("Failed to get purchase order api deployment: %v", err)
+	}
+	return exists, nil
 }
 
 // Delete stops the running purchase order api and deletes the kubernetes resources.
