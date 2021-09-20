@@ -34,33 +34,42 @@ func NewRequestHandler(parser parser.Parser, repo Repo, gitRepo storage.Repo, ra
 func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Request, inputBytes []byte, applicationInfo platform.Application) error {
 	// Function assumes access check has taken place
 
+	logger := s.logContext.WithFields(logrus.Fields{
+		"handler": "PurchaseOrderAPI",
+		"method":  "Create",
+	})
+
 	var ms platform.HttpInputPurchaseOrderInfo
 	msK8sInfo, parserError := s.parser.Parse(inputBytes, &ms, applicationInfo)
 	if parserError != nil {
+		logger.WithError(parserError).Error("Failed to parse input")
 		utils.RespondWithStatusError(responseWriter, parserError)
 		return parserError
 	}
 
-	s.logContext.WithFields(logrus.Fields{
-		"method":        "Create",
+	logger = logger.WithFields(logrus.Fields{
 		"tenantID":      applicationInfo.Tenant.ID,
 		"applicationID": applicationInfo.ID,
 		"environment":   ms.Environment,
-	}).Debug("Starting to create a PurchaseOrderAPI microservice")
+	})
+	logger.Debug("Starting to create a PurchaseOrderAPI microservice")
 
 	tenant, err := s.getConfiguredTenant(applicationInfo.Tenant.ID, applicationInfo.ID, ms.Environment)
 	if err != nil {
+		logger.WithError(err).Error("Failed to get configured tenant")
 		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
 		return err
 	}
 
 	microservices, err := s.gitRepo.GetMicroservices(msK8sInfo.Tenant.ID, msK8sInfo.Application.ID)
 	if err != nil {
+		logger.WithError(err).Error("Failed to get microservices from GitRepo")
 		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
 		return err
 	}
 	for _, microservice := range microservices {
 		if microservice.Kind == platform.MicroserviceKindPurchaseOrderAPI && strings.EqualFold(microservice.Environment, ms.Environment) {
+			logger.Warn("A Purchase Order API Microservice already exists in GitRepo")
 			utils.RespondWithError(responseWriter, http.StatusConflict, fmt.Sprintf("A Purchase Order API Microservice already exists in %s enironment in application %s under customer %s", ms.Environment, ms.Dolittle.ApplicationID, ms.Dolittle.TenantID))
 			return nil
 		}
@@ -68,26 +77,31 @@ func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Requ
 
 	exists, err := s.repo.EnvironmentHasPurchaseOrderAPI(msK8sInfo.Namespace, ms)
 	if err != nil {
+		logger.WithError(err).Error("Failed to check if environment has Purchase Order API with K8sRepo")
 		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
 		return err
 	}
 	if exists {
+		logger.Warn("A Purchase Order API Microservice already exists in K8sRepo")
 		utils.RespondWithError(responseWriter, http.StatusConflict, fmt.Sprintf("A Purchase Order API Microservice already exists in %s enironment in application %s under customer %s", ms.Environment, ms.Dolittle.ApplicationID, ms.Dolittle.TenantID))
 		return nil
 	}
 
 	exists, err = s.repo.Exists(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, tenant, ms)
 	if err != nil {
+		logger.WithError(err).Error("Failed to check if Purchase Order API exists with K8sRepo")
 		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
 		return err
 	}
 	if exists {
+		logger.WithField("microserviceID", ms.Dolittle.MicroserviceID).Warn("A Purchase Order API Microservice with the same name already exists in K8sRepo")
 		utils.RespondWithError(responseWriter, http.StatusConflict, fmt.Sprintf("A Purchase Order API Microservice with ID %s already exists in %s enironment in application %s under customer %s", ms.Dolittle.MicroserviceID, ms.Environment, ms.Dolittle.ApplicationID, ms.Dolittle.TenantID))
 		return nil
 	}
 
 	err = s.repo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, tenant, ms)
 	if err != nil {
+		logger.WithError(err).Error("Failed to create Purchase Order API")
 		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
 		return nil
 	}
@@ -102,23 +116,28 @@ func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Requ
 
 	if err != nil {
 		// TODO change
+		logger.WithError(err).Error("Failed to save Purchase Order API in GitRepo")
 		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
 		return err
 	}
 
 	rawDataLogExists, err := s.rawdatalogRepo.Exists(msK8sInfo.Namespace, ms.Environment)
 	if err != nil {
+		logger.WithError(err).Error("Failed to check if Raw Data Log exists")
 		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
 		return err
 	}
 	if !rawDataLogExists {
+		logger.Debug("Raw Data Log does not exist, creating a new one")
 		storedIngress := platform.EnvironmentIngress{}
 		application, err := s.gitRepo.GetApplication(ms.Dolittle.TenantID, ms.Dolittle.ApplicationID)
 		if err != nil {
+			logger.WithError(err).Error("Failed to get application from GitRepo")
 			return err
 		}
 		tenant, err := application.GetTenantForEnvironment(ms.Environment)
 		if err != nil {
+			logger.WithError(err).Error("Failed to get tenant for environment")
 			return err
 		}
 		storedIngress, ok := application.Environments[funk.IndexOf(application.Environments, func(e platform.HttpInputEnvironment) bool {
@@ -126,7 +145,8 @@ func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Requ
 		})].Ingresses[tenant]
 
 		if !ok {
-			return fmt.Errorf("Failed to get stored ingress for tenant %s in environment %s", string(tenant), ms.Environment)
+			logger.WithError(err).WithField("tenant", tenant).WithField("environment", ms.Environment).Error("Failed to get stored ingress for tenant")
+			return fmt.Errorf("failed to get stored ingress for tenant %s in environment %s", string(tenant), ms.Environment)
 		}
 
 		webhookConfigs := []platform.RawDataLogIngestorWebhookConfig{}
@@ -173,6 +193,7 @@ func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Requ
 		}
 		err = s.rawdatalogRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, applicationIngress, input)
 		if err != nil {
+			logger.WithError(err).Error("Failed to create Raw Data Log")
 			utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
 			return nil
 		}
@@ -183,6 +204,7 @@ func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Requ
 			input.Dolittle.MicroserviceID,
 			input)
 		if err != nil {
+			logger.WithError(err).Error("Failed to save Raw Data Log in GitRepo")
 			utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
 			return nil
 		}
