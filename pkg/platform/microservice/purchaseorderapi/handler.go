@@ -54,7 +54,17 @@ func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Requ
 		return err
 	}
 
-	exists, err := s.repo.Exists(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, tenant, ms)
+	exists, err := s.repo.EnvironmentHasPurchaseOrderAPI(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, tenant, ms)
+	if err != nil {
+		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
+		return err
+	}
+	if exists {
+		utils.RespondWithError(responseWriter, http.StatusConflict, fmt.Sprintf("A Purchase Order API Microservice already exists in %s enironment in application %s under customer %s", ms.Environment, ms.Dolittle.ApplicationID, ms.Dolittle.TenantID))
+		return nil
+	}
+
+	exists, err = s.repo.Exists(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, tenant, ms)
 	if err != nil {
 		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
 		return err
