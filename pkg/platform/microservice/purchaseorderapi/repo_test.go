@@ -9,152 +9,985 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/apps/v1"
-	"k8s.io/client-go/kubernetes"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
 var _ = Describe("For repo", func() {
 	var (
 		repo Repo
+
+		customer            k8s.Tenant
+		application         k8s.Application
+		namespace           string
+		name                string
+		environment         string
+		tenant              platform.TenantId
+		createInput         platform.HttpInputPurchaseOrderInfo
+		existingDeployments []runtime.Object
+
+		result bool
+		err    error
 	)
 
-	Describe("when checking if purchase order api exists", func() {
-		var (
-			namespace      string
-			customer       k8s.Tenant
-			application    k8s.Application
-			tenant         platform.TenantId
-			input          platform.HttpInputPurchaseOrderInfo
-			deploymentInfo fakeDeploymentInfo
-			existsResult   bool
-			errResult      error
-		)
+	BeforeEach(func() {
+		customer = k8s.Tenant{
+			Name: "tenant-name",
+			ID:   "67dcf38f-16e4-4b57-bff5-707cff3233ec",
+		}
+		application = k8s.Application{
+			Name: "application-name",
+			ID:   "c1e08289-be4b-4557-9457-5de90e0ea54a",
+		}
+		namespace = fmt.Sprintf("application-%s", application.ID)
+		name = "some-name"
+		environment = "some-environment"
+		tenant = "04b557ed-eb92-476a-b9ef-6c99c1ff9f86"
+		createInput = newPurchaseOrderAPICreateInput(customer, application, environment, name)
+		existingDeployments = nil
+	})
+	JustBeforeEach(func() {
+		client := fake.NewSimpleClientset(existingDeployments...)
+		k8sResourceSpecFactory := NewK8sResourceSpecFactory()
+		k8sResource := NewK8sResource(client, k8sResourceSpecFactory)
+		repo = NewRepo(k8sResource, k8sResourceSpecFactory, client)
+	})
 
-		BeforeEach(func() {
-			input = microservice
-			tenant = "04b557ed-eb92-476a-b9ef-6c99c1ff9f86"
-			namespace = fmt.Sprintf("application-%s", input.Dolittle.ApplicationID)
-			customer = k8s.Tenant{Name: "tenant-name", ID: microservice.Dolittle.TenantID}
-			application = k8s.Application{Name: "application-name", ID: microservice.Dolittle.ApplicationID}
-			deploymentInfo = fakeDeploymentInfo{
-				input:       input,
-				tenant:      customer,
-				application: application,
-			}
+	Describe("when checking if purchase order api exists", func() {
+		JustBeforeEach(func() {
+			result, err = repo.Exists(namespace, customer, application, tenant, createInput)
 		})
-		Describe("and there is only one deployment in the namespace", func() {
-			Describe("and it does exist", func() {
+
+		Describe("and there is another purchase order api with the same name", func() {
+			Describe("in the same namespace and environment", func() {
 				BeforeEach(func() {
-					deploymentInfo.deployedMicroserviceName = input.Name
-					repo = createRepoWithClient(fake.NewSimpleClientset(createDeployment(deploymentInfo)))
-					existsResult, errResult = repo.Exists(namespace, customer, application, tenant, input)
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							application,
+							environment,
+							name,
+							"ef97a13b-2597-42a3-9fcb-161add2264c7",
+							platform.MicroserviceKindPurchaseOrderAPI,
+						),
+					}
 				})
 				It("should not fail", func() {
-					Expect(errResult).To(BeNil())
+					Expect(err).To(BeNil())
 				})
 				It("should exist", func() {
-					Expect(existsResult).To(BeTrue())
+					Expect(result).To(BeTrue())
 				})
 			})
-			Describe("and it does not exist", func() {
+			Describe("in the same namespace but different environment", func() {
 				BeforeEach(func() {
-					deploymentInfo.deployedMicroserviceName = "some-other-ms"
-					repo = createRepoWithClient(fake.NewSimpleClientset(createDeployment(deploymentInfo)))
-					existsResult, errResult = repo.Exists(namespace, customer, application, tenant, input)
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							application,
+							"other-environment",
+							name,
+							"ef97a13b-2597-42a3-9fcb-161add2264c7",
+							platform.MicroserviceKindPurchaseOrderAPI,
+						),
+					}
 				})
 				It("should not fail", func() {
-					Expect(errResult).To(BeNil())
+					Expect(err).To(BeNil())
 				})
 				It("should not exist", func() {
-					Expect(existsResult).To(BeFalse())
+					Expect(result).ToNot(BeTrue())
+				})
+			})
+			Describe("in a different namespace but same environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							k8s.Application{
+								Name: "another-application",
+								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
+							},
+							environment,
+							name,
+							"ef97a13b-2597-42a3-9fcb-161add2264c7",
+							platform.MicroserviceKindPurchaseOrderAPI,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(result).ToNot(BeTrue())
+				})
+			})
+			Describe("in a different namespace and environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							k8s.Application{
+								Name: "another-application",
+								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
+							},
+							"other-environment",
+							name,
+							"ef97a13b-2597-42a3-9fcb-161add2264c7",
+							platform.MicroserviceKindPurchaseOrderAPI,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(result).ToNot(BeTrue())
 				})
 			})
 		})
-		Describe("and there are multiple deployments in the namespace", func() {
-			Describe("and it does exist", func() {
-				var (
-					firstDeployment  *v1.Deployment
-					secondDeployment *v1.Deployment
-				)
+		Describe("and there is another purchase order api with a different name", func() {
+			Describe("in the same namespace and environment", func() {
 				BeforeEach(func() {
-					deploymentInfo.deployedMicroserviceName = input.Name
-					firstDeployment = createDeployment(deploymentInfo)
-					deploymentInfo.deployedMicroserviceName = "some-other-ms"
-					secondDeployment = createDeployment(deploymentInfo)
-					repo = createRepoWithClient(fake.NewSimpleClientset(firstDeployment, secondDeployment))
-					existsResult, errResult = repo.Exists(namespace, customer, application, tenant, input)
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							application,
+							environment,
+							"other-name",
+							"ef97a13b-2597-42a3-9fcb-161add2264c7",
+							platform.MicroserviceKindPurchaseOrderAPI,
+						),
+					}
 				})
 				It("should not fail", func() {
-					Expect(errResult).To(BeNil())
-				})
-				It("should exist", func() {
-					Expect(existsResult).To(BeTrue())
-				})
-			})
-			Describe("and it does not exist", func() {
-				var (
-					firstDeployment  *v1.Deployment
-					secondDeployment *v1.Deployment
-				)
-				BeforeEach(func() {
-					deploymentInfo.deployedMicroserviceName = "some-ms"
-					firstDeployment = createDeployment(deploymentInfo)
-					deploymentInfo.deployedMicroserviceName = "some-other-ms"
-					secondDeployment = createDeployment(deploymentInfo)
-					repo = createRepoWithClient(fake.NewSimpleClientset(firstDeployment, secondDeployment))
-					existsResult, errResult = repo.Exists(namespace, customer, application, tenant, input)
-				})
-				It("should not fail", func() {
-					Expect(errResult).To(BeNil())
+					Expect(err).To(BeNil())
 				})
 				It("should not exist", func() {
-					Expect(existsResult).To(BeFalse())
+					Expect(result).ToNot(BeTrue())
 				})
+			})
+			Describe("in the same namespace but different environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							application,
+							"other-environment",
+							"other-name",
+							"ef97a13b-2597-42a3-9fcb-161add2264c7",
+							platform.MicroserviceKindPurchaseOrderAPI,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(result).ToNot(BeTrue())
+				})
+			})
+			Describe("in a different namespace but same environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							k8s.Application{
+								Name: "another-application",
+								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
+							},
+							environment,
+							"other-name",
+							"ef97a13b-2597-42a3-9fcb-161add2264c7",
+							platform.MicroserviceKindPurchaseOrderAPI,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(result).ToNot(BeTrue())
+				})
+			})
+			Describe("in a different namespace and environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							k8s.Application{
+								Name: "another-application",
+								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
+							},
+							"other-environment",
+							"other-name",
+							"ef97a13b-2597-42a3-9fcb-161add2264c7",
+							platform.MicroserviceKindPurchaseOrderAPI,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(result).ToNot(BeTrue())
+				})
+			})
+		})
+		Describe("and there is another microservice kind with the same name", func() {
+			Describe("in the same namespace and environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							application,
+							environment,
+							name,
+							"d1b21b10-900a-4c23-9bd0-2d49a9d2957c",
+							platform.MicroserviceKindSimple,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should exist", func() {
+					Expect(result).To(BeTrue())
+				})
+			})
+			Describe("in the same namespace but different environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							application,
+							"other-environment",
+							name,
+							"d1b21b10-900a-4c23-9bd0-2d49a9d2957c",
+							platform.MicroserviceKindSimple,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(result).ToNot(BeTrue())
+				})
+			})
+			Describe("in a different namespace but same environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							k8s.Application{
+								Name: "another-application",
+								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
+							},
+							environment,
+							name,
+							"d1b21b10-900a-4c23-9bd0-2d49a9d2957c",
+							platform.MicroserviceKindSimple,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(result).ToNot(BeTrue())
+				})
+			})
+			Describe("in a different namespace and environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							k8s.Application{
+								Name: "another-application",
+								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
+							},
+							"other-environment",
+							name,
+							"d1b21b10-900a-4c23-9bd0-2d49a9d2957c",
+							platform.MicroserviceKindSimple,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(result).ToNot(BeTrue())
+				})
+			})
+		})
+		Describe("and there is another microservice kind with a different name", func() {
+			Describe("in the same namespace and environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							application,
+							environment,
+							"other-name",
+							"d1b21b10-900a-4c23-9bd0-2d49a9d2957c",
+							platform.MicroserviceKindSimple,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(result).ToNot(BeTrue())
+				})
+			})
+			Describe("in the same namespace but different environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							application,
+							"other-environment",
+							"other-name",
+							"d1b21b10-900a-4c23-9bd0-2d49a9d2957c",
+							platform.MicroserviceKindSimple,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(result).ToNot(BeTrue())
+				})
+			})
+			Describe("in a different namespace but same environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							k8s.Application{
+								Name: "another-application",
+								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
+							},
+							environment,
+							"other-name",
+							"d1b21b10-900a-4c23-9bd0-2d49a9d2957c",
+							platform.MicroserviceKindSimple,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(result).ToNot(BeTrue())
+				})
+			})
+			Describe("in a different namespace and environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							k8s.Application{
+								Name: "another-application",
+								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
+							},
+							"other-environment",
+							"other-name",
+							"d1b21b10-900a-4c23-9bd0-2d49a9d2957c",
+							platform.MicroserviceKindSimple,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(result).ToNot(BeTrue())
+				})
+			})
+		})
+		Describe("and there are multiple deployments in the same namespace and environment", func() {
+			Describe("all with other names", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							application,
+							environment,
+							"other-simple-name",
+							"d1b21b10-900a-4c23-9bd0-2d49a9d2957c",
+							platform.MicroserviceKindSimple,
+						),
+						newDeploymentFrom(
+							customer,
+							application,
+							environment,
+							"other-name",
+							"ef97a13b-2597-42a3-9fcb-161add2264c7",
+							platform.MicroserviceKindPurchaseOrderAPI,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(result).ToNot(BeTrue())
+				})
+			})
+			Describe("and a simple with the same name", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							application,
+							environment,
+							"other-name",
+							"ef97a13b-2597-42a3-9fcb-161add2264c7",
+							platform.MicroserviceKindPurchaseOrderAPI,
+						),
+						newDeploymentFrom(
+							customer,
+							application,
+							environment,
+							name,
+							"d1b21b10-900a-4c23-9bd0-2d49a9d2957c",
+							platform.MicroserviceKindSimple,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should exist", func() {
+					Expect(result).To(BeTrue())
+				})
+			})
+			Describe("and a purchase order api with the same name", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							application,
+							environment,
+							"other-name",
+							"d1b21b10-900a-4c23-9bd0-2d49a9d2957c",
+							platform.MicroserviceKindSimple,
+						),
+						newDeploymentFrom(
+							customer,
+							application,
+							environment,
+							name,
+							"ef97a13b-2597-42a3-9fcb-161add2264c7",
+							platform.MicroserviceKindPurchaseOrderAPI,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should exist", func() {
+					Expect(result).To(BeTrue())
+				})
+			})
+		})
+		Describe("and there are no deployments", func() {
+			It("should not fail", func() {
+				Expect(err).To(BeNil())
+			})
+			It("should not exist", func() {
+				Expect(result).ToNot(BeTrue())
+			})
+		})
+	})
+	Describe("when checking if environment has purchase order api ", func() {
+		JustBeforeEach(func() {
+			result, err = repo.EnvironmentHasPurchaseOrderAPI(namespace, createInput)
+		})
+
+		Describe("and there is another purchase order api with the same name", func() {
+			Describe("in the same namespace and environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							application,
+							environment,
+							name,
+							"ef97a13b-2597-42a3-9fcb-161add2264c7",
+							platform.MicroserviceKindPurchaseOrderAPI,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should exist", func() {
+					Expect(result).To(BeTrue())
+				})
+			})
+			Describe("in the same namespace but different environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							application,
+							"other-environment",
+							name,
+							"ef97a13b-2597-42a3-9fcb-161add2264c7",
+							platform.MicroserviceKindPurchaseOrderAPI,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(result).ToNot(BeTrue())
+				})
+			})
+			Describe("in a different namespace but same environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							k8s.Application{
+								Name: "another-application",
+								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
+							},
+							environment,
+							name,
+							"ef97a13b-2597-42a3-9fcb-161add2264c7",
+							platform.MicroserviceKindPurchaseOrderAPI,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(result).ToNot(BeTrue())
+				})
+			})
+			Describe("in a different namespace and environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							k8s.Application{
+								Name: "another-application",
+								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
+							},
+							"other-environment",
+							name,
+							"ef97a13b-2597-42a3-9fcb-161add2264c7",
+							platform.MicroserviceKindPurchaseOrderAPI,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(result).ToNot(BeTrue())
+				})
+			})
+		})
+		Describe("and there is another purchase order api with a different name", func() {
+			Describe("in the same namespace and environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							application,
+							environment,
+							"other-name",
+							"ef97a13b-2597-42a3-9fcb-161add2264c7",
+							platform.MicroserviceKindPurchaseOrderAPI,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should exist", func() {
+					Expect(result).To(BeTrue())
+				})
+			})
+			Describe("in the same namespace but different environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							application,
+							"other-environment",
+							"other-name",
+							"ef97a13b-2597-42a3-9fcb-161add2264c7",
+							platform.MicroserviceKindPurchaseOrderAPI,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(result).ToNot(BeTrue())
+				})
+			})
+			Describe("in a different namespace but same environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							k8s.Application{
+								Name: "another-application",
+								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
+							},
+							environment,
+							"other-name",
+							"ef97a13b-2597-42a3-9fcb-161add2264c7",
+							platform.MicroserviceKindPurchaseOrderAPI,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(result).ToNot(BeTrue())
+				})
+			})
+			Describe("in a different namespace and environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							k8s.Application{
+								Name: "another-application",
+								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
+							},
+							"other-environment",
+							"other-name",
+							"ef97a13b-2597-42a3-9fcb-161add2264c7",
+							platform.MicroserviceKindPurchaseOrderAPI,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(result).ToNot(BeTrue())
+				})
+			})
+		})
+		Describe("and there is another microservice kind with the same name", func() {
+			Describe("in the same namespace and environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							application,
+							environment,
+							name,
+							"d1b21b10-900a-4c23-9bd0-2d49a9d2957c",
+							platform.MicroserviceKindSimple,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(result).ToNot(BeTrue())
+				})
+			})
+			Describe("in the same namespace but different environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							application,
+							"other-environment",
+							name,
+							"d1b21b10-900a-4c23-9bd0-2d49a9d2957c",
+							platform.MicroserviceKindSimple,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(result).ToNot(BeTrue())
+				})
+			})
+			Describe("in a different namespace but same environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							k8s.Application{
+								Name: "another-application",
+								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
+							},
+							environment,
+							name,
+							"d1b21b10-900a-4c23-9bd0-2d49a9d2957c",
+							platform.MicroserviceKindSimple,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(result).ToNot(BeTrue())
+				})
+			})
+			Describe("in a different namespace and environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							k8s.Application{
+								Name: "another-application",
+								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
+							},
+							"other-environment",
+							name,
+							"d1b21b10-900a-4c23-9bd0-2d49a9d2957c",
+							platform.MicroserviceKindSimple,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(result).ToNot(BeTrue())
+				})
+			})
+		})
+		Describe("and there is another microservice kind with a different name", func() {
+			Describe("in the same namespace and environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							application,
+							environment,
+							"other-name",
+							"d1b21b10-900a-4c23-9bd0-2d49a9d2957c",
+							platform.MicroserviceKindSimple,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(result).ToNot(BeTrue())
+				})
+			})
+			Describe("in the same namespace but different environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							application,
+							"other-environment",
+							"other-name",
+							"d1b21b10-900a-4c23-9bd0-2d49a9d2957c",
+							platform.MicroserviceKindSimple,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(result).ToNot(BeTrue())
+				})
+			})
+			Describe("in a different namespace but same environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							k8s.Application{
+								Name: "another-application",
+								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
+							},
+							environment,
+							"other-name",
+							"d1b21b10-900a-4c23-9bd0-2d49a9d2957c",
+							platform.MicroserviceKindSimple,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(result).ToNot(BeTrue())
+				})
+			})
+			Describe("in a different namespace and environment", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							k8s.Application{
+								Name: "another-application",
+								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
+							},
+							"other-environment",
+							"other-name",
+							"d1b21b10-900a-4c23-9bd0-2d49a9d2957c",
+							platform.MicroserviceKindSimple,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not exist", func() {
+					Expect(result).ToNot(BeTrue())
+				})
+			})
+		})
+		Describe("and there are multiple deployments in the same namespace and environment", func() {
+			Describe("all with other names", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							application,
+							environment,
+							"other-simple-name",
+							"d1b21b10-900a-4c23-9bd0-2d49a9d2957c",
+							platform.MicroserviceKindSimple,
+						),
+						newDeploymentFrom(
+							customer,
+							application,
+							environment,
+							"other-name",
+							"ef97a13b-2597-42a3-9fcb-161add2264c7",
+							platform.MicroserviceKindPurchaseOrderAPI,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should exist", func() {
+					Expect(result).To(BeTrue())
+				})
+			})
+			Describe("and a simple with the same name", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							application,
+							environment,
+							"other-name",
+							"ef97a13b-2597-42a3-9fcb-161add2264c7",
+							platform.MicroserviceKindPurchaseOrderAPI,
+						),
+						newDeploymentFrom(
+							customer,
+							application,
+							environment,
+							name,
+							"d1b21b10-900a-4c23-9bd0-2d49a9d2957c",
+							platform.MicroserviceKindSimple,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should exist", func() {
+					Expect(result).To(BeTrue())
+				})
+			})
+			Describe("and a purchase order api with the same name", func() {
+				BeforeEach(func() {
+					existingDeployments = []runtime.Object{
+						newDeploymentFrom(
+							customer,
+							application,
+							environment,
+							"other-name",
+							"d1b21b10-900a-4c23-9bd0-2d49a9d2957c",
+							platform.MicroserviceKindSimple,
+						),
+						newDeploymentFrom(
+							customer,
+							application,
+							environment,
+							name,
+							"ef97a13b-2597-42a3-9fcb-161add2264c7",
+							platform.MicroserviceKindPurchaseOrderAPI,
+						),
+					}
+				})
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should exist", func() {
+					Expect(result).To(BeTrue())
+				})
+			})
+		})
+		Describe("and there are no deployments", func() {
+			It("should not fail", func() {
+				Expect(err).To(BeNil())
+			})
+			It("should not exist", func() {
+				Expect(result).ToNot(BeTrue())
 			})
 		})
 	})
 })
 
-type fakeDeploymentInfo struct {
-	deployedMicroserviceName string
-	input                    platform.HttpInputPurchaseOrderInfo
-	tenant                   k8s.Tenant
-	application              k8s.Application
-}
-
-var microservice platform.HttpInputPurchaseOrderInfo = platform.HttpInputPurchaseOrderInfo{
-	MicroserviceBase: platform.MicroserviceBase{
-		Dolittle: platform.HttpInputDolittle{
-			ApplicationID:  "c1e08289-be4b-4557-9457-5de90e0ea54a",
-			TenantID:       "67dcf38f-16e4-4b57-bff5-707cff3233ec",
-			MicroserviceID: "ef97a13b-2597-42a3-9fcb-161add2264c7",
+func newPurchaseOrderAPICreateInput(customer k8s.Tenant, application k8s.Application, environment, name string) platform.HttpInputPurchaseOrderInfo {
+	return platform.HttpInputPurchaseOrderInfo{
+		MicroserviceBase: platform.MicroserviceBase{
+			Dolittle: platform.HttpInputDolittle{
+				TenantID:       customer.ID,
+				ApplicationID:  application.ID,
+				MicroserviceID: "ef97a13b-2597-42a3-9fcb-161add2264c7",
+			},
+			Name:        name,
+			Kind:        platform.MicroserviceKindPurchaseOrderAPI,
+			Environment: environment,
 		},
-		Name:        "some-name",
-		Kind:        platform.MicroserviceKindPurchaseOrderAPI,
-		Environment: "some-env",
-	},
-	Extra: platform.HttpInputPurchaseOrderExtra{
-		RawDataLogName: "raw-data-log-name",
-		Headimage:      "head-image",
-		Runtimeimage:   "runtime-image",
-		Webhooks:       []platform.RawDataLogIngestorWebhookConfig{},
-	},
+		Extra: platform.HttpInputPurchaseOrderExtra{
+			RawDataLogName: "raw-data-log-name",
+			Headimage:      "head-image",
+			Runtimeimage:   "runtime-image",
+			Webhooks:       []platform.RawDataLogIngestorWebhookConfig{},
+		},
+	}
 }
 
-func createDeployment(info fakeDeploymentInfo) *v1.Deployment {
+func newDeploymentFrom(customer k8s.Tenant, application k8s.Application, environment, name, id string, kind platform.MicroserviceKind) *v1.Deployment {
 	return k8s.NewDeployment(k8s.Microservice{
-		ID:          info.input.Dolittle.MicroserviceID,
-		Name:        info.deployedMicroserviceName,
-		Tenant:      info.tenant,
-		Application: info.application,
-		Environment: info.input.Environment,
-		ResourceID:  "d3c7524d-a51a-4bbd-9a5e-bdf3abbd143c",
-		Kind:        platform.MicroserviceKindPurchaseOrderAPI,
-	}, info.input.Extra.Headimage, info.input.Extra.Runtimeimage)
-}
-
-func createRepoWithClient(client kubernetes.Interface) Repo {
-	k8sResourceSpecFactory := NewK8sResourceSpecFactory()
-	k8sResource := NewK8sResource(client, k8sResourceSpecFactory)
-	return NewRepo(k8sResource, k8sResourceSpecFactory, client)
+		ID:          id,
+		Name:        name,
+		Tenant:      customer,
+		Application: application,
+		Environment: environment,
+		Kind:        kind,
+		ResourceID:  "aa1d2c76-e7d0-414a-ae7a-aca399251ffc",
+	}, "head-image:shouldnt-matter", "runtime-image:shouldnt-matter")
 }
