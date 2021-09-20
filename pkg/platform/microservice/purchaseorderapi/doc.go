@@ -17,7 +17,7 @@ type Repo interface {
 	// Exists checks whether a purchase order api with the same name has already been created
 	Exists(namespace string, customer k8s.Tenant, application k8s.Application, tenant platform.TenantId, input platform.HttpInputPurchaseOrderInfo) (bool, error)
 	// EnvironmentHasPurchaseOrderAPI checks whether the given environment has a purchase order api deployed
-	EnvironmentHasPurchaseOrderAPI(namespace string, customer k8s.Tenant, application k8s.Application, tenant platform.TenantId, input platform.HttpInputPurchaseOrderInfo) (bool, error)
+	EnvironmentHasPurchaseOrderAPI(namespace string, input platform.HttpInputPurchaseOrderInfo) (bool, error)
 }
 
 type K8sResource interface {

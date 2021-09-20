@@ -54,7 +54,7 @@ func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Requ
 		return err
 	}
 
-	exists, err := s.repo.EnvironmentHasPurchaseOrderAPI(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, tenant, ms)
+	exists, err := s.repo.EnvironmentHasPurchaseOrderAPI(msK8sInfo.Namespace, ms)
 	if err != nil {
 		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
 		return err

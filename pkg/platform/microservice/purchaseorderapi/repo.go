@@ -82,7 +82,7 @@ func (r *repo) Exists(namespace string, customer k8s.Tenant, application k8s.App
 	return exists, nil
 }
 
-func (r *repo) EnvironmentHasPurchaseOrderAPI(namespace string, customer k8s.Tenant, application k8s.Application, tenant platform.TenantId, input platform.HttpInputPurchaseOrderInfo) (bool, error) {
+func (r *repo) EnvironmentHasPurchaseOrderAPI(namespace string, input platform.HttpInputPurchaseOrderInfo) (bool, error) {
 	environmentName := strings.ToLower(input.Environment)
 
 	ctx := context.TODO()
