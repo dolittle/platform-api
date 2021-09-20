@@ -32,33 +32,42 @@ func CreateTodoIngress() k8s.Ingress {
 	}
 }
 
+// K8sGetDeployments gets all microservice deployments in the given namespace.
+// A microservice deployment is a deployment with the 'dolittle.io/microservice-id' annotation and the 'microservice' label set
+func K8sGetDeployments(client kubernetes.Interface, context context.Context, namespace string) ([]v1.Deployment, error) {
+	deployments, err := client.AppsV1().Deployments(namespace).List(context, metaV1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var microserviceDeployments []v1.Deployment
+	for _, deployment := range deployments.Items {
+		if _, ok := deployment.Labels["microservice"]; !ok {
+			continue
+		}
+		if _, ok := deployment.Annotations["dolittle.io/microservice-id"]; !ok {
+			continue
+		}
+		microserviceDeployments = append(microserviceDeployments, deployment)
+	}
+	return microserviceDeployments, nil
+}
+
 // Gets the deployment that is linked to the microserviceID in the given namespace
 // Caveat: This will only get the first deployment that has the given dolittle.io/microservice-id annotation
 func K8sGetDeployment(client kubernetes.Interface, context context.Context, namespace, microserviceID string) (v1.Deployment, error) {
-	deployments, err := client.AppsV1().Deployments(namespace).List(context, metaV1.ListOptions{})
+	deployments, err := K8sGetDeployments(client, context, namespace)
 	if err != nil {
 		return v1.Deployment{}, err
 	}
 
-	found := false
-	var foundDeployment v1.Deployment
-	for _, deployment := range deployments.Items {
-		_, ok := deployment.ObjectMeta.Labels["microservice"]
-		if !ok {
-			continue
-		}
-
-		if deployment.ObjectMeta.Annotations["dolittle.io/microservice-id"] == microserviceID {
-			found = true
-			foundDeployment = deployment
-			break
+	for _, deployment := range deployments {
+		if deployment.Annotations["dolittle.io/microservice-id"] == microserviceID {
+			return deployment, nil
 		}
 	}
 
-	if !found {
-		return v1.Deployment{}, errors.New("not-found")
-	}
-	return foundDeployment, nil
+	return v1.Deployment{}, errors.New("not-found")
 }
 
 // K8sHasDeploymentWithName gets the microservice deployment that is has a specific name in the given namespace
