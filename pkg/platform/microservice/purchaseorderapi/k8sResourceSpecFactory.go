@@ -42,7 +42,7 @@ func (r *k8sResourceSpecFactory) modifyEnvironmentVariablesConfigMap(environment
 		"DATABASE_READMODELS_NAME":  readmodelDBName,
 		"NODE_ENV":                  "production",
 		"TENANT":                    tenantID,
-		"SERVER_PORT":               "8080",
+		"SERVER_PORT":               "80",
 		"NATS_CLUSTER_URL":          natsClusterURL,
 		"NATS_START_FROM_BEGINNING": "false",
 		"LOG_OUTPUT_FORMAT":         "json",
