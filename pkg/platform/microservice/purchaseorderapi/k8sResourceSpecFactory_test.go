@@ -69,7 +69,7 @@ var _ = Describe("For k8sResourceSpecFactory", func() {
 			Expect(result.ConfigEnvVariables.Data["TENANT"]).To(BeEquivalentTo(tenant))
 		})
 		It("should set SERVER_PORT to '8080'", func() {
-			Expect(result.ConfigEnvVariables.Data["SERVER_PORT"]).To(Equal("8080"))
+			Expect(result.ConfigEnvVariables.Data["SERVER_PORT"]).To(Equal("80"))
 		})
 		It("should set the correct NATS_CLUSTER_URL", func() {
 			Expect(result.ConfigEnvVariables.Data["NATS_CLUSTER_URL"]).To(Equal("prod-nats.application-12345-789.svc.cluster.local:4222"))
