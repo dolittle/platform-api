@@ -1,3 +1,21 @@
+# [0.4.3] - 2021-9-20 [PR: #30](https://github.com/dolittle/platform-api/pull/30)
+## Summary
+
+Adds checks to ensure that there doesn't already exist a PurchaseOrderAPI in an environment when creating. The previous logic checked for one with the same name and id, the added code checks for any name and id.
+
+The code might be a bit excessive, as it now first checks the Git storage, and then K8s afterwards. We could get away with one of them, but I'm not sure which one to truly consider the source of truth until we have everything covered by automation. Also might not be clear, but the old check is still useful because it checks for any microservice with the same name (which would cause problems) - even though the naming of the function kind of indicates that it looks for a PurchaseOrderAPI microservice.
+
+I've tested it locally, and also added more specs for the `Exists` method and the new `EnvironmentHasPurchaseOrderAPI` method.
+
+### Added
+
+- Disallow the creation of multiple PurchaseOrderAPIs in the backend.
+
+### Changed
+
+- The structure of the specs for the purchase order api repo
+
+
 # [0.4.2] - 2021-9-17 [PR: #28](https://github.com/dolittle/platform-api/pull/28)
 ## Summary
 
