@@ -211,12 +211,19 @@ type HttpInputRawDataLogIngestorInfo struct {
 }
 
 type HttpInputRawDataLogIngestorExtra struct {
-	Headimage                 string                            `json:"headImage"`
-	Runtimeimage              string                            `json:"runtimeImage"`
-	Ingress                   HttpInputSimpleIngress            `json:"ingress"`
-	Webhooks                  []RawDataLogIngestorWebhookConfig `json:"webhooks"`
-	WebhookStatsAuthorization string                            `json:"webhookStatsAuthorization"`
-	WriteTo                   string                            `json:"writeTo"`
+	Headimage                 string                             `json:"headImage"`
+	Runtimeimage              string                             `json:"runtimeImage"`
+	Ingress                   HttpInputRawDataLogIngestorIngress `json:"ingress"`
+	Webhooks                  []RawDataLogIngestorWebhookConfig  `json:"webhooks"`
+	WebhookStatsAuthorization string                             `json:"webhookStatsAuthorization"`
+	WriteTo                   string                             `json:"writeTo"`
+}
+
+type HttpInputRawDataLogIngestorIngress struct {
+	Host         string `json:"host"`
+	DomainPrefix string `json:"domainPrefix"`
+	Path         string `json:"path"`
+	Pathtype     string `json:"pathType"`
 }
 
 type RawDataLogIngestorWebhookConfig struct {
@@ -300,10 +307,11 @@ type HttpInputPurchaseOrderInfo struct {
 }
 
 type HttpInputPurchaseOrderExtra struct {
-	Headimage      string                            `json:"headImage"`
-	Runtimeimage   string                            `json:"runtimeImage"`
-	Webhooks       []RawDataLogIngestorWebhookConfig `json:"webhooks"`
-	RawDataLogName string                            `json:"rawDataLogName"`
+	Headimage      string                             `json:"headImage"`
+	Runtimeimage   string                             `json:"runtimeImage"`
+	Ingress        HttpInputRawDataLogIngestorIngress `json:"ingress"`
+	Webhooks       []RawDataLogIngestorWebhookConfig  `json:"webhooks"`
+	RawDataLogName string                             `json:"rawDataLogName"`
 }
 
 var (
