@@ -4,7 +4,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/mock"
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
@@ -33,18 +32,16 @@ var _ = Describe("Repo", func() {
 		config = &rest.Config{}
 		k8sRepo = platform.NewK8sRepo(clientSet, config)
 		gitRepo = new(mocks.Repo)
-
 		rawDataLogRepo = NewRawDataLogIngestorRepo(k8sRepo, clientSet, gitRepo, logrus.New())
 	})
 
 	Describe("when creating RawDataLog", func() {
 		var (
-			namespace          string
-			tenant             k8s.Tenant
-			application        k8s.Application
-			applicationIngress k8s.Ingress
-			input              platform.HttpInputRawDataLogIngestorInfo
-			storedApplication  platform.HttpResponseApplication
+			namespace         string
+			tenant            k8s.Tenant
+			application       k8s.Application
+			input             platform.HttpInputRawDataLogIngestorInfo
+			storedApplication platform.HttpResponseApplication
 		)
 
 		BeforeEach(func() {
@@ -61,6 +58,13 @@ var _ = Describe("Repo", func() {
 				MicroserviceBase: platform.MicroserviceBase{
 					Environment: "LoisMay",
 				},
+				Extra: platform.HttpInputRawDataLogIngestorExtra{
+					Ingress: platform.HttpInputRawDataLogIngestorIngress{
+						Host:     "some-fancy.domain.name",
+						Path:     "/api/not-webhooks-just-to-be-sure",
+						Pathtype: "SpecialTypeNotActuallySupported",
+					},
+				},
 			}
 			storedApplication = platform.HttpResponseApplication{
 				Environments: []platform.HttpInputEnvironment{
@@ -69,17 +73,24 @@ var _ = Describe("Repo", func() {
 						Tenants: []platform.TenantId{
 							"f4679b71-1215-4a60-8483-53b0d5f2bb47",
 						},
+						Ingresses: platform.EnvironmentIngresses{
+							"f4679b71-1215-4a60-8483-53b0d5f2bb47": platform.EnvironmentIngress{
+								Host:         "some-fancy.domain.name",
+								DomainPrefix: "some-fancy",
+								SecretName:   "some-fancy-certificate",
+							},
+						},
 					},
 				},
 			}
 			gitRepo.
-				On("GetApplication", mock.AnythingOfType("string"), mock.AnythingOfType("string")).
+				On("GetApplication", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
 				Return(storedApplication, nil)
 
 		})
 
 		JustBeforeEach(func() {
-			rawDataLogRepo.Create(namespace, tenant, application, applicationIngress, input)
+			rawDataLogRepo.Create(namespace, tenant, application, input)
 		})
 
 		Context("and nothing exists", func() {
