@@ -97,28 +97,6 @@ func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Requ
 		return nil
 	}
 
-	err = s.repo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, tenant, ms)
-	if err != nil {
-		logger.WithError(err).Error("Failed to create Purchase Order API")
-		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
-		return nil
-	}
-
-	err = s.gitRepo.SaveMicroservice(
-		ms.Dolittle.TenantID,
-		ms.Dolittle.ApplicationID,
-		ms.Environment,
-		ms.Dolittle.MicroserviceID,
-		ms,
-	)
-
-	if err != nil {
-		// TODO change
-		logger.WithError(err).Error("Failed to save Purchase Order API in GitRepo")
-		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
-		return err
-	}
-
 	rawDataLogExists, err := s.rawdatalogRepo.Exists(msK8sInfo.Namespace, ms.Environment)
 	if err != nil {
 		logger.WithError(err).Error("Failed to check if Raw Data Log exists")
@@ -175,6 +153,28 @@ func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Requ
 			utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
 			return nil
 		}
+	}
+	// TODO: Since we only do ingress validation on the creation of RawDataLog, this means that if it exists - we don't do any validation.
+
+	err = s.repo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, tenant, ms)
+	if err != nil {
+		logger.WithError(err).Error("Failed to create Purchase Order API")
+		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
+		return nil
+	}
+
+	err = s.gitRepo.SaveMicroservice(
+		ms.Dolittle.TenantID,
+		ms.Dolittle.ApplicationID,
+		ms.Environment,
+		ms.Dolittle.MicroserviceID,
+		ms,
+	)
+	if err != nil {
+		// TODO change
+		logger.WithError(err).Error("Failed to save Purchase Order API in GitRepo")
+		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
+		return err
 	}
 
 	utils.RespondWithJSON(responseWriter, http.StatusOK, ms)
