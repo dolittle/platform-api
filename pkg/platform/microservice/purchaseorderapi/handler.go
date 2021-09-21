@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/parser"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/rawdatalog"
@@ -15,7 +14,6 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 )
 
 type RequestHandler struct {
@@ -129,28 +127,8 @@ func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Requ
 	}
 	if !rawDataLogExists {
 		logger.Debug("Raw Data Log does not exist, creating a new one")
-		storedIngress := platform.EnvironmentIngress{}
-		application, err := s.gitRepo.GetApplication(ms.Dolittle.TenantID, ms.Dolittle.ApplicationID)
-		if err != nil {
-			logger.WithError(err).Error("Failed to get application from GitRepo")
-			return err
-		}
-		tenant, err := application.GetTenantForEnvironment(ms.Environment)
-		if err != nil {
-			logger.WithError(err).Error("Failed to get tenant for environment")
-			return err
-		}
-		storedIngress, ok := application.Environments[funk.IndexOf(application.Environments, func(e platform.HttpInputEnvironment) bool {
-			return e.Name == ms.Environment
-		})].Ingresses[tenant]
-
-		if !ok {
-			logger.WithError(err).WithField("tenant", tenant).WithField("environment", ms.Environment).Error("Failed to get stored ingress for tenant")
-			return fmt.Errorf("failed to get stored ingress for tenant %s in environment %s", string(tenant), ms.Environment)
-		}
 
 		webhookConfigs := []platform.RawDataLogIngestorWebhookConfig{}
-
 		for _, webhook := range ms.Extra.Webhooks {
 			webhook := platform.RawDataLogIngestorWebhookConfig{
 				Kind:          webhook.Kind,
@@ -175,23 +153,12 @@ func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Requ
 				// TODO these images won't evolve automatically
 				Headimage:    "dolittle/platform-api:latest",
 				Runtimeimage: "dolittle/runtime:6.1.0",
-				Ingress: platform.HttpInputSimpleIngress{
-					Host:             storedIngress.Host,
-					DomainPrefix:     storedIngress.DomainPrefix,
-					SecretNamePrefix: storedIngress.SecretName,
-					// TODO this is now hardcoded
-					Pathtype: "Prefix",
-					Path:     "/api/webhooks",
-				},
-				WriteTo:  "nats",
-				Webhooks: webhookConfigs,
+				Ingress:      ms.Extra.Ingress,
+				WriteTo:      "nats",
+				Webhooks:     webhookConfigs,
 			},
 		}
-		applicationIngress := k8s.Ingress{
-			Host:       storedIngress.Host,
-			SecretName: storedIngress.SecretName,
-		}
-		err = s.rawdatalogRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, applicationIngress, input)
+		err = s.rawdatalogRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, input)
 		if err != nil {
 			logger.WithError(err).Error("Failed to create Raw Data Log")
 			utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
