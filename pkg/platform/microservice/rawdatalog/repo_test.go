@@ -1,9 +1,12 @@
 package rawdatalog_test
 
 import (
+	"errors"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+	logrusTest "github.com/sirupsen/logrus/hooks/test"
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
@@ -23,8 +26,9 @@ var _ = Describe("Repo", func() {
 		clientSet      *fake.Clientset
 		config         *rest.Config
 		k8sRepo        platform.K8sRepo
-		rawDataLogRepo RawDataLogIngestorRepo
 		gitRepo        *mocks.Repo
+		logger         *logrus.Logger
+		rawDataLogRepo RawDataLogIngestorRepo
 	)
 
 	BeforeEach(func() {
@@ -32,16 +36,17 @@ var _ = Describe("Repo", func() {
 		config = &rest.Config{}
 		k8sRepo = platform.NewK8sRepo(clientSet, config)
 		gitRepo = new(mocks.Repo)
-		rawDataLogRepo = NewRawDataLogIngestorRepo(k8sRepo, clientSet, gitRepo, logrus.New())
+		logger, _ = logrusTest.NewNullLogger()
+		rawDataLogRepo = NewRawDataLogIngestorRepo(k8sRepo, clientSet, gitRepo, logger)
 	})
 
 	Describe("when creating RawDataLog", func() {
 		var (
-			namespace         string
-			tenant            k8s.Tenant
-			application       k8s.Application
-			input             platform.HttpInputRawDataLogIngestorInfo
-			storedApplication platform.HttpResponseApplication
+			namespace   string
+			tenant      k8s.Tenant
+			application k8s.Application
+			input       platform.HttpInputRawDataLogIngestorInfo
+			err         error
 		)
 
 		BeforeEach(func() {
@@ -66,34 +71,89 @@ var _ = Describe("Repo", func() {
 					},
 				},
 			}
-			storedApplication = platform.HttpResponseApplication{
-				Environments: []platform.HttpInputEnvironment{
-					{
-						Name: "LoisMay",
-						Tenants: []platform.TenantId{
-							"f4679b71-1215-4a60-8483-53b0d5f2bb47",
-						},
-						Ingresses: platform.EnvironmentIngresses{
-							"f4679b71-1215-4a60-8483-53b0d5f2bb47": platform.EnvironmentIngress{
-								Host:         "some-fancy.domain.name",
-								DomainPrefix: "some-fancy",
-								SecretName:   "some-fancy-certificate",
-							},
-						},
-					},
-				},
-			}
-			gitRepo.
-				On("GetApplication", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
-				Return(storedApplication, nil)
-
 		})
 
 		JustBeforeEach(func() {
-			rawDataLogRepo.Create(namespace, tenant, application, input)
+			err = rawDataLogRepo.Create(namespace, tenant, application, input)
 		})
 
-		Context("and nothing exists", func() {
+		Context("for an application that does not exist", func() {
+			BeforeEach(func() {
+				gitRepo.
+					On("GetApplication", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
+					Return(platform.HttpResponseApplication{}, errors.New("could not find application"))
+			})
+
+			It("should fail with an error", func() {
+				Expect(err).ToNot(BeNil())
+			})
+			It("should not create any resources", func() {
+				Expect(getCreateActions(clientSet)).To(BeEmpty())
+			})
+		})
+
+		Context("for an application that does not have any ingresses", func() {
+			BeforeEach(func() {
+				gitRepo.
+					On("GetApplication", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
+					Return(platform.HttpResponseApplication{
+						Environments: []platform.HttpInputEnvironment{
+							{
+								Name: "LoisMay",
+								Tenants: []platform.TenantId{
+									"f4679b71-1215-4a60-8483-53b0d5f2bb47",
+								},
+							},
+						},
+					}, nil)
+			})
+
+			It("should fail with an error", func() {
+				Expect(err).ToNot(BeNil())
+			})
+			It("should not create any resources", func() {
+				Expect(getCreateActions(clientSet)).To(BeEmpty())
+			})
+		})
+
+		Context("for an application that does has ingresses for other hostnames than specified", func() {
+			BeforeEach(func() {
+				gitRepo.
+					On("GetApplication", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
+					Return(platform.HttpResponseApplication{
+						Environments: []platform.HttpInputEnvironment{
+							{
+								Name: "LoisMay",
+								Tenants: []platform.TenantId{
+									"3d0dcaf6-bbd1-4d84-b119-186472d65ea6",
+									"c7e1d7f1-450b-4122-a08c-6d0f37051318",
+								},
+								Ingresses: platform.EnvironmentIngresses{
+									"80d6e5b5-2047-4e0b-81d7-9be3748a41aa": platform.EnvironmentIngress{
+										Host:         "some-other.domain.name",
+										DomainPrefix: "some-other",
+										SecretName:   "some-other-certificate",
+									},
+									"c7e1d7f1-450b-4122-a08c-6d0f37051318": platform.EnvironmentIngress{
+										Host:         "some-last.domain.name",
+										DomainPrefix: "some-last",
+										SecretName:   "some-last-certificate",
+									},
+								},
+							},
+						},
+					}, nil)
+			})
+
+			It("should fail with an error", func() {
+				Expect(err).ToNot(BeNil())
+			})
+			It("should not create any resources", func() {
+				Expect(getCreateActions(clientSet)).To(BeEmpty())
+			})
+		})
+
+		Context("and an application exists but no other resources", func() {
 			var (
 				natsConfigMap   *corev1.ConfigMap
 				natsService     *corev1.Service
@@ -102,6 +162,28 @@ var _ = Describe("Repo", func() {
 				stanService     *corev1.Service
 				stanStatefulSet *appsv1.StatefulSet
 			)
+
+			BeforeEach(func() {
+				gitRepo.
+					On("GetApplication", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
+					Return(platform.HttpResponseApplication{
+						Environments: []platform.HttpInputEnvironment{
+							{
+								Name: "LoisMay",
+								Tenants: []platform.TenantId{
+									"f4679b71-1215-4a60-8483-53b0d5f2bb47",
+								},
+								Ingresses: platform.EnvironmentIngresses{
+									"f4679b71-1215-4a60-8483-53b0d5f2bb47": platform.EnvironmentIngress{
+										Host:         "some-fancy.domain.name",
+										DomainPrefix: "some-fancy",
+										SecretName:   "some-fancy-certificate",
+									},
+								},
+							},
+						},
+					}, nil)
+			})
 
 			// NATS ConfigMap
 			It("should create a configmap for nats named 'loismay-nats'", func() {
@@ -590,26 +672,34 @@ var _ = Describe("Repo", func() {
 })
 
 func getCreatedObject(clientSet *fake.Clientset, kind, name string) runtime.Object {
-	for _, action := range clientSet.Actions() {
-		if create, ok := action.(testing.CreateAction); ok {
-			object := create.GetObject()
-			if object.GetObjectKind().GroupVersionKind().Kind == kind {
-				switch resource := object.(type) {
-				case *corev1.ConfigMap:
-					if resource.GetName() == name {
-						return resource
-					}
-				case *corev1.Service:
-					if resource.GetName() == name {
-						return resource
-					}
-				case *appsv1.StatefulSet:
-					if resource.GetName() == name {
-						return resource
-					}
+	for _, create := range getCreateActions(clientSet) {
+		object := create.GetObject()
+		if object.GetObjectKind().GroupVersionKind().Kind == kind {
+			switch resource := object.(type) {
+			case *corev1.ConfigMap:
+				if resource.GetName() == name {
+					return resource
+				}
+			case *corev1.Service:
+				if resource.GetName() == name {
+					return resource
+				}
+			case *appsv1.StatefulSet:
+				if resource.GetName() == name {
+					return resource
 				}
 			}
 		}
 	}
 	return nil
+}
+
+func getCreateActions(clientSet *fake.Clientset) []testing.CreateAction {
+	var actions []testing.CreateAction
+	for _, action := range clientSet.Actions() {
+		if create, ok := action.(testing.CreateAction); ok {
+			actions = append(actions, create)
+		}
+	}
+	return actions
 }
