@@ -78,16 +78,19 @@ func (r RawDataLogIngestorRepo) Exists(namespace string, environment string) (bo
 	return false, nil
 }
 
-func (r RawDataLogIngestorRepo) Update(namespace string, tenant k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputRawDataLogIngestorInfo) error {
+func (r RawDataLogIngestorRepo) Update(namespace string, tenant k8s.Tenant, application k8s.Application, input platform.HttpInputRawDataLogIngestorInfo) error {
 	return errors.New("TODO")
 }
 
-func (r RawDataLogIngestorRepo) Create(namespace string, customer k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputRawDataLogIngestorInfo) error {
-	r.logContext.WithFields(logrus.Fields{
-		"namespace": namespace,
-		"customer":  customer,
-		"method":    "RawDataLogIngestorRepo.Create",
-	}).Debug("Starting to create the RawDataLog microservice")
+func (r RawDataLogIngestorRepo) Create(namespace string, customer k8s.Tenant, application k8s.Application, input platform.HttpInputRawDataLogIngestorInfo) error {
+	logger := r.logContext.WithFields(logrus.Fields{
+		"namespace":   namespace,
+		"customer":    customer.ID,
+		"application": application.ID,
+		"environment": input.Environment,
+		"method":      "RawDataLogIngestorRepo.Create",
+	})
+	logger.Debug("Starting to create the RawDataLog microservice")
 
 	microservice := k8s.Microservice{
 		Kind:        platform.MicroserviceKindRawDataLogIngestor,
@@ -101,19 +104,24 @@ func (r RawDataLogIngestorRepo) Create(namespace string, customer k8s.Tenant, ap
 	labels := k8s.GetLabels(microservice)
 	annotations := k8s.GetAnnotations(microservice)
 
+	ingress, tenant, err := r.getIngressAndTenantForHost(customer, application, input.Environment, input.Extra.Ingress.Host)
+	if err != nil {
+		logger.WithError(err).Error("Failed to map input ingress to stored ingress")
+		return err
+	}
+
 	// TODO changing writeTo will break this.
 	if input.Extra.WriteTo != "stdout" {
 
 		action := "upsert"
 		if err := r.doNats(namespace, labels, annotations, input, action); err != nil {
-			fmt.Println("Could not doNats", err)
+			logger.WithError(err).Error("Could not doNats")
 			return err
 		}
 	}
 
-	err := r.doDolittle(namespace, customer, application, applicationIngress, input)
-	if err != nil {
-		fmt.Println("Could not doDolittle", err)
+	if err := r.doDolittle(namespace, customer, application, ingress, tenant, input); err != nil {
+		logger.WithError(err).Error("Could not doDolittle")
 		return err
 	}
 	return nil
@@ -358,26 +366,15 @@ func (r RawDataLogIngestorRepo) doNats(namespace string, labels, annotations k8s
 }
 
 // Creates the RawDataLog microservice in k8s
-func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputRawDataLogIngestorInfo) error {
+func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant, application k8s.Application, environmentIngress platform.EnvironmentIngress, tenant platform.TenantId, input platform.HttpInputRawDataLogIngestorInfo) error {
 	r.logContext.WithFields(logrus.Fields{
 		"namespace": namespace,
 		"method":    "RawDataLogIngestorRepo.doDolittle",
 	}).Debug("Starting to create RawDataLog microservice")
 
-	// TODO not sure where this comes from really, assume dynamic
-	// tenantID := "17426336-fb8e-4425-8ab7-07d488367be9"
-	storedApplication, err := r.gitRepo.GetApplication(customer.ID, application.ID)
-	if err != nil {
-		return err
-	}
-	tenantID, err := storedApplication.GetTenantForEnvironment(input.Environment)
-	if err != nil {
-		return err
-	}
-
 	environment := strings.ToLower(input.Environment)
-	host := applicationIngress.Host
-	secretName := applicationIngress.SecretName
+	host := environmentIngress.Host
+	secretName := environmentIngress.SecretName
 
 	microserviceID := input.Dolittle.MicroserviceID
 	microserviceName := input.Name
@@ -391,7 +388,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 		Tenant:      customer,
 		Application: application,
 		Environment: environment,
-		ResourceID:  string(tenantID),
+		ResourceID:  string(tenant),
 		Kind:        kind,
 	}
 
@@ -411,7 +408,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 
 	// TODO do I need this?
 	// TODO if I remove it, do I remove the config mapping?
-	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, string(tenantID))
+	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, string(tenant))
 	deployment := k8s.NewDeployment(microservice, headImage, runtimeImage)
 	service := k8s.NewService(microservice)
 	ingress := k8s.NewIngress(microservice)
@@ -474,7 +471,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 	ctx := context.TODO()
 
 	// ConfigMaps
-	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, microserviceConfigmap, metaV1.CreateOptions{})
+	_, err := client.CoreV1().ConfigMaps(namespace).Create(ctx, microserviceConfigmap, metaV1.CreateOptions{})
 
 	if err != nil {
 		if !k8serrors.IsAlreadyExists(err) {
@@ -618,4 +615,34 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 	}).Debug("Finished creating RawDataLog microservice")
 
 	return nil
+}
+
+func (r RawDataLogIngestorRepo) getIngressAndTenantForHost(customer k8s.Tenant, application k8s.Application, environment string, host string) (platform.EnvironmentIngress, platform.TenantId, error) {
+	app, err := r.gitRepo.GetApplication(customer.ID, application.ID)
+	if err != nil {
+		return platform.EnvironmentIngress{}, "", err
+	}
+
+	env, err := r.getEnvironmentFromApplication(app, environment)
+	if err != nil {
+		return platform.EnvironmentIngress{}, "", err
+	}
+
+	for tenantID, existingIngress := range env.Ingresses {
+		if strings.EqualFold(existingIngress.Host, host) {
+			return existingIngress, tenantID, nil
+		}
+	}
+
+	return platform.EnvironmentIngress{}, "", fmt.Errorf("no ingress with host %s found in environment %s in application %s", host, environment, application.ID)
+}
+
+func (r RawDataLogIngestorRepo) getEnvironmentFromApplication(application platform.HttpResponseApplication, environment string) (platform.HttpInputEnvironment, error) {
+	for _, env := range application.Environments {
+		if strings.EqualFold(env.Name, environment) {
+			return env, nil
+		}
+	}
+
+	return platform.HttpInputEnvironment{}, fmt.Errorf("environment %s not found in application %s", environment, application.ID)
 }

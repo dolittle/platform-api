@@ -1,15 +1,18 @@
 package rawdatalog_test
 
 import (
+	"errors"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/mock"
+	logrusTest "github.com/sirupsen/logrus/hooks/test"
 
 	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
@@ -24,8 +27,9 @@ var _ = Describe("Repo", func() {
 		clientSet      *fake.Clientset
 		config         *rest.Config
 		k8sRepo        platform.K8sRepo
-		rawDataLogRepo RawDataLogIngestorRepo
 		gitRepo        *mocks.Repo
+		logger         *logrus.Logger
+		rawDataLogRepo RawDataLogIngestorRepo
 	)
 
 	BeforeEach(func() {
@@ -33,18 +37,17 @@ var _ = Describe("Repo", func() {
 		config = &rest.Config{}
 		k8sRepo = platform.NewK8sRepo(clientSet, config)
 		gitRepo = new(mocks.Repo)
-
-		rawDataLogRepo = NewRawDataLogIngestorRepo(k8sRepo, clientSet, gitRepo, logrus.New())
+		logger, _ = logrusTest.NewNullLogger()
+		rawDataLogRepo = NewRawDataLogIngestorRepo(k8sRepo, clientSet, gitRepo, logger)
 	})
 
 	Describe("when creating RawDataLog", func() {
 		var (
-			namespace          string
-			tenant             k8s.Tenant
-			application        k8s.Application
-			applicationIngress k8s.Ingress
-			input              platform.HttpInputRawDataLogIngestorInfo
-			storedApplication  platform.HttpResponseApplication
+			namespace   string
+			tenant      k8s.Tenant
+			application k8s.Application
+			input       platform.HttpInputRawDataLogIngestorInfo
+			err         error
 		)
 
 		BeforeEach(func() {
@@ -60,37 +63,130 @@ var _ = Describe("Repo", func() {
 			input = platform.HttpInputRawDataLogIngestorInfo{
 				MicroserviceBase: platform.MicroserviceBase{
 					Environment: "LoisMay",
+					Name:        "ErnestBush",
 				},
-			}
-			storedApplication = platform.HttpResponseApplication{
-				Environments: []platform.HttpInputEnvironment{
-					{
-						Name: "LoisMay",
-						Tenants: []platform.TenantId{
-							"f4679b71-1215-4a60-8483-53b0d5f2bb47",
-						},
+				Extra: platform.HttpInputRawDataLogIngestorExtra{
+					Ingress: platform.HttpInputRawDataLogIngestorIngress{
+						Host:     "some-fancy.domain.name",
+						Path:     "/api/not-webhooks-just-to-be-sure",
+						Pathtype: "SpecialTypeNotActuallySupported",
 					},
 				},
 			}
-			gitRepo.
-				On("GetApplication", mock.AnythingOfType("string"), mock.AnythingOfType("string")).
-				Return(storedApplication, nil)
-
 		})
 
 		JustBeforeEach(func() {
-			rawDataLogRepo.Create(namespace, tenant, application, applicationIngress, input)
+			err = rawDataLogRepo.Create(namespace, tenant, application, input)
 		})
 
-		Context("and nothing exists", func() {
+		Context("for an application that does not exist", func() {
+			BeforeEach(func() {
+				gitRepo.
+					On("GetApplication", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
+					Return(platform.HttpResponseApplication{}, errors.New("could not find application"))
+			})
+
+			It("should fail with an error", func() {
+				Expect(err).ToNot(BeNil())
+			})
+			It("should not create any resources", func() {
+				Expect(getCreateActions(clientSet)).To(BeEmpty())
+			})
+		})
+
+		Context("for an application that does not have any ingresses", func() {
+			BeforeEach(func() {
+				gitRepo.
+					On("GetApplication", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
+					Return(platform.HttpResponseApplication{
+						Environments: []platform.HttpInputEnvironment{
+							{
+								Name: "LoisMay",
+								Tenants: []platform.TenantId{
+									"f4679b71-1215-4a60-8483-53b0d5f2bb47",
+								},
+							},
+						},
+					}, nil)
+			})
+
+			It("should fail with an error", func() {
+				Expect(err).ToNot(BeNil())
+			})
+			It("should not create any resources", func() {
+				Expect(getCreateActions(clientSet)).To(BeEmpty())
+			})
+		})
+
+		Context("for an application that has ingresses for other hostnames than specified", func() {
+			BeforeEach(func() {
+				gitRepo.
+					On("GetApplication", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
+					Return(platform.HttpResponseApplication{
+						Environments: []platform.HttpInputEnvironment{
+							{
+								Name: "LoisMay",
+								Tenants: []platform.TenantId{
+									"3d0dcaf6-bbd1-4d84-b119-186472d65ea6",
+									"c7e1d7f1-450b-4122-a08c-6d0f37051318",
+								},
+								Ingresses: platform.EnvironmentIngresses{
+									"80d6e5b5-2047-4e0b-81d7-9be3748a41aa": platform.EnvironmentIngress{
+										Host:         "some-other.domain.name",
+										DomainPrefix: "some-other",
+										SecretName:   "some-other-certificate",
+									},
+									"c7e1d7f1-450b-4122-a08c-6d0f37051318": platform.EnvironmentIngress{
+										Host:         "some-last.domain.name",
+										DomainPrefix: "some-last",
+										SecretName:   "some-last-certificate",
+									},
+								},
+							},
+						},
+					}, nil)
+			})
+
+			It("should fail with an error", func() {
+				Expect(err).ToNot(BeNil())
+			})
+			It("should not create any resources", func() {
+				Expect(getCreateActions(clientSet)).To(BeEmpty())
+			})
+		})
+
+		Context("and an application exists but no other resources", func() {
 			var (
-				natsConfigMap   *corev1.ConfigMap
-				natsService     *corev1.Service
-				natsStatefulSet *appsv1.StatefulSet
-				stanConfigMap   *corev1.ConfigMap
-				stanService     *corev1.Service
-				stanStatefulSet *appsv1.StatefulSet
+				natsConfigMap             *corev1.ConfigMap
+				natsService               *corev1.Service
+				natsStatefulSet           *appsv1.StatefulSet
+				stanConfigMap             *corev1.ConfigMap
+				stanService               *corev1.Service
+				stanStatefulSet           *appsv1.StatefulSet
+				rawDataLogIngestorIngress *netv1.Ingress
 			)
+
+			BeforeEach(func() {
+				gitRepo.
+					On("GetApplication", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
+					Return(platform.HttpResponseApplication{
+						Environments: []platform.HttpInputEnvironment{
+							{
+								Name: "LoisMay",
+								Tenants: []platform.TenantId{
+									"f4679b71-1215-4a60-8483-53b0d5f2bb47",
+								},
+								Ingresses: platform.EnvironmentIngresses{
+									"f4679b71-1215-4a60-8483-53b0d5f2bb47": platform.EnvironmentIngress{
+										Host:         "some-fancy.domain.name",
+										DomainPrefix: "some-fancy",
+										SecretName:   "some-fancy-certificate",
+									},
+								},
+							},
+						},
+					}, nil)
+			})
 
 			// NATS ConfigMap
 			It("should create a configmap for nats named 'loismay-nats'", func() {
@@ -574,31 +670,80 @@ var _ = Describe("Repo", func() {
 				Expect(stanStatefulSet.Spec.Template.Spec.Containers[0].VolumeMounts[0].MountPath).To(Equal("/etc/stan-config"))
 				Expect(stanStatefulSet.Spec.Template.Spec.Containers[0].VolumeMounts[0].Name).To(Equal("config-volume"))
 			})
+
+			// RawDataLogIngestor Ingress
+			It("should create an ingress for rawdatalogingestor named 'ernestbush'", func() {
+				object := getCreatedObject(clientSet, "Ingress", "loismay-ernestbush")
+				Expect(object).ToNot(BeNil())
+				rawDataLogIngestorIngress = object.(*netv1.Ingress)
+			})
+			It("should create an ingress for rawdatalogingestor with the production certmanager issuer", func() {
+				Expect(rawDataLogIngestorIngress.Annotations["cert-manager.io/cluster-issuer"]).To(Equal("letsencrypt-production"))
+			})
+			It("should create an ingress for rawdatalogingestor with the correct tenant id", func() {
+				Expect(rawDataLogIngestorIngress.Annotations["nginx.ingress.kubernetes.io/configuration-snippet"]).To(Equal("proxy_set_header Tenant-ID \"f4679b71-1215-4a60-8483-53b0d5f2bb47\";\n"))
+			})
+			It("should create an ingress for rawdatalogingestor with one rule", func() {
+				Expect(len(rawDataLogIngestorIngress.Spec.Rules)).To(Equal(1))
+			})
+			It("should create an ingress for rawdatalogingestor with the correct rule host", func() {
+				Expect(rawDataLogIngestorIngress.Spec.Rules[0].Host).To(Equal("some-fancy.domain.name"))
+			})
+			It("should create an ingress for rawdatalogingestor with one rule path", func() {
+				Expect(len(rawDataLogIngestorIngress.Spec.Rules[0].HTTP.Paths)).To(Equal(1))
+			})
+			It("should create an ingress for rawdatalogingestor with the correct rule path", func() {
+				Expect(rawDataLogIngestorIngress.Spec.Rules[0].HTTP.Paths[0].Path).To(Equal("/api/not-webhooks-just-to-be-sure"))
+			})
+			It("should create an ingress for rawdatalogingestor with the correct rule pathtype", func() {
+				Expect(string(*rawDataLogIngestorIngress.Spec.Rules[0].HTTP.Paths[0].PathType)).To(Equal("SpecialTypeNotActuallySupported"))
+			})
+			It("should create an ingress for rawdatalogingestor with one TLS", func() {
+				Expect(len(rawDataLogIngestorIngress.Spec.TLS)).To(Equal(1))
+			})
+			It("should create an ingress for rawdatalogingestor with the correct TLS host", func() {
+				Expect(rawDataLogIngestorIngress.Spec.TLS[0].Hosts[0]).To(Equal("some-fancy.domain.name"))
+			})
+			It("should create an ingress for rawdatalogingestor with the correct TLS secret name", func() {
+				Expect(rawDataLogIngestorIngress.Spec.TLS[0].SecretName).To(Equal("some-fancy-certificate"))
+			})
 		})
 	})
 })
 
 func getCreatedObject(clientSet *fake.Clientset, kind, name string) runtime.Object {
-	for _, action := range clientSet.Actions() {
-		if create, ok := action.(testing.CreateAction); ok {
-			object := create.GetObject()
-			if object.GetObjectKind().GroupVersionKind().Kind == kind {
-				switch resource := object.(type) {
-				case *corev1.ConfigMap:
-					if resource.GetName() == name {
-						return resource
-					}
-				case *corev1.Service:
-					if resource.GetName() == name {
-						return resource
-					}
-				case *appsv1.StatefulSet:
-					if resource.GetName() == name {
-						return resource
-					}
+	for _, create := range getCreateActions(clientSet) {
+		object := create.GetObject()
+		if object.GetObjectKind().GroupVersionKind().Kind == kind {
+			switch resource := object.(type) {
+			case *corev1.ConfigMap:
+				if resource.GetName() == name {
+					return resource
+				}
+			case *corev1.Service:
+				if resource.GetName() == name {
+					return resource
+				}
+			case *appsv1.StatefulSet:
+				if resource.GetName() == name {
+					return resource
+				}
+			case *netv1.Ingress:
+				if resource.GetName() == name {
+					return resource
 				}
 			}
 		}
 	}
 	return nil
+}
+
+func getCreateActions(clientSet *fake.Clientset) []testing.CreateAction {
+	var actions []testing.CreateAction
+	for _, action := range clientSet.Actions() {
+		if create, ok := action.(testing.CreateAction); ok {
+			actions = append(actions, create)
+		}
+	}
+	return actions
 }
