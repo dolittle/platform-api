@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/dolittle-entropy/platform-api/cmd/microservice"
 	"github.com/dolittle-entropy/platform-api/cmd/rawdatalog"
+	"github.com/dolittle-entropy/platform-api/cmd/tool"
 	"github.com/spf13/cobra"
 
 	"github.com/spf13/viper"
@@ -22,4 +23,5 @@ func init() {
 	viper.AutomaticEnv()
 	rootCmd.AddCommand(microservice.RootCmd)
 	rootCmd.AddCommand(rawdatalog.RootCmd)
+	rootCmd.AddCommand(tool.RootCmd)
 }
