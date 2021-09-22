@@ -118,7 +118,7 @@ var _ = Describe("Repo", func() {
 			})
 		})
 
-		Context("for an application that does has ingresses for other hostnames than specified", func() {
+		Context("for an application that has ingresses for other hostnames than specified", func() {
 			BeforeEach(func() {
 				gitRepo.
 					On("GetApplication", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
@@ -676,6 +676,12 @@ var _ = Describe("Repo", func() {
 				object := getCreatedObject(clientSet, "Ingress", "loismay-ernestbush")
 				Expect(object).ToNot(BeNil())
 				rawDataLogIngestorIngress = object.(*netv1.Ingress)
+			})
+			It("should create an ingress for rawdatalogingestor with the production certmanager issuer", func() {
+				Expect(rawDataLogIngestorIngress.Annotations["cert-manager.io/cluster-issuer"]).To(Equal("letsencrypt-production"))
+			})
+			It("should create an ingress for rawdatalogingestor with the correct tenant id", func() {
+				Expect(rawDataLogIngestorIngress.Annotations["nginx.ingress.kubernetes.io/configuration-snippet"]).To(Equal("proxy_set_header Tenant-ID \"f4679b71-1215-4a60-8483-53b0d5f2bb47\";\n"))
 			})
 			It("should create an ingress for rawdatalogingestor with one rule", func() {
 				Expect(len(rawDataLogIngestorIngress.Spec.Rules)).To(Equal(1))
