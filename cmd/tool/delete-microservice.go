@@ -1,7 +1,6 @@
 package tool
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
@@ -21,12 +20,17 @@ var deleteMicroserviceCMD = &cobra.Command{
 	Short: "Delete a microservice from Studio and the platform",
 	Long: `
 
-	go run main.go tool delete-microservice \
-	--kube-config="/Users/freshteapot/.kube/config" \
-	--tenant-id=ID \
-	--microservice-id=ID \
-	--application-id=ID \
-	--environment=PLATFORM_ENV \
+GIT_REPO_SSH_KEY="/Users/freshteapot/.ssh/dolittle_operations" \
+GIT_REPO_BRANCH=auto-dev \
+GIT_REPO_URL="git@github.com:dolittle-platform/Operations.git" \
+go run main.go tool delete-microservice \
+--kube-config="/Users/freshteapot/.kube/config" \
+--tenant-id=ID \
+--application-id=ID \
+--environment=PLATFORM_ENV \
+--microservice-id=ID
+
+Today, after you will need to delete the platform-api, until we add "pull" to the platform-api
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// TODO Delete today does not include environment
@@ -36,7 +40,6 @@ var deleteMicroserviceCMD = &cobra.Command{
 			err error
 		)
 
-		ctx := context.TODO()
 		kubeconfig, _ := cmd.Flags().GetString("kube-config")
 
 		tenantID, _ := cmd.Flags().GetString("tenant-id")
@@ -55,8 +58,6 @@ var deleteMicroserviceCMD = &cobra.Command{
 			panic(err.Error())
 		}
 
-		fmt.Println(ctx, config)
-
 		logContext := logrus.WithFields(logrus.Fields{
 			"tenant_id":       tenantID,
 			"application_id":  applicationID,
@@ -65,7 +66,7 @@ var deleteMicroserviceCMD = &cobra.Command{
 		})
 
 		logContext.Info("Delete microservice")
-		return
+
 		gitRepoConfig := gitHelper.InitGit(logContext)
 		k8sRepo := platform.NewK8sRepo(clientset, config)
 
@@ -106,4 +107,13 @@ var deleteMicroserviceCMD = &cobra.Command{
 			fmt.Println(err)
 		}
 	},
+}
+
+func init() {
+	RootCmd.AddCommand(deleteMicroserviceCMD)
+	deleteMicroserviceCMD.Flags().String("kube-config", "", "FullPath to kubeconfig")
+	deleteMicroserviceCMD.Flags().String("tenant-id", "", "Tenant ID / Customer ID")
+	deleteMicroserviceCMD.Flags().String("application-id", "", "Application ID in the cluster")
+	deleteMicroserviceCMD.Flags().String("environment", "", "Environment in the cluster")
+	deleteMicroserviceCMD.Flags().String("microservice-id", "", "microservice ID to be removed")
 }
