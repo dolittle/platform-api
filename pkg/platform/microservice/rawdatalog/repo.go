@@ -104,7 +104,7 @@ func (r RawDataLogIngestorRepo) Create(namespace string, customer k8s.Tenant, ap
 	labels := k8s.GetLabels(microservice)
 	annotations := k8s.GetAnnotations(microservice)
 
-	ingress, tenant, err := r.mapInputIngressToEnvironmentIngressAndTenant(customer, application, input.Environment, input.Extra.Ingress)
+	ingress, tenant, err := r.getIngressAndTenantForHost(customer, application, input.Environment, input.Extra.Ingress.Host)
 	if err != nil {
 		logger.WithError(err).Error("Failed to map input ingress to stored ingress")
 		return err
@@ -617,23 +617,32 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 	return nil
 }
 
-func (r RawDataLogIngestorRepo) mapInputIngressToEnvironmentIngressAndTenant(customer k8s.Tenant, application k8s.Application, environment string, ingress platform.HttpInputRawDataLogIngestorIngress) (platform.EnvironmentIngress, platform.TenantId, error) {
+func (r RawDataLogIngestorRepo) getIngressAndTenantForHost(customer k8s.Tenant, application k8s.Application, environment string, host string) (platform.EnvironmentIngress, platform.TenantId, error) {
 	app, err := r.gitRepo.GetApplication(customer.ID, application.ID)
 	if err != nil {
 		return platform.EnvironmentIngress{}, "", err
 	}
 
-	for _, env := range app.Environments {
-		if strings.EqualFold(env.Name, environment) {
-			for tenantID, existingIngress := range env.Ingresses {
-				if strings.EqualFold(existingIngress.Host, ingress.Host) {
-					return existingIngress, tenantID, nil
-				}
-			}
+	env, err := r.getEnvironmentFromApplication(app, environment)
+	if err != nil {
+		return platform.EnvironmentIngress{}, "", err
+	}
 
-			return platform.EnvironmentIngress{}, "", fmt.Errorf("no ingress with host %s found in environment %s in application %s", ingress.Host, environment, application.ID)
+	for tenantID, existingIngress := range env.Ingresses {
+		if strings.EqualFold(existingIngress.Host, host) {
+			return existingIngress, tenantID, nil
 		}
 	}
 
-	return platform.EnvironmentIngress{}, "", fmt.Errorf("environment %s not found in application %s", environment, application.ID)
+	return platform.EnvironmentIngress{}, "", fmt.Errorf("no ingress with host %s found in environment %s in application %s", host, environment, application.ID)
+}
+
+func (r RawDataLogIngestorRepo) getEnvironmentFromApplication(application platform.HttpResponseApplication, environment string) (platform.HttpInputEnvironment, error) {
+	for _, env := range application.Environments {
+		if strings.EqualFold(env.Name, environment) {
+			return env, nil
+		}
+	}
+
+	return platform.HttpInputEnvironment{}, fmt.Errorf("environment %s not found in application %s", environment, application.ID)
 }
