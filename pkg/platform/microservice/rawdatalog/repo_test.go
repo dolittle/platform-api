@@ -12,6 +12,7 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
@@ -62,6 +63,7 @@ var _ = Describe("Repo", func() {
 			input = platform.HttpInputRawDataLogIngestorInfo{
 				MicroserviceBase: platform.MicroserviceBase{
 					Environment: "LoisMay",
+					Name:        "ErnestBush",
 				},
 				Extra: platform.HttpInputRawDataLogIngestorExtra{
 					Ingress: platform.HttpInputRawDataLogIngestorIngress{
@@ -155,12 +157,13 @@ var _ = Describe("Repo", func() {
 
 		Context("and an application exists but no other resources", func() {
 			var (
-				natsConfigMap   *corev1.ConfigMap
-				natsService     *corev1.Service
-				natsStatefulSet *appsv1.StatefulSet
-				stanConfigMap   *corev1.ConfigMap
-				stanService     *corev1.Service
-				stanStatefulSet *appsv1.StatefulSet
+				natsConfigMap             *corev1.ConfigMap
+				natsService               *corev1.Service
+				natsStatefulSet           *appsv1.StatefulSet
+				stanConfigMap             *corev1.ConfigMap
+				stanService               *corev1.Service
+				stanStatefulSet           *appsv1.StatefulSet
+				rawDataLogIngestorIngress *netv1.Ingress
 			)
 
 			BeforeEach(func() {
@@ -667,6 +670,37 @@ var _ = Describe("Repo", func() {
 				Expect(stanStatefulSet.Spec.Template.Spec.Containers[0].VolumeMounts[0].MountPath).To(Equal("/etc/stan-config"))
 				Expect(stanStatefulSet.Spec.Template.Spec.Containers[0].VolumeMounts[0].Name).To(Equal("config-volume"))
 			})
+
+			// RawDataLogIngestor Ingress
+			It("should create an ingress for rawdatalogingestor named 'ernestbush'", func() {
+				object := getCreatedObject(clientSet, "Ingress", "loismay-ernestbush")
+				Expect(object).ToNot(BeNil())
+				rawDataLogIngestorIngress = object.(*netv1.Ingress)
+			})
+			It("should create an ingress for rawdatalogingestor with one rule", func() {
+				Expect(len(rawDataLogIngestorIngress.Spec.Rules)).To(Equal(1))
+			})
+			It("should create an ingress for rawdatalogingestor with the correct rule host", func() {
+				Expect(rawDataLogIngestorIngress.Spec.Rules[0].Host).To(Equal("some-fancy.domain.name"))
+			})
+			It("should create an ingress for rawdatalogingestor with one rule path", func() {
+				Expect(len(rawDataLogIngestorIngress.Spec.Rules[0].HTTP.Paths)).To(Equal(1))
+			})
+			It("should create an ingress for rawdatalogingestor with the correct rule path", func() {
+				Expect(rawDataLogIngestorIngress.Spec.Rules[0].HTTP.Paths[0].Path).To(Equal("/api/not-webhooks-just-to-be-sure"))
+			})
+			It("should create an ingress for rawdatalogingestor with the correct rule pathtype", func() {
+				Expect(string(*rawDataLogIngestorIngress.Spec.Rules[0].HTTP.Paths[0].PathType)).To(Equal("SpecialTypeNotActuallySupported"))
+			})
+			It("should create an ingress for rawdatalogingestor with one TLS", func() {
+				Expect(len(rawDataLogIngestorIngress.Spec.TLS)).To(Equal(1))
+			})
+			It("should create an ingress for rawdatalogingestor with the correct TLS host", func() {
+				Expect(rawDataLogIngestorIngress.Spec.TLS[0].Hosts[0]).To(Equal("some-fancy.domain.name"))
+			})
+			It("should create an ingress for rawdatalogingestor with the correct TLS secret name", func() {
+				Expect(rawDataLogIngestorIngress.Spec.TLS[0].SecretName).To(Equal("some-fancy-certificate"))
+			})
 		})
 	})
 })
@@ -685,6 +719,10 @@ func getCreatedObject(clientSet *fake.Clientset, kind, name string) runtime.Obje
 					return resource
 				}
 			case *appsv1.StatefulSet:
+				if resource.GetName() == name {
+					return resource
+				}
+			case *netv1.Ingress:
 				if resource.GetName() == name {
 					return resource
 				}
