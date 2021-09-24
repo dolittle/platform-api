@@ -1,3 +1,13 @@
+# [0.5.1] - 2021-9-24 [PR: #34](https://github.com/dolittle/platform-api/pull/34)
+## Summary
+
+Fixes some typos in the HTTP responses in PurchaseOrderAPI handler
+
+### Fixed
+
+- Typos in POAPI handler HTTP responses
+
+
 # [0.5.0] - 2021-9-22 [PR: #31](https://github.com/dolittle/platform-api/pull/31)
 ## Summary
 
