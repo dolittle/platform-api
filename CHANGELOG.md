@@ -1,3 +1,27 @@
+# [0.5.2] - 2021-9-24 [PR: #33](https://github.com/dolittle/platform-api/pull/33)
+## Summary
+
+While a pod I starting up, the StartTime is not set (nil in Go) which caused the "View" screen just after creating e.g. a POapi to fail. This fix just returns "N/A" instead of an actual date when StartTime is nil. The contract was just a plain string anyways, so Studio will accept it.
+
+#### How to test
+- Start with a clean cluster (or without raw-data-log and purchase-order)
+- Click Microservices
+- Click Create new microservice
+- Click Create within the Purchase order api card
+- Select Infor graphic
+- Enter name
+- Click next
+- Enter username
+- Enter password
+- Click Next
+- At this point, we send the request to the backend and redirect the frontend.
+- Observe platform-api __does not__ crash
+
+### Fixed
+
+- Handling of Pod.StartTime nil-values while the pod is still starting up.
+
+
 # [0.5.1] - 2021-9-24 [PR: #34](https://github.com/dolittle/platform-api/pull/34)
 ## Summary
 
