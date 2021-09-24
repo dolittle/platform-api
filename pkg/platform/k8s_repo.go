@@ -270,7 +270,10 @@ func (r *K8sRepo) GetPodStatus(applicationID string, microserviceID string, envi
 		response.Microservice.Name = labelMap["microservice"]
 		// Interesting pod.Status.StartTime.String() might not be the same as pod.CreationTimestamp.Time
 		age := time.Since(pod.CreationTimestamp.Time)
-		started := pod.Status.StartTime.String() // Might need to change
+		started := "N/A"
+		if pod.Status.StartTime != nil {
+			started = pod.Status.StartTime.String()
+		}
 
 		containers := funk.Map(pod.Status.ContainerStatuses, func(container coreV1.ContainerStatus) ContainerStatusInfo {
 			// Not sure about this logic, I almost want to drop to the cli :P
