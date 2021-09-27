@@ -372,7 +372,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 		"method":    "RawDataLogIngestorRepo.doDolittle",
 	}).Debug("Starting to create RawDataLog microservice")
 
-	environment := strings.ToLower(input.Environment)
+	environment := input.Environment
 	host := environmentIngress.Host
 	secretName := environmentIngress.SecretName
 
@@ -449,7 +449,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 	if input.Extra.WriteTo == "nats" {
 		stanClientID := "ingestor"
 		// TODO we hardcode nats
-		natsServer := fmt.Sprintf("%s-nats.%s.svc.cluster.local", environment, namespace)
+		natsServer := strings.ToLower(fmt.Sprintf("%s-nats.%s.svc.cluster.local", environment, namespace))
 		configEnvVariables.Data["NATS_SERVER"] = natsServer
 		configEnvVariables.Data["STAN_CLUSTER_ID"] = "stan"
 		configEnvVariables.Data["STAN_CLIENT_ID"] = stanClientID
