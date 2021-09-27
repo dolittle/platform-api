@@ -64,6 +64,12 @@ var _ = Describe("Repo", func() {
 				MicroserviceBase: platform.MicroserviceBase{
 					Environment: "LoisMay",
 					Name:        "ErnestBush",
+					Dolittle: platform.HttpInputDolittle{
+						ApplicationID:  application.ID,
+						TenantID:       tenant.ID,
+						MicroserviceID: "b9a9211e-f118-4ea0-9eb9-8d0d8f33c753",
+					},
+					Kind: platform.MicroserviceKindRawDataLogIngestor,
 				},
 				Extra: platform.HttpInputRawDataLogIngestorExtra{
 					Ingress: platform.HttpInputRawDataLogIngestorIngress{
@@ -164,6 +170,7 @@ var _ = Describe("Repo", func() {
 				stanService               *corev1.Service
 				stanStatefulSet           *appsv1.StatefulSet
 				rawDataLogIngestorIngress *netv1.Ingress
+				rawDataLogDeployment      *appsv1.Deployment
 			)
 
 			BeforeEach(func() {
@@ -707,6 +714,40 @@ var _ = Describe("Repo", func() {
 			It("should create an ingress for rawdatalogingestor with the correct TLS secret name", func() {
 				Expect(rawDataLogIngestorIngress.Spec.TLS[0].SecretName).To(Equal("some-fancy-certificate"))
 			})
+
+			// RawDataLogIngestor Deployment
+			It("should create a deployment for rawdatalog named 'loismay-ernestbush'", func() {
+				object := getCreatedObject(clientSet, "Deployment", "loismay-ernestbush")
+				Expect(object).ToNot(BeNil())
+				rawDataLogDeployment = object.(*appsv1.Deployment)
+			})
+			It("should create a deployment for raw data log with the correct Kind", func() {
+				Expect(rawDataLogDeployment.Kind).To(Equal("Deployment"))
+			})
+			It("should create a deployment for raw data log with the correct tenant-id annotation", func() {
+				Expect(rawDataLogDeployment.Annotations["dolittle.io/tenant-id"]).To(Equal(input.Dolittle.TenantID))
+			})
+			It("should create a deployment for raw data log with the correct application-id annotation", func() {
+				Expect(rawDataLogDeployment.Annotations["dolittle.io/application-id"]).To(Equal(input.Dolittle.ApplicationID))
+			})
+			It("should create a deployment for raw data log with the correct microservice-id annotation", func() {
+				Expect(rawDataLogDeployment.Annotations["dolittle.io/microservice-id"]).To(Equal(input.Dolittle.MicroserviceID))
+			})
+			It("should create a deployment for raw data log with the correct microservice-kind annotation", func() {
+				Expect(rawDataLogDeployment.Annotations["dolittle.io/microservice-kind"]).To(Equal(string(input.Kind)))
+			})
+			It("should create a deployment for raw data log with the correct tenant label", func() {
+				Expect(rawDataLogDeployment.Labels["tenant"]).To(Equal(tenant.Name))
+			})
+			It("should create a deployment for raw data log with the correct application label", func() {
+				Expect(rawDataLogDeployment.Labels["application"]).To(Equal(application.Name))
+			})
+			It("should create a deployment for raw data log with the correct environment label", func() {
+				Expect(rawDataLogDeployment.Labels["environment"]).To(Equal(input.Environment))
+			})
+			It("should create a deployment for raw data log with the correct microservice label", func() {
+				Expect(rawDataLogDeployment.Labels["microservice"]).To(Equal(input.Name))
+			})
 		})
 	})
 })
@@ -729,6 +770,10 @@ func getCreatedObject(clientSet *fake.Clientset, kind, name string) runtime.Obje
 					return resource
 				}
 			case *netv1.Ingress:
+				if resource.GetName() == name {
+					return resource
+				}
+			case *appsv1.Deployment:
 				if resource.GetName() == name {
 					return resource
 				}
