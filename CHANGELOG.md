@@ -1,3 +1,20 @@
+# [0.5.3] - 2021-9-27 [PR: #35](https://github.com/dolittle/platform-api/pull/35)
+## Summary
+
+There was a bug in the raw data log ingestor repo implementation that converted the environment from the microservice from the input to lower case, causing the environment label on the raw data log deployment to be different from the other microservice kind deployments. 
+
+However this fix has a side effect that I don't know the effects of, since we do not convert the environment to lower that results in the DOLITTLE_ENVIRONMENT environment variable on the envVariables config map being different (not lowercased). Is this important? If so we can just make the input there to lower case, that's not a big deal.
+EDIT: As of writing this the code in question is on line 444
+
+
+#### How to test
+- Go through test steps in PR in Studio https://github.com/dolittle/Studio/pull/116
+
+### Fixed
+
+- Deployment of raw data log should now have the environment label in the proper casing
+
+
 # [0.5.2] - 2021-9-24 [PR: #33](https://github.com/dolittle/platform-api/pull/33)
 ## Summary
 
