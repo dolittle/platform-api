@@ -441,7 +441,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 		"WEBHOOK_PREFIX":          webhookPrefix,
 		"DOLITTLE_TENANT_ID":      customer.ID,
 		"DOLITTLE_APPLICATION_ID": application.ID,
-		"DOLITTLE_ENVIRONMENT":    environment,
+		"DOLITTLE_ENVIRONMENT":    strings.ToLower(environment),
 		"MICROSERVICE_CONFIG":     "/app/data/microservice_data_from_studio.json",
 		"TOPIC":                   "purchaseorders",
 	}
