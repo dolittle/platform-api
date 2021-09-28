@@ -36,7 +36,7 @@ func NewService(gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClien
 		rawDataLogIngestorRepo:     rawDataLogRepo,
 		k8sDolittleRepo:            k8sDolittleRepo,
 		parser:                     parser,
-		purchaseOrderHandler: purchaseorderapi.NewRequestHandler(
+		purchaseOrderHandler: purchaseorderapi.NewHandler(
 			parser,
 			purchaseorderapi.NewRepo(k8sResources, specFactory, k8sClient),
 			gitRepo,
@@ -113,7 +113,11 @@ func (s *service) Create(responseWriter http.ResponseWriter, request *http.Reque
 	case platform.MicroserviceKindRawDataLogIngestor:
 		s.handleRawDataLogIngestor(responseWriter, request, requestBytes, applicationInfo)
 	case platform.MicroserviceKindPurchaseOrderAPI:
-		s.purchaseOrderHandler.Create(responseWriter, request, requestBytes, applicationInfo)
+		purchaseOrderAPI, err := s.purchaseOrderHandler.Create(requestBytes, applicationInfo)
+		if err != nil {
+			utils.RespondWithError(responseWriter, err.StatusCode, err.Error())
+		}
+		utils.RespondWithJSON(responseWriter, http.StatusAccepted, purchaseOrderAPI)
 	default:
 		utils.RespondWithError(responseWriter, http.StatusBadRequest, fmt.Sprintf("Kind %s is not supported", microserviceBase.Kind))
 	}
