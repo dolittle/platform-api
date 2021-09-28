@@ -44,19 +44,19 @@ var readLogsCMD = &cobra.Command{
 		logrus.SetFormatter(&logrus.JSONFormatter{})
 
 		opts := []nats.Option{nats.Name("raw-data-log-reader")}
+		logContext := logrus.WithFields(logrus.Fields{
+			"context":    "raw-data-log-reader",
+			"cluster_id": clusterID,
+			"client_id":  clientID,
+		})
+		logContext.Info("Connecting to NATS Server...")
 		nc, err := nats.Connect(natsServer, opts...)
 
 		if err != nil {
 			panic(err)
 		}
 
-		logContext := logrus.WithFields(logrus.Fields{
-			"context":    "raw-data-log-reader",
-			"cluster_id": clusterID,
-			"client_id":  clientID,
-		})
-
-		logContext.Info("Connecting to nats server...")
+		logContext.Info("Connecting to NATS Streaming Server...")
 		sc, err := stan.Connect(clusterID, clientID,
 			stan.NatsConn(nc),
 			stan.SetConnectionLostHandler(func(_ stan.Conn, reason error) {
