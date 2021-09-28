@@ -122,9 +122,9 @@ func (s *Handler) Update(inputBytes []byte, applicationInfo platform.Application
 
 }
 
-func (s *Handler) Delete(namespace string, microserviceID string) *Error {
+func (s *Handler) Delete(namespace, microserviceID string) error {
 	if err := s.repo.Delete(namespace, microserviceID); err != nil {
-		return newInternalError(fmt.Errorf("failed to delete Purchase Order API: %w", err))
+		return fmt.Errorf("failed to delete Purchase Order API: %w", err)
 	}
 	return nil
 }
