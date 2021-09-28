@@ -509,7 +509,8 @@ var _ = Describe("Repo", func() {
 				streaming {
 					ns: "nats://loismay-nats:4222"
 					id: stan
-					store: MEMORY
+					store: file
+					dir: datastore
 				}
 			`))
 			})
