@@ -43,7 +43,7 @@ func NewRawDataLogIngestorRepo(k8sDolittleRepo platform.K8sRepo, k8sClient kuber
 }
 
 // Checks whether
-func (r RawDataLogIngestorRepo) Exists(namespace string, environment string) (bool, error) {
+func (r RawDataLogIngestorRepo) Exists(namespace string, environment string) (exists bool, microserviceID string, err error) {
 	r.logContext.WithFields(logrus.Fields{
 		"namespace":   namespace,
 		"environment": environment,
@@ -53,7 +53,7 @@ func (r RawDataLogIngestorRepo) Exists(namespace string, environment string) (bo
 	deployments, err := r.k8sClient.AppsV1().Deployments(namespace).List(ctx, metaV1.ListOptions{})
 
 	if err != nil {
-		return false, err
+		return false, "", err
 	}
 
 	for _, deployment := range deployments.Items {
@@ -66,7 +66,7 @@ func (r RawDataLogIngestorRepo) Exists(namespace string, environment string) (bo
 				"environment": environment,
 				"method":      "RawDataLogIngestorRepo.Exists",
 			}).Debug("Found a RawDataLog microservice")
-			return true, nil
+			return true, annotations["dolittle.io/microservice-id"], nil
 		}
 	}
 	r.logContext.WithFields(logrus.Fields{
@@ -75,7 +75,7 @@ func (r RawDataLogIngestorRepo) Exists(namespace string, environment string) (bo
 		"method":      "RawDataLogIngestorRepo.Exists",
 	}).Debug("Didn't find a RawDataLog microservice")
 
-	return false, nil
+	return false, "", nil
 }
 
 // Update updates the config files config map of the raw data log microservice
@@ -89,6 +89,15 @@ func (r RawDataLogIngestorRepo) Update(namespace string, customer k8s.Tenant, ap
 	})
 	logger.Debug("Updating the RawDataLog microservice")
 
+	exists, _, err := r.Exists(namespace, input.Environment)
+	if err != nil {
+		logger.WithError(err).Error("Failed to check if Raw Data Log exists")
+		return err
+	}
+	if !exists {
+		logger.Warnf("A Raw Data Log doesn't exist for namespace %s and environment %s", namespace, input.Environment)
+		return fmt.Errorf("a Raw Data Log doesn't exist for namespace %s and environment %s", namespace, input.Environment)
+	}
 	_, tenant, err := r.getIngressAndTenantForHost(customer, application, input.Environment, input.Extra.Ingress.Host)
 	if err != nil {
 		logger.WithError(err).Error("Failed to map input ingress to stored ingress")
@@ -117,14 +126,14 @@ func (r RawDataLogIngestorRepo) Update(namespace string, customer k8s.Tenant, ap
 	configFiles, err = r.k8sClient.CoreV1().ConfigMaps(namespace).Get(ctx, configFiles.Name, metaV1.GetOptions{})
 	if err != nil {
 		logger.WithError(err).Error("Could not get config files")
-		return nil
+		return err
 	}
 	r.configureConfigFiles(configFiles, input)
 
 	_, err = r.k8sClient.CoreV1().ConfigMaps(namespace).Update(ctx, configFiles, metaV1.UpdateOptions{})
 	if err != nil {
 		logger.WithError(err).Error("Could not update config files")
-		return nil
+		return err
 	}
 
 	return nil
