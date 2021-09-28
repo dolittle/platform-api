@@ -2,9 +2,11 @@ package rawdatalog
 
 import (
 	"fmt"
+	"log"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -19,6 +21,13 @@ type stanResources struct {
 func createStanResources(namespace, environment string, labels, annotations labels.Set) stanResources {
 	name := fmt.Sprintf("%s-stan", environment)
 	natsName := fmt.Sprintf("%s-nats", environment)
+	quantity, err := resource.ParseQuantity("8Gi")
+	if err != nil {
+		log.Fatal(err)
+	}
+	storageClassName := "managed-premium"
+	storageName := fmt.Sprintf("%s-storage", name)
+	storageDir := "datastore"
 
 	configMap := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
@@ -38,9 +47,10 @@ func createStanResources(namespace, environment string, labels, annotations labe
 				streaming {
 					ns: "nats://%s:4222"
 					id: stan
-					store: MEMORY
+					store: file
+					dir: %s
 				}
-			`, natsName),
+			`, natsName, storageDir),
 		},
 	}
 
@@ -144,6 +154,10 @@ func createStanResources(namespace, environment string, labels, annotations labe
 									Name:      "config-volume",
 									MountPath: "/etc/stan-config",
 								},
+								{
+									Name:      storageName,
+									MountPath: storageDir,
+								},
 							},
 							LivenessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
@@ -156,6 +170,20 @@ func createStanResources(namespace, environment string, labels, annotations labe
 								TimeoutSeconds:      5,
 							},
 						},
+					},
+				},
+			},
+			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: storageName,
+					},
+					Spec: corev1.PersistentVolumeClaimSpec{
+						AccessModes: []corev1.PersistentVolumeAccessMode{"ReadWriteOnce"},
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{"storage": quantity},
+						},
+						StorageClassName: &storageClassName,
 					},
 				},
 			},
