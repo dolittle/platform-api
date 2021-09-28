@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/k8s"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/parser"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/rawdatalog"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/requests"
@@ -73,86 +74,17 @@ func (s *RequestHandler) Create(responseWriter http.ResponseWriter, r *http.Requ
 		}
 	}
 
-	exists, err := s.repo.EnvironmentHasPurchaseOrderAPI(msK8sInfo.Namespace, ms)
+	exists, err := s.purchaseOrderAPIExists(responseWriter, msK8sInfo, ms, tenant, logger)
 	if err != nil {
-		logger.WithError(err).Error("Failed to check if environment has Purchase Order API with K8sRepo")
-		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
 		return err
 	}
 	if exists {
-		logger.Warn("A Purchase Order API Microservice already exists in K8sRepo")
-		utils.RespondWithError(responseWriter, http.StatusConflict, fmt.Sprintf("A Purchase Order API Microservice already exists in %s environment in application %s under customer %s", ms.Environment, ms.Dolittle.ApplicationID, ms.Dolittle.TenantID))
 		return nil
 	}
 
-	exists, err = s.repo.Exists(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, tenant, ms)
+	err = s.ensureRawDataLogExists(responseWriter, msK8sInfo, ms, logger)
 	if err != nil {
-		logger.WithError(err).Error("Failed to check if Purchase Order API exists with K8sRepo")
-		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
 		return err
-	}
-	if exists {
-		logger.WithField("microserviceID", ms.Dolittle.MicroserviceID).Warn("A Purchase Order API Microservice with the same name already exists in K8sRepo")
-		utils.RespondWithError(responseWriter, http.StatusConflict, fmt.Sprintf("A Purchase Order API Microservice with ID %s already exists in %s environment in application %s under customer %s", ms.Dolittle.MicroserviceID, ms.Environment, ms.Dolittle.ApplicationID, ms.Dolittle.TenantID))
-		return nil
-	}
-
-	rawDataLogExists, err := s.rawdatalogRepo.Exists(msK8sInfo.Namespace, ms.Environment)
-	if err != nil {
-		logger.WithError(err).Error("Failed to check if Raw Data Log exists")
-		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
-		return err
-	}
-	if !rawDataLogExists {
-		logger.Debug("Raw Data Log does not exist, creating a new one")
-
-		webhookConfigs := []platform.RawDataLogIngestorWebhookConfig{}
-		for _, webhook := range ms.Extra.Webhooks {
-			webhook := platform.RawDataLogIngestorWebhookConfig{
-				Kind:          webhook.Kind,
-				UriSuffix:     webhook.UriSuffix,
-				Authorization: webhook.Authorization,
-			}
-			webhookConfigs = append(webhookConfigs, webhook)
-		}
-
-		input := platform.HttpInputRawDataLogIngestorInfo{
-			MicroserviceBase: platform.MicroserviceBase{
-				Name:        ms.Extra.RawDataLogName,
-				Kind:        platform.MicroserviceKindRawDataLogIngestor,
-				Environment: ms.Environment,
-				Dolittle: platform.HttpInputDolittle{
-					ApplicationID:  ms.Dolittle.ApplicationID,
-					TenantID:       ms.Dolittle.TenantID,
-					MicroserviceID: uuid.New().String(),
-				},
-			},
-			Extra: platform.HttpInputRawDataLogIngestorExtra{
-				// TODO these images won't evolve automatically
-				Headimage:    "dolittle/platform-api:latest",
-				Runtimeimage: "dolittle/runtime:6.1.0",
-				Ingress:      ms.Extra.Ingress,
-				WriteTo:      "nats",
-				Webhooks:     webhookConfigs,
-			},
-		}
-		err = s.rawdatalogRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, input)
-		if err != nil {
-			logger.WithError(err).Error("Failed to create Raw Data Log")
-			utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
-			return nil
-		}
-		err = s.gitRepo.SaveMicroservice(
-			input.Dolittle.TenantID,
-			input.Dolittle.ApplicationID,
-			input.Environment,
-			input.Dolittle.MicroserviceID,
-			input)
-		if err != nil {
-			logger.WithError(err).Error("Failed to save Raw Data Log in GitRepo")
-			utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
-			return nil
-		}
 	}
 	// TODO: Since we only do ingress validation on the creation of RawDataLog, this means that if it exists - we don't do any validation.
 
@@ -191,4 +123,98 @@ func (s *RequestHandler) getConfiguredTenant(customerID, appplicationID, environ
 		return "", err
 	}
 	return application.GetTenantForEnvironment(environment)
+}
+
+func (s *RequestHandler) purchaseOrderAPIExists(responseWriter http.ResponseWriter, msK8sInfo k8s.MicroserviceK8sInfo, ms platform.HttpInputPurchaseOrderInfo, tenant platform.TenantId, logger *logrus.Entry) (exists bool, err error) {
+	exists, err = s.repo.EnvironmentHasPurchaseOrderAPI(msK8sInfo.Namespace, ms)
+	if err != nil {
+		logger.WithError(err).Error("Failed to check if environment has Purchase Order API with K8sRepo")
+		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if exists {
+		logger.Warn("A Purchase Order API Microservice already exists in K8sRepo")
+		utils.RespondWithError(responseWriter, http.StatusConflict, fmt.Sprintf("A Purchase Order API Microservice already exists in %s environment in application %s under customer %s", ms.Environment, ms.Dolittle.ApplicationID, ms.Dolittle.TenantID))
+		return
+	}
+
+	exists, err = s.repo.Exists(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, tenant, ms)
+	if err != nil {
+		logger.WithError(err).Error("Failed to check if Purchase Order API exists with K8sRepo")
+		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if exists {
+		logger.WithField("microserviceID", ms.Dolittle.MicroserviceID).Warn("A Purchase Order API Microservice with the same name already exists in K8sRepo")
+		utils.RespondWithError(responseWriter, http.StatusConflict, fmt.Sprintf("A Purchase Order API Microservice with ID %s already exists in %s environment in application %s under customer %s", ms.Dolittle.MicroserviceID, ms.Environment, ms.Dolittle.ApplicationID, ms.Dolittle.TenantID))
+		return
+	}
+	return
+}
+
+func (s *RequestHandler) ensureRawDataLogExists(responseWriter http.ResponseWriter, msK8sInfo k8s.MicroserviceK8sInfo, ms platform.HttpInputPurchaseOrderInfo, logger *logrus.Entry) error {
+	rawDataLogExists, err := s.rawdatalogRepo.Exists(msK8sInfo.Namespace, ms.Environment)
+	if err != nil {
+		logger.WithError(err).Error("Failed to check if Raw Data Log exists")
+		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
+		return err
+	}
+	if !rawDataLogExists {
+		logger.Debug("Raw Data Log does not exist, creating a new one")
+		err = s.createRawDataLog(responseWriter, msK8sInfo, ms, logger)
+		if err != nil {
+			return err
+		}
+	} else {
+		err = s.rawdatalogRepo.Update(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, s.extractRawDataLogInfo(ms))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *RequestHandler) createRawDataLog(responseWriter http.ResponseWriter, msK8sInfo k8s.MicroserviceK8sInfo, ms platform.HttpInputPurchaseOrderInfo, logger *logrus.Entry) error {
+	input := s.extractRawDataLogInfo(ms)
+	err := s.rawdatalogRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, input)
+	if err != nil {
+		logger.WithError(err).Error("Failed to create Raw Data Log")
+		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
+		return err
+	}
+	err = s.gitRepo.SaveMicroservice(
+		input.Dolittle.TenantID,
+		input.Dolittle.ApplicationID,
+		input.Environment,
+		input.Dolittle.MicroserviceID,
+		input)
+	if err != nil {
+		logger.WithError(err).Error("Failed to save Raw Data Log in GitRepo")
+		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
+		return err
+	}
+	return nil
+}
+
+func (s *RequestHandler) extractRawDataLogInfo(ms platform.HttpInputPurchaseOrderInfo) platform.HttpInputRawDataLogIngestorInfo {
+	return platform.HttpInputRawDataLogIngestorInfo{
+		MicroserviceBase: platform.MicroserviceBase{
+			Name:        ms.Extra.RawDataLogName,
+			Kind:        platform.MicroserviceKindRawDataLogIngestor,
+			Environment: ms.Environment,
+			Dolittle: platform.HttpInputDolittle{
+				ApplicationID:  ms.Dolittle.ApplicationID,
+				TenantID:       ms.Dolittle.TenantID,
+				MicroserviceID: uuid.New().String(),
+			},
+		},
+		Extra: platform.HttpInputRawDataLogIngestorExtra{
+			// TODO these images won't evolve automatically
+			Headimage:    "dolittle/platform-api:latest",
+			Runtimeimage: "dolittle/runtime:6.1.0",
+			Ingress:      ms.Extra.Ingress,
+			WriteTo:      "nats",
+			Webhooks:     ms.Extra.Webhooks,
+		},
+	}
 }
