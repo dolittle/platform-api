@@ -38,7 +38,7 @@ func (s *service) handleRawDataLogIngestor(responseWriter http.ResponseWriter, r
 		return
 	}
 
-	exists, err := s.rawDataLogIngestorRepo.Exists(msK8sInfo.Namespace, ms.Environment)
+	exists, _, err := s.rawDataLogIngestorRepo.Exists(msK8sInfo.Namespace, ms.Environment)
 	if err != nil {
 		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
 		return

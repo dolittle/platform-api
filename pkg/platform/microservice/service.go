@@ -36,34 +36,28 @@ func NewService(gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClien
 		rawDataLogIngestorRepo:     rawDataLogRepo,
 		k8sDolittleRepo:            k8sDolittleRepo,
 		parser:                     parser,
-		purchaseOrderHandler: purchaseorderapi.NewRequestHandler(
+		purchaseOrderHandler: purchaseorderapi.NewHandler(
 			parser,
 			purchaseorderapi.NewRepo(k8sResources, specFactory, k8sClient),
 			gitRepo,
 			rawDataLogRepo,
 			logContext),
+		logger: logContext,
 	}
 }
 
 // TODO https://dolittle.freshdesk.com/a/tickets/1352 how to add multiple entries to ingress
 func (s *service) Create(responseWriter http.ResponseWriter, request *http.Request) {
-	var microserviceBase platform.HttpMicroserviceBase
-	requestBytes, err := ioutil.ReadAll(request.Body)
+	logger := s.logger.WithFields(logrus.Fields{
+		"method": "Create",
+	})
+	requestBytes, microserviceBase, err := s.readMicroserviceBase(request, logger)
 	if err != nil {
-		fmt.Println(err)
-		utils.RespondWithError(responseWriter, http.StatusBadRequest, "Invalid request payload")
-		return
-	}
-
-	err = json.Unmarshal(requestBytes, &microserviceBase)
-
-	if err != nil {
-		utils.RespondWithError(responseWriter, http.StatusBadRequest, "Invalid request payload")
+		utils.RespondWithError(responseWriter, http.StatusBadRequest, fmt.Errorf("Invalid request payload: %w", err).Error())
 		return
 	}
 	defer request.Body.Close()
 
-	userID := request.Header.Get("User-ID")
 	applicationID := microserviceBase.Dolittle.ApplicationID
 	environment := microserviceBase.Environment
 
@@ -86,6 +80,7 @@ func (s *service) Create(responseWriter http.ResponseWriter, request *http.Reque
 		Name: applicationInfo.Tenant.Name,
 	}
 
+	userID := request.Header.Get("User-ID")
 	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(responseWriter, customer.ID, applicationID, userID)
 	if !allowed {
 		return
@@ -113,10 +108,97 @@ func (s *service) Create(responseWriter http.ResponseWriter, request *http.Reque
 	case platform.MicroserviceKindRawDataLogIngestor:
 		s.handleRawDataLogIngestor(responseWriter, request, requestBytes, applicationInfo)
 	case platform.MicroserviceKindPurchaseOrderAPI:
-		s.purchaseOrderHandler.Create(responseWriter, request, requestBytes, applicationInfo)
+		purchaseOrderAPI, err := s.purchaseOrderHandler.Create(requestBytes, applicationInfo)
+		if err != nil {
+			utils.RespondWithError(responseWriter, err.StatusCode, err.Error())
+		}
+		utils.RespondWithJSON(responseWriter, http.StatusAccepted, purchaseOrderAPI)
 	default:
 		utils.RespondWithError(responseWriter, http.StatusBadRequest, fmt.Sprintf("Kind %s is not supported", microserviceBase.Kind))
 	}
+}
+
+func (s *service) Update(responseWriter http.ResponseWriter, request *http.Request) {
+	logger := s.logger.WithFields(logrus.Fields{
+		"method": "Update",
+	})
+	requestBytes, microserviceBase, err := s.readMicroserviceBase(request, logger)
+	if err != nil {
+		utils.RespondWithError(responseWriter, http.StatusBadRequest, fmt.Errorf("Invalid request payload: %w", err).Error())
+		return
+	}
+	defer request.Body.Close()
+
+	applicationID := microserviceBase.Dolittle.ApplicationID
+	environment := microserviceBase.Environment
+
+	applicationInfo, err := s.k8sDolittleRepo.GetApplication(applicationID)
+	if err != nil {
+		if !k8serrors.IsNotFound(err) {
+			fmt.Println(err)
+			utils.RespondWithError(responseWriter, http.StatusInternalServerError, "Something went wrong")
+			return
+		}
+
+		utils.RespondWithJSON(responseWriter, http.StatusNotFound, map[string]string{
+			"error": fmt.Sprintf("Application %s not found", applicationID),
+		})
+		return
+	}
+
+	customer := k8s.Tenant{
+		ID:   applicationInfo.Tenant.ID,
+		Name: applicationInfo.Tenant.Name,
+	}
+
+	userID := request.Header.Get("User-ID")
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(responseWriter, customer.ID, applicationID, userID)
+	if !allowed {
+		return
+	}
+
+	if !s.gitRepo.IsAutomationEnabled(customer.ID, applicationID, environment) {
+		utils.RespondWithError(
+			responseWriter,
+			http.StatusBadRequest,
+			fmt.Sprintf(
+				"Customer %s with application %s in environment %s does not allow changes via Studio",
+				customer.ID,
+				applicationID,
+				environment,
+			),
+		)
+		return
+	}
+
+	switch microserviceBase.Kind {
+	case platform.MicroserviceKindPurchaseOrderAPI:
+		// TODO handle other updation operations too
+		purchaseOrderAPI, err := s.purchaseOrderHandler.UpdateWebhooks(requestBytes, applicationInfo)
+		if err != nil {
+			utils.RespondWithError(responseWriter, err.StatusCode, err.Error())
+		}
+		utils.RespondWithJSON(responseWriter, http.StatusOK, purchaseOrderAPI)
+	default:
+		utils.RespondWithError(responseWriter, http.StatusBadRequest, fmt.Sprintf("Kind %s is not supported", microserviceBase.Kind))
+	}
+}
+
+func (s *service) readMicroserviceBase(request *http.Request, logger *logrus.Entry) (requestBytes []byte, microserviceBase platform.HttpMicroserviceBase, err error) {
+	microserviceBase = platform.HttpMicroserviceBase{}
+	requestBytes, err = ioutil.ReadAll(request.Body)
+	if err != nil {
+		logger.WithError(err).Error("Failed to read request body")
+		err = fmt.Errorf("failed to read request body: %w", err)
+		return
+	}
+
+	if err = json.Unmarshal(requestBytes, &microserviceBase); err != nil {
+		logger.WithError(err).Error("Failed to read json from request body")
+		err = fmt.Errorf("failed to read json from request body: %w", err)
+		return
+	}
+	return
 }
 
 func (s *service) GetByID(w http.ResponseWriter, r *http.Request) {
