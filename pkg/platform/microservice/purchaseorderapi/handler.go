@@ -77,8 +77,14 @@ func (s *Handler) Create(inputBytes []byte, applicationInfo platform.Application
 		return ms, newInternalError(fmt.Errorf("failed to get configured tenant: %w", err))
 	}
 
-	if statusErr := s.ensurePurchaseOrderAPIDoesNotExist(msK8sInfo, ms, tenant, logger); statusErr != nil {
-		return ms, statusErr
+	exists, err := s.purchaseOrderApiExists(msK8sInfo, ms, tenant, logger)
+	if err != nil {
+		logger.WithError(err).Error()
+		return ms, newInternalError(fmt.Errorf("failed to check if Purchase Order API can be created: %w", err))
+	}
+	if exists {
+		logger.WithField("microserviceID", ms.Dolittle.MicroserviceID).Warn("A Purchase Order API Microservice with the same name already exists in kubernetes or git storage")
+		return ms, newConflict(fmt.Errorf("a Purchase Order API Microservice with the same name already exists in kubernetes or git storage"))
 	}
 
 	if statusErr := s.ensureRawDataLogExists(msK8sInfo, ms, logger); statusErr != nil {
@@ -115,8 +121,15 @@ func (s *Handler) UpdateWebhooks(inputBytes []byte, applicationInfo platform.App
 		logger.WithError(err).Error("Failed to get configured tenant")
 		return ms, newInternalError(fmt.Errorf("failed to get configured tenant: %w", err))
 	}
-	if statusErr := s.ensurePurchaseOrderAPIExists(msK8sInfo, ms, tenant, logger); statusErr != nil {
-		return ms, statusErr
+
+	exists, err := s.purchaseOrderApiExists(msK8sInfo, ms, tenant, logger)
+	if err != nil {
+		logger.WithError(err).Error()
+		return ms, newInternalError(fmt.Errorf("failed to check if Purchase Order API can be updated: %w", err))
+	}
+	if !exists {
+		logger.WithField("microserviceID", ms.Dolittle.MicroserviceID).Warn("A Purchase Order API Microservice does not exist in kubernetes or git storage")
+		return ms, newConflict(fmt.Errorf("a Purchase Order API Microservice does not exist in kubernetes or git storage"))
 	}
 
 	if statusErr := s.ensureRawDataLogExists(msK8sInfo, ms, logger); statusErr != nil {
@@ -140,39 +153,31 @@ func (s *Handler) getConfiguredTenant(customerID, appplicationID, environment st
 	return application.GetTenantForEnvironment(environment)
 }
 
-func (s *Handler) ensurePurchaseOrderAPIDoesNotExist(msK8sInfo k8s.MicroserviceK8sInfo, ms platform.HttpInputPurchaseOrderInfo, tenant platform.TenantId, logger *logrus.Entry) *Error {
+func (s *Handler) purchaseOrderApiExists(msK8sInfo k8s.MicroserviceK8sInfo, ms platform.HttpInputPurchaseOrderInfo, tenant platform.TenantId, logger *logrus.Entry) (bool, *Error) {
 	microservices, err := s.gitRepo.GetMicroservices(msK8sInfo.Tenant.ID, msK8sInfo.Application.ID)
 	if err != nil {
 		logger.WithError(err).Error("Failed to get microservices from GitRepo")
-		return newInternalError(fmt.Errorf("failed to get microservices from GitRepo: %w", err))
+		return false, newInternalError(fmt.Errorf("failed to get microservices from GitRepo: %w", err))
 	}
 	for _, microservice := range microservices {
 		if microservice.Kind == platform.MicroserviceKindPurchaseOrderAPI && strings.EqualFold(microservice.Environment, ms.Environment) {
-			logger.Warn("A Purchase Order API Microservice already exists in GitRepo")
-			return newConflict(fmt.Errorf("A Purchase Order API Microservice already exists in %s environment in application %s under customer %s", ms.Environment, ms.Dolittle.ApplicationID, ms.Dolittle.TenantID))
+			return true, nil
 		}
 	}
 
 	exists, err := s.repo.EnvironmentHasPurchaseOrderAPI(msK8sInfo.Namespace, ms)
 	if err != nil {
 		logger.WithError(err).Error("Failed to check if environment has Purchase Order API with K8sRepo")
-		return newInternalError(fmt.Errorf("failed to check if environment has Purchase Order API with K8sRepo: %w", err))
+		return false, newInternalError(fmt.Errorf("failed to check if environment has Purchase Order API with K8sRepo: %w", err))
 	}
 	if exists {
-		logger.Warn("A Purchase Order API Microservice already exists in K8sRepo")
-		return newConflict(fmt.Errorf("a Purchase Order API Microservice already exists in %s environment in application %s under customer %s", ms.Environment, ms.Dolittle.ApplicationID, ms.Dolittle.TenantID))
+		return true, nil
 	}
+	return false, nil
+}
 
-	exists, err = s.repo.Exists(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, tenant, ms)
-	if err != nil {
-		logger.WithError(err).Error("Failed to check if Purchase Order API exists with K8sRepo")
-		return newInternalError(fmt.Errorf("failed to check if Purchase Order API exists with K8sRepo: %w", err))
-	}
-	if exists {
-		logger.WithField("microserviceID", ms.Dolittle.MicroserviceID).Warn("A Purchase Order API Microservice with the same name already exists in K8sRepo")
-		return newConflict(fmt.Errorf("a Purchase Order API Microservice with ID %s already exists in %s environment in application %s under customer %s", ms.Dolittle.MicroserviceID, ms.Environment, ms.Dolittle.ApplicationID, ms.Dolittle.TenantID))
-	}
-	return nil
+func (s *Handler) canUpdatePurchaseOrderAPI(msK8sInfo k8s.MicroserviceK8sInfo, ms platform.HttpInputPurchaseOrderInfo, tenant platform.TenantId, logger *logrus.Entry) *Error {
+
 }
 
 func (s *Handler) createPurchaseOrderAPI(msK8sInfo k8s.MicroserviceK8sInfo, ms platform.HttpInputPurchaseOrderInfo, tenant platform.TenantId, logger *logrus.Entry) *Error {
@@ -203,18 +208,6 @@ func (s *Handler) ensureRawDataLogExists(msK8sInfo k8s.MicroserviceK8sInfo, ms p
 	}
 }
 
-func (s *Handler) ensurePurchaseOrderAPIExists(msK8sInfo k8s.MicroserviceK8sInfo, ms platform.HttpInputPurchaseOrderInfo, tenant platform.TenantId, logger *logrus.Entry) *Error {
-	exists, err := s.repo.Exists(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, tenant, ms)
-	if err != nil {
-		logger.WithError(err).Error("Failed to check if Purchase Order API exists with K8sRepo")
-		return newInternalError(fmt.Errorf("failed to check if Purchase Order API exists with K8sRepo: %w", err))
-	}
-	if !exists {
-		logger.WithField("microserviceID", ms.Dolittle.MicroserviceID).Warnf("A Purchase Order API Microservice with the name %s does not exist in K8sRepo", ms.Name)
-		return newConflict(fmt.Errorf("a Purchase Order API Microservice with ID %s does not exist in %s environment in application %s under customer %s", ms.Dolittle.MicroserviceID, ms.Environment, ms.Dolittle.ApplicationID, ms.Dolittle.TenantID))
-	}
-	return nil
-}
 func (s *Handler) updatePurchaseOrderAPIWebhooks(msK8sInfo k8s.MicroserviceK8sInfo, webhooks []platform.RawDataLogIngestorWebhookConfig, environment, microserviceID string, logger *logrus.Entry) *Error {
 	var storedMicroservice platform.HttpInputPurchaseOrderInfo
 	bytes, err := s.gitRepo.GetMicroservice(msK8sInfo.Tenant.ID, msK8sInfo.Application.ID, environment, microserviceID)
