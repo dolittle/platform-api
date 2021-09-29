@@ -1,3 +1,13 @@
+# [0.5.4] - 2021-9-29 [PR: #38](https://github.com/dolittle/platform-api/pull/38)
+## Summary
+
+Fixes a minor issue where an array was not initialised to an empty array
+
+### Changed
+
+- Initialize pods list with empty array
+
+
 # [0.5.3] - 2021-9-27 [PR: #35](https://github.com/dolittle/platform-api/pull/35)
 ## Summary
 
