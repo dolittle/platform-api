@@ -77,10 +77,10 @@ func (s *Handler) Create(inputBytes []byte, applicationInfo platform.Application
 		return ms, newInternalError(fmt.Errorf("failed to get configured tenant: %w", err))
 	}
 
-	exists, err := s.purchaseOrderApiExists(msK8sInfo, ms, tenant, logger)
-	if err != nil {
-		logger.WithError(err).Error()
-		return ms, newInternalError(fmt.Errorf("failed to check if Purchase Order API can be created: %w", err))
+	exists, statusErr := s.purchaseOrderApiExists(msK8sInfo, ms, tenant, logger)
+	if statusErr != nil {
+		logger.WithError(statusErr).Error("Failed to check whether Purchase Order API exists")
+		return ms, newInternalError(fmt.Errorf("failed to whether Purchase Order API exists: %w", err))
 	}
 	if exists {
 		logger.WithField("microserviceID", ms.Dolittle.MicroserviceID).Warn("A Purchase Order API Microservice with the same name already exists in kubernetes or git storage")
@@ -122,10 +122,10 @@ func (s *Handler) UpdateWebhooks(inputBytes []byte, applicationInfo platform.App
 		return ms, newInternalError(fmt.Errorf("failed to get configured tenant: %w", err))
 	}
 
-	exists, err := s.purchaseOrderApiExists(msK8sInfo, ms, tenant, logger)
-	if err != nil {
-		logger.WithError(err).Error()
-		return ms, newInternalError(fmt.Errorf("failed to check if Purchase Order API can be updated: %w", err))
+	exists, statusErr := s.purchaseOrderApiExists(msK8sInfo, ms, tenant, logger)
+	if statusErr != nil {
+		logger.WithError(statusErr).Error("Failed to check whether Purchase Order API exists")
+		return ms, newInternalError(fmt.Errorf("failed to whether Purchase Order API exists: %w", err))
 	}
 	if !exists {
 		logger.WithField("microserviceID", ms.Dolittle.MicroserviceID).Warn("A Purchase Order API Microservice does not exist in kubernetes or git storage")
