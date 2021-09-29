@@ -6,6 +6,7 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/purchaseorderapi"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/rawdatalog"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
+	"github.com/sirupsen/logrus"
 )
 
 type service struct {
@@ -16,4 +17,5 @@ type service struct {
 	k8sDolittleRepo            platform.K8sRepo
 	gitRepo                    storage.Repo
 	parser                     parser.Parser
+	logger                     logrus.FieldLogger
 }
