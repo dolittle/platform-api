@@ -173,7 +173,7 @@ func (s *service) Update(responseWriter http.ResponseWriter, request *http.Reque
 
 	switch microserviceBase.Kind {
 	case platform.MicroserviceKindPurchaseOrderAPI:
-		// This is not ideal, we need to
+		// TODO handle other updation operations too
 		purchaseOrderAPI, err := s.purchaseOrderHandler.UpdateWebhooks(requestBytes, applicationInfo)
 		if err != nil {
 			utils.RespondWithError(responseWriter, err.StatusCode, err.Error())
