@@ -1,3 +1,24 @@
+# [0.6.0] - 2021-9-29 [PR: #37](https://github.com/dolittle/platform-api/pull/37)
+## Summary
+
+This PR adds the functionality to change the webhooks configuration for purchase order api and raw data log, both when creating/deleting purchase order api and updating the username/password on an already existing purchase order api (and by extension raw data log).
+
+### Added
+
+- PUT /microservice route that uses the Update request handler on the microservice.Service struct
+- Update method in microservice.Service that currently only can update the webhooks of a purchase order api. In the future we should consider how to extend this method to other microservice kinds, this implementation was just done to achieve to shortest path to the immediate goal.
+- UpdateWebhooks method on purchaseorderapi.Handler that updates only the webhook configuration of the existing purchase order api and raw data log. It will return error if purchase order api does not exist, but it will create the raw data log if that doesn't exist (which shouldn't ever be the case)
+- Update method on rawdatalog.Repo that only updates the config files config map of the raw data log ingestor repo. I'm not certain that this will ensure that the configuration will be refreshed for the deployment, though after talking with @jakhog we think that it will work this way.
+
+### Changed
+
+- Changed server endpoints to use the http.Method* constants instead of magic strings
+- Added (and use) the logger to the microservice.Service struct
+- Purchase Order API handler signature so that it does not take in the response writer, but instead returns a custom Error type that includes the error and the http status code. This is done because it should be the responsibility of the caller (microservice.Service) to respond with a http response.
+- Change the behaviour of the purchaseorderapi.Handler Create method so that it ensures that a purchase order api does not exist and also ensures that a raw data log ingestor exists with the configured webhoooks from the purchase order api microservice information from the request. Meaning that it will create a new raw data log if it does not exist or update the existing one with the webhook configuration form the request.
+- Exists method on rawdatalog.Repo now returns the microservice ID as well
+
+
 # [0.5.4] - 2021-9-29 [PR: #38](https://github.com/dolittle/platform-api/pull/38)
 ## Summary
 
