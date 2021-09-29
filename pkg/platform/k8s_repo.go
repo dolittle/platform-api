@@ -248,8 +248,8 @@ func (r *K8sRepo) GetPodStatus(applicationID string, microserviceID string, envi
 			Name: "",
 			ID:   microserviceID,
 		},
+		Pods: []PodInfo{},
 	}
-	response.Pods = []PodInfo{}
 
 	if err != nil {
 		return response, err
