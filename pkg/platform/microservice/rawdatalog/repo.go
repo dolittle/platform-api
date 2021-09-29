@@ -128,7 +128,7 @@ func (r RawDataLogIngestorRepo) Update(namespace string, customer k8s.Tenant, ap
 		logger.WithError(err).Error("Could not get config files")
 		return err
 	}
-	r.configureConfigFiles(configFiles, input)
+	configFiles = r.configureConfigFiles(configFiles, input)
 
 	_, err = r.k8sClient.CoreV1().ConfigMaps(namespace).Update(ctx, configFiles, metaV1.UpdateOptions{})
 	if err != nil {
@@ -481,7 +481,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 	// Could use config-files
 
 	webhookPrefix := strings.ToLower(input.Extra.Ingress.Path)
-	r.configureDeployment(deployment)
+	deployment = r.configureDeployment(deployment)
 
 	configEnvVariables.Data = map[string]string{
 		"WEBHOOK_REPO":            input.Extra.WriteTo,
@@ -503,7 +503,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 		configEnvVariables.Data["STAN_CLIENT_ID"] = stanClientID
 	}
 
-	r.configureConfigFiles(configFiles, input)
+	configFiles = r.configureConfigFiles(configFiles, input)
 
 	service.Spec.Ports[0].TargetPort = intstr.IntOrString{
 		Type:   intstr.Int,
@@ -690,14 +690,15 @@ func (r RawDataLogIngestorRepo) getEnvironmentFromApplication(application platfo
 
 	return platform.HttpInputEnvironment{}, fmt.Errorf("environment %s not found in application %s", environment, application.ID)
 }
-func (r RawDataLogIngestorRepo) configureConfigFiles(configFiles *corev1.ConfigMap, input platform.HttpInputRawDataLogIngestorInfo) {
+func (r RawDataLogIngestorRepo) configureConfigFiles(configFiles *corev1.ConfigMap, input platform.HttpInputRawDataLogIngestorInfo) *corev1.ConfigMap {
 	configFiles.Data = map[string]string{}
 	// We store the config data into the config-Files for the service to pick up on
 	b, _ := json.MarshalIndent(input, "", "  ")
 	configFiles.Data["microservice_data_from_studio.json"] = string(b)
+	return configFiles
 }
 
-func (r RawDataLogIngestorRepo) configureDeployment(deployment *appsv1.Deployment) {
+func (r RawDataLogIngestorRepo) configureDeployment(deployment *appsv1.Deployment) *appsv1.Deployment {
 	container := deployment.Spec.Template.Spec.Containers[0]
 	container.ImagePullPolicy = "Always"
 	container.Args = []string{
@@ -708,4 +709,5 @@ func (r RawDataLogIngestorRepo) configureDeployment(deployment *appsv1.Deploymen
 		container,
 	}
 	deployment.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort = 8080
+	return deployment
 }
