@@ -176,10 +176,6 @@ func (s *Handler) purchaseOrderApiExists(msK8sInfo k8s.MicroserviceK8sInfo, ms p
 	return false, nil
 }
 
-func (s *Handler) canUpdatePurchaseOrderAPI(msK8sInfo k8s.MicroserviceK8sInfo, ms platform.HttpInputPurchaseOrderInfo, tenant platform.TenantId, logger *logrus.Entry) *Error {
-
-}
-
 func (s *Handler) createPurchaseOrderAPI(msK8sInfo k8s.MicroserviceK8sInfo, ms platform.HttpInputPurchaseOrderInfo, tenant platform.TenantId, logger *logrus.Entry) *Error {
 	if err := s.repo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, tenant, ms); err != nil {
 		logger.WithError(err).Error("Failed to create Purchase Order API")
