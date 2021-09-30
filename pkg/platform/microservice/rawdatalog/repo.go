@@ -682,6 +682,7 @@ func (r RawDataLogIngestorRepo) doBackupCronJob(namespace string, cronJob *v1bet
 		}
 	}
 
+	return nil
 }
 
 func (r RawDataLogIngestorRepo) getIngressAndTenantForHost(customer k8s.Tenant, application k8s.Application, environment string, host string) (platform.EnvironmentIngress, platform.TenantId, error) {
