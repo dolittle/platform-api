@@ -16,6 +16,7 @@ type stanResources struct {
 	configMap  *corev1.ConfigMap
 	service    *corev1.Service
 	statfulset *appsv1.StatefulSet
+	// backup     *v1beta1.CronJob
 }
 
 func createStanResources(namespace, environment string, labels, annotations labels.Set) stanResources {
@@ -189,6 +190,72 @@ func createStanResources(namespace, environment string, labels, annotations labe
 			},
 		},
 	}
+
+	/*
+		rand.Seed(time.Now().UnixNano())
+		schedule := fmt.Sprintf("%v * * * *", rand.Intn(59))
+		successfulJobsLimit := int32(1)
+		failedJobsLimit := int32(3)
+		activeDeadlineSeconds := int64(600)
+
+			backup := &v1beta1.CronJob{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "batch/v1beta1",
+					Kind:       "CronJob",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        fmt.Sprintf("%s-backup", storageName),
+					Annotations: annotations,
+					Labels:      labels,
+				},
+				Spec: v1beta1.CronJobSpec{
+					Schedule:                   schedule,
+					SuccessfulJobsHistoryLimit: &successfulJobsLimit,
+					FailedJobsHistoryLimit:     &failedJobsLimit,
+					JobTemplate: v1beta1.JobTemplateSpec{
+						Spec: v1.JobSpec{
+							ActiveDeadlineSeconds: &activeDeadlineSeconds,
+							Template: corev1.PodTemplateSpec{
+								ObjectMeta: metav1.ObjectMeta{
+									Annotations: annotations,
+									Labels:      labels,
+								},
+								Spec: corev1.PodSpec{
+									RestartPolicy: "Never",
+									Containers: []corev1.Container{
+										{
+											Name:    "stan-backup",
+											Image:   "nats:2.1.7-alpine3.11",
+											Command: []string{},
+											VolumeMounts: []corev1.VolumeMount{
+												{
+													MountPath: "/mnt/backup/",
+													SubPath:   "stan",
+													Name:      "backup-storage",
+												},
+											},
+										},
+									},
+									Volumes: []corev1.Volume{
+										{
+											Name: "backup-storage",
+											VolumeSource: corev1.VolumeSource{
+												AzureFile: &corev1.AzureFileVolumeSource{
+													SecretName: "storage-account-secret",
+													ShareName: fmt.Sprintf("%s-%s-nats-backup",
+														strings.ToLower(labels["application"]),
+														environment),
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+	*/
 
 	return stanResources{configMap, service, statfulset}
 }
