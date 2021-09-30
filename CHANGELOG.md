@@ -1,3 +1,13 @@
+# [0.6.1] - 2021-9-30 [PR: #39](https://github.com/dolittle/platform-api/pull/39)
+## Summary
+
+Fixes a bug where if an error occurs during creation of a PurchaseOrderAPI microservice, both the error object and the microservice object was written to the response. Resulting in invalid JSON in the response body.
+
+### Fixed
+
+- Don't append the microservice object to the response body if an error occurs during creation of a PurchaseOrderAPI
+
+
 # [0.6.0] - 2021-9-29 [PR: #37](https://github.com/dolittle/platform-api/pull/37)
 ## Summary
 
