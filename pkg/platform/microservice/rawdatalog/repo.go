@@ -43,7 +43,7 @@ func NewRawDataLogIngestorRepo(k8sDolittleRepo platform.K8sRepo, k8sClient kuber
 }
 
 // Checks whether
-func (r RawDataLogIngestorRepo) Exists(namespace string, environment string) (bool, error) {
+func (r RawDataLogIngestorRepo) Exists(namespace string, environment string) (exists bool, microserviceID string, err error) {
 	r.logContext.WithFields(logrus.Fields{
 		"namespace":   namespace,
 		"environment": environment,
@@ -53,7 +53,7 @@ func (r RawDataLogIngestorRepo) Exists(namespace string, environment string) (bo
 	deployments, err := r.k8sClient.AppsV1().Deployments(namespace).List(ctx, metaV1.ListOptions{})
 
 	if err != nil {
-		return false, err
+		return false, "", err
 	}
 
 	for _, deployment := range deployments.Items {
@@ -66,7 +66,7 @@ func (r RawDataLogIngestorRepo) Exists(namespace string, environment string) (bo
 				"environment": environment,
 				"method":      "RawDataLogIngestorRepo.Exists",
 			}).Debug("Found a RawDataLog microservice")
-			return true, nil
+			return true, annotations["dolittle.io/microservice-id"], nil
 		}
 	}
 	r.logContext.WithFields(logrus.Fields{
@@ -75,11 +75,68 @@ func (r RawDataLogIngestorRepo) Exists(namespace string, environment string) (bo
 		"method":      "RawDataLogIngestorRepo.Exists",
 	}).Debug("Didn't find a RawDataLog microservice")
 
-	return false, nil
+	return false, "", nil
 }
 
-func (r RawDataLogIngestorRepo) Update(namespace string, tenant k8s.Tenant, application k8s.Application, input platform.HttpInputRawDataLogIngestorInfo) error {
-	return errors.New("TODO")
+// Update updates the config files config map of the raw data log microservice
+func (r RawDataLogIngestorRepo) Update(namespace string, customer k8s.Tenant, application k8s.Application, input platform.HttpInputRawDataLogIngestorInfo) error {
+	logger := r.logContext.WithFields(logrus.Fields{
+		"namespace":   namespace,
+		"customer":    customer.ID,
+		"application": application.ID,
+		"environment": input.Environment,
+		"method":      "RawDataLogIngestorRepo.Update",
+	})
+	logger.Debug("Updating the RawDataLog microservice")
+
+	exists, _, err := r.Exists(namespace, input.Environment)
+	if err != nil {
+		logger.WithError(err).Error("Failed to check if Raw Data Log exists")
+		return err
+	}
+	if !exists {
+		logger.Warnf("A Raw Data Log doesn't exist for namespace %s and environment %s", namespace, input.Environment)
+		return fmt.Errorf("a Raw Data Log doesn't exist for namespace %s and environment %s", namespace, input.Environment)
+	}
+	_, tenant, err := r.getIngressAndTenantForHost(customer, application, input.Environment, input.Extra.Ingress.Host)
+	if err != nil {
+		logger.WithError(err).Error("Failed to map input ingress to stored ingress")
+		return err
+	}
+
+	environment := input.Environment
+
+	microserviceID := input.Dolittle.MicroserviceID
+	microserviceName := input.Name
+	kind := input.Kind
+
+	microservice := k8s.Microservice{
+		ID:          microserviceID,
+		Name:        microserviceName,
+		Tenant:      customer,
+		Application: application,
+		Environment: environment,
+		ResourceID:  string(tenant),
+		Kind:        kind,
+	}
+
+	configFiles := k8s.NewConfigFilesConfigmap(microservice)
+
+	ctx := context.TODO()
+	configFiles, err = r.k8sClient.CoreV1().ConfigMaps(namespace).Get(ctx, configFiles.Name, metaV1.GetOptions{})
+	if err != nil {
+		logger.WithError(err).Error("Could not get config files")
+		return err
+	}
+	configFiles = r.configureConfigFiles(configFiles, input)
+
+	_, err = r.k8sClient.CoreV1().ConfigMaps(namespace).Update(ctx, configFiles, metaV1.UpdateOptions{})
+	if err != nil {
+		logger.WithError(err).Error("Could not update config files")
+		return err
+	}
+
+	return nil
 }
 
 func (r RawDataLogIngestorRepo) Create(namespace string, customer k8s.Tenant, application k8s.Application, input platform.HttpInputRawDataLogIngestorInfo) error {
@@ -424,16 +481,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 	// Could use config-files
 
 	webhookPrefix := strings.ToLower(input.Extra.Ingress.Path)
-
-	container := deployment.Spec.Template.Spec.Containers[0]
-	container.ImagePullPolicy = "Always"
-	container.Args = []string{
-		"raw-data-log",
-		"server",
-	}
-	deployment.Spec.Template.Spec.Containers = []corev1.Container{
-		container,
-	}
+	deployment = r.configureDeployment(deployment)
 
 	configEnvVariables.Data = map[string]string{
 		"WEBHOOK_REPO":            input.Extra.WriteTo,
@@ -455,16 +503,12 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 		configEnvVariables.Data["STAN_CLIENT_ID"] = stanClientID
 	}
 
-	configFiles.Data = map[string]string{}
-	// We store the config data into the config-Files for the service to pick up on
-	b, _ := json.MarshalIndent(input, "", "  ")
-	configFiles.Data["microservice_data_from_studio.json"] = string(b)
+	configFiles = r.configureConfigFiles(configFiles, input)
 
 	service.Spec.Ports[0].TargetPort = intstr.IntOrString{
 		Type:   intstr.Int,
 		IntVal: 8080,
 	}
-	deployment.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort = 8080
 
 	// Assuming the namespace exists
 	client := r.k8sClient
@@ -645,4 +689,25 @@ func (r RawDataLogIngestorRepo) getEnvironmentFromApplication(application platfo
 	}
 
 	return platform.HttpInputEnvironment{}, fmt.Errorf("environment %s not found in application %s", environment, application.ID)
+}
+func (r RawDataLogIngestorRepo) configureConfigFiles(configFiles *corev1.ConfigMap, input platform.HttpInputRawDataLogIngestorInfo) *corev1.ConfigMap {
+	configFiles.Data = map[string]string{}
+	// We store the config data into the config-Files for the service to pick up on
+	b, _ := json.MarshalIndent(input, "", "  ")
+	configFiles.Data["microservice_data_from_studio.json"] = string(b)
+	return configFiles
+}
+
+func (r RawDataLogIngestorRepo) configureDeployment(deployment *appsv1.Deployment) *appsv1.Deployment {
+	container := deployment.Spec.Template.Spec.Containers[0]
+	container.ImagePullPolicy = "Always"
+	container.Args = []string{
+		"raw-data-log",
+		"server",
+	}
+	deployment.Spec.Template.Spec.Containers = []corev1.Container{
+		container,
+	}
+	deployment.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort = 8080
+	return deployment
 }
