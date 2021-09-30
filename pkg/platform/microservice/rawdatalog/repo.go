@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/api/batch/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -418,6 +419,9 @@ func (r RawDataLogIngestorRepo) doNats(namespace string, labels, annotations k8s
 	if err := r.doStatefulService(namespace, stan.configMap, stan.service, stan.statfulset, action); err != nil {
 		return err
 	}
+	if err := r.doBackupCronJob(namespace, stan.backup); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -659,6 +663,25 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 	}).Debug("Finished creating RawDataLog microservice")
 
 	return nil
+}
+
+func (r RawDataLogIngestorRepo) doBackupCronJob(namespace string, cronJob *v1beta1.CronJob) error {
+	ctx := context.TODO()
+
+	if _, err := r.k8sClient.BatchV1beta1().CronJobs(namespace).Get(ctx, cronJob.GetName(), metaV1.GetOptions{}); err != nil {
+		if k8serrors.IsNotFound(err) {
+			if _, err := r.k8sClient.BatchV1beta1().CronJobs(namespace).Create(ctx, cronJob, metaV1.CreateOptions{}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	} else {
+		if _, err := r.k8sClient.BatchV1beta1().CronJobs(namespace).Update(ctx, cronJob, metaV1.UpdateOptions{}); err != nil {
+			return err
+		}
+	}
+
 }
 
 func (r RawDataLogIngestorRepo) getIngressAndTenantForHost(customer k8s.Tenant, application k8s.Application, environment string, host string) (platform.EnvironmentIngress, platform.TenantId, error) {

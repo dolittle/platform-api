@@ -3,8 +3,13 @@ package rawdatalog
 import (
 	"fmt"
 	"log"
+	"math/rand"
+	"strings"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/batch/v1"
+	"k8s.io/api/batch/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,7 +21,7 @@ type stanResources struct {
 	configMap  *corev1.ConfigMap
 	service    *corev1.Service
 	statfulset *appsv1.StatefulSet
-	// backup     *v1beta1.CronJob
+	backup     *v1beta1.CronJob
 }
 
 func createStanResources(namespace, environment string, labels, annotations labels.Set) stanResources {
@@ -158,6 +163,7 @@ func createStanResources(namespace, environment string, labels, annotations labe
 								{
 									Name:      storageName,
 									MountPath: storageDir,
+									SubPath:   storageDir,
 								},
 							},
 							LivenessProbe: &corev1.Probe{
@@ -191,62 +197,79 @@ func createStanResources(namespace, environment string, labels, annotations labe
 		},
 	}
 
-	/*
-		rand.Seed(time.Now().UnixNano())
-		schedule := fmt.Sprintf("%v * * * *", rand.Intn(59))
-		successfulJobsLimit := int32(1)
-		failedJobsLimit := int32(3)
-		activeDeadlineSeconds := int64(600)
+	rand.Seed(time.Now().UnixNano())
+	schedule := fmt.Sprintf("%v * * * *", rand.Intn(59))
+	successfulJobsLimit := int32(1)
+	failedJobsLimit := int32(3)
+	activeDeadlineSeconds := int64(600)
 
-			backup := &v1beta1.CronJob{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "batch/v1beta1",
-					Kind:       "CronJob",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:        fmt.Sprintf("%s-backup", storageName),
-					Annotations: annotations,
-					Labels:      labels,
-				},
-				Spec: v1beta1.CronJobSpec{
-					Schedule:                   schedule,
-					SuccessfulJobsHistoryLimit: &successfulJobsLimit,
-					FailedJobsHistoryLimit:     &failedJobsLimit,
-					JobTemplate: v1beta1.JobTemplateSpec{
-						Spec: v1.JobSpec{
-							ActiveDeadlineSeconds: &activeDeadlineSeconds,
-							Template: corev1.PodTemplateSpec{
-								ObjectMeta: metav1.ObjectMeta{
-									Annotations: annotations,
-									Labels:      labels,
-								},
-								Spec: corev1.PodSpec{
-									RestartPolicy: "Never",
-									Containers: []corev1.Container{
+	backup := &v1beta1.CronJob{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "batch/v1beta1",
+			Kind:       "CronJob",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        fmt.Sprintf("%s-backup", storageName),
+			Annotations: annotations,
+			Labels:      labels,
+		},
+		Spec: v1beta1.CronJobSpec{
+			Schedule:                   schedule,
+			SuccessfulJobsHistoryLimit: &successfulJobsLimit,
+			FailedJobsHistoryLimit:     &failedJobsLimit,
+			JobTemplate: v1beta1.JobTemplateSpec{
+				Spec: v1.JobSpec{
+					ActiveDeadlineSeconds: &activeDeadlineSeconds,
+					Template: corev1.PodTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Annotations: annotations,
+							Labels:      labels,
+						},
+						Spec: corev1.PodSpec{
+							RestartPolicy: "Never",
+							Containers: []corev1.Container{
+								{
+									Name:  "stan-backup",
+									Image: "alpine:3.14",
+									Command: []string{
+										"/bin/bash",
+										"-c",
+										"--",
+									},
+									Args: []string{
+										fmt.Sprintf("tar -cvzf /mnt/backup/%s-$(date +%%Y-%%m-%%d_%%H-%%M-%%S).tar.gz %s", environment, storageDir),
+									},
+									VolumeMounts: []corev1.VolumeMount{
 										{
-											Name:    "stan-backup",
-											Image:   "nats:2.1.7-alpine3.11",
-											Command: []string{},
-											VolumeMounts: []corev1.VolumeMount{
-												{
-													MountPath: "/mnt/backup/",
-													SubPath:   "stan",
-													Name:      "backup-storage",
-												},
-											},
+											MountPath: "/mnt/backup/",
+											SubPath:   "stan",
+											Name:      "backup-storage",
+										},
+										{
+											Name:      storageName,
+											MountPath: storageDir,
+											SubPath:   storageDir,
 										},
 									},
-									Volumes: []corev1.Volume{
-										{
-											Name: "backup-storage",
-											VolumeSource: corev1.VolumeSource{
-												AzureFile: &corev1.AzureFileVolumeSource{
-													SecretName: "storage-account-secret",
-													ShareName: fmt.Sprintf("%s-%s-nats-backup",
-														strings.ToLower(labels["application"]),
-														environment),
-												},
-											},
+								},
+							},
+							Volumes: []corev1.Volume{
+								{
+									Name: "backup-storage",
+									VolumeSource: corev1.VolumeSource{
+										AzureFile: &corev1.AzureFileVolumeSource{
+											SecretName: "storage-account-secret",
+											ShareName: fmt.Sprintf("%s-%s-nats-backup",
+												strings.ToLower(labels["application"]),
+												environment),
+										},
+									},
+								},
+								{
+									Name: storageName,
+									VolumeSource: corev1.VolumeSource{
+										PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+											ClaimName: storageName,
 										},
 									},
 								},
@@ -254,8 +277,9 @@ func createStanResources(namespace, environment string, labels, annotations labe
 						},
 					},
 				},
-			}
-	*/
+			},
+		},
+	}
 
-	return stanResources{configMap, service, statfulset}
+	return stanResources{configMap, service, statfulset, backup}
 }
