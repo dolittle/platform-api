@@ -111,6 +111,7 @@ func (s *service) Create(responseWriter http.ResponseWriter, request *http.Reque
 		purchaseOrderAPI, err := s.purchaseOrderHandler.Create(requestBytes, applicationInfo)
 		if err != nil {
 			utils.RespondWithError(responseWriter, err.StatusCode, err.Error())
+			break
 		}
 		utils.RespondWithJSON(responseWriter, http.StatusAccepted, purchaseOrderAPI)
 	default:
