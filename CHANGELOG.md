@@ -1,3 +1,19 @@
+# [0.6.2] - 2021-9-30 [PR: #36](https://github.com/dolittle/platform-api/pull/36)
+## Summary
+
+Adds a PersistentVolumeClaim to the STAN deployment with the name of `<env>-stan-storage` for the PVC. It uses the same [`managed-premium`](https://docs.microsoft.com/en-us/azure/aks/concepts-storage#storage-classes) storage class as we use for MongoDB in the platform. The STAN store method is [file](https://docs.nats.io/nats-streaming-server/configuring/persistence/file_store) and the name of the directory is `datastore` like in the STAN doc examples.
+
+To use this locally you have to create a new storage class with the name `managed-premium`, create a persistent volume attached to it, and attach a directory to that persistent volume during k3d creation. This is documented in the Studio PR https://github.com/dolittle/Studio/pull/119
+
+### Added
+
+- Adds a PersistentVolumeClaim of 8GB to the STAN deployment
+
+### Changed
+
+- Made some logging around NATS/STAN creation more clear in RawDataLog
+
+
 # [0.6.1] - 2021-9-30 [PR: #39](https://github.com/dolittle/platform-api/pull/39)
 ## Summary
 
