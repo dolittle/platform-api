@@ -14,6 +14,8 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/platform/businessmoment"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/insights"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/purchaseorderapi"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/rawdatalog"
 
 	gitStorage "github.com/dolittle-entropy/platform-api/pkg/platform/storage/git"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/tenant"
@@ -130,6 +132,7 @@ var serverCMD = &cobra.Command{
 
 		router.Handle("/application/{applicationID}/environment/{environment}/microservice/{microserviceID}", stdChainWithJSON.ThenFunc(microserviceService.GetByID)).Methods(http.MethodGet, http.MethodOptions)
 		router.Handle("/application/{applicationID}/environment/{environment}/microservice/{microserviceID}", stdChainWithJSON.ThenFunc(microserviceService.Delete)).Methods(http.MethodDelete, http.MethodOptions)
+		router.Handle("/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/kind/{kind}/status", stdChainBase.Then(microserviceService.GetStatus)).Methods(http.MethodGet, http.MethodOptions)
 
 		router.Handle("/live/applications", stdChainWithJSON.ThenFunc(applicationService.GetLiveApplications)).Methods(http.MethodGet, http.MethodOptions)
 		router.Handle("/live/application/{applicationID}/microservices", stdChainWithJSON.ThenFunc(microserviceService.GetLiveByApplicationID)).Methods(http.MethodGet, http.MethodOptions)

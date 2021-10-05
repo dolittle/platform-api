@@ -395,17 +395,6 @@ func (s *service) GetPodStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//response := HttpResponsePodStatus{
-	//	Application: platform.ShortInfo{
-	//		Name: application.Name,
-	//		ID:   application.ID,
-	//	},
-	//	Microservice: platform.ShortInfoWithEnvironment{
-	//		Name: application.Name,
-	//		ID:   application.ID,
-	//	},
-	//}
-
 	utils.RespondWithJSON(w, http.StatusOK, status)
 }
 
@@ -664,4 +653,28 @@ func (s *service) CanI(w http.ResponseWriter, r *http.Request) {
 	utils.RespondWithJSON(w, http.StatusNotFound, map[string]string{
 		"allowed": allowedStr,
 	})
+}
+
+func (s *service) GetStatus(responseWriter http.ResponseWriter, request *http.Request) {
+	tenantID := request.Header.Get("Tenant-ID")
+
+	vars := mux.Vars(request)
+	applicationID := vars["applicationID"]
+	environment := strings.ToLower(vars["environment"])
+	microserviceID := vars["microserviceID"]
+	kind := vars["kind"]
+
+	microserviceKind := platform.MicroserviceKind(kind)
+
+	switch microserviceKind {
+	case platform.MicroserviceKindPurchaseOrderAPI:
+		status, err := s.purchaseOrderHandler.GetStatus(tenantID, applicationID, environment, microserviceID)
+		if err != nil {
+			utils.RespondWithError(responseWriter, err.StatusCode, err.Error())
+			break
+		}
+		utils.RespondWithJSON(responseWriter, http.StatusAccepted, status)
+	default:
+		utils.RespondWithError(responseWriter, http.StatusBadRequest, fmt.Sprintf("Kinds other than %s are not supported", platform.MicroserviceKindPurchaseOrderAPI))
+	}
 }

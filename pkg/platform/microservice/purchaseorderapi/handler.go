@@ -3,6 +3,7 @@ package purchaseorderapi
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -143,6 +144,48 @@ func (s *Handler) Delete(namespace, microserviceID string) error {
 		return fmt.Errorf("failed to delete Purchase Order API: %w", err)
 	}
 	return nil
+}
+
+func (s *Handler) GetStatus(tenantID, applicationID, environment, microserviceID string) (platform.PurchaseOrderStatus, *Error) {
+	var status platform.PurchaseOrderStatus
+	logger := s.logContext.WithFields(logrus.Fields{
+		"handler":       "PurchaseOrderAPI",
+		"method":        "GetStatus",
+		"tenantID":      tenantID,
+		"applicationID": applicationID,
+		"environment":   environment,
+	})
+
+	var storedMicroservice platform.HttpInputPurchaseOrderInfo
+	bytes, err := s.gitRepo.GetMicroservice(tenantID, applicationID, environment, microserviceID)
+	if err != nil {
+		logger.WithError(err).Error("Failed to get Purchase Order API microservice from GitRepo")
+		return status, newInternalError(fmt.Errorf("failed to get Purchase Order API microservice from GitRepo: %w", err))
+	}
+
+	json.Unmarshal(bytes, &storedMicroservice)
+
+	url := fmt.Sprintf("%s%s", storedMicroservice.Extra.Ingress.Host, "/purchaseorders/status")
+	resp, err := http.Get(url)
+
+	if err != nil {
+		logger.WithError(err).Error("Failed to request Purchase Order API microservices status")
+		return status, newInternalError(fmt.Errorf("failed to get Purchase Order API microservices status"))
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		logger.WithError(err).Error("Failed to read response for Purchase Order API microservices status")
+		return status, newInternalError(fmt.Errorf("failed to read response for Purchase Order API microservices status"))
+	}
+
+	err = json.Unmarshal(body, &status)
+	if err != nil {
+		logger.WithError(err).Error("Failed to parse response for Purchase Order API microservices status")
+		return status, newInternalError(fmt.Errorf("failed to parse response for Purchase Order API microservices status"))
+	}
+	return status, nil
 }
 
 func (s *Handler) getConfiguredTenant(customerID, appplicationID, environment string) (platform.TenantId, error) {
