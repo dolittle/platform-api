@@ -189,7 +189,7 @@ var serverCMD = &cobra.Command{
 		router.Handle("/backups/logs/latest/by/app/{applicationID}/{environment}", stdChainWithJSON.ThenFunc(backupService.GetLatestByApplication)).Methods(http.MethodGet, http.MethodOptions)
 		router.Handle("/backups/logs/link", stdChainWithJSON.ThenFunc(backupService.CreateLink)).Methods(http.MethodPost, http.MethodOptions)
 
-		router.Handle("/application/{applicationID}/environment/{environment}/purchaseorderapi/{microserviceID}/status", stdChainBase.ThenFunc(purchaseorderapiService.GetDataStatus)).Methods(http.MethodGet, http.MethodOptions)
+		router.Handle("/application/{applicationID}/environment/{environment}/purchaseorderapi/{microserviceID}/datastatus", stdChainBase.ThenFunc(purchaseorderapiService.GetDataStatus)).Methods(http.MethodGet, http.MethodOptions)
 
 		srv := &http.Server{
 			Handler:      router,
