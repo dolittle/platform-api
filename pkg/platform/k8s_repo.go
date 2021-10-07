@@ -389,7 +389,7 @@ func (r *K8sRepo) GetMicroserviceDNS(applicationID string, microserviceID string
 	}
 
 	if !found {
-		return "", errors.New("not-found")
+		return "", fmt.Errorf("no DNS found in applications %s for microservice %s", applicationID, microserviceID)
 	}
 
 	// the "svc.cluster.local" postfix might not work for all clusters

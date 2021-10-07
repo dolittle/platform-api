@@ -146,26 +146,19 @@ func (s *Handler) Delete(namespace, microserviceID string) error {
 	return nil
 }
 
-func (s *Handler) GetStatus(tenantID, applicationID, environment, microserviceID string) (platform.PurchaseOrderStatus, *Error) {
-	var status platform.PurchaseOrderStatus
+func (s *Handler) GetDataStatus(dns, tenantID, applicationID, environment, microserviceID string) (platform.PurchaseOrderStatus, *Error) {
 	logger := s.logContext.WithFields(logrus.Fields{
-		"handler":       "PurchaseOrderAPI",
-		"method":        "GetStatus",
-		"tenantID":      tenantID,
-		"applicationID": applicationID,
-		"environment":   environment,
+		"handler":        "PurchaseOrderAPI",
+		"method":         "GetDataStatus",
+		"tenantID":       tenantID,
+		"applicationID":  applicationID,
+		"environment":    environment,
+		"microserviceID": microserviceID,
+		"dns":            dns,
 	})
 
-	var storedMicroservice platform.HttpInputPurchaseOrderInfo
-	bytes, err := s.gitRepo.GetMicroservice(tenantID, applicationID, environment, microserviceID)
-	if err != nil {
-		logger.WithError(err).Error("Failed to get Purchase Order API microservice from GitRepo")
-		return status, newInternalError(fmt.Errorf("failed to get Purchase Order API microservice from GitRepo: %w", err))
-	}
-
-	json.Unmarshal(bytes, &storedMicroservice)
-
-	url := fmt.Sprintf("%s%s", storedMicroservice.Extra.Ingress.Host, "/purchaseorders/status")
+	var status platform.PurchaseOrderStatus
+	url := fmt.Sprintf("https://%s%s", dns, "/api/purchaseorders/datastatus")
 	resp, err := http.Get(url)
 
 	if err != nil {
