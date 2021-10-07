@@ -13,19 +13,20 @@ type emptyObject struct{}
 type MicroserviceResources map[string]MicroserviceResource
 
 type MicroserviceResource struct {
-	Readmodels MicroserviceResourceReadmodels `json:"readModels"`
-	Eventstore MicroserviceResourceEventstore `json:"eventStore"`
+	Readmodels  MicroserviceResourceReadmodels `json:"readModels"`
+	Eventstore  MicroserviceResourceStore      `json:"eventStore"`
+	Projections MicroserviceResourceStore      `json:"projections"`
+	Embeddings  MicroserviceResourceStore      `json:"embeddings"`
 }
 type MicroserviceResourceReadmodels struct {
 	Host     string `json:"host"`
 	Database string `json:"database"`
 	Usessl   bool   `json:"useSSL"`
 }
-type MicroserviceResourceEventstore struct {
+type MicroserviceResourceStore struct {
 	Servers  []string `json:"servers"`
 	Database string   `json:"database"`
 }
-
 type MicroserviceEndpoints struct {
 	Public  MicroserviceEndpointPort `json:"public"`
 	Private MicroserviceEndpointPort `json:"private"`
@@ -103,13 +104,14 @@ func NewEnvVariablesConfigmap(microservice Microservice) *corev1.ConfigMap {
 }
 
 func NewMicroserviceResources(microservice Microservice, customersTenantID string) MicroserviceResources {
-	databasePrefix := fmt.Sprintf("%s_%s_%s",
-		microservice.Application.Name,
-		microservice.Environment,
-		microservice.Name,
-	)
-	databasePrefix = strings.ToLower(databasePrefix)
 	environment := strings.ToLower(microservice.Environment)
+	mongoDNS := fmt.Sprintf("%s-mongo.application-%s.svc.cluster.local", environment, microservice.Application.ID)
+	databasePrefix := strings.ToLower(
+		fmt.Sprintf("%s_%s_%s",
+			microservice.Application.Name,
+			microservice.Environment,
+			microservice.Name,
+		))
 	return MicroserviceResources{
 		customersTenantID: MicroserviceResource{
 			Readmodels: MicroserviceResourceReadmodels{
@@ -117,11 +119,23 @@ func NewMicroserviceResources(microservice Microservice, customersTenantID strin
 				Database: fmt.Sprintf("%s_readmodels", databasePrefix),
 				Usessl:   false,
 			},
-			Eventstore: MicroserviceResourceEventstore{
+			Eventstore: MicroserviceResourceStore{
 				Servers: []string{
-					fmt.Sprintf("%s-mongo.application-%s.svc.cluster.local", environment, microservice.Application.ID),
+					mongoDNS,
 				},
 				Database: fmt.Sprintf("%s_eventstore", databasePrefix),
+			},
+			Projections: MicroserviceResourceStore{
+				Servers: []string{
+					mongoDNS,
+				},
+				Database: fmt.Sprintf("%s_projections", databasePrefix),
+			},
+			Embeddings: MicroserviceResourceStore{
+				Servers: []string{
+					mongoDNS,
+				},
+				Database: fmt.Sprintf("%s_embeddings", databasePrefix),
 			},
 		},
 	}

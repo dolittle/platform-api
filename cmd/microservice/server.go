@@ -130,7 +130,6 @@ var serverCMD = &cobra.Command{
 
 		router.Handle("/application/{applicationID}/environment/{environment}/microservice/{microserviceID}", stdChainWithJSON.ThenFunc(microserviceService.GetByID)).Methods(http.MethodGet, http.MethodOptions)
 		router.Handle("/application/{applicationID}/environment/{environment}/microservice/{microserviceID}", stdChainWithJSON.ThenFunc(microserviceService.Delete)).Methods(http.MethodDelete, http.MethodOptions)
-		router.Handle("/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/kind/{kind}/status", stdChainBase.ThenFunc(microserviceService.GetStatus)).Methods(http.MethodGet, http.MethodOptions)
 
 		router.Handle("/live/applications", stdChainWithJSON.ThenFunc(applicationService.GetLiveApplications)).Methods(http.MethodGet, http.MethodOptions)
 		router.Handle("/live/application/{applicationID}/microservices", stdChainWithJSON.ThenFunc(microserviceService.GetLiveByApplicationID)).Methods(http.MethodGet, http.MethodOptions)
@@ -177,6 +176,8 @@ var serverCMD = &cobra.Command{
 
 		router.Handle("/backups/logs/latest/by/app/{applicationID}/{environment}", stdChainWithJSON.ThenFunc(backupService.GetLatestByApplication)).Methods(http.MethodGet, http.MethodOptions)
 		router.Handle("/backups/logs/link", stdChainWithJSON.ThenFunc(backupService.CreateLink)).Methods(http.MethodPost, http.MethodOptions)
+
+		router.Handle("/application/{applicationID}/environment/{environment}/purchaseorderapi/{microserviceID}/status", stdChainBase.ThenFunc(microserviceService.GetStatus)).Methods(http.MethodGet, http.MethodOptions)
 
 		srv := &http.Server{
 			Handler:      router,
