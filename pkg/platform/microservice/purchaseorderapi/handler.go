@@ -158,7 +158,7 @@ func (s *Handler) GetDataStatus(dns, tenantID, applicationID, environment, micro
 	})
 
 	var status platform.PurchaseOrderStatus
-	url := fmt.Sprintf("https://%s%s", dns, "/api/purchaseorders/datastatus")
+	url := fmt.Sprintf("http://%s%s", dns, "/api/purchaseorders/datastatus")
 	resp, err := http.Get(url)
 
 	if err != nil {

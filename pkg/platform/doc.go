@@ -376,4 +376,7 @@ type RuntimeStateFailingPartition struct {
 }
 
 type PurchaseOrderStatus struct {
+	Status              string `json:"status"`
+	LastReceivedPayload string `json:"lastReceivedPayload"`
+	Error               string `json:"error"`
 }
