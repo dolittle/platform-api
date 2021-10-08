@@ -14,6 +14,7 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/platform/businessmoment"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/insights"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/purchaseorderapi"
 
 	gitStorage "github.com/dolittle-entropy/platform-api/pkg/platform/storage/git"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/tenant"
@@ -70,7 +71,12 @@ var serverCMD = &cobra.Command{
 			gitRepoConfig,
 		)
 
-		microserviceService := microservice.NewService(gitRepo, k8sRepo, clientset, logContext)
+		microserviceService := microservice.NewService(
+			gitRepo,
+			k8sRepo,
+			clientset,
+			logrus.WithField("context", "microservice-service"),
+		)
 		applicationService := application.NewService(subscriptionID, gitRepo, k8sRepo)
 		tenantService := tenant.NewService()
 		businessMomentsService := businessmoment.NewService(
@@ -89,6 +95,12 @@ var serverCMD = &cobra.Command{
 			gitRepo,
 			k8sRepo,
 			clientset,
+		)
+		purchaseorderapiService := purchaseorderapi.NewService(
+			gitRepo,
+			k8sRepo,
+			clientset,
+			logrus.WithField("context", "purchase-order-api-service"),
 		)
 
 		c := cors.New(cors.Options{
@@ -176,6 +188,8 @@ var serverCMD = &cobra.Command{
 
 		router.Handle("/backups/logs/latest/by/app/{applicationID}/{environment}", stdChainWithJSON.ThenFunc(backupService.GetLatestByApplication)).Methods(http.MethodGet, http.MethodOptions)
 		router.Handle("/backups/logs/link", stdChainWithJSON.ThenFunc(backupService.CreateLink)).Methods(http.MethodPost, http.MethodOptions)
+
+		router.Handle("/application/{applicationID}/environment/{environment}/purchaseorderapi/{microserviceID}/datastatus", stdChainBase.ThenFunc(purchaseorderapiService.GetDataStatus)).Methods(http.MethodGet, http.MethodOptions)
 
 		srv := &http.Server{
 			Handler:      router,

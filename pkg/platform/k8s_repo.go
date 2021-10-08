@@ -362,6 +362,7 @@ func (r *K8sRepo) CanModifyApplicationWithResponse(w http.ResponseWriter, tenant
 	return true
 }
 
+// See https://app.asana.com/0/1200181647276434/1201135519043139 for moving this data to the json files
 func (r *K8sRepo) GetMicroserviceDNS(applicationID string, microserviceID string) (string, error) {
 	client := r.k8sClient
 	ctx := context.TODO()
@@ -388,13 +389,10 @@ func (r *K8sRepo) GetMicroserviceDNS(applicationID string, microserviceID string
 	}
 
 	if !found {
-		return "", errors.New("not-found")
+		return "", fmt.Errorf("no DNS found in applications %s for microservice %s", applicationID, microserviceID)
 	}
 
-	// TODO return DNS not name
-	// Talks about needing to look up dns
-	// Poor mans approach which might not work for all cases
-	// curl dev-selfserviceweb.application-fe7736bb-57fc-4166-bb91-6954f4dd4eb7.svc.cluster.local
+	// the "svc.cluster.local" postfix might not work for all clusters
 	return fmt.Sprintf("%s.application-%s.svc.cluster.local", foundService.Name, applicationID), nil
 }
 

@@ -395,17 +395,6 @@ func (s *service) GetPodStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//response := HttpResponsePodStatus{
-	//	Application: platform.ShortInfo{
-	//		Name: application.Name,
-	//		ID:   application.ID,
-	//	},
-	//	Microservice: platform.ShortInfoWithEnvironment{
-	//		Name: application.Name,
-	//		ID:   application.ID,
-	//	},
-	//}
-
 	utils.RespondWithJSON(w, http.StatusOK, status)
 }
 

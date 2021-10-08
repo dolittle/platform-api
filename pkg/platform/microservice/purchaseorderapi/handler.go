@@ -2,7 +2,9 @@ package purchaseorderapi
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -143,6 +145,49 @@ func (s *Handler) Delete(namespace, microserviceID string) error {
 		return fmt.Errorf("failed to delete Purchase Order API: %w", err)
 	}
 	return nil
+}
+
+func (s *Handler) GetDataStatus(dns, tenantID, applicationID, environment, microserviceID string) (platform.PurchaseOrderStatus, *Error) {
+	logger := s.logContext.WithFields(logrus.Fields{
+		"handler":        "PurchaseOrderAPI",
+		"method":         "GetDataStatus",
+		"tenantID":       tenantID,
+		"applicationID":  applicationID,
+		"environment":    environment,
+		"microserviceID": microserviceID,
+		"dns":            dns,
+	})
+
+	var status platform.PurchaseOrderStatus
+	url := fmt.Sprintf("http://%s%s", dns, "/api/purchaseorders/datastatus")
+	resp, err := http.Get(url)
+
+	if err != nil {
+		logger.WithError(err).Error("Failed to request Purchase Order API microservices status")
+		return status, newInternalError(fmt.Errorf("failed to get Purchase Order API microservices data status"))
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		err := errors.New(resp.Status)
+		error := &Error{StatusCode: resp.StatusCode, Err: err}
+		logger.WithError(err).Error("Purchase Order API microservice data status didn't return 2** status")
+		return status, error
+	}
+
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		logger.WithError(err).Error("Failed to read response for Purchase Order API microservices data status")
+		return status, newInternalError(fmt.Errorf("failed to read response for Purchase Order API microservices data status"))
+	}
+
+	err = json.Unmarshal(body, &status)
+	if err != nil {
+		logger.WithError(err).Error("Failed to parse response for Purchase Order API microservices status")
+		return status, newInternalError(fmt.Errorf("failed to parse response for Purchase Order API microservices status"))
+	}
+	return status, nil
 }
 
 func (s *Handler) getConfiguredTenant(customerID, appplicationID, environment string) (platform.TenantId, error) {
