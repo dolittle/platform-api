@@ -1,3 +1,22 @@
+# [0.7.0] - 2021-10-8 [PR: #41](https://github.com/dolittle/platform-api/pull/41)
+## Summary
+
+Adds a new API endpoint `/application/{applicationID}/environment/{environment}/purchaseorderapi/{microserviceID}/datastatus` for fetching the current status of PurchaseOrderAPI through it's own API (related PR https://github.com/dolittle/ERPIntegrations/pull/37). The return payload looks like this:
+
+```json
+{"status":"Running","lastReceivedPayload":"2021-10-05T15:52:18.795Z","error":""}
+```
+
+### Added
+
+- New API endpoint `/application/{applicationID}/environment/{environment}/purchaseorderapi/{microserviceID}/datastatus` for fetching the status of a PurchaseOrderAPI Microservice.
+- Workflow for building and pushing a Docker image on every pull request
+
+### Fixed
+
+- Added the missing `projections` and `embeddings` sections to the created `resources.json` configmap for PurchaseOrderAPI creation
+
+
 # [0.6.2] - 2021-9-30 [PR: #36](https://github.com/dolittle/platform-api/pull/36)
 ## Summary
 
