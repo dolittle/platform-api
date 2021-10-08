@@ -58,6 +58,7 @@ func (s *service) GetDataStatus(responseWriter http.ResponseWriter, request *htt
 	if err != nil {
 		logger.WithError(err).Error("Failed to get the microservices DNS")
 		utils.RespondWithError(responseWriter, http.StatusNotFound, err.Error())
+		return
 	}
 
 	status, getError := s.handler.GetDataStatus(dns, tenantID, applicationID, environment, microserviceID)
