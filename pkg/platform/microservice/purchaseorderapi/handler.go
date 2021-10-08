@@ -2,6 +2,7 @@ package purchaseorderapi
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -163,14 +164,22 @@ func (s *Handler) GetDataStatus(dns, tenantID, applicationID, environment, micro
 
 	if err != nil {
 		logger.WithError(err).Error("Failed to request Purchase Order API microservices status")
-		return status, newInternalError(fmt.Errorf("failed to get Purchase Order API microservices status"))
+		return status, newInternalError(fmt.Errorf("failed to get Purchase Order API microservices data status"))
 	}
+
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		err := errors.New(resp.Status)
+		error := &Error{StatusCode: resp.StatusCode, Err: err}
+		logger.WithError(err).Error("Purchase Order API microservice data status didn't return 2** status")
+		return status, error
+	}
+
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		logger.WithError(err).Error("Failed to read response for Purchase Order API microservices status")
-		return status, newInternalError(fmt.Errorf("failed to read response for Purchase Order API microservices status"))
+		logger.WithError(err).Error("Failed to read response for Purchase Order API microservices data status")
+		return status, newInternalError(fmt.Errorf("failed to read response for Purchase Order API microservices data status"))
 	}
 
 	err = json.Unmarshal(body, &status)
