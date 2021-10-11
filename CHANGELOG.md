@@ -1,3 +1,19 @@
+# [0.7.1] - 2021-10-11 [PR: #42](https://github.com/dolittle/platform-api/pull/42)
+## Summary
+
+Fix the `microservice server` command to default to users default kubeconfig location `~/.kube/config` if no kubeconfig was defined.
+
+Also fix a bug with settings not being correctly printed out during startup
+
+### Changed
+
+- `microservice server` command now defaults to users default kubeconfig location `~/.kube/config`
+
+### Fixed
+
+- Print out the `tools.server` settings correctly during startup
+
+
 # [0.7.0] - 2021-10-8 [PR: #41](https://github.com/dolittle/platform-api/pull/41)
 ## Summary
 
