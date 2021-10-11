@@ -7,7 +7,7 @@ import (
 
 var RootCmd = &cobra.Command{
 	Use:   "microservice",
-	Short: "Micorservice tools",
+	Short: "Microrservice tools",
 	Long:  ``,
 }
 

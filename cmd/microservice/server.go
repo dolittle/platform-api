@@ -38,6 +38,10 @@ var serverCMD = &cobra.Command{
 		logContext := logrus.StandardLogger()
 		gitRepoConfig := initGit(logContext)
 
+		// fix: https://github.com/spf13/viper/issues/798
+		for _, key := range viper.AllKeys() {
+			viper.Set(key, viper.Get(key))
+		}
 		kubeconfig := viper.GetString("tools.server.kubeConfig")
 		// TODO hoist localhost into viper
 		config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
@@ -204,8 +208,14 @@ var serverCMD = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(serverCMD)
-	serverCMD.Flags().String("kube-config", "", "FullPath to kubeconfig")
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+	serverCMD.Flags().String("kube-config", fmt.Sprintf("%s/.kube/config", homeDir), "Full path to kubeconfig")
 	viper.BindPFlag("tools.server.kubeConfig", serverCMD.Flags().Lookup("kube-config"))
+
 	viper.SetDefault("tools.server.secret", "change")
 	viper.SetDefault("tools.server.listenOn", "localhost:8080")
 	viper.SetDefault("tools.server.azure.subscriptionId", "")
@@ -213,4 +223,5 @@ func init() {
 	viper.BindEnv("tools.server.secret", "HEADER_SECRET")
 	viper.BindEnv("tools.server.listenOn", "LISTEN_ON")
 	viper.BindEnv("tools.server.azure.subscriptionId", "AZURE_SUBSCRIPTION_ID")
+	viper.BindEnv("tools.server.kubeConfig", "KUBECONFIG")
 }
