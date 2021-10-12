@@ -82,6 +82,7 @@ type MicroserviceInfo struct {
 	Environment string      `json:"environment"`
 	ID          string      `json:"id"`
 	Images      []ImageInfo `json:"images"`
+	Kind        string      `json:"kind"`
 }
 type PodInfo struct {
 	Name       string                `json:"name"`

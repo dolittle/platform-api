@@ -178,14 +178,6 @@ func (r *K8sRepo) GetMicroservices(applicationID string) ([]MicroserviceInfo, er
 			continue
 		}
 
-		//images := make([]ImageInfo, len(deployment.Spec.Template.Spec.Containers))
-		//for containerIndex, container := range deployment.Spec.Template.Spec.Containers {
-		//	images[containerIndex] = ImageInfo{
-		//		Name:  container.Name,
-		//		Image: container.Image,
-		//	}
-		//}
-
 		images := funk.Map(deployment.Spec.Template.Spec.Containers, func(container coreV1.Container) ImageInfo {
 			return ImageInfo{
 				Name:  container.Name,
@@ -193,11 +185,17 @@ func (r *K8sRepo) GetMicroservices(applicationID string) ([]MicroserviceInfo, er
 			}
 		}).([]ImageInfo)
 
+		kind := ""
+		if hasKind, ok := annotationsMap["dolittle.io/microservice-kind"]; ok {
+			kind = hasKind
+		}
+
 		response[deploymentIndex] = MicroserviceInfo{
 			Name:        labelMap["microservice"],
 			ID:          annotationsMap["dolittle.io/microservice-id"],
 			Environment: labelMap["environment"],
 			Images:      images,
+			Kind:        kind,
 		}
 	}
 
