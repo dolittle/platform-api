@@ -94,7 +94,7 @@ var serverCMD = &cobra.Command{
 			AllowCredentials: true,
 		})
 
-		stdChainBase := alice.New(middleware.RestrictHandlerWithSharedSecret(sharedSecret, "x-shared-secret"))
+		stdChainBase := alice.New(c.Handler, middleware.RestrictHandlerWithSharedSecret(sharedSecret, "x-shared-secret"))
 
 		router.Handle(fmt.Sprintf("/%s/list", strings.Trim(uriPrefix, "/")), stdChainBase.ThenFunc(service.ListFiles)).Methods(http.MethodGet, http.MethodOptions)
 		router.PathPrefix(uriPrefix).HandlerFunc(service.Get).Methods(http.MethodGet, http.MethodOptions)
