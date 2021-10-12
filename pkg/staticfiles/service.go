@@ -25,7 +25,7 @@ func NewService(logContext logrus.FieldLogger, uriPrefix string, storage Storage
 	return s
 }
 
-func (s *service) Root(w http.ResponseWriter, r *http.Request) {
+func (s *service) Get(w http.ResponseWriter, r *http.Request) {
 	proxy := s.Storage
 
 	key := r.URL.Path
@@ -48,4 +48,21 @@ func (s *service) Root(w http.ResponseWriter, r *http.Request) {
 	} else if r.Method == "PUT" {
 		proxy.uploadBlob(w, r, key)
 	}
+}
+
+func (s *service) Upload(w http.ResponseWriter, r *http.Request) {
+	proxy := s.Storage
+
+	key := r.URL.Path
+	key = strings.TrimPrefix(key, s.uriPrefix)
+
+	if key[0] == '/' {
+		key = key[1:]
+	}
+
+	s.logContext.WithFields(logrus.Fields{
+		"key": key,
+	}).Info("upload")
+
+	proxy.uploadBlob(w, r, key)
 }

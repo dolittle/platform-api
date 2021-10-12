@@ -74,8 +74,9 @@ var serverCMD = &cobra.Command{
 			tenantID,
 		)
 
-		router.PathPrefix(uriPrefix).HandlerFunc(service.Root).Methods("GET", "POST")
-		//router.PathPrefix("/").HandlerFunc(service.Root).Methods("GET", "POST")
+		router.PathPrefix(uriPrefix).HandlerFunc(service.Get).Methods("GET")
+		// TODO lock this down based on cookie / token / sharedSecret
+		router.PathPrefix(uriPrefix).HandlerFunc(service.Upload).Methods("POST")
 
 		srv := &http.Server{
 			Handler:      router,
