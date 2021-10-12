@@ -82,7 +82,7 @@ var serverCMD = &cobra.Command{
 		c := cors.New(cors.Options{
 			OptionsPassthrough: false,
 			Debug:              true,
-			AllowedOrigins:     []string{"*"},
+			AllowedOrigins:     []string{"*", "http://localhost:9007"},
 			AllowedMethods: []string{
 				http.MethodOptions,
 				http.MethodHead,
