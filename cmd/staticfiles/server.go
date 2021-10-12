@@ -79,7 +79,7 @@ var serverCMD = &cobra.Command{
 		)
 		stdChainBase := alice.New(middleware.RestrictHandlerWithHeaderName(sharedSecret, "x-shared-secret"))
 
-		router.Handle(fmt.Sprintf("/%s/list-files", strings.Trim(uriPrefix, "/")), stdChainBase.ThenFunc(service.ListFiles)).Methods(http.MethodGet, http.MethodOptions)
+		router.Handle(fmt.Sprintf("/%s/list", strings.Trim(uriPrefix, "/")), stdChainBase.ThenFunc(service.ListFiles)).Methods(http.MethodGet, http.MethodOptions)
 		router.PathPrefix(uriPrefix).HandlerFunc(service.Get).Methods(http.MethodGet, http.MethodOptions)
 		router.PathPrefix(uriPrefix).Handler(stdChainBase.ThenFunc(service.Upload)).Methods(http.MethodPost, http.MethodOptions)
 
@@ -102,12 +102,12 @@ var serverCMD = &cobra.Command{
 
 func init() {
 	viper.SetDefault("staticfiles.server.listenon", "localhost:8080")
-	viper.SetDefault("staticfiles.server.uriprefix", "/docs/")
+	viper.SetDefault("staticfiles.server.uriprefix", "/files/")
 	viper.SetDefault("staticfiles.server.tenantid", "tenant-fake-123")
 	viper.SetDefault("staticfiles.server.azurestoragekey", "change-key")
 	viper.SetDefault("staticfiles.server.azurestoragename", "change-name")
 	viper.SetDefault("staticfiles.server.azureblobcontainer", "change-blob-container")
-	viper.SetDefault("staticfiles.server.azureblobcontaineruriprefix", "/docs/")
+	viper.SetDefault("staticfiles.server.azureblobcontaineruriprefix", "/")
 	viper.SetDefault("staticfiles.server.sharedsecret", "fake")
 
 	viper.BindEnv("staticfiles.server.listenon", "LISTEN_ON")
