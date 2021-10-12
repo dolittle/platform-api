@@ -3,10 +3,12 @@ module github.com/dolittle/platform-api
 go 1.16
 
 require (
+	//github.com/Azure/azure-storage-blob-go v0.14.0
+	github.com/Azure/azure-storage-blob-go v0.10.0
 	github.com/Azure/azure-storage-file-go v0.8.0
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/go-git/go-git/v5 v5.3.0
-	github.com/google/uuid v1.1.2
+	github.com/google/uuid v1.2.0
 	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/hcl/v2 v2.10.1
 	github.com/itchyny/gojq v0.12.3
