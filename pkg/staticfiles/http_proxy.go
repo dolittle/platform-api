@@ -57,7 +57,7 @@ func (proxy StorageProxy) handler(w http.ResponseWriter, r *http.Request) {
 
 func (proxy StorageProxy) downloadBlob(w http.ResponseWriter, name string) {
 	blockBlobURL := proxy.containerURL.NewBlockBlobURL(proxy.objectName(name))
-	get, err := blockBlobURL.Download(context.Background(), 0, 0, azblob.BlobAccessConditions{}, false)
+	get, err := blockBlobURL.Download(context.Background(), 0, 0, azblob.BlobAccessConditions{}, false, azblob.ClientProvidedKeyOptions{})
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -74,7 +74,7 @@ func (proxy StorageProxy) downloadBlob(w http.ResponseWriter, name string) {
 
 func (proxy StorageProxy) checkBlobExists(w http.ResponseWriter, name string) {
 	blockBlobURL := proxy.containerURL.NewBlockBlobURL(proxy.objectName(name))
-	response, err := blockBlobURL.GetProperties(context.Background(), azblob.BlobAccessConditions{})
+	response, err := blockBlobURL.GetProperties(context.Background(), azblob.BlobAccessConditions{}, azblob.ClientProvidedKeyOptions{})
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -96,3 +96,5 @@ func (proxy StorageProxy) uploadBlob(w http.ResponseWriter, r *http.Request, nam
 	}
 	w.WriteHeader(http.StatusCreated)
 }
+
+// Make another one to handle file upload

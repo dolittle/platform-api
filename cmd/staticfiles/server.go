@@ -9,8 +9,10 @@ import (
 	"time"
 
 	"github.com/Azure/azure-storage-blob-go/azblob"
+	"github.com/dolittle/platform-api/pkg/middleware"
 	"github.com/dolittle/platform-api/pkg/staticfiles"
 	"github.com/gorilla/mux"
+	"github.com/justinas/alice"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -44,6 +46,7 @@ var serverCMD = &cobra.Command{
 		azureBlobContainerUriPrefix := viper.GetString("staticfiles.server.azureBlobContainerUriPrefix")
 
 		azureBlobContainerUriPrefix = strings.TrimPrefix(azureBlobContainerUriPrefix, "/")
+		sharedSecret := viper.GetString("staticfiles.server.sharedSecret")
 
 		router := mux.NewRouter()
 
@@ -73,10 +76,11 @@ var serverCMD = &cobra.Command{
 			*storageProxy,
 			tenantID,
 		)
+		stdChainBase := alice.New(middleware.RestrictHandlerWithHeaderName(sharedSecret, "x-shared-secret"))
 
-		router.PathPrefix(uriPrefix).HandlerFunc(service.Get).Methods("GET")
-		// TODO lock this down based on cookie / token / sharedSecret
-		router.PathPrefix(uriPrefix).HandlerFunc(service.Upload).Methods("POST")
+		router.Handle(fmt.Sprintf("/%s/list-files", strings.Trim(uriPrefix, "/")), stdChainBase.ThenFunc(service.ListFiles)).Methods(http.MethodGet, http.MethodOptions)
+		router.PathPrefix(uriPrefix).HandlerFunc(service.Get).Methods(http.MethodGet, http.MethodOptions)
+		router.PathPrefix(uriPrefix).Handler(stdChainBase.ThenFunc(service.Upload)).Methods(http.MethodPost, http.MethodOptions)
 
 		srv := &http.Server{
 			Handler:      router,
@@ -98,6 +102,7 @@ func init() {
 	viper.SetDefault("staticfiles.server.azureStorageName", "change-name")
 	viper.SetDefault("staticfiles.server.azureBlobContainer", "change-blob-container")
 	viper.SetDefault("staticfiles.server.azureBlobContainerUriPrefix", "/docs/")
+	viper.SetDefault("staticfiles.server.sharedSecret", "fake")
 
 	viper.BindEnv("staticfiles.server.listenOn", "LISTEN_ON")
 	viper.BindEnv("staticfiles.server.uriPrefix", "URI_PREFIX")
@@ -106,4 +111,5 @@ func init() {
 	viper.BindEnv("staticfiles.server.azureStorageName", "AZURE_STORAGE_NAME")
 	viper.BindEnv("staticfiles.server.azureBlobContainer", "AZURE_BLOB_CONTAINER")
 	viper.BindEnv("staticfiles.server.azureBlobContainerUriPrefix", "AZURE_BLOB_CONTAINER_PREFIX")
+	viper.BindEnv("staticfiles.server.sharedSecret", "HEADER_SECRET") // Not a fan of the name, but then we should fix it in the other place :(
 }
