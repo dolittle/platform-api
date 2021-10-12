@@ -54,20 +54,6 @@ func RestrictHandlerWithSharedSecret(secret string, name string) func(next http.
 	}
 }
 
-func RestrictHandlerWithSharedSecret(secret string) func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			xSecret := r.Header.Get("x-secret")
-			if xSecret != secret {
-				utils.RespondWithError(w, http.StatusForbidden, "Shared secret is missing")
-				return
-			}
-
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
 func EnforceJSONHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		contentType := r.Header.Get("Content-Type")
