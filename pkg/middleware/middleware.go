@@ -54,6 +54,22 @@ func RestrictHandlerWithSharedSecret(secret string, name string) func(next http.
 	}
 }
 
+func RestrictHandlerWithIDS() func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			tenantID := r.Header.Get("Tenant-ID")
+			userID := r.Header.Get("User-ID")
+
+			if tenantID == "" || userID == "" {
+				utils.RespondWithError(w, http.StatusForbidden, "Tenant-ID or User-ID is missing")
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 func EnforceJSONHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		contentType := r.Header.Get("Content-Type")
