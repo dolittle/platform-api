@@ -37,17 +37,17 @@ var serverCMD = &cobra.Command{
 			viper.Set(key, viper.Get(key))
 		}
 
-		listenOn := viper.GetString("staticfiles.server.listenOn")
-		tenantID := viper.GetString("staticfiles.server.tenantID")
-		uriPrefix := viper.GetString("staticfiles.server.uriPrefix")
+		listenOn := viper.GetString("staticfiles.server.listenon")
+		tenantID := viper.GetString("staticfiles.server.tenantid")
+		uriPrefix := viper.GetString("staticfiles.server.uriprefix")
 
-		azureAccountName := viper.GetString("staticfiles.server.azureStorageName")
-		azureAccountKey := viper.GetString("staticfiles.server.azureStorageKey")
-		azureBlobContainer := viper.GetString("staticfiles.server.azureBlobContainer")
-		azureBlobContainerUriPrefix := viper.GetString("staticfiles.server.azureBlobContainerUriPrefix")
+		azureAccountName := viper.GetString("staticfiles.server.azurestoragename")
+		azureAccountKey := viper.GetString("staticfiles.server.azurestoragekey")
+		azureBlobContainer := viper.GetString("staticfiles.server.azureblobcontainer")
+		azureBlobContainerUriPrefix := viper.GetString("staticfiles.server.azureblobcontaineruriprefix")
 
 		azureBlobContainerUriPrefix = strings.TrimPrefix(azureBlobContainerUriPrefix, "/")
-		sharedSecret := viper.GetString("staticfiles.server.sharedSecret")
+		sharedSecret := viper.GetString("staticfiles.server.sharedsecret")
 
 		router := mux.NewRouter()
 
@@ -91,30 +91,31 @@ var serverCMD = &cobra.Command{
 		}
 
 		serverSettings := viper.Get("staticfiles.server").(map[string]interface{})
-		serverSettings["azureStorageName"] = fmt.Sprintf("%s***", azureAccountName[:3])
-		serverSettings["azureStorageKey"] = fmt.Sprintf("%s***", azureAccountKey[:3])
-		serverSettings["sharedSecret"] = fmt.Sprintf("%s***", sharedSecret[:3])
+		serverSettings["azurestoragename"] = fmt.Sprintf("%s***", azureAccountName[:3])
+		serverSettings["azurestoragekey"] = fmt.Sprintf("%s***", azureAccountKey[:3])
+		serverSettings["sharedsecret"] = fmt.Sprintf("%s***", sharedSecret[:3])
+
 		logrus.WithField("settings", viper.Get("staticfiles.server")).Info("Starting Server")
 		log.Fatal(srv.ListenAndServe())
 	},
 }
 
 func init() {
-	viper.SetDefault("staticfiles.server.listenOn", "localhost:8080")
-	viper.SetDefault("staticfiles.server.uriPrefix", "/docs/")
-	viper.SetDefault("staticfiles.server.tenantID", "tenant-fake-123")
-	viper.SetDefault("staticfiles.server.azureStorageKey", "change-key")
-	viper.SetDefault("staticfiles.server.azureStorageName", "change-name")
-	viper.SetDefault("staticfiles.server.azureBlobContainer", "change-blob-container")
-	viper.SetDefault("staticfiles.server.azureBlobContainerUriPrefix", "/docs/")
-	viper.SetDefault("staticfiles.server.sharedSecret", "fake")
+	viper.SetDefault("staticfiles.server.listenon", "localhost:8080")
+	viper.SetDefault("staticfiles.server.uriprefix", "/docs/")
+	viper.SetDefault("staticfiles.server.tenantid", "tenant-fake-123")
+	viper.SetDefault("staticfiles.server.azurestoragekey", "change-key")
+	viper.SetDefault("staticfiles.server.azurestoragename", "change-name")
+	viper.SetDefault("staticfiles.server.azureblobcontainer", "change-blob-container")
+	viper.SetDefault("staticfiles.server.azureblobcontaineruriprefix", "/docs/")
+	viper.SetDefault("staticfiles.server.sharedsecret", "fake")
 
-	viper.BindEnv("staticfiles.server.listenOn", "LISTEN_ON")
-	viper.BindEnv("staticfiles.server.uriPrefix", "URI_PREFIX")
-	viper.BindEnv("staticfiles.server.tenantID", "DOLITTLE_TENANT_ID")
-	viper.BindEnv("staticfiles.server.azureStorageKey", "AZURE_STORAGE_KEY")
-	viper.BindEnv("staticfiles.server.azureStorageName", "AZURE_STORAGE_NAME")
-	viper.BindEnv("staticfiles.server.azureBlobContainer", "AZURE_BLOB_CONTAINER")
-	viper.BindEnv("staticfiles.server.azureBlobContainerUriPrefix", "AZURE_BLOB_CONTAINER_PREFIX")
-	viper.BindEnv("staticfiles.server.sharedSecret", "HEADER_SECRET") // Not a fan of the name, but then we should fix it in the other place :(
+	viper.BindEnv("staticfiles.server.listenon", "LISTEN_ON")
+	viper.BindEnv("staticfiles.server.uriprefix", "URI_PREFIX")
+	viper.BindEnv("staticfiles.server.tenantid", "DOLITTLE_TENANT_ID")
+	viper.BindEnv("staticfiles.server.azurestoragekey", "AZURE_STORAGE_KEY")
+	viper.BindEnv("staticfiles.server.azurestoragename", "AZURE_STORAGE_NAME")
+	viper.BindEnv("staticfiles.server.azureblobcontainer", "AZURE_BLOB_CONTAINER")
+	viper.BindEnv("staticfiles.server.azureblobcontaineruriprefix", "AZURE_BLOB_CONTAINER_PREFIX")
+	viper.BindEnv("staticfiles.server.sharedsecret", "HEADER_SECRET") // Not a fan of the name, but then we should fix it in the other place :(
 }
