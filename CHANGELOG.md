@@ -1,3 +1,9 @@
+# [0.8.0] - 2021-10-12 [PR: #44](https://github.com/dolittle/platform-api/pull/44)
+## Summary
+- Explicitly set to lookup kubeconfig within the cluster
+- If the metadata.annotations["dolittle.io/microservice-kind"] exists it will include it "kind" in the /api/live/application/{applicationId}/microservices endpoint
+
+
 # [0.7.1] - 2021-10-11 [PR: #42](https://github.com/dolittle/platform-api/pull/42)
 ## Summary
 
