@@ -5,59 +5,37 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 
 	"github.com/Azure/azure-storage-blob-go/azblob"
+	"github.com/sirupsen/logrus"
 )
 
 type StorageProxy struct {
 	containerURL  *azblob.ContainerURL
 	defaultPrefix string
+	logContext    logrus.FieldLogger
 }
 
-func NewStorageProxy(containerURL *azblob.ContainerURL, defaultPrefix string) *StorageProxy {
+func NewStorageProxy(logContext logrus.FieldLogger, containerURL *azblob.ContainerURL, defaultPrefix string) *StorageProxy {
 	metadataResponse, _ := containerURL.GetProperties(context.Background(), azblob.LeaseAccessConditions{})
 	if metadataResponse == nil {
-		log.Printf("Creating container %s...", containerURL)
+		// TODO this doesnt work, we manually created it
+		// Maybe we need to bump the version
+		logContext.WithFields(logrus.Fields{
+			"containerURL": containerURL,
+		}).Info("Creating container")
 		containerURL.Create(context.Background(), make(map[string]string), azblob.PublicAccessBlob)
 	}
 	return &StorageProxy{
 		containerURL:  containerURL,
 		defaultPrefix: defaultPrefix,
+		logContext:    logContext,
 	}
 }
 
 func (proxy StorageProxy) objectName(name string) string {
 	return proxy.defaultPrefix + name
-}
-
-func (proxy StorageProxy) ServeRoute(port int64) error {
-	http.HandleFunc("/", proxy.handler)
-
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
-
-	if err == nil {
-		address := listener.Addr().String()
-		listener.Close()
-		log.Printf("Starting http cache server %s\n", address)
-		return http.ListenAndServe(address, nil)
-	}
-	return err
-}
-
-func (proxy StorageProxy) Serve(port int64) error {
-	http.HandleFunc("/", proxy.handler)
-
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
-
-	if err == nil {
-		address := listener.Addr().String()
-		listener.Close()
-		log.Printf("Starting http cache server %s\n", address)
-		return http.ListenAndServe(address, nil)
-	}
-	return err
 }
 
 func (proxy StorageProxy) handler(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +65,10 @@ func (proxy StorageProxy) downloadBlob(w http.ResponseWriter, name string) {
 	bufferedReader := bufio.NewReader(get.Body(azblob.RetryReaderOptions{}))
 	_, err = bufferedReader.WriteTo(w)
 	if err != nil {
-		log.Printf("Failed to serve blob %q: %v", name, err)
+		proxy.logContext.WithFields(logrus.Fields{
+			"name":  name,
+			"error": err,
+		}).Error("Failed to serve blob")
 	}
 }
 

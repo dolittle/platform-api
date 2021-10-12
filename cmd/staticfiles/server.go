@@ -24,6 +24,7 @@ var serverCMD = &cobra.Command{
 	AZURE_BLOB_CONTAINER="christest" \
 	AZURE_STORAGE_NAME="453e04a74f9d42f2b36cd51f" \
 	AZURE_STORAGE_KEY="XXX" \
+	URI_PREFIX="/doc/" \
 	go run main.go static-files server
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -40,9 +41,12 @@ var serverCMD = &cobra.Command{
 		azureAccountName := viper.GetString("staticfiles.server.azureStorageName")
 		azureAccountKey := viper.GetString("staticfiles.server.azureStorageKey")
 		azureBlobContainer := viper.GetString("staticfiles.server.azureBlobContainer")
+		azureBlobContainerUriPrefix := viper.GetString("staticfiles.server.azureBlobContainerUriPrefix")
+
+		uriPrefix = strings.TrimPrefix(uriPrefix, "/")
+		azureBlobContainerUriPrefix = strings.TrimPrefix(azureBlobContainerUriPrefix, "/")
 
 		router := mux.NewRouter()
-		uriPrefix = strings.TrimPrefix(uriPrefix, "/")
 
 		credential, err := azblob.NewSharedKeyCredential(azureAccountName, azureAccountKey)
 		if err != nil {
@@ -58,7 +62,11 @@ var serverCMD = &cobra.Command{
 		serviceURL := azblob.NewServiceURL(*azureURL, pipeline)
 		containerURL := serviceURL.NewContainerURL(azureBlobContainer)
 
-		storageProxy := staticfiles.NewStorageProxy(&containerURL, uriPrefix)
+		storageProxy := staticfiles.NewStorageProxy(
+			logrus.WithField("service", "storageProxy"),
+			&containerURL,
+			azureBlobContainerUriPrefix,
+		)
 
 		service := staticfiles.NewService(
 			logrus.WithField("service", "static-files"),
@@ -67,8 +75,8 @@ var serverCMD = &cobra.Command{
 			tenantID,
 		)
 
-		//router.PathPrefix(uriPrefix).HandlerFunc(service.Root).Methods("GET", "POST")
-		router.PathPrefix("/").HandlerFunc(service.Root).Methods("GET", "POST")
+		router.PathPrefix(uriPrefix).HandlerFunc(service.Root).Methods("GET", "POST")
+		//router.PathPrefix("/").HandlerFunc(service.Root).Methods("GET", "POST")
 
 		srv := &http.Server{
 			Handler:      router,
@@ -89,6 +97,7 @@ func init() {
 	viper.SetDefault("staticfiles.server.azureStorageKey", "change-key")
 	viper.SetDefault("staticfiles.server.azureStorageName", "change-name")
 	viper.SetDefault("staticfiles.server.azureBlobContainer", "change-blob-container")
+	viper.SetDefault("staticfiles.server.azureBlobContainerUriPrefix", "/docs/")
 
 	viper.BindEnv("staticfiles.server.listenOn", "LISTEN_ON")
 	viper.BindEnv("staticfiles.server.uriPrefix", "URI_PREFIX")
@@ -96,4 +105,5 @@ func init() {
 	viper.BindEnv("staticfiles.server.azureStorageKey", "AZURE_STORAGE_KEY")
 	viper.BindEnv("staticfiles.server.azureStorageName", "AZURE_STORAGE_NAME")
 	viper.BindEnv("staticfiles.server.azureBlobContainer", "AZURE_BLOB_CONTAINER")
+	viper.BindEnv("staticfiles.server.azureBlobContainer", "AZURE_BLOB_CONTAINER_PREFIX")
 }
