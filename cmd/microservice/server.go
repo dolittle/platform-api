@@ -44,6 +44,10 @@ var serverCMD = &cobra.Command{
 		}
 		kubeconfig := viper.GetString("tools.server.kubeConfig")
 		// TODO hoist localhost into viper
+		if kubeconfig == "incluster" {
+			kubeconfig = ""
+		}
+
 		config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 		if err != nil {
 			panic(err.Error())
@@ -213,7 +217,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	serverCMD.Flags().String("kube-config", fmt.Sprintf("%s/.kube/config", homeDir), "Full path to kubeconfig")
+	serverCMD.Flags().String("kube-config", fmt.Sprintf("%s/.kube/config", homeDir), "Full path to kubeconfig, set to incluster to make it use kubernetes lookup")
 	viper.BindPFlag("tools.server.kubeConfig", serverCMD.Flags().Lookup("kube-config"))
 
 	viper.SetDefault("tools.server.secret", "change")
