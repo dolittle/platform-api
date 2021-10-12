@@ -13,6 +13,7 @@ import (
 	"github.com/dolittle/platform-api/pkg/staticfiles"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
+	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -78,8 +79,23 @@ var serverCMD = &cobra.Command{
 			tenantID,
 		)
 
+		c := cors.New(cors.Options{
+			OptionsPassthrough: false,
+			Debug:              true,
+			AllowedOrigins:     []string{"*"},
+			AllowedMethods: []string{
+				http.MethodOptions,
+				http.MethodHead,
+				http.MethodGet,
+				http.MethodPost,
+				http.MethodDelete,
+			},
+			AllowedHeaders:   []string{"*"},
+			AllowCredentials: true,
+		})
+
 		//stdChainBase := alice.New(middleware.RestrictHandlerWithSharedSecret(sharedSecret, "x-shared-secret"))
-		stdChainBase := alice.New(middleware.RestrictHandlerWithIDS())
+		stdChainBase := alice.New(c.Handler, middleware.RestrictHandlerWithIDS())
 
 		router.Handle(fmt.Sprintf("/%s/list", strings.Trim(uriPrefix, "/")), stdChainBase.ThenFunc(service.ListFiles)).Methods(http.MethodGet, http.MethodOptions)
 		router.PathPrefix(uriPrefix).HandlerFunc(service.Get).Methods(http.MethodGet, http.MethodOptions)
