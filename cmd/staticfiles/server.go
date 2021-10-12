@@ -43,7 +43,6 @@ var serverCMD = &cobra.Command{
 		azureBlobContainer := viper.GetString("staticfiles.server.azureBlobContainer")
 		azureBlobContainerUriPrefix := viper.GetString("staticfiles.server.azureBlobContainerUriPrefix")
 
-		uriPrefix = strings.TrimPrefix(uriPrefix, "/")
 		azureBlobContainerUriPrefix = strings.TrimPrefix(azureBlobContainerUriPrefix, "/")
 
 		router := mux.NewRouter()
@@ -105,5 +104,5 @@ func init() {
 	viper.BindEnv("staticfiles.server.azureStorageKey", "AZURE_STORAGE_KEY")
 	viper.BindEnv("staticfiles.server.azureStorageName", "AZURE_STORAGE_NAME")
 	viper.BindEnv("staticfiles.server.azureBlobContainer", "AZURE_BLOB_CONTAINER")
-	viper.BindEnv("staticfiles.server.azureBlobContainer", "AZURE_BLOB_CONTAINER_PREFIX")
+	viper.BindEnv("staticfiles.server.azureBlobContainerUriPrefix", "AZURE_BLOB_CONTAINER_PREFIX")
 }

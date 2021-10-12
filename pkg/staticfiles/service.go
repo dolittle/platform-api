@@ -2,6 +2,7 @@ package staticfiles
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 )
@@ -25,5 +26,26 @@ func NewService(logContext logrus.FieldLogger, uriPrefix string, storage Storage
 }
 
 func (s *service) Root(w http.ResponseWriter, r *http.Request) {
-	s.Storage.handler(w, r)
+	proxy := s.Storage
+
+	key := r.URL.Path
+	key = strings.TrimPrefix(key, s.uriPrefix)
+
+	if key[0] == '/' {
+		key = key[1:]
+	}
+
+	s.logContext.WithFields(logrus.Fields{
+		"key": key,
+	}).Info("lookup")
+
+	if r.Method == "GET" {
+		proxy.downloadBlob(w, key)
+	} else if r.Method == "HEAD" {
+		proxy.checkBlobExists(w, key)
+	} else if r.Method == "POST" {
+		proxy.uploadBlob(w, r, key)
+	} else if r.Method == "PUT" {
+		proxy.uploadBlob(w, r, key)
+	}
 }
