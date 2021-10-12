@@ -27,6 +27,7 @@ var serverCMD = &cobra.Command{
 	AZURE_STORAGE_NAME="453e04a74f9d42f2b36cd51f" \
 	AZURE_STORAGE_KEY="XXX" \
 	URI_PREFIX="/doc/" \
+	HEADER_SECRET="fake" \
 	go run main.go static-files server
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -89,6 +90,10 @@ var serverCMD = &cobra.Command{
 			ReadTimeout:  15 * time.Second,
 		}
 
+		serverSettings := viper.Get("staticfiles.server").(map[string]interface{})
+		serverSettings["azureStorageName"] = fmt.Sprintf("%s***", azureAccountName[:3])
+		serverSettings["azureStorageKey"] = fmt.Sprintf("%s***", azureAccountKey[:3])
+		serverSettings["sharedSecret"] = fmt.Sprintf("%s***", sharedSecret[:3])
 		logrus.WithField("settings", viper.Get("staticfiles.server")).Info("Starting Server")
 		log.Fatal(srv.ListenAndServe())
 	},
