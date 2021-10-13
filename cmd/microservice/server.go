@@ -300,6 +300,8 @@ var serverCMD = &cobra.Command{
 		//	stdChainBase.ThenFunc(staticFilesService.Add),
 		//).Methods(http.MethodPost, http.MethodOptions)
 
+		router.PathPrefix("/application/{applicationID}/environment/{environment}/staticFiles/{microserviceID}/add").Handler(stdChainBase.ThenFunc(staticFilesService.Add)).Methods(http.MethodPost, http.MethodOptions)
+
 		router.Handle(
 			"/application/{applicationID}/environment/{environment}/staticFiles/{microserviceID}/list",
 			stdChainBase.ThenFunc(staticFilesService.GetAll),

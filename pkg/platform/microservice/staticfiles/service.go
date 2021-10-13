@@ -59,44 +59,72 @@ func (s *service) GetAll(responseWriter http.ResponseWriter, request *http.Reque
 	}
 
 	sharedSecret, _ := s.getSharedSecret(applicationID, environment, microserviceID)
+	request.URL.Path = "/manage/list-files"
+	request.RequestURI = "/manage/list-files"
 
-	upstreamURL := fmt.Sprintf("%s/manage/list-files", upstream)
-	request.URL.Path = upstreamURL
-
-	request.Header.Del("Tenant-ID")
-	request.Header.Del("User-ID")
+	request.Header = http.Header{}
 	request.Header.Set("x-shared-secret", sharedSecret)
 
 	// TODO change the url
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	request = request.WithContext(ctx)
 	serveReverseProxy(upstream, responseWriter, request)
 }
 
-func (s *service) Add(w http.ResponseWriter, r *http.Request) {
-	tenantID := r.Header.Get("Tenant-ID")
+func (s *service) Add(responseWriter http.ResponseWriter, request *http.Request) {
+	tenantID := request.Header.Get("Tenant-ID")
 
-	vars := mux.Vars(r)
+	vars := mux.Vars(request)
 	applicationID := vars["applicationID"]
 	environment := strings.ToLower(vars["environment"])
 	microserviceID := vars["microserviceID"]
 
-	//logger := s.logger.WithFields(logrus.Fields{
-	//	"service":        "PurchaseOrderAPI",
-	//	"method":         "GetDataStatus",
-	//	"tenantID":       tenantID,
-	//	"applicationID":  applicationID,
-	//	"environment":    environment,
-	//	"microserviceID": microserviceID,
-	//})
-
-	utils.RespondWithJSON(w, http.StatusOK, map[string]string{
-		"tenant_id":       tenantID,
-		"application_id":  applicationID,
-		"environment":     environment,
-		"microservice_id": microserviceID,
+	logContext := s.logContext.WithFields(logrus.Fields{
+		"service":        "staticFiles",
+		"method":         "Add",
+		"tenantID":       tenantID,
+		"applicationID":  applicationID,
+		"environment":    environment,
+		"microserviceID": microserviceID,
 	})
+
+	logContext.Info("Add file")
+
+	parts := strings.Split(
+		request.URL.Path,
+		fmt.Sprintf("staticFiles/%s/add", microserviceID),
+	)
+	// TODO check if filename is set
+	fileName := parts[1]
+
+	//utils.RespondWithJSON(responseWriter, http.StatusOK, map[string]string{
+	//	"tenant_id":       tenantID,
+	//	"application_id":  applicationID,
+	//	"environment":     environment,
+	//	"microservice_id": microserviceID,
+	//	"fileName":        parts[1],
+	//	"url":             request.URL.Path,
+	//})
+	//return
+	upstream, err := s.k8sDolittleRepo.GetMicroserviceDNS(applicationID, microserviceID)
+	if err != nil {
+		utils.RespondWithError(responseWriter, http.StatusInternalServerError, "Failed to lookup microservice dns")
+		return
+	}
+
+	sharedSecret, _ := s.getSharedSecret(applicationID, environment, microserviceID)
+	request.URL.Path = fmt.Sprintf("/manage/add/%s", fileName)
+	request.RequestURI = fmt.Sprintf("/manage/add/%s", fileName)
+
+	request.Header = http.Header{}
+	request.Header.Set("x-shared-secret", sharedSecret)
+
+	// TODO maybe we want longer on upload
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	request = request.WithContext(ctx)
+	serveReverseProxy(upstream, responseWriter, request)
 }
 
 func serveReverseProxy(host string, res http.ResponseWriter, req *http.Request) {
@@ -124,9 +152,6 @@ func (s *service) getSharedSecret(applicationID string, environment string, micr
 	for _, secret := range secrets.Items {
 		annotations := secret.GetAnnotations()
 
-		// secret-en v-variables
-		//if annotations["dolittle.io/microservice-kind"] != plat
-		// the microserviceID is unique per microservice so that's enough for the check
 		if annotations["dolittle.io/microservice-kind"] != string(platform.MicroserviceKindStaticFilesV1) {
 			continue
 		}
@@ -134,7 +159,12 @@ func (s *service) getSharedSecret(applicationID string, environment string, micr
 		if annotations["dolittle.io/microservice-id"] != microserviceID {
 			continue
 		}
-		fmt.Println(secret)
+
+		if !strings.HasSuffix(secret.ObjectMeta.Name, "-secret-env-variables") {
+			continue
+		}
+
+		return string(secret.Data["HEADER_SECRET"]), nil
 	}
 
 	if err != nil {
