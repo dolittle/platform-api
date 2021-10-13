@@ -99,15 +99,8 @@ func (s *GitStorage) GetApplication(tenantID string, applicationID string) (plat
 		return application, err
 	}
 
-	studioConfig, err := s.GetStudioConfig(tenantID)
-	if err != nil {
-		return application, err
-	}
-
-	// Sprinkle in if automation enabled
-	// I wonder if this should be in each applicaiton
 	application.Environments = funk.Map(application.Environments, func(e platform.HttpInputEnvironment) platform.HttpInputEnvironment {
-		e.AutomationEnabled = s.CheckAutomationEnabledViaCustomer(studioConfig, e.ApplicationID, e.Name)
+		e.AutomationEnabled = s.IsAutomationEnabled(tenantID, e.ApplicationID, e.Name)
 		return e
 	}).([]platform.HttpInputEnvironment)
 	return application, nil
