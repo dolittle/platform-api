@@ -84,7 +84,9 @@ func (s *service) Upload(w http.ResponseWriter, r *http.Request) {
 	proxy := s.Storage
 
 	key := r.URL.Path
-	key = strings.TrimPrefix(key, s.uriPrefix)
+
+	prefix := "/manage/add"
+	key = strings.TrimPrefix(key, prefix)
 
 	if key[0] == '/' {
 		key = key[1:]

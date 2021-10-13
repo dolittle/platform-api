@@ -93,20 +93,11 @@ func (s *service) Add(responseWriter http.ResponseWriter, request *http.Request)
 
 	parts := strings.Split(
 		request.URL.Path,
-		fmt.Sprintf("staticFiles/%s/add", microserviceID),
+		fmt.Sprintf("staticFiles/%s/add/", microserviceID),
 	)
 	// TODO check if filename is set
 	fileName := parts[1]
 
-	//utils.RespondWithJSON(responseWriter, http.StatusOK, map[string]string{
-	//	"tenant_id":       tenantID,
-	//	"application_id":  applicationID,
-	//	"environment":     environment,
-	//	"microservice_id": microserviceID,
-	//	"fileName":        parts[1],
-	//	"url":             request.URL.Path,
-	//})
-	//return
 	upstream, err := s.k8sDolittleRepo.GetMicroserviceDNS(applicationID, microserviceID)
 	if err != nil {
 		utils.RespondWithError(responseWriter, http.StatusInternalServerError, "Failed to lookup microservice dns")
@@ -133,7 +124,7 @@ func serveReverseProxy(host string, res http.ResponseWriter, req *http.Request) 
 	// Hard coding to http for now
 	url.Scheme = "http"
 	proxy := httputil.NewSingleHostReverseProxy(url)
-
+	fmt.Println(req)
 	// Update the request
 	req.Host = url.Host
 	req.URL.Host = url.Host
