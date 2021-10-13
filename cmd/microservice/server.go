@@ -16,9 +16,10 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform/insights"
 	"github.com/dolittle/platform-api/pkg/platform/microservice"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/purchaseorderapi"
-
+	"github.com/dolittle/platform-api/pkg/platform/microservice/staticfiles"
 	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
 	"github.com/dolittle/platform-api/pkg/platform/tenant"
+
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/rs/cors"
@@ -116,6 +117,8 @@ var serverCMD = &cobra.Command{
 			logrus.WithField("context", "cicd-service"),
 			k8sRepo,
 		)
+		staticFilesService := staticfiles.NewService(k8sRepo, clientset, logrus.WithField("context", "static-files-service"))
+
 		c := cors.New(cors.Options{
 			OptionsPassthrough: false,
 			Debug:              true,
@@ -290,6 +293,16 @@ var serverCMD = &cobra.Command{
 		router.Handle(
 			"/application/{applicationID}/cicd/credentials/container-registry",
 			stdChainBase.ThenFunc(cicdService.GetContainerRegistryCredentials),
+		).Methods(http.MethodGet, http.MethodOptions)
+
+		//router.Handle(
+		//	"/application/{applicationID}/environment/{environment}/staticFiles/{microserviceID}/add",
+		//	stdChainBase.ThenFunc(staticFilesService.Add),
+		//).Methods(http.MethodPost, http.MethodOptions)
+
+		router.Handle(
+			"/application/{applicationID}/environment/{environment}/staticFiles/{microserviceID}/list",
+			stdChainBase.ThenFunc(staticFilesService.GetAll),
 		).Methods(http.MethodGet, http.MethodOptions)
 
 		srv := &http.Server{

@@ -96,9 +96,11 @@ var serverCMD = &cobra.Command{
 
 		stdChainBase := alice.New(c.Handler, middleware.RestrictHandlerWithSharedSecret(sharedSecret, "x-shared-secret"))
 
-		router.Handle(fmt.Sprintf("/%s/list", strings.Trim(uriPrefix, "/")), stdChainBase.ThenFunc(service.ListFiles)).Methods(http.MethodGet, http.MethodOptions)
+		router.Handle("/manage/list-files", stdChainBase.ThenFunc(service.ListFiles)).Methods(http.MethodGet, http.MethodOptions)
+		router.PathPrefix("/manage/add").Handler(stdChainBase.ThenFunc(service.Upload)).Methods(http.MethodPost, http.MethodOptions)
+		router.PathPrefix("/manage/remove").Handler(stdChainBase.ThenFunc(service.Remove)).Methods(http.MethodDelete, http.MethodOptions)
+
 		router.PathPrefix(uriPrefix).HandlerFunc(service.Get).Methods(http.MethodGet, http.MethodOptions)
-		router.PathPrefix(uriPrefix).Handler(stdChainBase.ThenFunc(service.Upload)).Methods(http.MethodPost, http.MethodOptions)
 
 		srv := &http.Server{
 			Handler:      router,

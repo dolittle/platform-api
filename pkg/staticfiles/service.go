@@ -96,3 +96,9 @@ func (s *service) Upload(w http.ResponseWriter, r *http.Request) {
 
 	proxy.uploadBlob(w, r, key)
 }
+
+func (s *service) Remove(w http.ResponseWriter, r *http.Request) {
+	utils.RespondWithJSON(w, http.StatusOK, map[string]string{
+		"todo": "remove file",
+	})
+}
