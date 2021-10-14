@@ -187,13 +187,18 @@ func (s *GitStorage) Pull() error {
 // Only supports fast-forwards
 // It returns nil on success
 func (s *GitStorage) PullWithWorktree(worktree *git.Worktree) error {
+	branchReference := plumbing.NewBranchReferenceName(s.config.Branch)
+	logContext := s.logContext.WithFields(logrus.Fields{
+		"method":          "PullWithWorktree",
+		"branchReference": branchReference,
+	})
+	logContext.Debug("Trying to Pull")
 	err := worktree.Pull(&git.PullOptions{
 		Auth:          s.publicKeys,
-		ReferenceName: plumbing.ReferenceName(s.config.Branch),
+		ReferenceName: branchReference,
 	})
 	if err != nil && err != git.NoErrAlreadyUpToDate {
-		s.logContext.WithFields(logrus.Fields{
-			"method": "PullWithWorktree",
+		logContext.WithFields(logrus.Fields{
 			"error":  err,
 		}).Error("Pull")
 		return err
