@@ -113,5 +113,6 @@ func (s *service) Remove(w http.ResponseWriter, r *http.Request) {
 	s.logContext.WithFields(logrus.Fields{
 		"key": key,
 	}).Info("remove")
+	// TODO we are not in control of the response
 	proxy.deleteBlob(w, r, key)
 }
