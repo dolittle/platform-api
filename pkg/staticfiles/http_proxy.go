@@ -97,4 +97,12 @@ func (proxy StorageProxy) uploadBlob(w http.ResponseWriter, r *http.Request, nam
 	w.WriteHeader(http.StatusCreated)
 }
 
-// Make another one to handle file upload
+func (proxy StorageProxy) deleteBlob(w http.ResponseWriter, r *http.Request, name string) {
+	blockBlobURL := proxy.containerURL.NewBlockBlobURL(proxy.objectName(name))
+
+	_, err := blockBlobURL.Delete(r.Context(), azblob.DeleteSnapshotsOptionNone, azblob.BlobAccessConditions{})
+	if err != nil {
+		log.Fatal(err)
+	}
+	w.WriteHeader(http.StatusOK)
+}

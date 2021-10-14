@@ -65,8 +65,7 @@ func (s *service) GetAll(responseWriter http.ResponseWriter, request *http.Reque
 	request.Header = http.Header{}
 	request.Header.Set("x-shared-secret", sharedSecret)
 
-	// TODO change the url
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(request.Context(), 10*time.Second)
 	defer cancel()
 	request = request.WithContext(ctx)
 	serveReverseProxy(upstream, responseWriter, request)
@@ -112,7 +111,53 @@ func (s *service) Add(responseWriter http.ResponseWriter, request *http.Request)
 	request.Header.Set("x-shared-secret", sharedSecret)
 
 	// TODO maybe we want longer on upload
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(request.Context(), 10*time.Second)
+	defer cancel()
+	request = request.WithContext(ctx)
+	serveReverseProxy(upstream, responseWriter, request)
+}
+
+func (s *service) Remove(responseWriter http.ResponseWriter, request *http.Request) {
+	tenantID := request.Header.Get("Tenant-ID")
+
+	vars := mux.Vars(request)
+	applicationID := vars["applicationID"]
+	environment := strings.ToLower(vars["environment"])
+	microserviceID := vars["microserviceID"]
+
+	logContext := s.logContext.WithFields(logrus.Fields{
+		"service":        "staticFiles",
+		"method":         "Add",
+		"tenantID":       tenantID,
+		"applicationID":  applicationID,
+		"environment":    environment,
+		"microserviceID": microserviceID,
+	})
+
+	logContext.Info("Remove file")
+
+	parts := strings.Split(
+		request.URL.Path,
+		fmt.Sprintf("staticFiles/%s/remove/", microserviceID),
+	)
+	// TODO check if filename is set
+	fileName := parts[1]
+
+	upstream, err := s.k8sDolittleRepo.GetMicroserviceDNS(applicationID, microserviceID)
+	if err != nil {
+		utils.RespondWithError(responseWriter, http.StatusInternalServerError, "Failed to lookup microservice dns")
+		return
+	}
+
+	sharedSecret, _ := s.getSharedSecret(applicationID, environment, microserviceID)
+	request.URL.Path = fmt.Sprintf("/manage/remove/%s", fileName)
+	request.RequestURI = fmt.Sprintf("/manage/remove/%s", fileName)
+
+	request.Header = http.Header{}
+	request.Header.Set("x-shared-secret", sharedSecret)
+
+	// TODO maybe we want longer on upload
+	ctx, cancel := context.WithTimeout(request.Context(), 10*time.Second)
 	defer cancel()
 	request = request.WithContext(ctx)
 	serveReverseProxy(upstream, responseWriter, request)

@@ -82,7 +82,6 @@ func (s *service) Get(w http.ResponseWriter, r *http.Request) {
 
 func (s *service) Upload(w http.ResponseWriter, r *http.Request) {
 	proxy := s.Storage
-
 	key := r.URL.Path
 
 	prefix := "/manage/add"
@@ -100,7 +99,20 @@ func (s *service) Upload(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *service) Remove(w http.ResponseWriter, r *http.Request) {
-	utils.RespondWithJSON(w, http.StatusOK, map[string]string{
-		"todo": "remove file",
-	})
+	proxy := s.Storage
+	key := r.URL.Path
+
+	prefix := "/manage/remove"
+	key = strings.TrimPrefix(key, prefix)
+	key = strings.TrimPrefix(key, s.uriPrefix)
+
+	if key[0] == '/' {
+		key = key[1:]
+	}
+
+	s.logContext.WithFields(logrus.Fields{
+		"key": key,
+	}).Info("remove")
+	w.WriteHeader(http.StatusTeapot)
+	proxy.deleteBlob(w, r, key)
 }
