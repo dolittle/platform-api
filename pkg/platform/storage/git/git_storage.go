@@ -188,7 +188,8 @@ func (s *GitStorage) Pull() error {
 // It returns nil on success
 func (s *GitStorage) PullWithWorktree(worktree *git.Worktree) error {
 	err := worktree.Pull(&git.PullOptions{
-		Auth: s.publicKeys,
+		Auth:          s.publicKeys,
+		ReferenceName: plumbing.ReferenceName(s.config.Branch),
 	})
 	if err != nil && err != git.NoErrAlreadyUpToDate {
 		s.logContext.WithFields(logrus.Fields{
