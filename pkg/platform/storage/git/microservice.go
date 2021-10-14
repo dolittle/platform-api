@@ -36,6 +36,7 @@ func (s *GitStorage) DeleteMicroservice(tenantID string, applicationID string, e
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"filename": filename,
+			"error":    err,
 		}).Error("writeFile")
 		return err
 	}
@@ -50,6 +51,7 @@ func (s *GitStorage) DeleteMicroservice(tenantID string, applicationID string, e
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"addPath": path,
+			"error":   err,
 		}).Error("Failed to AddWithOptions")
 		return err
 	}
@@ -97,6 +99,7 @@ func (s *GitStorage) SaveMicroservice(tenantID string, applicationID string, env
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"filename": filename,
+			"error":    err,
 		}).Error("writeFile")
 		return err
 	}
@@ -111,6 +114,7 @@ func (s *GitStorage) SaveMicroservice(tenantID string, applicationID string, env
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"addPath": path,
+			"error":   err,
 		}).Error("Failed to AddWithOptions")
 		return err
 	}
