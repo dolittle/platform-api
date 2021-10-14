@@ -14,6 +14,7 @@ import (
 )
 
 func (s *GitStorage) GetMicroserviceDirectory(tenantID string, applicationID string, environment string) string {
+	s.Pull()
 	return filepath.Join(s.Directory, tenantID, applicationID, strings.ToLower(environment))
 }
 

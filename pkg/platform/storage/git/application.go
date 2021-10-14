@@ -14,6 +14,7 @@ import (
 )
 
 func (s *GitStorage) GetApplicationDirectory(tenantID string, applicationID string) string {
+	s.Pull()
 	return filepath.Join(s.Directory, tenantID, applicationID)
 }
 
