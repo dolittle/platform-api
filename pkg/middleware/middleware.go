@@ -23,7 +23,7 @@ func RestrictHandlerWithHeaderName(secret string, name string) func(next http.Ha
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			xSecret := r.Header.Get(name)
 			if xSecret != secret {
-				utils.RespondWithError(w, http.StatusForbidden, "Shared secret is missing")
+				utils.RespondWithError(w, http.StatusForbidden, "Shared secret is wrong")
 				return
 			}
 
