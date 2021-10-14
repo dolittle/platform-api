@@ -169,7 +169,7 @@ func serveReverseProxy(host string, res http.ResponseWriter, req *http.Request) 
 	// Hard coding to http for now
 	url.Scheme = "http"
 	proxy := httputil.NewSingleHostReverseProxy(url)
-	fmt.Println(req)
+
 	// Update the request
 	req.Host = url.Host
 	req.URL.Host = url.Host
