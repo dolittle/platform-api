@@ -113,6 +113,5 @@ func (s *service) Remove(w http.ResponseWriter, r *http.Request) {
 	s.logContext.WithFields(logrus.Fields{
 		"key": key,
 	}).Info("remove")
-	w.WriteHeader(http.StatusTeapot)
 	proxy.deleteBlob(w, r, key)
 }
