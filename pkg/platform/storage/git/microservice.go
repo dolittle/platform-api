@@ -14,7 +14,6 @@ import (
 )
 
 func (s *GitStorage) GetMicroserviceDirectory(tenantID string, applicationID string, environment string) string {
-	s.Pull()
 	return filepath.Join(s.Directory, tenantID, applicationID, strings.ToLower(environment))
 }
 
@@ -30,6 +29,11 @@ func (s *GitStorage) DeleteMicroservice(tenantID string, applicationID string, e
 	if err != nil {
 		return err
 	}
+	if err = s.PullWithWorktree(w); err != nil {
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("PullWithWorktree")
+	}
 
 	dir := s.GetMicroserviceDirectory(tenantID, applicationID, environment)
 	filename := filepath.Join(dir, fmt.Sprintf("ms_%s.json", microserviceID))
@@ -38,7 +42,7 @@ func (s *GitStorage) DeleteMicroservice(tenantID string, applicationID string, e
 		logContext.WithFields(logrus.Fields{
 			"filename": filename,
 			"error":    err,
-		}).Error("writeFile")
+		}).Error("Remove")
 		return err
 	}
 
@@ -85,6 +89,12 @@ func (s *GitStorage) SaveMicroservice(tenantID string, applicationID string, env
 	w, err := s.Repo.Worktree()
 	if err != nil {
 		return err
+	}
+
+	if err = s.PullWithWorktree(w); err != nil {
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("PullWithWorktree")
 	}
 
 	// TODO actually build structure

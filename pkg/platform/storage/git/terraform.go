@@ -10,20 +10,28 @@ import (
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	git "github.com/go-git/go-git/v5"
+	"github.com/sirupsen/logrus"
 )
 
-func (s *GitStorage) SaveTerraformApplication(applicaiton platform.TerraformApplication) error {
-	tenantID := applicaiton.Customer.GUID
-	applicaitonID := applicaiton.GUID
+func (s *GitStorage) SaveTerraformApplication(application platform.TerraformApplication) error {
+	tenantID := application.Customer.GUID
+	applicationID := application.GUID
 
-	data, _ := json.MarshalIndent(applicaiton, "", "  ")
+	data, _ := json.MarshalIndent(application, "", "  ")
 
 	w, err := s.Repo.Worktree()
 	if err != nil {
 		return err
 	}
 
-	dir := s.GetApplicationDirectory(tenantID, applicaitonID)
+	if err = s.PullWithWorktree(w); err != nil {
+		s.logContext.WithFields(logrus.Fields{
+			"method": "SaveTerraformApplication",
+			"error":  err,
+		}).Error("PullWithWorktree")
+	}
+
+	dir := s.GetApplicationDirectory(tenantID, applicationID)
 	err = os.MkdirAll(dir, 0755)
 	if err != nil {
 		fmt.Println("MkdirAll")
@@ -87,6 +95,13 @@ func (s *GitStorage) SaveTerraformTenant(tenant platform.TerraformCustomer) erro
 	w, err := s.Repo.Worktree()
 	if err != nil {
 		return err
+	}
+
+	if err = s.PullWithWorktree(w); err != nil {
+		s.logContext.WithFields(logrus.Fields{
+			"method": "SaveTerraformTenant",
+			"error":  err,
+		}).Error("PullWithWorktree")
 	}
 
 	dir := s.GetTenantDirectory(tenantID)

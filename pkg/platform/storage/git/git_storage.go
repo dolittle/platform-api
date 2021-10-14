@@ -143,15 +143,6 @@ func (s *GitStorage) CommitAndPush(w *git.Worktree, msg string) error {
 		return nil
 	}
 
-	// Pull before pushing
-	err = s.Pull()
-	if err != nil {
-		logContext.WithFields(logrus.Fields{
-			"error": err,
-		}).Error("Pull while trying to commit")
-		return err
-	}
-
 	err = s.Repo.Push(&git.PushOptions{
 		Auth: s.publicKeys,
 	})
@@ -199,7 +190,7 @@ func (s *GitStorage) PullWithWorktree(worktree *git.Worktree) error {
 	})
 	if err != nil && err != git.NoErrAlreadyUpToDate {
 		logContext.WithFields(logrus.Fields{
-			"error":  err,
+			"error": err,
 		}).Error("Pull")
 		return err
 	}
