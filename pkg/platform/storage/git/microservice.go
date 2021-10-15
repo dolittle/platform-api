@@ -33,6 +33,7 @@ func (s *GitStorage) DeleteMicroservice(tenantID string, applicationID string, e
 		logContext.WithFields(logrus.Fields{
 			"error": err,
 		}).Error("PullWithWorktree")
+		return err
 	}
 
 	dir := s.GetMicroserviceDirectory(tenantID, applicationID, environment)
@@ -95,6 +96,7 @@ func (s *GitStorage) SaveMicroservice(tenantID string, applicationID string, env
 		logContext.WithFields(logrus.Fields{
 			"error": err,
 		}).Error("PullWithWorktree")
+		return err
 	}
 
 	// TODO actually build structure

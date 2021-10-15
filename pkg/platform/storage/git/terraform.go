@@ -29,6 +29,7 @@ func (s *GitStorage) SaveTerraformApplication(application platform.TerraformAppl
 			"method": "SaveTerraformApplication",
 			"error":  err,
 		}).Error("PullWithWorktree")
+		return err
 	}
 
 	dir := s.GetApplicationDirectory(tenantID, applicationID)
@@ -102,6 +103,7 @@ func (s *GitStorage) SaveTerraformTenant(tenant platform.TerraformCustomer) erro
 			"method": "SaveTerraformTenant",
 			"error":  err,
 		}).Error("PullWithWorktree")
+		return err
 	}
 
 	dir := s.GetTenantDirectory(tenantID)

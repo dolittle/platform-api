@@ -37,6 +37,7 @@ func (s *GitStorage) SaveApplication(application platform.HttpResponseApplicatio
 		logContext.WithFields(logrus.Fields{
 			"error": err,
 		}).Error("PullWithWorktree")
+		return err
 	}
 
 	// TODO actually build structure
