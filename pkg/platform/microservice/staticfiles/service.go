@@ -127,7 +127,7 @@ func (s *service) Remove(responseWriter http.ResponseWriter, request *http.Reque
 
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"service":        "staticFiles",
-		"method":         "Add",
+		"method":         "Remove",
 		"tenantID":       tenantID,
 		"applicationID":  applicationID,
 		"environment":    environment,
