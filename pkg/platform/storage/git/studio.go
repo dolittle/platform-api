@@ -2,6 +2,7 @@ package git
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -75,11 +76,8 @@ func (s *GitStorage) GetStudioConfig(tenantID string) (platform.StudioConfig, er
 		s.logContext.WithFields(logrus.Fields{
 			"error":  err,
 			"method": "GetStudioConfig",
-		}).Error("lookup getting studio.json")
-		config.BuildOverwrite = true
-		config.AutomationEnabled = true
-		config.AutomationEnvironments = make([]string, 0)
-		return config, nil
+		}).Error("no studio.json found")
+		return config, err
 	}
 
 	err = json.Unmarshal(b, &config)
@@ -87,12 +85,31 @@ func (s *GitStorage) GetStudioConfig(tenantID string) (platform.StudioConfig, er
 		s.logContext.WithFields(logrus.Fields{
 			"error":  err,
 			"method": "GetStudioConfig",
-		}).Error("parsing json")
-		config.BuildOverwrite = false
-		config.AutomationEnabled = false
-		config.AutomationEnvironments = make([]string, 0)
-		return config, nil
+		}).Error("couldn't parse studio.json")
+		return config, err
 	}
 
 	return config, nil
+}
+
+// CreateDefaultStudioConfig creates a studio.json file with default values
+// set to enable automation and overwriting for that customer.
+// The given applications will have all of their environments enabled for automation too.
+func (s *GitStorage) CreateDefaultStudioConfig(customerID string, applications []platform.HttpResponseApplication) error {
+	var environments []string
+
+	for _, application := range applications {
+		for _, environment := range application.Environments {
+			applicationWithEnvironment := fmt.Sprintf("%s/%s", application.ID, strings.ToLower(environment.Name))
+			environments = append(environments, applicationWithEnvironment)
+		}
+	}
+
+	studioConfig := platform.StudioConfig{
+		BuildOverwrite:         true,
+		AutomationEnabled:      true,
+		AutomationEnvironments: environments,
+	}
+
+	return s.SaveStudioConfig(customerID, studioConfig)
 }

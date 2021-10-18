@@ -67,26 +67,41 @@ var buildApplicationInfoCMD = &cobra.Command{
 		logContext.Info("Starting to extract applications from the cluster")
 		applications := extractApplications(ctx, client)
 		logContext.Info(fmt.Sprintf("Saving %v application(s)", len(applications)))
-		SaveApplications(gitRepo, applications)
+		SaveApplications(gitRepo, applications, logContext)
 		logContext.Info("Done!")
 	},
 }
 
 // SaveApplications saves the Applications into applications.json and also saves the studio.json
-func SaveApplications(repo storage.Repo, applications []platform.HttpResponseApplication) error {
+func SaveApplications(repo storage.Repo, applications []platform.HttpResponseApplication, logger logrus.FieldLogger) error {
+	logContext := logger.WithFields(logrus.Fields{
+		"function": "SaveApplications",
+	})
 	for _, application := range applications {
-		studioConfig, _ := repo.GetStudioConfig(application.TenantID)
+		studioConfig, err := repo.GetStudioConfig(application.TenantID)
+		if err != nil {
+			logContext.WithFields(logrus.Fields{
+				"error":    err,
+				"tenantID": application.TenantID,
+			}).Warning("Creating default studio.json config")
+			err = repo.CreateDefaultStudioConfig(application.TenantID, applications)
+			if err != nil {
+				logContext.WithFields(logrus.Fields{
+					"error":    err,
+					"tenantID": application.TenantID,
+				}).Fatal("couldn't create default studio config")
+			}
+		}
+
 		if !studioConfig.BuildOverwrite {
 			continue
 		}
-		err := repo.SaveApplication(application)
+		err = repo.SaveApplication(application)
 		if err != nil {
-			panic(err.Error())
-		}
-
-		err = repo.SaveStudioConfig(application.TenantID, studioConfig)
-		if err != nil {
-			panic(err.Error())
+			logContext.WithFields(logrus.Fields{
+				"error":    err,
+				"tenantID": application.TenantID,
+			}).Fatal("failed to save application")
 		}
 	}
 	return nil
