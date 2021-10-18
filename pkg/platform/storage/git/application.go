@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
 	git "github.com/go-git/go-git/v5"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
@@ -26,7 +27,24 @@ func (s *GitStorage) SaveApplication(application platform.HttpResponseApplicatio
 		"customer":      tenantID,
 		"applicationID": applicationID,
 	})
-	data, _ := json.MarshalIndent(application, "", " ")
+
+	environments := funk.Map(application.Environments, func(e platform.HttpInputEnvironment) storage.JSONEnvironment {
+		return storage.JSONEnvironment{
+			Name:          e.Name,
+			TenantID:      e.TenantID,
+			ApplicationID: e.ApplicationID,
+			Tenants:       e.Tenants,
+			Ingresses:     e.Ingresses,
+		}
+	}).([]storage.JSONEnvironment)
+	jsonApplication := storage.JSONApplication{
+		ID:           application.ID,
+		Name:         application.Name,
+		TenantID:     application.TenantID,
+		TenantName:   application.TenantName,
+		Environments: environments,
+	}
+	data, _ := json.MarshalIndent(jsonApplication, "", " ")
 
 	w, err := s.Repo.Worktree()
 	if err != nil {

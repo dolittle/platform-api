@@ -40,3 +40,21 @@ var (
 	ErrNotFound                  = errors.New("not-found")
 	ErrNotBusinessMomentsAdaptor = errors.New("not-business-moments-adaptor")
 )
+
+// JSONApplication represents the application.json file
+type JSONApplication struct {
+	ID           string            `json:"id"`
+	Name         string            `json:"name"`
+	TenantID     string            `json:"tenantId"`
+	TenantName   string            `json:"tenantName"`
+	Environments []JSONEnvironment `json:"environments"`
+}
+
+// JSONEnvironment represents the "environments" property in application.json file
+type JSONEnvironment struct {
+	Name          string                        `json:"name"`
+	TenantID      string                        `json:"tenantId"`
+	ApplicationID string                        `json:"applicationId"`
+	Tenants       []platform.TenantId           `json:"tenants"`
+	Ingresses     platform.EnvironmentIngresses `json:"ingresses"`
+}

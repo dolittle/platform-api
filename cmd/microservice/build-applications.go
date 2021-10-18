@@ -3,6 +3,8 @@ package microservice
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"log"
 	"os"
 	"regexp"
 	"strings"
@@ -12,6 +14,7 @@ import (
 	gitStorage "github.com/dolittle-entropy/platform-api/pkg/platform/storage/git"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	coreV1 "k8s.io/api/core/v1"
 	netV1 "k8s.io/api/networking/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,7 +27,7 @@ var buildApplicationsCMD = &cobra.Command{
 	Use:   "build-application-info",
 	Short: "Write application info into the git repo",
 	Long: `
-	It will attempt to update git with data from the cluster and skip those that have been setup.
+	It will attempt to update the git repo with data from the cluster and skip those that have been setup.
 
 	GIT_REPO_SSH_KEY="/Users/freshteapot/dolittle/.ssh/test-deploy" \
 	GIT_REPO_BRANCH=auto-dev \
@@ -44,7 +47,11 @@ var buildApplicationsCMD = &cobra.Command{
 		)
 
 		ctx := context.TODO()
-		kubeconfig, _ := cmd.Flags().GetString("kube-config")
+		kubeconfig := viper.GetString("tools.server.kubeConfig")
+
+		if kubeconfig == "incluster" {
+			kubeconfig = ""
+		}
 		// TODO hoist localhost into viper
 		config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 		if err != nil {
@@ -139,7 +146,7 @@ func getApplicationEnvironmentsFromK8s(ctx context.Context, client kubernetes.In
 	for _, configmap := range getConfigmaps(ctx, client, namespace) {
 		if isEnvironmentTenantsConfig(configmap) {
 			environment := platform.HttpInputEnvironment{
-				AutomationEnabled: false,
+				AutomationEnabled: true,
 				Name:              configmap.Labels["environment"],
 				TenantID:          tenantID,
 				ApplicationID:     applicationID,
@@ -291,5 +298,13 @@ func tryGetIngressSecretNameForHost(ingress netV1.Ingress, host string) (bool, s
 
 func init() {
 	RootCmd.AddCommand(buildApplicationsCMD)
-	buildApplicationsCMD.Flags().String("kube-config", "", "FullPath to kubeconfig")
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+	buildApplicationsCMD.Flags().String("kube-config", fmt.Sprintf("%s/.kube/config", homeDir), "Full path to kubeconfig, set to incluster to make it use kubernetes lookup")
+	viper.BindPFlag("tools.server.kubeConfig", buildApplicationsCMD.Flags().Lookup("kube-config"))
+
+	viper.BindEnv("tools.server.kubeConfig", "KUBECONFIG")
 }
