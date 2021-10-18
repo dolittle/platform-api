@@ -10,6 +10,7 @@ import (
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	git "github.com/go-git/go-git/v5"
+	"github.com/sirupsen/logrus"
 )
 
 func (s *GitStorage) GetMicroserviceDirectory(tenantID string, applicationID string, environment string) string {
@@ -17,8 +18,21 @@ func (s *GitStorage) GetMicroserviceDirectory(tenantID string, applicationID str
 }
 
 func (s *GitStorage) DeleteMicroservice(tenantID string, applicationID string, environment string, microserviceID string) error {
+	logContext := s.logContext.WithFields(logrus.Fields{
+		"method":         "DeleteMicroservice",
+		"tenantID":       tenantID,
+		"applicationID":  applicationID,
+		"environment":    environment,
+		"microserviceID": microserviceID,
+	})
 	w, err := s.Repo.Worktree()
 	if err != nil {
+		return err
+	}
+	if err = s.PullWithWorktree(w); err != nil {
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("PullWithWorktree")
 		return err
 	}
 
@@ -26,18 +40,25 @@ func (s *GitStorage) DeleteMicroservice(tenantID string, applicationID string, e
 	filename := filepath.Join(dir, fmt.Sprintf("ms_%s.json", microserviceID))
 	err = os.Remove(filename)
 	if err != nil {
-		fmt.Println(err)
+		logContext.WithFields(logrus.Fields{
+			"filename": filename,
+			"error":    err,
+		}).Error("Remove")
 		return err
 	}
 
 	// Adds the new file to the staging area.
 	// Need to remove the prefix
+	path := strings.TrimPrefix(filename, s.Directory+"/")
 	err = w.AddWithOptions(&git.AddOptions{
-		Path: strings.TrimPrefix(filename, s.Directory+"/"),
+		Path: path,
 	})
 
 	if err != nil {
-		fmt.Println("w.Add")
+		logContext.WithFields(logrus.Fields{
+			"addPath": path,
+			"error":   err,
+		}).Error("Failed to AddWithOptions")
 		return err
 	}
 
@@ -47,7 +68,7 @@ func (s *GitStorage) DeleteMicroservice(tenantID string, applicationID string, e
 		return err
 	}
 
-	err = s.CommitAndPush(w, "upsert microservice")
+	err = s.CommitAndPush(w, "deleted microservice")
 
 	if err != nil {
 		return err
@@ -58,9 +79,23 @@ func (s *GitStorage) DeleteMicroservice(tenantID string, applicationID string, e
 }
 
 func (s *GitStorage) SaveMicroservice(tenantID string, applicationID string, environment string, microserviceID string, data interface{}) error {
+	logContext := s.logContext.WithFields(logrus.Fields{
+		"method":         "SaveMicroservice",
+		"tenantID":       tenantID,
+		"applicationID":  applicationID,
+		"environment":    environment,
+		"microserviceID": microserviceID,
+	})
 	storageBytes, _ := json.MarshalIndent(data, "", "  ")
 	w, err := s.Repo.Worktree()
 	if err != nil {
+		return err
+	}
+
+	if err = s.PullWithWorktree(w); err != nil {
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("PullWithWorktree")
 		return err
 	}
 
@@ -75,28 +110,35 @@ func (s *GitStorage) SaveMicroservice(tenantID string, applicationID string, env
 	filename := filepath.Join(dir, fmt.Sprintf("ms_%s.json", microserviceID))
 	err = ioutil.WriteFile(filename, storageBytes, 0644)
 	if err != nil {
-		fmt.Println("writeFile")
+		logContext.WithFields(logrus.Fields{
+			"filename": filename,
+			"error":    err,
+		}).Error("writeFile")
 		return err
 	}
 
 	// Adds the new file to the staging area.
 	// Need to remove the prefix
+	path := strings.TrimPrefix(filename, s.Directory+"/")
 	err = w.AddWithOptions(&git.AddOptions{
-		Path: strings.TrimPrefix(filename, s.Directory+"/"),
+		Path: path,
 	})
 
 	if err != nil {
-		fmt.Println("w.Add")
+		logContext.WithFields(logrus.Fields{
+			"addPath": path,
+			"error":   err,
+		}).Error("Failed to AddWithOptions")
 		return err
 	}
 
 	_, err = w.Status()
 	if err != nil {
-		fmt.Println("w.Status")
+		logContext.Error("Failed to call Status on Worktree")
 		return err
 	}
 
-	err = s.CommitAndPush(w, "upsert microservice")
+	err = s.CommitAndPush(w, "saved microservice")
 
 	if err != nil {
 		return err

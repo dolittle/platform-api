@@ -10,6 +10,13 @@ import (
 )
 
 func (s *GitStorage) SaveStudioConfig(tenantID string, config platform.StudioConfig) error {
+	if err := s.Pull(); err != nil {
+		s.logContext.WithFields(logrus.Fields{
+			"method": "SaveStudioConfig",
+			"error":  err,
+		}).Error("Pull")
+		return err
+	}
 	dir := s.GetTenantDirectory(tenantID)
 	filename := filepath.Join(dir, "studio.json")
 	data, _ := json.MarshalIndent(config, "", "  ")

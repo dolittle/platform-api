@@ -8,7 +8,6 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -39,9 +38,13 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *G
 	branch := plumbing.NewBranchReferenceName(gitConfig.Branch)
 
 	s := &GitStorage{
-		logContext: logContext,
-		Directory:  gitConfig.LocalDirectory,
-		config:     gitConfig,
+		logContext: logContext.WithFields(logrus.Fields{
+			"directoryOnly": directoryOnly,
+			"gitRemote":     gitConfig.URL,
+			"gitBranch":     gitConfig.Branch,
+		}),
+		Directory: gitConfig.LocalDirectory,
+		config:    gitConfig,
 	}
 
 	if directoryOnly {
@@ -98,27 +101,18 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *G
 		}
 	}
 
-	//w, err := r.Worktree()
-	//if err != nil {
-	//	log.Fatalf("repo exists, unable to get worktree: %s\n", err.Error())
-	//}
-
-	// Checkout
-	//err = w.Checkout(&git.CheckoutOptions{
-	//	Create: false,
-	//	Branch: branch,
-	//	Keep:   true,
-	//})
-	//
-	//if err != nil {
-	//	log.Fatalf("repo exists, unable to checkout branch: %s error %s\n", branchName, err.Error())
-	//}
-
 	s.Repo = r
 	return s
 }
 
+// CommitAndPush creates a commit, pulls the latest changes and pushes
 func (s *GitStorage) CommitAndPush(w *git.Worktree, msg string) error {
+	logContext := s.logContext.WithFields(logrus.Fields{
+		"method": "CommitAndPush",
+		"msg":    msg,
+	})
+	logContext.Debug("Trying to commit and push")
+
 	commit, err := w.Commit(msg, &git.CommitOptions{
 		Author: &object.Signature{
 			Name:  "Auto Platform",
@@ -128,9 +122,8 @@ func (s *GitStorage) CommitAndPush(w *git.Worktree, msg string) error {
 	})
 
 	if err != nil {
-		s.logContext.WithFields(logrus.Fields{
+		logContext.WithFields(logrus.Fields{
 			"error": err,
-			"msg":   msg,
 		}).Error("Commit")
 		return err
 	}
@@ -139,13 +132,13 @@ func (s *GitStorage) CommitAndPush(w *git.Worktree, msg string) error {
 	_, err = s.Repo.CommitObject(commit)
 
 	if err != nil {
-		s.logContext.WithFields(logrus.Fields{
+		logContext.WithFields(logrus.Fields{
 			"error": err,
-			"msg":   msg,
 		}).Error("CommitObject")
 		return err
 	}
 
+	// don't push if using a local repo
 	if s.config.DirectoryOnly {
 		return nil
 	}
@@ -157,32 +150,46 @@ func (s *GitStorage) CommitAndPush(w *git.Worktree, msg string) error {
 	if err != nil {
 		//if err == git.NoErrAlreadyUpToDate {}
 		// If we have commited, this is a mistake
-		s.logContext.WithFields(logrus.Fields{
+		logContext.WithFields(logrus.Fields{
 			"error": err,
-			"msg":   msg,
 		}).Error("Push")
 		return err
 	}
 
+	logContext.Debug("Successfully pushed to remote")
+
 	return err
 }
 
+// Pull pulls the latest from remote with the default Worktree.
+// It returns nil on success
 func (s *GitStorage) Pull() error {
-	// This code might need to be alot more fancy
-	w, err := s.Repo.Worktree()
+	worktree, err := s.Repo.Worktree()
 	if err != nil {
 		s.logContext.WithFields(logrus.Fields{
 			"error": err,
 		}).Error("Worktree")
 		return err
 	}
+	return s.PullWithWorktree(worktree)
+}
 
-	err = w.Pull(&git.PullOptions{
-		Auth: s.publicKeys,
+// PullWithWorktree pulls the latest from remote with the given Worktree.
+// Only supports fast-forwards
+// It returns nil on success
+func (s *GitStorage) PullWithWorktree(worktree *git.Worktree) error {
+	branchReference := plumbing.NewBranchReferenceName(s.config.Branch)
+	logContext := s.logContext.WithFields(logrus.Fields{
+		"method":          "PullWithWorktree",
+		"branchReference": branchReference,
 	})
-	if err != nil {
-		// Maybe trigger fatal?
-		s.logContext.WithFields(logrus.Fields{
+	logContext.Debug("Trying to Pull")
+	err := worktree.Pull(&git.PullOptions{
+		Auth:          s.publicKeys,
+		ReferenceName: branchReference,
+	})
+	if err != nil && err != git.NoErrAlreadyUpToDate {
+		logContext.WithFields(logrus.Fields{
 			"error": err,
 		}).Error("Pull")
 		return err
@@ -195,7 +202,13 @@ func (s *GitStorage) IsAutomationEnabled(tenantID string, applicationID string, 
 	environment = strings.ToLower(environment)
 	studioConfig, err := s.GetStudioConfig(tenantID)
 	if err != nil {
-		// TODO maybe log this
+		s.logContext.WithFields(logrus.Fields{
+			"method":        "IsAutomationEnabled",
+			"error":         err,
+			"tenantID":      tenantID,
+			"applicationID": applicationID,
+			"environment":   environment,
+		}).Warning("Error while getting studio config, assuming automation not enabled")
 		return false
 	}
 
@@ -205,15 +218,4 @@ func (s *GitStorage) IsAutomationEnabled(tenantID string, applicationID string, 
 
 	key := fmt.Sprintf("%s/%s", applicationID, environment)
 	return funk.ContainsString(studioConfig.AutomationEnvironments, key)
-}
-
-func (s *GitStorage) CheckAutomationEnabledViaCustomer(config platform.StudioConfig, applicationID string, environment string) bool {
-	environment = strings.ToLower(environment)
-
-	if !config.AutomationEnabled {
-		return false
-	}
-
-	key := fmt.Sprintf("%s/%s", applicationID, environment)
-	return funk.ContainsString(config.AutomationEnvironments, key)
 }

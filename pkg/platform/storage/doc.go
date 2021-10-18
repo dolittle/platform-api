@@ -27,7 +27,6 @@ type Repo interface {
 	SaveStudioConfig(tenantID string, config platform.StudioConfig) error
 	GetStudioConfig(tenantID string) (platform.StudioConfig, error)
 	IsAutomationEnabled(tenantID string, applicationID string, environment string) bool
-	CheckAutomationEnabledViaCustomer(customer platform.StudioConfig, applicationID string, environment string) bool
 
 	SaveBusinessMoment(tenantID string, input platform.HttpInputBusinessMoment) error
 	GetBusinessMoments(tenantID string, applicationID string, environment string) (platform.HttpResponseBusinessMoments, error)

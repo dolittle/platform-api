@@ -9,6 +9,7 @@ import (
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	git "github.com/go-git/go-git/v5"
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )
@@ -20,10 +21,22 @@ func (s *GitStorage) GetApplicationDirectory(tenantID string, applicationID stri
 func (s *GitStorage) SaveApplication(application platform.HttpResponseApplication) error {
 	applicationID := application.ID
 	tenantID := application.TenantID
+	logContext := s.logContext.WithFields(log.Fields{
+		"method":        "SaveApplication",
+		"customer":      tenantID,
+		"applicationID": applicationID,
+	})
 	data, _ := json.MarshalIndent(application, "", " ")
 
 	w, err := s.Repo.Worktree()
 	if err != nil {
+		return err
+	}
+
+	if err = s.PullWithWorktree(w); err != nil {
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("PullWithWorktree")
 		return err
 	}
 
@@ -37,10 +50,8 @@ func (s *GitStorage) SaveApplication(application platform.HttpResponseApplicatio
 	filename := filepath.Join(dir, "application.json")
 	err = ioutil.WriteFile(filename, data, 0644)
 	if err != nil {
-		s.logContext.WithFields(log.Fields{
-			"customer":    tenantID,
-			"application": applicationID,
-			"error":       err,
+		logContext.WithFields(log.Fields{
+			"error": err,
 		}).Error("Failed to write 'application.json'")
 		return err
 	}
@@ -52,31 +63,25 @@ func (s *GitStorage) SaveApplication(application platform.HttpResponseApplicatio
 		Path: addPath,
 	})
 	if err != nil {
-		s.logContext.WithFields(log.Fields{
-			"customer":    tenantID,
-			"application": applicationID,
-			"path":        addPath,
-			"error":       err,
+		logContext.WithFields(log.Fields{
+			"path":  addPath,
+			"error": err,
 		}).Error("Failed to add path to worktree")
 		return err
 	}
 
 	_, err = w.Status()
 	if err != nil {
-		s.logContext.WithFields(log.Fields{
-			"customer":    tenantID,
-			"application": applicationID,
-			"error":       err,
+		logContext.WithFields(log.Fields{
+			"error": err,
 		}).Error("Failed to get worktree status")
 		return err
 	}
 
 	err = s.CommitAndPush(w, "upsert application")
 	if err != nil {
-		s.logContext.WithFields(log.Fields{
-			"customer":    tenantID,
-			"application": applicationID,
-			"error":       err,
+		logContext.WithFields(log.Fields{
+			"error": err,
 		}).Error("Failed to commit and push worktree")
 		return err
 	}
@@ -99,15 +104,8 @@ func (s *GitStorage) GetApplication(tenantID string, applicationID string) (plat
 		return application, err
 	}
 
-	studioConfig, err := s.GetStudioConfig(tenantID)
-	if err != nil {
-		return application, err
-	}
-
-	// Sprinkle in if automation enabled
-	// I wonder if this should be in each applicaiton
 	application.Environments = funk.Map(application.Environments, func(e platform.HttpInputEnvironment) platform.HttpInputEnvironment {
-		e.AutomationEnabled = s.CheckAutomationEnabledViaCustomer(studioConfig, e.ApplicationID, e.Name)
+		e.AutomationEnabled = s.IsAutomationEnabled(tenantID, e.ApplicationID, e.Name)
 		return e
 	}).([]platform.HttpInputEnvironment)
 	return application, nil
