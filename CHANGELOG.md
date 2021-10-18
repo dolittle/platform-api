@@ -1,3 +1,22 @@
+# [0.9.0] - 2021-10-18 [PR: #45](https://github.com/dolittle/platform-api/pull/45)
+## Summary
+
+Makes platform-api pull from the remote before starting to do any changes. The push will only happen if the local repo is already up to date, or if it can be fast-forwarded.
+
+
+### Added
+
+- More logging
+
+### Changed
+
+- Pull before writing any files
+
+### Removed
+
+- `CheckAutomationEnabledViaCustomer` and replaced calls to it with the more common `IsAutomationEnabled`
+
+
 # [0.8.0] - 2021-10-12 [PR: #44](https://github.com/dolittle/platform-api/pull/44)
 ## Summary
 - Explicitly set to lookup kubeconfig within the cluster
