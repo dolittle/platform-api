@@ -89,7 +89,7 @@ func (s *GitStorage) GetStudioConfig(tenantID string) (platform.StudioConfig, er
 			"method": "GetStudioConfig",
 		}).Error("parsing json")
 		config.BuildOverwrite = false
-		config.AutomationEnabled = true
+		config.AutomationEnabled = false
 		config.AutomationEnvironments = make([]string, 0)
 		return config, nil
 	}
