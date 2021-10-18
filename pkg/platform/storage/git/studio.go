@@ -2,7 +2,6 @@ package git
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -12,7 +11,6 @@ import (
 	git "github.com/go-git/go-git/v5"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 )
 
 func (s *GitStorage) SaveStudioConfig(tenantID string, config platform.StudioConfig) error {
