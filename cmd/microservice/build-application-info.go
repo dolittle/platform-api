@@ -23,7 +23,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-var buildApplicationsCMD = &cobra.Command{
+var buildApplicationInfoCMD = &cobra.Command{
 	Use:   "build-application-info",
 	Short: "Write application info into the git repo",
 	Long: `
@@ -64,12 +64,15 @@ var buildApplicationsCMD = &cobra.Command{
 			panic(err.Error())
 		}
 
+		logContext.Info("Starting to extract applications from the cluster")
 		applications := extractApplications(ctx, client)
+		logContext.Info(fmt.Sprintf("Saving %v application(s)", len(applications)))
 		SaveApplications(gitRepo, applications)
+		logContext.Info("Done!")
 	},
 }
 
-// SaveApplications saves the Applications
+// SaveApplications saves the Applications into applications.json and also saves the studio.json
 func SaveApplications(repo storage.Repo, applications []platform.HttpResponseApplication) error {
 	for _, application := range applications {
 		studioConfig, _ := repo.GetStudioConfig(application.TenantID)
@@ -104,6 +107,7 @@ func extractApplications(ctx context.Context, client kubernetes.Interface) []pla
 func getNamespaces(ctx context.Context, client kubernetes.Interface) []coreV1.Namespace {
 	namespacesList, err := client.CoreV1().Namespaces().List(ctx, metaV1.ListOptions{})
 	if err != nil {
+		panic(err.Error())
 	}
 	return namespacesList.Items
 }
@@ -146,10 +150,9 @@ func getApplicationEnvironmentsFromK8s(ctx context.Context, client kubernetes.In
 	for _, configmap := range getConfigmaps(ctx, client, namespace) {
 		if isEnvironmentTenantsConfig(configmap) {
 			environment := platform.HttpInputEnvironment{
-				AutomationEnabled: true,
-				Name:              configmap.Labels["environment"],
-				TenantID:          tenantID,
-				ApplicationID:     applicationID,
+				Name:          configmap.Labels["environment"],
+				TenantID:      tenantID,
+				ApplicationID: applicationID,
 			}
 
 			environmentLabels := configmap.Labels
@@ -297,14 +300,14 @@ func tryGetIngressSecretNameForHost(ingress netV1.Ingress, host string) (bool, s
 }
 
 func init() {
-	RootCmd.AddCommand(buildApplicationsCMD)
+	RootCmd.AddCommand(buildApplicationInfoCMD)
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		log.Fatal(err)
 	}
-	buildApplicationsCMD.Flags().String("kube-config", fmt.Sprintf("%s/.kube/config", homeDir), "Full path to kubeconfig, set to incluster to make it use kubernetes lookup")
-	viper.BindPFlag("tools.server.kubeConfig", buildApplicationsCMD.Flags().Lookup("kube-config"))
+	buildApplicationInfoCMD.Flags().String("kube-config", fmt.Sprintf("%s/.kube/config", homeDir), "Full path to kubeconfig, set to incluster to make it use kubernetes lookup")
+	viper.BindPFlag("tools.server.kubeConfig", buildApplicationInfoCMD.Flags().Lookup("kube-config"))
 
 	viper.BindEnv("tools.server.kubeConfig", "KUBECONFIG")
 }
