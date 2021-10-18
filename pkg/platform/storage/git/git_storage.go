@@ -184,6 +184,12 @@ func (s *GitStorage) PullWithWorktree(worktree *git.Worktree) error {
 		"branchReference": branchReference,
 	})
 	logContext.Debug("Trying to Pull")
+
+	if s.config.DirectoryOnly {
+		logContext.Debug("Not pulling, repo is set to directoryOnly = true")
+		return nil
+	}
+
 	err := worktree.Pull(&git.PullOptions{
 		Auth:          s.publicKeys,
 		ReferenceName: branchReference,
