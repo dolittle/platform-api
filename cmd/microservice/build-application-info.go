@@ -15,6 +15,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/thoas/go-funk"
 	coreV1 "k8s.io/api/core/v1"
 	netV1 "k8s.io/api/networking/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -66,10 +67,40 @@ var buildApplicationInfoCMD = &cobra.Command{
 
 		logContext.Info("Starting to extract applications from the cluster")
 		applications := extractApplications(ctx, client)
-		logContext.Info(fmt.Sprintf("Saving %v application(s)", len(applications)))
-		SaveApplications(gitRepo, applications, logContext)
-		logContext.Info("Done!")
+		if viper.GetBool("reset-studio-config") {
+			ResetStudioConfigs(gitRepo, applications, logContext)
+		} else {
+			logContext.Info(fmt.Sprintf("Saving %v application(s)", len(applications)))
+			SaveApplications(gitRepo, applications, logContext)
+			logContext.Info("Done!")
+		}
+
 	},
+}
+
+func ResetStudioConfigs(repo storage.Repo, applications []platform.HttpResponseApplication, logger logrus.FieldLogger) error {
+	logContext := logger.WithFields(logrus.Fields{
+		"function": "ResetStudioConfigs",
+	})
+	logContext.Info("Starting to reset studio.json files to default values")
+
+	for _, application := range applications {
+
+		// filter out only this customers applications
+		customersApplications := funk.Filter(applications, func(customerApplication platform.HttpResponseApplication) bool {
+			return customerApplication.TenantID == application.TenantID
+		}).([]platform.HttpResponseApplication)
+		studioConfig := createDefaultStudioConfig(repo, application.TenantID, customersApplications)
+
+		if err := repo.SaveStudioConfig(application.TenantID, studioConfig); err != nil {
+			logContext.WithFields(logrus.Fields{
+				"error":    err,
+				"tenantID": application.TenantID,
+			}).Fatal("couldn't create default studio config")
+		}
+	}
+
+	return nil
 }
 
 // SaveApplications saves the Applications into applications.json and also saves the studio.json
@@ -84,8 +115,15 @@ func SaveApplications(repo storage.Repo, applications []platform.HttpResponseApp
 				"error":    err,
 				"tenantID": application.TenantID,
 			}).Warning("Creating default studio.json config")
-			err = repo.CreateDefaultStudioConfig(application.TenantID, applications)
-			if err != nil {
+
+			// filter out only this customers applications
+			customersApplications := funk.Filter(applications, func(customerApplication platform.HttpResponseApplication) bool {
+				return customerApplication.TenantID == application.TenantID
+			}).([]platform.HttpResponseApplication)
+
+			studioConfig = createDefaultStudioConfig(repo, application.TenantID, customersApplications)
+
+			if err = repo.SaveStudioConfig(application.TenantID, studioConfig); err != nil {
 				logContext.WithFields(logrus.Fields{
 					"error":    err,
 					"tenantID": application.TenantID,
@@ -314,6 +352,25 @@ func tryGetIngressSecretNameForHost(ingress netV1.Ingress, host string) (bool, s
 	return false, ""
 }
 
+// createDefaultStudioConfig creates a studio.json file with default values
+// set to enable automation and overwriting for that customer.
+// The given applications will have all of their environments enabled for automation too.
+func createDefaultStudioConfig(repo storage.Repo, customerID string, applications []platform.HttpResponseApplication) platform.StudioConfig {
+	var environments []string
+	for _, application := range applications {
+		for _, environment := range application.Environments {
+			applicationWithEnvironment := fmt.Sprintf("%s/%s", application.ID, strings.ToLower(environment.Name))
+			environments = append(environments, applicationWithEnvironment)
+		}
+	}
+
+	return platform.StudioConfig{
+		BuildOverwrite:         true,
+		AutomationEnabled:      true,
+		AutomationEnvironments: environments,
+	}
+}
+
 func init() {
 	RootCmd.AddCommand(buildApplicationInfoCMD)
 
@@ -325,4 +382,7 @@ func init() {
 	viper.BindPFlag("tools.server.kubeConfig", buildApplicationInfoCMD.Flags().Lookup("kube-config"))
 
 	viper.BindEnv("tools.server.kubeConfig", "KUBECONFIG")
+
+	buildApplicationInfoCMD.Flags().Bool("reset-studio-config", false, "Whether to overwrite all studio.json files")
+	viper.BindPFlag("reset-studio-config", buildApplicationInfoCMD.Flags().Lookup("reset-studio-config"))
 }

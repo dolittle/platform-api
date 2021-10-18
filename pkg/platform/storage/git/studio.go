@@ -12,6 +12,7 @@ import (
 	git "github.com/go-git/go-git/v5"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 )
 
 func (s *GitStorage) SaveStudioConfig(tenantID string, config platform.StudioConfig) error {
@@ -90,26 +91,4 @@ func (s *GitStorage) GetStudioConfig(tenantID string) (platform.StudioConfig, er
 	}
 
 	return config, nil
-}
-
-// CreateDefaultStudioConfig creates a studio.json file with default values
-// set to enable automation and overwriting for that customer.
-// The given applications will have all of their environments enabled for automation too.
-func (s *GitStorage) CreateDefaultStudioConfig(customerID string, applications []platform.HttpResponseApplication) error {
-	var environments []string
-
-	for _, application := range applications {
-		for _, environment := range application.Environments {
-			applicationWithEnvironment := fmt.Sprintf("%s/%s", application.ID, strings.ToLower(environment.Name))
-			environments = append(environments, applicationWithEnvironment)
-		}
-	}
-
-	studioConfig := platform.StudioConfig{
-		BuildOverwrite:         true,
-		AutomationEnabled:      true,
-		AutomationEnvironments: environments,
-	}
-
-	return s.SaveStudioConfig(customerID, studioConfig)
 }
