@@ -33,3 +33,16 @@ It is built from 2 main CLI tools:
 # Setup
 
 Check the tutorial from [Studio](https://github.com/dolittle/Studio/blob/main/Documentation/k3d.md) on how to set it up with a local cluster.
+
+# Testing
+
+Run the tests:
+```sh
+go test -v ./...
+```
+
+For creating/updating the mocks you'll need [mockery](https://github.com/vektra/mockery). To create the mocks `cd` into the pkg of the interface you want to mock and run. Eg. for creating mocks for `storage.Repo`:
+```sh
+cd pkg/platform/storage
+mockery --all
+```
