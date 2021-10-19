@@ -42,10 +42,10 @@ func initGit(logContext logrus.FieldLogger) gitStorage.GitStorageConfig {
 	}
 
 	return gitStorage.GitStorageConfig{
-		URL:            gitRepoURL,
-		Branch:         gitRepoBranch,
-		PrivateKey:     gitSshKeysFolder,
-		LocalDirectory: gitLocalDirectory,
-		DirectoryOnly:  gitDirectoryOnly,
+		URL:           gitRepoURL,
+		Branch:        gitRepoBranch,
+		PrivateKey:    gitSshKeysFolder,
+		RepoRoot:      gitLocalDirectory,
+		DirectoryOnly: gitDirectoryOnly,
 	}
 }

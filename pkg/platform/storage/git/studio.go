@@ -17,7 +17,7 @@ import (
 // and pushes them to the remote
 func (s *GitStorage) SaveStudioConfigAndCommit(tenantID string, config platform.StudioConfig) error {
 	logContext := s.logContext.WithFields(logrus.Fields{
-		"method":   "SaveStudioConfig",
+		"method":   "SaveStudioConfigAndCommit",
 		"tenantID": tenantID,
 	})
 
@@ -69,7 +69,7 @@ func (s *GitStorage) SaveStudioConfigAndCommit(tenantID string, config platform.
 // to the git repo
 func (s *GitStorage) SaveStudioConfig(tenantID string, config platform.StudioConfig) error {
 	logContext := s.logContext.WithFields(logrus.Fields{
-		"method":   "SaveStudioConfigWithoutCommit",
+		"method":   "SaveStudioConfig",
 		"tenantID": tenantID,
 	})
 
@@ -102,6 +102,11 @@ func (s *GitStorage) writeStudioConfig(tenantID string, config platform.StudioCo
 	})
 
 	dir := s.GetTenantDirectory(tenantID)
+	err := os.MkdirAll(dir, 0755)
+	if err != nil {
+		return "", err
+	}
+
 	filename := filepath.Join(dir, "studio.json")
 	data, _ := json.MarshalIndent(config, "", "  ")
 	if err := ioutil.WriteFile(filename, data, 0644); err != nil {

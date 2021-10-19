@@ -3,6 +3,7 @@ package git
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -17,11 +18,11 @@ import (
 )
 
 type GitStorageConfig struct {
-	URL            string
-	Branch         string
-	PrivateKey     string
-	LocalDirectory string
-	DirectoryOnly  bool
+	URL           string
+	Branch        string
+	PrivateKey    string
+	RepoRoot      string
+	DirectoryOnly bool
 }
 
 type GitStorage struct {
@@ -37,18 +38,20 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *G
 
 	branch := plumbing.NewBranchReferenceName(gitConfig.Branch)
 
+	platformApiDir := filepath.Join(gitConfig.RepoRoot, "Source", "V3", "platform-api")
+
 	s := &GitStorage{
 		logContext: logContext.WithFields(logrus.Fields{
 			"directoryOnly": directoryOnly,
 			"gitRemote":     gitConfig.URL,
 			"gitBranch":     gitConfig.Branch,
 		}),
-		Directory: gitConfig.LocalDirectory,
+		Directory: platformApiDir,
 		config:    gitConfig,
 	}
 
 	if directoryOnly {
-		r, err := git.PlainOpen(gitConfig.LocalDirectory)
+		r, err := git.PlainOpen(gitConfig.RepoRoot)
 		if err != nil {
 			s.logContext.WithFields(logrus.Fields{
 				"error": err,
@@ -77,7 +80,7 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *G
 	// This is not ideal
 	s.publicKeys.HostKeyCallback = ssh.InsecureIgnoreHostKey()
 
-	r, err := git.PlainClone(gitConfig.LocalDirectory, false, &git.CloneOptions{
+	r, err := git.PlainClone(gitConfig.RepoRoot, false, &git.CloneOptions{
 		// The intended use of a GitHub personal access token is in replace of your password
 		// because access tokens can easily be revoked.
 		// https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/
@@ -93,7 +96,7 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *G
 				"error": err,
 			}).Fatal("cloning repo")
 		}
-		r, err = git.PlainOpen(gitConfig.LocalDirectory)
+		r, err = git.PlainOpen(gitConfig.RepoRoot)
 		if err != nil {
 			s.logContext.WithFields(logrus.Fields{
 				"error": err,

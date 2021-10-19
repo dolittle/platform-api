@@ -214,7 +214,6 @@ func (s *GitStorage) writeApplication(application platform.HttpResponseApplicati
 	}
 	data, _ := json.MarshalIndent(jsonApplication, "", " ")
 
-	// TODO actually build structure
 	dir := s.GetApplicationDirectory(tenantID, applicationID)
 	err := os.MkdirAll(dir, 0755)
 	if err != nil {
