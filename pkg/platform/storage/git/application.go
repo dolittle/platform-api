@@ -49,7 +49,7 @@ func (s *GitStorage) SaveApplicationAndCommit(application platform.HttpResponseA
 	}
 	// Adds the new file to the staging area.
 	// Need to remove the prefix
-	addPath := strings.TrimPrefix(filename, s.Directory+string(os.PathSeparator))
+	addPath := strings.TrimPrefix(filename, s.config.RepoRoot+string(os.PathSeparator))
 	err = w.AddWithOptions(&git.AddOptions{
 		Path: addPath,
 	})

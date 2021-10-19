@@ -49,7 +49,7 @@ func (s *GitStorage) DeleteMicroservice(tenantID string, applicationID string, e
 
 	// Adds the new file to the staging area.
 	// Need to remove the prefix
-	path := strings.TrimPrefix(filename, s.Directory+"/")
+	path := strings.TrimPrefix(filename, s.config.RepoRoot+string(os.PathSeparator))
 	err = w.AddWithOptions(&git.AddOptions{
 		Path: path,
 	})
@@ -119,7 +119,7 @@ func (s *GitStorage) SaveMicroservice(tenantID string, applicationID string, env
 
 	// Adds the new file to the staging area.
 	// Need to remove the prefix
-	path := strings.TrimPrefix(filename, s.Directory+"/")
+	path := strings.TrimPrefix(filename, s.config.RepoRoot+string(os.PathSeparator))
 	err = w.AddWithOptions(&git.AddOptions{
 		Path: path,
 	})

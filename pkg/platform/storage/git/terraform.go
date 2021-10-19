@@ -49,7 +49,7 @@ func (s *GitStorage) SaveTerraformApplication(application platform.TerraformAppl
 	// Adds the new file to the staging area.
 	// Need to remove the prefix
 	err = w.AddWithOptions(&git.AddOptions{
-		Path: strings.TrimPrefix(filename, s.Directory+"/"),
+		Path: strings.TrimPrefix(filename, s.config.RepoRoot+string(os.PathSeparator)),
 	})
 
 	if err != nil {
@@ -123,7 +123,7 @@ func (s *GitStorage) SaveTerraformTenant(tenant platform.TerraformCustomer) erro
 	// Adds the new file to the staging area.
 	// Need to remove the prefix
 	err = w.AddWithOptions(&git.AddOptions{
-		Path: strings.TrimPrefix(filename, s.Directory+"/"),
+		Path: strings.TrimPrefix(filename, s.config.RepoRoot+string(os.PathSeparator)),
 	})
 
 	if err != nil {
