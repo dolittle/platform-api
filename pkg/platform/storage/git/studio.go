@@ -13,7 +13,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (s *GitStorage) SaveStudioConfig(tenantID string, config platform.StudioConfig) error {
+// SaveStudioConfigAndCommit pulls the remote, writes the studio.json file, commits the changes
+// and pushes them to the remote
+func (s *GitStorage) SaveStudioConfigAndCommit(tenantID string, config platform.StudioConfig) error {
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"method":   "SaveStudioConfig",
 		"tenantID": tenantID,
@@ -29,14 +31,12 @@ func (s *GitStorage) SaveStudioConfig(tenantID string, config platform.StudioCon
 		}).Error("Pull")
 		return err
 	}
-	dir := s.GetTenantDirectory(tenantID)
-	filename := filepath.Join(dir, "studio.json")
-	data, _ := json.MarshalIndent(config, "", "  ")
-	if err = ioutil.WriteFile(filename, data, 0644); err != nil {
-		logContext.WithFields(logrus.Fields{
-			"error":    err,
-			"filename": filename,
-		}).Error("Failed to write to 'studio.json")
+
+	filename, err := s.writeStudioConfig(tenantID, config)
+	if err != nil {
+		logContext.WithFields(log.Fields{
+			"error": err,
+		}).Error("writeStudioConfig")
 		return err
 	}
 
@@ -54,7 +54,7 @@ func (s *GitStorage) SaveStudioConfig(tenantID string, config platform.StudioCon
 		return err
 	}
 
-	err = s.CommitAndPush(w, "upsert studio.json")
+	err = s.CommitAndPush(w, "upsert studio config")
 	if err != nil {
 		logContext.WithFields(log.Fields{
 			"error": err,
@@ -63,6 +63,55 @@ func (s *GitStorage) SaveStudioConfig(tenantID string, config platform.StudioCon
 	}
 
 	return nil
+}
+
+// SaveStudioConfig pulls the remote repo and writes the new studio.json file without committing
+// to the git repo
+func (s *GitStorage) SaveStudioConfig(tenantID string, config platform.StudioConfig) error {
+	logContext := s.logContext.WithFields(logrus.Fields{
+		"method":   "SaveStudioConfigWithoutCommit",
+		"tenantID": tenantID,
+	})
+
+	w, err := s.Repo.Worktree()
+	if err != nil {
+		return err
+	}
+
+	if err = s.PullWithWorktree(w); err != nil {
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("PullWithWorktree")
+		return err
+	}
+
+	_, err = s.writeStudioConfig(tenantID, config)
+	if err != nil {
+		logContext.WithFields(log.Fields{
+			"error": err,
+		}).Error("writeStudioConfig")
+		return err
+	}
+	return nil
+}
+
+func (s *GitStorage) writeStudioConfig(tenantID string, config platform.StudioConfig) (string, error) {
+	logContext := s.logContext.WithFields(log.Fields{
+		"method":   "writeStudioConfig",
+		"customer": tenantID,
+	})
+
+	dir := s.GetTenantDirectory(tenantID)
+	filename := filepath.Join(dir, "studio.json")
+	data, _ := json.MarshalIndent(config, "", "  ")
+	if err := ioutil.WriteFile(filename, data, 0644); err != nil {
+		logContext.WithFields(logrus.Fields{
+			"error":    err,
+			"filename": filename,
+		}).Error("Failed to write to 'studio.json")
+		return filename, err
+	}
+	return filename, nil
 }
 
 func (s *GitStorage) GetStudioConfig(tenantID string) (platform.StudioConfig, error) {

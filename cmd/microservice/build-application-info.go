@@ -65,46 +65,24 @@ var buildApplicationInfoCMD = &cobra.Command{
 			panic(err.Error())
 		}
 
+		shouldCommit := viper.GetBool("commit")
+
 		logContext.Info("Starting to extract applications from the cluster")
 		applications := extractApplications(ctx, client)
-		if viper.GetBool("reset-studio-config") {
-			ResetStudioConfigs(gitRepo, applications, logContext)
-		} else {
-			logContext.Info(fmt.Sprintf("Saving %v application(s)", len(applications)))
-			SaveApplications(gitRepo, applications, logContext)
-			logContext.Info("Done!")
+
+		if viper.GetBool("reset-studio-configs") {
+			logContext.Info("Starting to reset all studio configs")
+			ResetStudioConfigs(gitRepo, applications, shouldCommit, logContext)
 		}
 
+		logContext.Info(fmt.Sprintf("Saving %v application(s)", len(applications)))
+		SaveApplications(gitRepo, applications, shouldCommit, logContext)
+		logContext.Info("Done!")
 	},
 }
 
-func ResetStudioConfigs(repo storage.Repo, applications []platform.HttpResponseApplication, logger logrus.FieldLogger) error {
-	logContext := logger.WithFields(logrus.Fields{
-		"function": "ResetStudioConfigs",
-	})
-	logContext.Info("Starting to reset studio.json files to default values")
-
-	for _, application := range applications {
-
-		// filter out only this customers applications
-		customersApplications := funk.Filter(applications, func(customerApplication platform.HttpResponseApplication) bool {
-			return customerApplication.TenantID == application.TenantID
-		}).([]platform.HttpResponseApplication)
-		studioConfig := createDefaultStudioConfig(repo, application.TenantID, customersApplications)
-
-		if err := repo.SaveStudioConfig(application.TenantID, studioConfig); err != nil {
-			logContext.WithFields(logrus.Fields{
-				"error":    err,
-				"tenantID": application.TenantID,
-			}).Fatal("couldn't create default studio config")
-		}
-	}
-
-	return nil
-}
-
 // SaveApplications saves the Applications into applications.json and also saves the studio.json
-func SaveApplications(repo storage.Repo, applications []platform.HttpResponseApplication, logger logrus.FieldLogger) error {
+func SaveApplications(repo storage.Repo, applications []platform.HttpResponseApplication, shouldCommit bool, logger logrus.FieldLogger) error {
 	logContext := logger.WithFields(logrus.Fields{
 		"function": "SaveApplications",
 	})
@@ -123,25 +101,78 @@ func SaveApplications(repo storage.Repo, applications []platform.HttpResponseApp
 
 			studioConfig = createDefaultStudioConfig(repo, application.TenantID, customersApplications)
 
-			if err = repo.SaveStudioConfig(application.TenantID, studioConfig); err != nil {
-				logContext.WithFields(logrus.Fields{
-					"error":    err,
-					"tenantID": application.TenantID,
-				}).Fatal("couldn't create default studio config")
+			if shouldCommit {
+				if err = repo.SaveStudioConfigAndCommit(application.TenantID, studioConfig); err != nil {
+					logContext.WithFields(logrus.Fields{
+						"error":    err,
+						"tenantID": application.TenantID,
+					}).Fatal("couldn't create default studio config")
+				}
+			} else {
+				if err = repo.SaveStudioConfig(application.TenantID, studioConfig); err != nil {
+					logContext.WithFields(logrus.Fields{
+						"error":    err,
+						"tenantID": application.TenantID,
+					}).Fatal("couldn't create default studio config without committing")
+				}
 			}
 		}
 
 		if !studioConfig.BuildOverwrite {
 			continue
 		}
-		err = repo.SaveApplication(application)
-		if err != nil {
-			logContext.WithFields(logrus.Fields{
-				"error":    err,
-				"tenantID": application.TenantID,
-			}).Fatal("failed to save application")
+		if shouldCommit {
+			if err = repo.SaveApplicationAndCommit(application); err != nil {
+				logContext.WithFields(logrus.Fields{
+					"error":    err,
+					"tenantID": application.TenantID,
+				}).Fatal("failed to save application")
+			}
+		} else {
+			if err = repo.SaveApplication(application); err != nil {
+				logContext.WithFields(logrus.Fields{
+					"error":    err,
+					"tenantID": application.TenantID,
+				}).Fatal("failed to save application without committing")
+			}
 		}
 	}
+	return nil
+}
+
+// ResetStudioConfigs resets all of the found customers studio.json files to enable all automation for all environments
+// and to enable overwriting
+func ResetStudioConfigs(repo storage.Repo, applications []platform.HttpResponseApplication, shouldCommit bool, logger logrus.FieldLogger) error {
+	logContext := logger.WithFields(logrus.Fields{
+		"function": "ResetStudioConfigs",
+	})
+	logContext.Debug("Starting to reset all studio.json files to default values")
+
+	for _, application := range applications {
+
+		// filter out only this customers applications
+		customersApplications := funk.Filter(applications, func(customerApplication platform.HttpResponseApplication) bool {
+			return customerApplication.TenantID == application.TenantID
+		}).([]platform.HttpResponseApplication)
+		studioConfig := createDefaultStudioConfig(repo, application.TenantID, customersApplications)
+
+		if shouldCommit {
+			if err := repo.SaveStudioConfigAndCommit(application.TenantID, studioConfig); err != nil {
+				logContext.WithFields(logrus.Fields{
+					"error":    err,
+					"tenantID": application.TenantID,
+				}).Fatal("couldn't save and commit default studio config")
+			}
+		} else {
+			if err := repo.SaveStudioConfig(application.TenantID, studioConfig); err != nil {
+				logContext.WithFields(logrus.Fields{
+					"error":    err,
+					"tenantID": application.TenantID,
+				}).Fatal("couldn't save default studio configs")
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -383,6 +414,9 @@ func init() {
 
 	viper.BindEnv("tools.server.kubeConfig", "KUBECONFIG")
 
-	buildApplicationInfoCMD.Flags().Bool("reset-studio-config", false, "Whether to overwrite all studio.json files")
-	viper.BindPFlag("reset-studio-config", buildApplicationInfoCMD.Flags().Lookup("reset-studio-config"))
+	buildApplicationInfoCMD.Flags().Bool("reset-studio-configs", false, "Whether to overwrite all studio.json files")
+	viper.BindPFlag("reset-studio-configs", buildApplicationInfoCMD.Flags().Lookup("reset-studio-configs"))
+
+	buildApplicationInfoCMD.Flags().Bool("commit", false, "Whether to commit and push the changes to the git repo")
+	viper.BindPFlag("commit", buildApplicationInfoCMD.Flags().Lookup("commit"))
 }

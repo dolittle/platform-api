@@ -19,7 +19,7 @@ func (s *GitStorage) GetApplicationDirectory(tenantID string, applicationID stri
 	return filepath.Join(s.Directory, tenantID, applicationID)
 }
 
-func (s *GitStorage) SaveApplication(application platform.HttpResponseApplication) error {
+func (s *GitStorage) SaveApplicationAndCommit(application platform.HttpResponseApplication) error {
 	applicationID := application.ID
 	tenantID := application.TenantID
 	logContext := s.logContext.WithFields(log.Fields{
@@ -27,24 +27,6 @@ func (s *GitStorage) SaveApplication(application platform.HttpResponseApplicatio
 		"customer":      tenantID,
 		"applicationID": applicationID,
 	})
-
-	environments := funk.Map(application.Environments, func(e platform.HttpInputEnvironment) storage.JSONEnvironment {
-		return storage.JSONEnvironment{
-			Name:          e.Name,
-			TenantID:      e.TenantID,
-			ApplicationID: e.ApplicationID,
-			Tenants:       e.Tenants,
-			Ingresses:     e.Ingresses,
-		}
-	}).([]storage.JSONEnvironment)
-	jsonApplication := storage.JSONApplication{
-		ID:           application.ID,
-		Name:         application.Name,
-		TenantID:     application.TenantID,
-		TenantName:   application.TenantName,
-		Environments: environments,
-	}
-	data, _ := json.MarshalIndent(jsonApplication, "", " ")
 
 	w, err := s.Repo.Worktree()
 	if err != nil {
@@ -58,22 +40,13 @@ func (s *GitStorage) SaveApplication(application platform.HttpResponseApplicatio
 		return err
 	}
 
-	// TODO actually build structure
-	dir := s.GetApplicationDirectory(tenantID, applicationID)
-	err = os.MkdirAll(dir, 0755)
-	if err != nil {
-		return err
-	}
-
-	filename := filepath.Join(dir, "application.json")
-	err = ioutil.WriteFile(filename, data, 0644)
+	filename, err := s.writeApplication(application)
 	if err != nil {
 		logContext.WithFields(log.Fields{
 			"error": err,
-		}).Error("Failed to write 'application.json'")
+		}).Error("writeApplication")
 		return err
 	}
-
 	// Adds the new file to the staging area.
 	// Need to remove the prefix
 	addPath := strings.TrimPrefix(filename, s.Directory+string(os.PathSeparator))
@@ -104,6 +77,38 @@ func (s *GitStorage) SaveApplication(application platform.HttpResponseApplicatio
 		return err
 	}
 
+	return nil
+}
+
+// SaveApplication pulls the latest changes from remote, and writes the new application.json file
+func (s *GitStorage) SaveApplication(application platform.HttpResponseApplication) error {
+	applicationID := application.ID
+	tenantID := application.TenantID
+	logContext := s.logContext.WithFields(log.Fields{
+		"method":        "SaveApplicationWithoutCommit",
+		"customer":      tenantID,
+		"applicationID": applicationID,
+	})
+
+	w, err := s.Repo.Worktree()
+	if err != nil {
+		return err
+	}
+
+	if err = s.PullWithWorktree(w); err != nil {
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("PullWithWorktree")
+		return err
+	}
+
+	_, err = s.writeApplication(application)
+	if err != nil {
+		logContext.WithFields(log.Fields{
+			"error": err,
+		}).Error("writeApplication")
+		return err
+	}
 	return nil
 }
 
@@ -152,6 +157,7 @@ func (s *GitStorage) GetApplications(customerID string) ([]platform.HttpResponse
 
 	return applications, nil
 }
+
 func (s *GitStorage) discoverCustomerApplicationIds(customerID string) ([]string, error) {
 	applicationIDs := []string{}
 
@@ -179,4 +185,50 @@ func (s *GitStorage) discoverCustomerApplicationIds(customerID string) ([]string
 	})
 
 	return applicationIDs, err
+}
+
+func (s *GitStorage) writeApplication(application platform.HttpResponseApplication) (string, error) {
+	applicationID := application.ID
+	tenantID := application.TenantID
+	logContext := s.logContext.WithFields(log.Fields{
+		"method":        "writeApplication",
+		"customer":      tenantID,
+		"applicationID": applicationID,
+	})
+
+	environments := funk.Map(application.Environments, func(e platform.HttpInputEnvironment) storage.JSONEnvironment {
+		return storage.JSONEnvironment{
+			Name:          e.Name,
+			TenantID:      e.TenantID,
+			ApplicationID: e.ApplicationID,
+			Tenants:       e.Tenants,
+			Ingresses:     e.Ingresses,
+		}
+	}).([]storage.JSONEnvironment)
+	jsonApplication := storage.JSONApplication{
+		ID:           application.ID,
+		Name:         application.Name,
+		TenantID:     application.TenantID,
+		TenantName:   application.TenantName,
+		Environments: environments,
+	}
+	data, _ := json.MarshalIndent(jsonApplication, "", " ")
+
+	// TODO actually build structure
+	dir := s.GetApplicationDirectory(tenantID, applicationID)
+	err := os.MkdirAll(dir, 0755)
+	if err != nil {
+		return "", err
+	}
+
+	filename := filepath.Join(dir, "application.json")
+	err = ioutil.WriteFile(filename, data, 0644)
+	if err != nil {
+		logContext.WithFields(log.Fields{
+			"error": err,
+		}).Error("Failed to write 'application.json'")
+		return filename, err
+	}
+
+	return filename, err
 }

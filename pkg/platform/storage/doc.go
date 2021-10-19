@@ -16,6 +16,7 @@ type Repo interface {
 	GetTerraformTenant(tenantID string) (platform.TerraformCustomer, error)
 
 	GetApplication(tenantID string, applicationID string) (platform.HttpResponseApplication, error)
+	SaveApplicationAndCommit(application platform.HttpResponseApplication) error
 	SaveApplication(application platform.HttpResponseApplication) error
 	GetApplications(tenantID string) ([]platform.HttpResponseApplication, error)
 
@@ -24,6 +25,7 @@ type Repo interface {
 	DeleteMicroservice(tenantID string, applicationID string, environment string, microserviceID string) error
 	GetMicroservices(tenantID string, applicationID string) ([]platform.HttpMicroserviceBase, error)
 
+	SaveStudioConfigAndCommit(tenantID string, config platform.StudioConfig) error
 	SaveStudioConfig(tenantID string, config platform.StudioConfig) error
 	GetStudioConfig(tenantID string) (platform.StudioConfig, error)
 	IsAutomationEnabled(tenantID string, applicationID string, environment string) bool
