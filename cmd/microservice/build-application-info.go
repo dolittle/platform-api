@@ -70,18 +70,14 @@ var buildApplicationInfoCMD = &cobra.Command{
 		logContext.Info("Starting to extract applications from the cluster")
 		applications := extractApplications(ctx, client)
 
-		if viper.GetBool("reset-studio-configs") {
-			logContext.Info("Starting to reset all studio configs")
-			ResetStudioConfigs(gitRepo, applications, shouldCommit, logContext)
-		}
-
 		logContext.Info(fmt.Sprintf("Saving %v application(s)", len(applications)))
 		SaveApplications(gitRepo, applications, shouldCommit, logContext)
 		logContext.Info("Done!")
 	},
 }
 
-// SaveApplications saves the Applications into applications.json and also saves the studio.json
+// SaveApplications saves the Applications into applications.json and also creates a default studio.json if
+// the customer doesn't have one
 func SaveApplications(repo storage.Repo, applications []platform.HttpResponseApplication, shouldCommit bool, logger logrus.FieldLogger) error {
 	logContext := logger.WithFields(logrus.Fields{
 		"function": "SaveApplications",
@@ -137,42 +133,6 @@ func SaveApplications(repo storage.Repo, applications []platform.HttpResponseApp
 			}
 		}
 	}
-	return nil
-}
-
-// ResetStudioConfigs resets all of the found customers studio.json files to enable all automation for all environments
-// and to enable overwriting
-func ResetStudioConfigs(repo storage.Repo, applications []platform.HttpResponseApplication, shouldCommit bool, logger logrus.FieldLogger) error {
-	logContext := logger.WithFields(logrus.Fields{
-		"function": "ResetStudioConfigs",
-	})
-	logContext.Debug("Starting to reset all studio.json files to default values")
-
-	for _, application := range applications {
-
-		// filter out only this customers applications
-		customersApplications := funk.Filter(applications, func(customerApplication platform.HttpResponseApplication) bool {
-			return customerApplication.TenantID == application.TenantID
-		}).([]platform.HttpResponseApplication)
-		studioConfig := createDefaultStudioConfig(repo, application.TenantID, customersApplications)
-
-		if shouldCommit {
-			if err := repo.SaveStudioConfigAndCommit(application.TenantID, studioConfig); err != nil {
-				logContext.WithFields(logrus.Fields{
-					"error":    err,
-					"tenantID": application.TenantID,
-				}).Fatal("couldn't save and commit default studio config")
-			}
-		} else {
-			if err := repo.SaveStudioConfig(application.TenantID, studioConfig); err != nil {
-				logContext.WithFields(logrus.Fields{
-					"error":    err,
-					"tenantID": application.TenantID,
-				}).Fatal("couldn't save default studio configs")
-			}
-		}
-	}
-
 	return nil
 }
 
@@ -383,25 +343,6 @@ func tryGetIngressSecretNameForHost(ingress netV1.Ingress, host string) (bool, s
 	return false, ""
 }
 
-// createDefaultStudioConfig creates a studio.json file with default values
-// set to enable automation and overwriting for that customer.
-// The given applications will have all of their environments enabled for automation too.
-func createDefaultStudioConfig(repo storage.Repo, customerID string, applications []platform.HttpResponseApplication) platform.StudioConfig {
-	var environments []string
-	for _, application := range applications {
-		for _, environment := range application.Environments {
-			applicationWithEnvironment := fmt.Sprintf("%s/%s", application.ID, strings.ToLower(environment.Name))
-			environments = append(environments, applicationWithEnvironment)
-		}
-	}
-
-	return platform.StudioConfig{
-		BuildOverwrite:         true,
-		AutomationEnabled:      true,
-		AutomationEnvironments: environments,
-	}
-}
-
 func init() {
 	RootCmd.AddCommand(buildApplicationInfoCMD)
 
@@ -413,9 +354,6 @@ func init() {
 	viper.BindPFlag("tools.server.kubeConfig", buildApplicationInfoCMD.Flags().Lookup("kube-config"))
 
 	viper.BindEnv("tools.server.kubeConfig", "KUBECONFIG")
-
-	buildApplicationInfoCMD.Flags().Bool("reset-studio-configs", false, "Whether to overwrite all studio.json files")
-	viper.BindPFlag("reset-studio-configs", buildApplicationInfoCMD.Flags().Lookup("reset-studio-configs"))
 
 	buildApplicationInfoCMD.Flags().Bool("commit", false, "Whether to commit and push the changes to the git repo")
 	viper.BindPFlag("commit", buildApplicationInfoCMD.Flags().Lookup("commit"))
