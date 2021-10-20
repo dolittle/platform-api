@@ -58,9 +58,6 @@ var buildStudioInfoCMD = &cobra.Command{
 		shouldCommit := viper.GetBool("commit")
 		resetAll := viper.GetBool("all")
 
-		if len(args) == 0 {
-			logContext.Fatal("no customerID given, did you mean to use '--all' flag?")
-		}
 		customers := args
 
 		if len(customers) > 0 && resetAll {
@@ -70,6 +67,10 @@ var buildStudioInfoCMD = &cobra.Command{
 		if resetAll {
 			logContext.Info("Discovering all customers from the platform")
 			customers = extractCustomers(ctx, client)
+		}
+
+		if len(customers) == 0 {
+			logContext.Fatal("No customers found or no CUSTOMERID given")
 		}
 
 		logContext.Infof("Resetting studio configuration for customers: %v", customers)
