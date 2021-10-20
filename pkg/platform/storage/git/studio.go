@@ -17,7 +17,7 @@ import (
 // and pushes them to the remote
 func (s *GitStorage) SaveStudioConfig(tenantID string, config platform.StudioConfig) error {
 	logContext := s.logContext.WithFields(logrus.Fields{
-		"method":   "SaveStudioConfigAndCommit",
+		"method":   "SaveStudioConfig",
 		"tenantID": tenantID,
 	})
 
