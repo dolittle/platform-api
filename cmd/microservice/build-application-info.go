@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"regexp"
 	"strings"
@@ -15,7 +14,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/thoas/go-funk"
 	coreV1 "k8s.io/api/core/v1"
 	netV1 "k8s.io/api/networking/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -86,51 +84,20 @@ func SaveApplications(repo storage.Repo, applications []platform.HttpResponseApp
 		studioConfig, err := repo.GetStudioConfig(application.TenantID)
 		if err != nil {
 			logContext.WithFields(logrus.Fields{
-				"error":    err,
-				"tenantID": application.TenantID,
-			}).Warning("Creating default studio.json config")
-
-			// filter out only this customers applications
-			customersApplications := funk.Filter(applications, func(customerApplication platform.HttpResponseApplication) bool {
-				return customerApplication.TenantID == application.TenantID
-			}).([]platform.HttpResponseApplication)
-
-			studioConfig = createDefaultStudioConfig(repo, application.TenantID, customersApplications)
-
-			if shouldCommit {
-				if err = repo.SaveStudioConfigAndCommit(application.TenantID, studioConfig); err != nil {
-					logContext.WithFields(logrus.Fields{
-						"error":    err,
-						"tenantID": application.TenantID,
-					}).Fatal("couldn't create default studio config")
-				}
-			} else {
-				if err = repo.SaveStudioConfig(application.TenantID, studioConfig); err != nil {
-					logContext.WithFields(logrus.Fields{
-						"error":    err,
-						"tenantID": application.TenantID,
-					}).Fatal("couldn't create default studio config without committing")
-				}
-			}
+				"error":      err,
+				"customerID": application.TenantID,
+			}).Fatalf("didn't find a studio config for customer %s, create a config for this customer by running 'microservice build-studio-info %s'",
+				application.TenantID, application.TenantID)
 		}
 
 		if !studioConfig.BuildOverwrite {
 			continue
 		}
-		if shouldCommit {
-			if err = repo.SaveApplicationAndCommit(application); err != nil {
-				logContext.WithFields(logrus.Fields{
-					"error":    err,
-					"tenantID": application.TenantID,
-				}).Fatal("failed to save application")
-			}
-		} else {
-			if err = repo.SaveApplication(application); err != nil {
-				logContext.WithFields(logrus.Fields{
-					"error":    err,
-					"tenantID": application.TenantID,
-				}).Fatal("failed to save application without committing")
-			}
+		if err = repo.SaveApplication(application); err != nil {
+			logContext.WithFields(logrus.Fields{
+				"error":    err,
+				"tenantID": application.TenantID,
+			}).Fatal("failed to save application")
 		}
 	}
 	return nil
@@ -345,16 +312,4 @@ func tryGetIngressSecretNameForHost(ingress netV1.Ingress, host string) (bool, s
 
 func init() {
 	RootCmd.AddCommand(buildApplicationInfoCMD)
-
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		log.Fatal(err)
-	}
-	buildApplicationInfoCMD.Flags().String("kube-config", fmt.Sprintf("%s/.kube/config", homeDir), "Full path to kubeconfig, set to incluster to make it use kubernetes lookup")
-	viper.BindPFlag("tools.server.kubeConfig", buildApplicationInfoCMD.Flags().Lookup("kube-config"))
-
-	viper.BindEnv("tools.server.kubeConfig", "KUBECONFIG")
-
-	buildApplicationInfoCMD.Flags().Bool("commit", false, "Whether to commit and push the changes to the git repo")
-	viper.BindPFlag("commit", buildApplicationInfoCMD.Flags().Lookup("commit"))
 }

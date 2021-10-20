@@ -2,10 +2,7 @@ package microservice
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"os"
-	"strings"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
@@ -13,16 +10,15 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/thoas/go-funk"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
 var buildStudioInfoCMD = &cobra.Command{
-	Use:   "build-studio-info",
-	Short: "Write studio info into the git repo",
+	Use:   "build-studio-info [customerID]",
+	Short: "Resets the specified customers studio configuration",
 	Long: `
-	It will attempt to update the git repo with data from the cluster and skip those that have been setup.
+	It will attempt to update the git repo with resetted studio configurations (studio.json).
 
 	GIT_REPO_SSH_KEY="/Users/freshteapot/dolittle/.ssh/test-deploy" \
 	GIT_REPO_BRANCH=auto-dev \
@@ -60,83 +56,60 @@ var buildStudioInfoCMD = &cobra.Command{
 		}
 
 		shouldCommit := viper.GetBool("commit")
+		resetAll := viper.GetBool("all")
 
-		logContext.Info("Starting to extract applications from the cluster")
-		applications := extractApplications(ctx, client)
+		if len(args) == 0 {
+			logContext.Fatal("no customerID given, did you mean to use '--all' flag?")
+		}
+		customers := args
 
-		logContext.Info("Starting to reset all studio configs")
-		ResetStudioConfigs(gitRepo, applications, shouldCommit, logContext)
+		if resetAll {
+			logContext.Info("Discovering all customers from the platform")
+			customers = extractCustomers(ctx, client)
+		}
+
+		logContext.Infof("Resetting studio configuration for customers: %v", customers)
+		ResetStudioConfigs(gitRepo, customers, shouldCommit, logContext)
 		logContext.Info("Done!")
 	},
 }
 
-// ResetStudioConfigs resets all of the found customers studio.json files to enable all automation for all environments
+// ResetStudioConfigs resets all of the found customers studio.json files to enable automation for all environments
 // and to enable overwriting
-func ResetStudioConfigs(repo storage.Repo, applications []platform.HttpResponseApplication, shouldCommit bool, logger logrus.FieldLogger) error {
+func ResetStudioConfigs(repo storage.Repo, customers []string, shouldCommit bool, logger logrus.FieldLogger) error {
 	logContext := logger.WithFields(logrus.Fields{
 		"function": "ResetStudioConfigs",
 	})
-	logContext.Debug("Starting to reset all studio.json files to default values")
 
-	for _, application := range applications {
-
-		// filter out only this customers applications
-		customersApplications := funk.Filter(applications, func(customerApplication platform.HttpResponseApplication) bool {
-			return customerApplication.TenantID == application.TenantID
-		}).([]platform.HttpResponseApplication)
-		studioConfig := createDefaultStudioConfig(repo, application.TenantID, customersApplications)
-
-		if shouldCommit {
-			if err := repo.SaveStudioConfigAndCommit(application.TenantID, studioConfig); err != nil {
-				logContext.WithFields(logrus.Fields{
-					"error":    err,
-					"tenantID": application.TenantID,
-				}).Fatal("couldn't save and commit default studio config")
-			}
-		} else {
-			if err := repo.SaveStudioConfig(application.TenantID, studioConfig); err != nil {
-				logContext.WithFields(logrus.Fields{
-					"error":    err,
-					"tenantID": application.TenantID,
-				}).Fatal("couldn't save default studio configs")
-			}
+	defaultConfig := platform.StudioConfig{
+		BuildOverwrite:       true,
+		DisabledEnvironments: make([]string, 0),
+	}
+	for _, customer := range customers {
+		if err := repo.SaveStudioConfig(customer, defaultConfig); err != nil {
+			logContext.WithFields(logrus.Fields{
+				"error":      err,
+				"customerID": customer,
+			}).Fatal("couldn't save and commit default studio config")
 		}
 	}
-
 	return nil
 }
 
-// createDefaultStudioConfig creates a studio.json file with default values
-// set to enable automation and overwriting for that customer.
-// The given applications will have all of their environments enabled for automation too.
-func createDefaultStudioConfig(repo storage.Repo, customerID string, applications []platform.HttpResponseApplication) platform.StudioConfig {
-	var environments []string
-	for _, application := range applications {
-		for _, environment := range application.Environments {
-			applicationWithEnvironment := fmt.Sprintf("%s/%s", application.ID, strings.ToLower(environment.Name))
-			environments = append(environments, applicationWithEnvironment)
+func extractCustomers(ctx context.Context, client kubernetes.Interface) []string {
+	var customers []string
+	for _, namespace := range getNamespaces(ctx, client) {
+		if isApplicationNamespace(namespace) {
+			customerID := namespace.Annotations["dolittle.io/tenant-id"]
+			customers = append(customers, customerID)
 		}
 	}
-
-	return platform.StudioConfig{
-		BuildOverwrite:         true,
-		AutomationEnabled:      true,
-		AutomationEnvironments: environments,
-	}
+	return customers
 }
 
 func init() {
 	RootCmd.AddCommand(buildStudioInfoCMD)
 
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		log.Fatal(err)
-	}
-	buildStudioInfoCMD.Flags().String("kube-config", fmt.Sprintf("%s/.kube/config", homeDir), "Full path to kubeconfig, set to incluster to make it use kubernetes lookup")
-	viper.BindPFlag("tools.server.kubeConfig", buildStudioInfoCMD.Flags().Lookup("kube-config"))
-
-	viper.BindEnv("tools.server.kubeConfig", "KUBECONFIG")
-
-	buildStudioInfoCMD.Flags().Bool("commit", false, "Whether to commit and push the changes to the git repo")
-	viper.BindPFlag("commit", buildStudioInfoCMD.Flags().Lookup("commit"))
+	buildStudioInfoCMD.Flags().Bool("all", false, "Discovers all customers from the platform and resets all studio.json's to default state (everything allowed)")
+	viper.BindPFlag("all", buildStudioInfoCMD.Flags().Lookup("all"))
 }
