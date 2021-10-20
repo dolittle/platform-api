@@ -15,7 +15,7 @@ import (
 )
 
 var buildStudioInfoCMD = &cobra.Command{
-	Use:   "build-studio-info [customerID]",
+	Use:   "build-studio-info [CUSTOMERID]... [FLAGS]",
 	Short: "Resets the specified customers studio configuration",
 	Long: `
 	It will attempt to update the git repo with resetted studio configurations (studio.json).
@@ -62,6 +62,10 @@ var buildStudioInfoCMD = &cobra.Command{
 			logContext.Fatal("no customerID given, did you mean to use '--all' flag?")
 		}
 		customers := args
+
+		if len(customers) > 0 && resetAll {
+			logContext.Fatal("specify either a CUSTOMERID or '--all' flag")
+		}
 
 		if resetAll {
 			logContext.Info("Discovering all customers from the platform")
