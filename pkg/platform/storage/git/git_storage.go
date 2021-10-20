@@ -110,7 +110,7 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *G
 	return s
 }
 
-// CommitPathAndPush adds the path to index, creates a commit, and pushes to the remot
+// CommitPathAndPush adds the path to index, creates a commit, and pushes to the remote
 func (s *GitStorage) CommitPathAndPush(path string, msg string) error {
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"method": "CommitPathAndPush",
