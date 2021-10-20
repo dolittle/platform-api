@@ -14,7 +14,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	gitSsh "github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"github.com/sirupsen/logrus"
-	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )
 
@@ -131,7 +130,7 @@ func (s *GitStorage) CommitPathAndPush(path string, msg string) error {
 		Path: path,
 	})
 	if err != nil {
-		logContext.WithFields(log.Fields{
+		logContext.WithFields(logrus.Fields{
 			"error": err,
 		}).Error("failed to add path to index")
 		return err

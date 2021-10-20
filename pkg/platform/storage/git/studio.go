@@ -10,7 +10,6 @@ import (
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/sirupsen/logrus"
-	log "github.com/sirupsen/logrus"
 )
 
 // SaveStudioConfig pulls the remote, writes the studio.json file, commits the changes
@@ -30,7 +29,7 @@ func (s *GitStorage) SaveStudioConfig(tenantID string, config platform.StudioCon
 
 	filename, err := s.writeStudioConfig(tenantID, config)
 	if err != nil {
-		logContext.WithFields(log.Fields{
+		logContext.WithFields(logrus.Fields{
 			"error": err,
 		}).Error("writeStudioConfig")
 		return err
@@ -40,7 +39,7 @@ func (s *GitStorage) SaveStudioConfig(tenantID string, config platform.StudioCon
 	path := strings.TrimPrefix(filename, s.config.RepoRoot+string(os.PathSeparator))
 	err = s.CommitPathAndPush(path, fmt.Sprintf("upsert studio config for customer %s", tenantID))
 	if err != nil {
-		logContext.WithFields(log.Fields{
+		logContext.WithFields(logrus.Fields{
 			"error": err,
 		}).Error("CommitPathAndPush")
 		return err
@@ -50,7 +49,7 @@ func (s *GitStorage) SaveStudioConfig(tenantID string, config platform.StudioCon
 }
 
 func (s *GitStorage) writeStudioConfig(tenantID string, config platform.StudioConfig) (string, error) {
-	logContext := s.logContext.WithFields(log.Fields{
+	logContext := s.logContext.WithFields(logrus.Fields{
 		"method":   "writeStudioConfig",
 		"customer": tenantID,
 	})
