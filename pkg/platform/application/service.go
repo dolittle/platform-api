@@ -90,7 +90,7 @@ func (s *service) SaveEnvironment(w http.ResponseWriter, r *http.Request) {
 
 	application.Environments = append(application.Environments, input)
 
-	err = s.gitRepo.SaveApplicationAndCommit(application)
+	err = s.gitRepo.SaveApplication(application)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to write to storage")
 		return
@@ -177,7 +177,7 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		Environments: make([]platform.HttpInputEnvironment, 0),
 	}
 
-	err = s.gitRepo.SaveApplicationAndCommit(application)
+	err = s.gitRepo.SaveApplication(application)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to write to storage")
 		return

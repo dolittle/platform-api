@@ -2,30 +2,26 @@ package git
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
-	git "github.com/go-git/go-git/v5"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 )
 
-// SaveStudioConfigAndCommit pulls the remote, writes the studio.json file, commits the changes
+// SaveStudioConfig pulls the remote, writes the studio.json file, commits the changes
 // and pushes them to the remote
-func (s *GitStorage) SaveStudioConfigAndCommit(tenantID string, config platform.StudioConfig) error {
+func (s *GitStorage) SaveStudioConfig(tenantID string, config platform.StudioConfig) error {
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"method":   "SaveStudioConfigAndCommit",
 		"tenantID": tenantID,
 	})
 
-	w, err := s.Repo.Worktree()
-	if err != nil {
-		return err
-	}
-	if err := s.PullWithWorktree(w); err != nil {
+	if err := s.Pull(); err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
 		}).Error("Pull")
@@ -40,58 +36,16 @@ func (s *GitStorage) SaveStudioConfigAndCommit(tenantID string, config platform.
 		return err
 	}
 
-	// Adds the new file to the staging area.
 	// Need to remove the prefix
-	addPath := strings.TrimPrefix(filename, s.config.RepoRoot+string(os.PathSeparator))
-	err = w.AddWithOptions(&git.AddOptions{
-		Path: addPath,
-	})
-	if err != nil {
-		logContext.WithFields(log.Fields{
-			"path":  addPath,
-			"error": err,
-		}).Error("Failed to add path to worktree")
-		return err
-	}
-
-	err = s.CommitAndPush(w, "upsert studio config")
+	path := strings.TrimPrefix(filename, s.config.RepoRoot+string(os.PathSeparator))
+	err = s.CommitPathAndPush(path, fmt.Sprintf("upsert studio config for customer %s", tenantID))
 	if err != nil {
 		logContext.WithFields(log.Fields{
 			"error": err,
-		}).Error("Failed to commit and push worktree")
+		}).Error("CommitPathAndPush")
 		return err
 	}
 
-	return nil
-}
-
-// SaveStudioConfig pulls the remote repo and writes the new studio.json file without committing
-// to the git repo
-func (s *GitStorage) SaveStudioConfig(tenantID string, config platform.StudioConfig) error {
-	logContext := s.logContext.WithFields(logrus.Fields{
-		"method":   "SaveStudioConfig",
-		"tenantID": tenantID,
-	})
-
-	w, err := s.Repo.Worktree()
-	if err != nil {
-		return err
-	}
-
-	if err = s.PullWithWorktree(w); err != nil {
-		logContext.WithFields(logrus.Fields{
-			"error": err,
-		}).Error("PullWithWorktree")
-		return err
-	}
-
-	_, err = s.writeStudioConfig(tenantID, config)
-	if err != nil {
-		logContext.WithFields(log.Fields{
-			"error": err,
-		}).Error("writeStudioConfig")
-		return err
-	}
 	return nil
 }
 

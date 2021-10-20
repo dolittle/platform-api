@@ -2,6 +2,7 @@ package git
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -9,9 +10,7 @@ import (
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
-	git "github.com/go-git/go-git/v5"
 	"github.com/sirupsen/logrus"
-	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )
 
@@ -19,96 +18,39 @@ func (s *GitStorage) GetApplicationDirectory(tenantID string, applicationID stri
 	return filepath.Join(s.Directory, tenantID, applicationID)
 }
 
-func (s *GitStorage) SaveApplicationAndCommit(application platform.HttpResponseApplication) error {
+func (s *GitStorage) SaveApplication(application platform.HttpResponseApplication) error {
 	applicationID := application.ID
 	tenantID := application.TenantID
-	logContext := s.logContext.WithFields(log.Fields{
+	logContext := s.logContext.WithFields(logrus.Fields{
 		"method":        "SaveApplication",
 		"customer":      tenantID,
 		"applicationID": applicationID,
 	})
 
-	w, err := s.Repo.Worktree()
-	if err != nil {
-		return err
-	}
-
-	if err = s.PullWithWorktree(w); err != nil {
+	if err := s.Pull(); err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
-		}).Error("PullWithWorktree")
+		}).Error("Pull")
 		return err
 	}
 
 	filename, err := s.writeApplication(application)
 	if err != nil {
-		logContext.WithFields(log.Fields{
-			"error": err,
-		}).Error("writeApplication")
-		return err
-	}
-	// Adds the new file to the staging area.
-	// Need to remove the prefix
-	addPath := strings.TrimPrefix(filename, s.config.RepoRoot+string(os.PathSeparator))
-	err = w.AddWithOptions(&git.AddOptions{
-		Path: addPath,
-	})
-	if err != nil {
-		logContext.WithFields(log.Fields{
-			"path":  addPath,
-			"error": err,
-		}).Error("Failed to add path to worktree")
-		return err
-	}
-
-	_, err = w.Status()
-	if err != nil {
-		logContext.WithFields(log.Fields{
-			"error": err,
-		}).Error("Failed to get worktree status")
-		return err
-	}
-
-	err = s.CommitAndPush(w, "upsert application")
-	if err != nil {
-		logContext.WithFields(log.Fields{
-			"error": err,
-		}).Error("Failed to commit and push worktree")
-		return err
-	}
-
-	return nil
-}
-
-// SaveApplication pulls the latest changes from remote, and writes the new application.json file
-func (s *GitStorage) SaveApplication(application platform.HttpResponseApplication) error {
-	applicationID := application.ID
-	tenantID := application.TenantID
-	logContext := s.logContext.WithFields(log.Fields{
-		"method":        "SaveApplicationWithoutCommit",
-		"customer":      tenantID,
-		"applicationID": applicationID,
-	})
-
-	w, err := s.Repo.Worktree()
-	if err != nil {
-		return err
-	}
-
-	if err = s.PullWithWorktree(w); err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
-		}).Error("PullWithWorktree")
-		return err
-	}
-
-	_, err = s.writeApplication(application)
-	if err != nil {
-		logContext.WithFields(log.Fields{
-			"error": err,
 		}).Error("writeApplication")
 		return err
 	}
+	// Need to remove the prefix
+	path := strings.TrimPrefix(filename, s.config.RepoRoot+string(os.PathSeparator))
+	err = s.CommitPathAndPush(path, fmt.Sprintf("upsert application %s", applicationID))
+	if err != nil {
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("CommitPathAndPush")
+		return err
+	}
+
 	return nil
 }
 
@@ -145,7 +87,7 @@ func (s *GitStorage) GetApplications(customerID string) ([]platform.HttpResponse
 	for _, applicationID := range applicationIDs {
 		application, err := s.GetApplication(customerID, applicationID)
 		if err != nil {
-			s.logContext.WithFields(log.Fields{
+			s.logContext.WithFields(logrus.Fields{
 				"customer":    customerID,
 				"application": applicationID,
 				"error":       err,
@@ -164,7 +106,7 @@ func (s *GitStorage) discoverCustomerApplicationIds(customerID string) ([]string
 	// TODO change to fs when gone to 1.16
 	err := filepath.Walk(s.GetTenantDirectory(customerID), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			s.logContext.WithFields(log.Fields{
+			s.logContext.WithFields(logrus.Fields{
 				"customer": customerID,
 				"path":     path,
 				"error":    err,
@@ -190,7 +132,7 @@ func (s *GitStorage) discoverCustomerApplicationIds(customerID string) ([]string
 func (s *GitStorage) writeApplication(application platform.HttpResponseApplication) (string, error) {
 	applicationID := application.ID
 	tenantID := application.TenantID
-	logContext := s.logContext.WithFields(log.Fields{
+	logContext := s.logContext.WithFields(logrus.Fields{
 		"method":        "writeApplication",
 		"customer":      tenantID,
 		"applicationID": applicationID,
@@ -223,7 +165,7 @@ func (s *GitStorage) writeApplication(application platform.HttpResponseApplicati
 	filename := filepath.Join(dir, "application.json")
 	err = ioutil.WriteFile(filename, data, 0644)
 	if err != nil {
-		logContext.WithFields(log.Fields{
+		logContext.WithFields(logrus.Fields{
 			"error": err,
 		}).Error("Failed to write 'application.json'")
 		return filename, err

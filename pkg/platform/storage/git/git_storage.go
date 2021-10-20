@@ -14,6 +14,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	gitSsh "github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )
 
@@ -23,6 +24,7 @@ type GitStorageConfig struct {
 	PrivateKey    string
 	RepoRoot      string
 	DirectoryOnly bool
+	DryRun        bool
 }
 
 type GitStorage struct {
@@ -108,13 +110,32 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *G
 	return s
 }
 
-// CommitAndPush creates a commit, pulls the latest changes and pushes
-func (s *GitStorage) CommitAndPush(w *git.Worktree, msg string) error {
+// CommitPathAndPush adds the path to index, creates a commit, and pushes to the remot
+func (s *GitStorage) CommitPathAndPush(path string, msg string) error {
 	logContext := s.logContext.WithFields(logrus.Fields{
-		"method": "CommitAndPush",
+		"method": "CommitPathAndPush",
 		"msg":    msg,
+		"path":   path,
 	})
-	logContext.Debug("Trying to commit and push")
+	if s.config.DryRun {
+		logContext.Info("dry-run configured, won't commit and push")
+		return nil
+	}
+
+	w, err := s.Repo.Worktree()
+	if err != nil {
+		return err
+	}
+
+	err = w.AddWithOptions(&git.AddOptions{
+		Path: path,
+	})
+	if err != nil {
+		logContext.WithFields(log.Fields{
+			"error": err,
+		}).Error("failed to add path to index")
+		return err
+	}
 
 	commit, err := w.Commit(msg, &git.CommitOptions{
 		Author: &object.Signature{
@@ -167,6 +188,16 @@ func (s *GitStorage) CommitAndPush(w *git.Worktree, msg string) error {
 // Pull pulls the latest from remote with the default Worktree.
 // It returns nil on success
 func (s *GitStorage) Pull() error {
+	branchReference := plumbing.NewBranchReferenceName(s.config.Branch)
+	logContext := s.logContext.WithFields(logrus.Fields{
+		"method":          "Pull",
+		"branchReference": branchReference,
+	})
+	if s.config.DirectoryOnly {
+		logContext.Debug("Not pulling, repo is set to directoryOnly = true")
+		return nil
+	}
+
 	worktree, err := s.Repo.Worktree()
 	if err != nil {
 		s.logContext.WithFields(logrus.Fields{
@@ -174,26 +205,8 @@ func (s *GitStorage) Pull() error {
 		}).Error("Worktree")
 		return err
 	}
-	return s.PullWithWorktree(worktree)
-}
 
-// PullWithWorktree pulls the latest from remote with the given Worktree.
-// Only supports fast-forwards
-// It returns nil on success
-func (s *GitStorage) PullWithWorktree(worktree *git.Worktree) error {
-	branchReference := plumbing.NewBranchReferenceName(s.config.Branch)
-	logContext := s.logContext.WithFields(logrus.Fields{
-		"method":          "PullWithWorktree",
-		"branchReference": branchReference,
-	})
-	logContext.Debug("Trying to Pull")
-
-	if s.config.DirectoryOnly {
-		logContext.Debug("Not pulling, repo is set to directoryOnly = true")
-		return nil
-	}
-
-	err := worktree.Pull(&git.PullOptions{
+	err = worktree.Pull(&git.PullOptions{
 		Auth:          s.publicKeys,
 		ReferenceName: branchReference,
 	})
@@ -207,6 +220,8 @@ func (s *GitStorage) PullWithWorktree(worktree *git.Worktree) error {
 	return nil
 }
 
+// IsAutomationEnabled checks if the given customers applications environments automation is explicitly disabled
+// in the studio config
 func (s *GitStorage) IsAutomationEnabled(tenantID string, applicationID string, environment string) bool {
 	environment = strings.ToLower(environment)
 	studioConfig, err := s.GetStudioConfig(tenantID)
@@ -221,10 +236,6 @@ func (s *GitStorage) IsAutomationEnabled(tenantID string, applicationID string, 
 		return false
 	}
 
-	if !studioConfig.AutomationEnabled {
-		return false
-	}
-
 	key := fmt.Sprintf("%s/%s", applicationID, environment)
-	return funk.ContainsString(studioConfig.AutomationEnvironments, key)
+	return !funk.ContainsString(studioConfig.DisabledEnvironments, key)
 }
