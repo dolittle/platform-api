@@ -3,6 +3,7 @@ package git
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -17,11 +18,12 @@ import (
 )
 
 type GitStorageConfig struct {
-	URL            string
-	Branch         string
-	PrivateKey     string
-	LocalDirectory string
-	DirectoryOnly  bool
+	URL           string
+	Branch        string
+	PrivateKey    string
+	RepoRoot      string
+	DirectoryOnly bool
+	DryRun        bool
 }
 
 type GitStorage struct {
@@ -37,18 +39,20 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *G
 
 	branch := plumbing.NewBranchReferenceName(gitConfig.Branch)
 
+	platformApiDir := filepath.Join(gitConfig.RepoRoot, "Source", "V3", "platform-api")
+
 	s := &GitStorage{
 		logContext: logContext.WithFields(logrus.Fields{
 			"directoryOnly": directoryOnly,
 			"gitRemote":     gitConfig.URL,
 			"gitBranch":     gitConfig.Branch,
 		}),
-		Directory: gitConfig.LocalDirectory,
+		Directory: platformApiDir,
 		config:    gitConfig,
 	}
 
 	if directoryOnly {
-		r, err := git.PlainOpen(gitConfig.LocalDirectory)
+		r, err := git.PlainOpen(gitConfig.RepoRoot)
 		if err != nil {
 			s.logContext.WithFields(logrus.Fields{
 				"error": err,
@@ -77,7 +81,7 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *G
 	// This is not ideal
 	s.publicKeys.HostKeyCallback = ssh.InsecureIgnoreHostKey()
 
-	r, err := git.PlainClone(gitConfig.LocalDirectory, false, &git.CloneOptions{
+	r, err := git.PlainClone(gitConfig.RepoRoot, false, &git.CloneOptions{
 		// The intended use of a GitHub personal access token is in replace of your password
 		// because access tokens can easily be revoked.
 		// https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/
@@ -93,7 +97,7 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *G
 				"error": err,
 			}).Fatal("cloning repo")
 		}
-		r, err = git.PlainOpen(gitConfig.LocalDirectory)
+		r, err = git.PlainOpen(gitConfig.RepoRoot)
 		if err != nil {
 			s.logContext.WithFields(logrus.Fields{
 				"error": err,
@@ -105,13 +109,32 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *G
 	return s
 }
 
-// CommitAndPush creates a commit, pulls the latest changes and pushes
-func (s *GitStorage) CommitAndPush(w *git.Worktree, msg string) error {
+// CommitPathAndPush adds the path to index, creates a commit, and pushes to the remote
+func (s *GitStorage) CommitPathAndPush(path string, msg string) error {
 	logContext := s.logContext.WithFields(logrus.Fields{
-		"method": "CommitAndPush",
+		"method": "CommitPathAndPush",
 		"msg":    msg,
+		"path":   path,
 	})
-	logContext.Debug("Trying to commit and push")
+	if s.config.DryRun {
+		logContext.Info("dry-run configured, won't commit and push")
+		return nil
+	}
+
+	w, err := s.Repo.Worktree()
+	if err != nil {
+		return err
+	}
+
+	err = w.AddWithOptions(&git.AddOptions{
+		Path: path,
+	})
+	if err != nil {
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("failed to add path to index")
+		return err
+	}
 
 	commit, err := w.Commit(msg, &git.CommitOptions{
 		Author: &object.Signature{
@@ -164,6 +187,16 @@ func (s *GitStorage) CommitAndPush(w *git.Worktree, msg string) error {
 // Pull pulls the latest from remote with the default Worktree.
 // It returns nil on success
 func (s *GitStorage) Pull() error {
+	branchReference := plumbing.NewBranchReferenceName(s.config.Branch)
+	logContext := s.logContext.WithFields(logrus.Fields{
+		"method":          "Pull",
+		"branchReference": branchReference,
+	})
+	if s.config.DirectoryOnly {
+		logContext.Debug("Not pulling, repo is set to directoryOnly = true")
+		return nil
+	}
+
 	worktree, err := s.Repo.Worktree()
 	if err != nil {
 		s.logContext.WithFields(logrus.Fields{
@@ -171,20 +204,8 @@ func (s *GitStorage) Pull() error {
 		}).Error("Worktree")
 		return err
 	}
-	return s.PullWithWorktree(worktree)
-}
 
-// PullWithWorktree pulls the latest from remote with the given Worktree.
-// Only supports fast-forwards
-// It returns nil on success
-func (s *GitStorage) PullWithWorktree(worktree *git.Worktree) error {
-	branchReference := plumbing.NewBranchReferenceName(s.config.Branch)
-	logContext := s.logContext.WithFields(logrus.Fields{
-		"method":          "PullWithWorktree",
-		"branchReference": branchReference,
-	})
-	logContext.Debug("Trying to Pull")
-	err := worktree.Pull(&git.PullOptions{
+	err = worktree.Pull(&git.PullOptions{
 		Auth:          s.publicKeys,
 		ReferenceName: branchReference,
 	})
@@ -198,6 +219,8 @@ func (s *GitStorage) PullWithWorktree(worktree *git.Worktree) error {
 	return nil
 }
 
+// IsAutomationEnabled checks if the given customers applications environments automation is explicitly disabled
+// in the studio config
 func (s *GitStorage) IsAutomationEnabled(tenantID string, applicationID string, environment string) bool {
 	environment = strings.ToLower(environment)
 	studioConfig, err := s.GetStudioConfig(tenantID)
@@ -212,10 +235,6 @@ func (s *GitStorage) IsAutomationEnabled(tenantID string, applicationID string, 
 		return false
 	}
 
-	if !studioConfig.AutomationEnabled {
-		return false
-	}
-
 	key := fmt.Sprintf("%s/%s", applicationID, environment)
-	return funk.ContainsString(studioConfig.AutomationEnvironments, key)
+	return !funk.ContainsString(studioConfig.DisabledEnvironments, key)
 }

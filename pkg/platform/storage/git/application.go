@@ -2,15 +2,15 @@ package git
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
-	git "github.com/go-git/go-git/v5"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
 	"github.com/sirupsen/logrus"
-	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )
 
@@ -21,68 +21,33 @@ func (s *GitStorage) GetApplicationDirectory(tenantID string, applicationID stri
 func (s *GitStorage) SaveApplication(application platform.HttpResponseApplication) error {
 	applicationID := application.ID
 	tenantID := application.TenantID
-	logContext := s.logContext.WithFields(log.Fields{
+	logContext := s.logContext.WithFields(logrus.Fields{
 		"method":        "SaveApplication",
 		"customer":      tenantID,
 		"applicationID": applicationID,
 	})
-	data, _ := json.MarshalIndent(application, "", " ")
 
-	w, err := s.Repo.Worktree()
-	if err != nil {
-		return err
-	}
-
-	if err = s.PullWithWorktree(w); err != nil {
+	if err := s.Pull(); err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
-		}).Error("PullWithWorktree")
+		}).Error("Pull")
 		return err
 	}
 
-	// TODO actually build structure
-	dir := s.GetApplicationDirectory(tenantID, applicationID)
-	err = os.MkdirAll(dir, 0755)
+	filename, err := s.writeApplication(application)
 	if err != nil {
-		return err
-	}
-
-	filename := filepath.Join(dir, "application.json")
-	err = ioutil.WriteFile(filename, data, 0644)
-	if err != nil {
-		logContext.WithFields(log.Fields{
+		logContext.WithFields(logrus.Fields{
 			"error": err,
-		}).Error("Failed to write 'application.json'")
+		}).Error("writeApplication")
 		return err
 	}
-
-	// Adds the new file to the staging area.
 	// Need to remove the prefix
-	addPath := strings.TrimPrefix(filename, s.Directory+string(os.PathSeparator))
-	err = w.AddWithOptions(&git.AddOptions{
-		Path: addPath,
-	})
+	path := strings.TrimPrefix(filename, s.config.RepoRoot+string(os.PathSeparator))
+	err = s.CommitPathAndPush(path, fmt.Sprintf("upsert application %s", applicationID))
 	if err != nil {
-		logContext.WithFields(log.Fields{
-			"path":  addPath,
+		logContext.WithFields(logrus.Fields{
 			"error": err,
-		}).Error("Failed to add path to worktree")
-		return err
-	}
-
-	_, err = w.Status()
-	if err != nil {
-		logContext.WithFields(log.Fields{
-			"error": err,
-		}).Error("Failed to get worktree status")
-		return err
-	}
-
-	err = s.CommitAndPush(w, "upsert application")
-	if err != nil {
-		logContext.WithFields(log.Fields{
-			"error": err,
-		}).Error("Failed to commit and push worktree")
+		}).Error("CommitPathAndPush")
 		return err
 	}
 
@@ -122,7 +87,7 @@ func (s *GitStorage) GetApplications(customerID string) ([]platform.HttpResponse
 	for _, applicationID := range applicationIDs {
 		application, err := s.GetApplication(customerID, applicationID)
 		if err != nil {
-			s.logContext.WithFields(log.Fields{
+			s.logContext.WithFields(logrus.Fields{
 				"customer":    customerID,
 				"application": applicationID,
 				"error":       err,
@@ -134,13 +99,14 @@ func (s *GitStorage) GetApplications(customerID string) ([]platform.HttpResponse
 
 	return applications, nil
 }
+
 func (s *GitStorage) discoverCustomerApplicationIds(customerID string) ([]string, error) {
 	applicationIDs := []string{}
 
 	// TODO change to fs when gone to 1.16
 	err := filepath.Walk(s.GetTenantDirectory(customerID), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			s.logContext.WithFields(log.Fields{
+			s.logContext.WithFields(logrus.Fields{
 				"customer": customerID,
 				"path":     path,
 				"error":    err,
@@ -161,4 +127,49 @@ func (s *GitStorage) discoverCustomerApplicationIds(customerID string) ([]string
 	})
 
 	return applicationIDs, err
+}
+
+func (s *GitStorage) writeApplication(application platform.HttpResponseApplication) (string, error) {
+	applicationID := application.ID
+	tenantID := application.TenantID
+	logContext := s.logContext.WithFields(logrus.Fields{
+		"method":        "writeApplication",
+		"customer":      tenantID,
+		"applicationID": applicationID,
+	})
+
+	environments := funk.Map(application.Environments, func(e platform.HttpInputEnvironment) storage.JSONEnvironment {
+		return storage.JSONEnvironment{
+			Name:          e.Name,
+			TenantID:      e.TenantID,
+			ApplicationID: e.ApplicationID,
+			Tenants:       e.Tenants,
+			Ingresses:     e.Ingresses,
+		}
+	}).([]storage.JSONEnvironment)
+	jsonApplication := storage.JSONApplication{
+		ID:           application.ID,
+		Name:         application.Name,
+		TenantID:     application.TenantID,
+		TenantName:   application.TenantName,
+		Environments: environments,
+	}
+	data, _ := json.MarshalIndent(jsonApplication, "", " ")
+
+	dir := s.GetApplicationDirectory(tenantID, applicationID)
+	err := os.MkdirAll(dir, 0755)
+	if err != nil {
+		return "", err
+	}
+
+	filename := filepath.Join(dir, "application.json")
+	err = ioutil.WriteFile(filename, data, 0644)
+	if err != nil {
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("Failed to write 'application.json'")
+		return filename, err
+	}
+
+	return filename, err
 }

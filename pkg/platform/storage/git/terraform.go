@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
-	git "github.com/go-git/go-git/v5"
 	"github.com/sirupsen/logrus"
 )
 
@@ -19,21 +18,16 @@ func (s *GitStorage) SaveTerraformApplication(application platform.TerraformAppl
 
 	data, _ := json.MarshalIndent(application, "", "  ")
 
-	w, err := s.Repo.Worktree()
-	if err != nil {
-		return err
-	}
-
-	if err = s.PullWithWorktree(w); err != nil {
+	if err := s.Pull(); err != nil {
 		s.logContext.WithFields(logrus.Fields{
 			"method": "SaveTerraformApplication",
 			"error":  err,
-		}).Error("PullWithWorktree")
+		}).Error("Pull")
 		return err
 	}
 
 	dir := s.GetApplicationDirectory(tenantID, applicationID)
-	err = os.MkdirAll(dir, 0755)
+	err := os.MkdirAll(dir, 0755)
 	if err != nil {
 		fmt.Println("MkdirAll")
 		return err
@@ -46,23 +40,9 @@ func (s *GitStorage) SaveTerraformApplication(application platform.TerraformAppl
 		return err
 	}
 
-	// Adds the new file to the staging area.
-	// Need to remove the prefix
-	err = w.AddWithOptions(&git.AddOptions{
-		Path: strings.TrimPrefix(filename, s.Directory+"/"),
-	})
+	path := strings.TrimPrefix(filename, s.config.RepoRoot+string(os.PathSeparator))
 
-	if err != nil {
-		fmt.Println("w.Add")
-		return err
-	}
-
-	_, err = w.Status()
-	if err != nil {
-		fmt.Println("w.Status")
-		return err
-	}
-	err = s.CommitAndPush(w, "Adding customer")
+	err = s.CommitPathAndPush(path, fmt.Sprintf("Adding customer %s", tenantID))
 
 	if err != nil {
 		return err
@@ -93,21 +73,16 @@ func (s *GitStorage) SaveTerraformTenant(tenant platform.TerraformCustomer) erro
 	tenantID := tenant.GUID
 	data, _ := json.MarshalIndent(tenant, "", "  ")
 
-	w, err := s.Repo.Worktree()
-	if err != nil {
-		return err
-	}
-
-	if err = s.PullWithWorktree(w); err != nil {
+	if err := s.Pull(); err != nil {
 		s.logContext.WithFields(logrus.Fields{
 			"method": "SaveTerraformTenant",
 			"error":  err,
-		}).Error("PullWithWorktree")
+		}).Error("Pull")
 		return err
 	}
 
 	dir := s.GetTenantDirectory(tenantID)
-	err = os.MkdirAll(dir, 0755)
+	err := os.MkdirAll(dir, 0755)
 	if err != nil {
 		fmt.Println("MkdirAll")
 		return err
@@ -120,23 +95,8 @@ func (s *GitStorage) SaveTerraformTenant(tenant platform.TerraformCustomer) erro
 		return err
 	}
 
-	// Adds the new file to the staging area.
-	// Need to remove the prefix
-	err = w.AddWithOptions(&git.AddOptions{
-		Path: strings.TrimPrefix(filename, s.Directory+"/"),
-	})
-
-	if err != nil {
-		fmt.Println("w.Add")
-		return err
-	}
-
-	_, err = w.Status()
-	if err != nil {
-		fmt.Println("w.Status")
-		return err
-	}
-	err = s.CommitAndPush(w, "Adding customer")
+	path := strings.TrimPrefix(filename, s.config.RepoRoot+string(os.PathSeparator))
+	err = s.CommitPathAndPush(path, fmt.Sprintf("Adding customer %s", tenantID))
 
 	if err != nil {
 		return err

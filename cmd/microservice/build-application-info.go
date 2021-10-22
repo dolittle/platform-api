@@ -3,6 +3,7 @@ package microservice
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"regexp"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	gitStorage "github.com/dolittle-entropy/platform-api/pkg/platform/storage/git"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	coreV1 "k8s.io/api/core/v1"
 	netV1 "k8s.io/api/networking/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,11 +22,11 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-var buildApplicationsCMD = &cobra.Command{
+var buildApplicationInfoCMD = &cobra.Command{
 	Use:   "build-application-info",
 	Short: "Write application info into the git repo",
 	Long: `
-	It will attempt to update git with data from the cluster and skip those that have been setup.
+	It will attempt to update the git repo with data from the cluster and skip those that have been setup.
 
 	GIT_REPO_SSH_KEY="/Users/freshteapot/dolittle/.ssh/test-deploy" \
 	GIT_REPO_BRANCH=auto-dev \
@@ -44,7 +46,11 @@ var buildApplicationsCMD = &cobra.Command{
 		)
 
 		ctx := context.TODO()
-		kubeconfig, _ := cmd.Flags().GetString("kube-config")
+		kubeconfig := viper.GetString("tools.server.kubeConfig")
+
+		if kubeconfig == "incluster" {
+			kubeconfig = ""
+		}
 		// TODO hoist localhost into viper
 		config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 		if err != nil {
@@ -57,26 +63,41 @@ var buildApplicationsCMD = &cobra.Command{
 			panic(err.Error())
 		}
 
+		shouldCommit := viper.GetBool("commit")
+
+		logContext.Info("Starting to extract applications from the cluster")
 		applications := extractApplications(ctx, client)
-		SaveApplications(gitRepo, applications)
+
+		logContext.Info(fmt.Sprintf("Saving %v application(s)", len(applications)))
+		SaveApplications(gitRepo, applications, shouldCommit, logContext)
+		logContext.Info("Done!")
 	},
 }
 
-// SaveApplications saves the Applications
-func SaveApplications(repo storage.Repo, applications []platform.HttpResponseApplication) error {
+// SaveApplications saves the Applications into applications.json and also creates a default studio.json if
+// the customer doesn't have one
+func SaveApplications(repo storage.Repo, applications []platform.HttpResponseApplication, shouldCommit bool, logger logrus.FieldLogger) error {
+	logContext := logger.WithFields(logrus.Fields{
+		"function": "SaveApplications",
+	})
 	for _, application := range applications {
-		studioConfig, _ := repo.GetStudioConfig(application.TenantID)
+		studioConfig, err := repo.GetStudioConfig(application.TenantID)
+		if err != nil {
+			logContext.WithFields(logrus.Fields{
+				"error":      err,
+				"customerID": application.TenantID,
+			}).Fatalf("didn't find a studio config for customer %s, create a config for this customer by running 'microservice build-studio-info %s'",
+				application.TenantID, application.TenantID)
+		}
+
 		if !studioConfig.BuildOverwrite {
 			continue
 		}
-		err := repo.SaveApplication(application)
-		if err != nil {
-			panic(err.Error())
-		}
-
-		err = repo.SaveStudioConfig(application.TenantID, studioConfig)
-		if err != nil {
-			panic(err.Error())
+		if err = repo.SaveApplication(application); err != nil {
+			logContext.WithFields(logrus.Fields{
+				"error":    err,
+				"tenantID": application.TenantID,
+			}).Fatal("failed to save application")
 		}
 	}
 	return nil
@@ -97,6 +118,7 @@ func extractApplications(ctx context.Context, client kubernetes.Interface) []pla
 func getNamespaces(ctx context.Context, client kubernetes.Interface) []coreV1.Namespace {
 	namespacesList, err := client.CoreV1().Namespaces().List(ctx, metaV1.ListOptions{})
 	if err != nil {
+		panic(err.Error())
 	}
 	return namespacesList.Items
 }
@@ -139,10 +161,9 @@ func getApplicationEnvironmentsFromK8s(ctx context.Context, client kubernetes.In
 	for _, configmap := range getConfigmaps(ctx, client, namespace) {
 		if isEnvironmentTenantsConfig(configmap) {
 			environment := platform.HttpInputEnvironment{
-				AutomationEnabled: false,
-				Name:              configmap.Labels["environment"],
-				TenantID:          tenantID,
-				ApplicationID:     applicationID,
+				Name:          configmap.Labels["environment"],
+				TenantID:      tenantID,
+				ApplicationID: applicationID,
 			}
 
 			environmentLabels := configmap.Labels
@@ -290,6 +311,5 @@ func tryGetIngressSecretNameForHost(ingress netV1.Ingress, host string) (bool, s
 }
 
 func init() {
-	RootCmd.AddCommand(buildApplicationsCMD)
-	buildApplicationsCMD.Flags().String("kube-config", "", "FullPath to kubeconfig")
+	RootCmd.AddCommand(buildApplicationInfoCMD)
 }

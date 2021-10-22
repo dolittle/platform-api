@@ -213,13 +213,6 @@ var serverCMD = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(serverCMD)
 
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		log.Fatal(err)
-	}
-	serverCMD.Flags().String("kube-config", fmt.Sprintf("%s/.kube/config", homeDir), "Full path to kubeconfig, set to incluster to make it use kubernetes lookup")
-	viper.BindPFlag("tools.server.kubeConfig", serverCMD.Flags().Lookup("kube-config"))
-
 	viper.SetDefault("tools.server.secret", "change")
 	viper.SetDefault("tools.server.listenOn", "localhost:8080")
 	viper.SetDefault("tools.server.azure.subscriptionId", "")
@@ -227,5 +220,4 @@ func init() {
 	viper.BindEnv("tools.server.secret", "HEADER_SECRET")
 	viper.BindEnv("tools.server.listenOn", "LISTEN_ON")
 	viper.BindEnv("tools.server.azure.subscriptionId", "AZURE_SUBSCRIPTION_ID")
-	viper.BindEnv("tools.server.kubeConfig", "KUBECONFIG")
 }
