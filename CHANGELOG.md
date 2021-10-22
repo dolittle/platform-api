@@ -1,3 +1,46 @@
+# [1.0.0] - 2021-10-22 [PR: #46](https://github.com/dolittle/platform-api/pull/46)
+## Summary
+
+Makes the platform-api ready to start supporting automation for everybody by adding new commands and changing some current behavior.
+
+Related Studio doc PR https://github.com/dolittle/Studio/pull/126
+
+When deployed both `auto-prod` and `auto-dev` have to be fixed (in their respective environments):
+
+- `auto-dev` https://github.com/dolittle-platform/Operations/pull/106
+- `auto-prod` https://github.com/dolittle-platform/Operations/pull/107
+
+### Added
+
+- Adds a new global `--git-dry-run` flag an `GIT_REPO_DRY_RUN` env variable that disables committing and pushing. The `GitStorage` respects this and won't add files to the index, commit or push changes when it's set to true.
+- New `build-studio-info` command to build default `studio.json` files. You can pass it the `customerID`  to default a specific customers studio config, or use the `--all` flag to reset it for all customers in the cluster. 
+
+### Changed
+
+- All files/directories are now written into `Source/V3/platform-api/`. This is to prepare for the Great Merge with Operations.
+- Automation is enabled by default for all customers, now you have to opt-out in `studio.json` `"disabled_environments"` property. This changes `studio.json` to look like this:
+```json
+{
+  "build_overwrite": true,
+  "disabled_environments": [
+	// list of disabled applications and their environments
+	"38185bb0-33ed-4bde-a0af-7ac736055dd7/dev"
+	]
+}
+```
+- `--kube-config` flag and `KUBECONFIG` env variable is global for all `microservice *` commands.
+
+### Fixed
+
+- Renamed `build-applications.go` to `build-application-info.go` to reflect the actual name of the command
+- `application.json` will use its own `JSONApplication` & `JSONEnvironment` structs instead of the `HttpResponse*` structs.
+- If `GIT_REPO_DIRECTORY_ONLY` env variable is set to true platform-api won't try to pull.
+
+### Removed
+
+- Removed the `automationEnabled` property from the `"environments"` property in `application.json` as it didn't actually reflect the applications automation status.
+
+
 # [0.9.0] - 2021-10-18 [PR: #45](https://github.com/dolittle/platform-api/pull/45)
 ## Summary
 
