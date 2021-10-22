@@ -92,7 +92,10 @@ func (proxy StorageProxy) uploadBlob(w http.ResponseWriter, r *http.Request, nam
 		azblob.UploadStreamToBlockBlobOptions{},
 	)
 	if err != nil {
-		log.Fatal(err)
+		// TODO perhaps this should not be fatal
+		proxy.logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Fatal("issue uploading")
 	}
 	w.WriteHeader(http.StatusCreated)
 }
