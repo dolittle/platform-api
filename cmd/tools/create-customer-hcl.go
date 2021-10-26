@@ -23,8 +23,7 @@ var createCustomerHclCMD = &cobra.Command{
 	Use:   "create-customer-hcl",
 	Short: "Write terraform output for a customer",
 	Long: `
-	Stubs the terraform info for creating a customer in the dolittle platform.
-	Only outputs to stdout.
+	Outputs a new Dolittle platform customer in hcl to stdout.
 
 	go run main.go tools create-customer-hcl --name="Test Marka" --platform-environment="dev"
 
