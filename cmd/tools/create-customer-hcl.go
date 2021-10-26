@@ -32,7 +32,7 @@ var createCustomerHclCMD = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		name, _ := cmd.Flags().GetString("name")
 		if name == "" {
-			fmt.Println("A customer name is requried")
+			fmt.Println("A customer name is required")
 			return
 		}
 
