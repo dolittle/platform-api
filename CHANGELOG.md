@@ -1,3 +1,10 @@
+# [1.1.0] - 2021-10-26 [PR: #47](https://github.com/dolittle/platform-api/pull/47)
+## Summary
+
+- Stub terraform block for a customer.
+- Renamed root level to "platform".
+
+
 # [1.0.0] - 2021-10-22 [PR: #46](https://github.com/dolittle/platform-api/pull/46)
 ## Summary
 
