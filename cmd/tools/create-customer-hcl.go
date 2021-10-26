@@ -1,4 +1,4 @@
-package platformtools
+package tools
 
 import (
 	"fmt"
@@ -19,14 +19,14 @@ type tfCustomer struct {
 	PlatformEnvironment string
 }
 
-var stubCustomerCMD = &cobra.Command{
-	Use:   "stub-customer",
+var createCustomerHclCMD = &cobra.Command{
+	Use:   "create-customer-hcl",
 	Short: "Write terraform output for a customer",
 	Long: `
 	Stubs the terraform info for creating a customer in the dolittle platform.
 	Only outputs to stdout.
 
-	go run main.go platform-tools stub-customer --name="Test Marka" --platform-environment="dev"
+	go run main.go tools create-customer-hcl --name="Test Marka" --platform-environment="dev"
 
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -97,7 +97,7 @@ func generateTerraformForCustomer(root *hclwrite.Body, customer tfCustomer) {
 }
 
 func init() {
-	stubCustomerCMD.Flags().String("name", "", "Name of customer (readable)")
-	stubCustomerCMD.Flags().String("platform-environment", "prod", "Platform environment (dev or prod), not linked to application environment")
-	stubCustomerCMD.Flags().String("source", "./modules/dolittle-customer-with-resources", "Override with specific source of the module")
+	createCustomerHclCMD.Flags().String("name", "", "Name of customer (readable)")
+	createCustomerHclCMD.Flags().String("platform-environment", "prod", "Platform environment (dev or prod), not linked to application environment")
+	createCustomerHclCMD.Flags().String("source", "./modules/dolittle-customer-with-resources", "Override with specific source of the module")
 }
