@@ -92,6 +92,8 @@ func generateTerraformForCustomer(root *hclwrite.Body, customer tfCustomer) {
 			Name: customer.TfName,
 		},
 	})
+
+	body.Body().SetAttributeValue("sensitive", cty.True)
 }
 
 func init() {
