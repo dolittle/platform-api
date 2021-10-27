@@ -168,7 +168,7 @@ func extractTerraformApplications(customerIDS []string, data []byte) []platform.
 	var input interface{}
 	json.Unmarshal(data, &input)
 
-	jqQuery := `[.|to_entries | .[] | select(.value.value.kind == "dolittle-application").value.value] | unique_by(.guid) | .[]`
+	jqQuery := `[.|to_entries | .[] | select(.value.value.kind == "dolittle-application" or .value.value.kind == "dolittle-application-with-resources").value.value] | unique_by(.guid) | .[]`
 	query, err := gojq.Parse(jqQuery)
 
 	if err != nil {

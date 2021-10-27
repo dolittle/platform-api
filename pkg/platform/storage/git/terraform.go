@@ -42,7 +42,7 @@ func (s *GitStorage) SaveTerraformApplication(application platform.TerraformAppl
 
 	path := strings.TrimPrefix(filename, s.config.RepoRoot+string(os.PathSeparator))
 
-	err = s.CommitPathAndPush(path, fmt.Sprintf("Adding customer %s", tenantID))
+	err = s.CommitPathAndPush(path, fmt.Sprintf("Adding application %s for customer %s", applicationID, tenantID))
 
 	if err != nil {
 		return err
