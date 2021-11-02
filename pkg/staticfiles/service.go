@@ -8,15 +8,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type service struct {
+type Service struct {
 	logContext logrus.FieldLogger
 	storage    StorageProxy
 	uriPrefix  string
 	tenantID   string
 }
 
-func NewService(logContext logrus.FieldLogger, uriPrefix string, storage StorageProxy, tenantID string) *service {
-	s := &service{
+func NewService(logContext logrus.FieldLogger, uriPrefix string, storage StorageProxy, tenantID string) Service {
+	s := Service{
 		logContext: logContext,
 		uriPrefix:  uriPrefix,
 		storage:    storage,
@@ -25,7 +25,7 @@ func NewService(logContext logrus.FieldLogger, uriPrefix string, storage Storage
 	return s
 }
 
-func (s *service) ListFiles(w http.ResponseWriter, r *http.Request) {
+func (s Service) ListFiles(w http.ResponseWriter, r *http.Request) {
 	items, err := s.storage.ListFiles(s.uriPrefix)
 	if err != nil {
 		s.logContext.WithFields(logrus.Fields{
@@ -41,7 +41,7 @@ func (s *service) ListFiles(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *service) Get(w http.ResponseWriter, r *http.Request) {
+func (s Service) Get(w http.ResponseWriter, r *http.Request) {
 	key := r.URL.Path
 	key = strings.TrimPrefix(key, s.uriPrefix)
 
@@ -56,7 +56,7 @@ func (s *service) Get(w http.ResponseWriter, r *http.Request) {
 	s.storage.Download(w, key)
 }
 
-func (s *service) Upload(w http.ResponseWriter, r *http.Request) {
+func (s Service) Upload(w http.ResponseWriter, r *http.Request) {
 	key := r.URL.Path
 
 	prefix := "/manage/add"
@@ -73,7 +73,7 @@ func (s *service) Upload(w http.ResponseWriter, r *http.Request) {
 	s.storage.Upload(w, r, key)
 }
 
-func (s *service) Remove(w http.ResponseWriter, r *http.Request) {
+func (s Service) Remove(w http.ResponseWriter, r *http.Request) {
 	key := r.URL.Path
 
 	prefix := "/manage/remove"
