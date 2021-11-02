@@ -19,6 +19,7 @@ var _ = Describe("Service", func() {
 		service      staticfiles.Service
 		logger       *logrus.Logger
 		//hook    *test.Hook
+		responseRecorder *httptest.ResponseRecorder
 	)
 	BeforeEach(func() {
 		//logger, hook = test.NewNullLogger()
@@ -33,16 +34,36 @@ var _ = Describe("Service", func() {
 			storageProxy,
 			tenantID,
 		)
+
+		responseRecorder = httptest.NewRecorder()
 	})
 
 	When("Getting file", func() {
 		It("Success", func() {
-			wr := httptest.NewRecorder()
 			req := httptest.NewRequest(http.MethodGet, "/files/test.pdf", nil)
-			storageProxy.On("Download", wr, "test.pdf")
-			service.Get(wr, req)
-			Expect(wr.Result().StatusCode).To(Equal(http.StatusOK))
+			storageProxy.On("Download", responseRecorder, "test.pdf")
+			service.Get(responseRecorder, req)
+			Expect(responseRecorder.Result().StatusCode).To(Equal(http.StatusOK))
 		})
 	})
 
+	When("Remove a file", func() {
+		It("Success", func() {
+			wr := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodDelete, "/manage/remove/files/test.pdf", nil)
+			storageProxy.On("Delete", wr, req, "test.pdf")
+			service.Remove(wr, req)
+			Expect(responseRecorder.Result().StatusCode).To(Equal(http.StatusOK))
+		})
+	})
+
+	When("Upload a file", func() {
+		It("Success", func() {
+			wr := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodPost, "/manage/add/test.pdf", nil)
+			storageProxy.On("Upload", wr, req, "test.pdf")
+			service.Upload(wr, req)
+			Expect(responseRecorder.Result().StatusCode).To(Equal(http.StatusOK))
+		})
+	})
 })

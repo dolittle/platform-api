@@ -55,11 +55,8 @@ func (s Service) Upload(w http.ResponseWriter, r *http.Request) {
 
 	prefix := "/manage/add"
 	key = strings.TrimPrefix(key, prefix)
-
-	if key[0] == '/' {
-		key = key[1:]
-	}
-
+	// TODO We are not including the uriSuffix in the upload, maybe we shoul
+	key = strings.TrimPrefix(key, "/")
 	s.logContext.WithFields(logrus.Fields{
 		"key": key,
 	}).Info("upload")
@@ -75,10 +72,6 @@ func (s Service) Remove(w http.ResponseWriter, r *http.Request) {
 	// prefix = server listening
 	// uriPrefix comes next as its included in the path from the frontend
 	key = strings.TrimPrefix(key, s.uriPrefix)
-
-	if key[0] == '/' {
-		key = key[1:]
-	}
 
 	s.logContext.WithFields(logrus.Fields{
 		"key": key,
