@@ -44,15 +44,9 @@ func (s Service) ListFiles(w http.ResponseWriter, r *http.Request) {
 func (s Service) Get(w http.ResponseWriter, r *http.Request) {
 	key := r.URL.Path
 	key = strings.TrimPrefix(key, s.uriPrefix)
-
-	if key[0] == '/' {
-		key = key[1:]
-	}
-
 	s.logContext.WithFields(logrus.Fields{
 		"key": key,
 	}).Info("lookup")
-
 	s.storage.Download(w, key)
 }
 
