@@ -1,3 +1,9 @@
+# [1.1.1] - 2021-11-2 [PR: #48](https://github.com/dolittle/platform-api/pull/48)
+## Summary
+
+Making build-terraform-info aware of the platform-environment
+
+
 # [1.1.0] - 2021-10-26 [PR: #47](https://github.com/dolittle/platform-api/pull/47)
 ## Summary
 
