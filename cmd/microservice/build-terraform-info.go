@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 
 	"github.com/dolittle-entropy/platform-api/pkg/platform"
@@ -13,6 +12,7 @@ import (
 	"github.com/itchyny/gojq"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/thoas/go-funk"
 )
 
 var buildTerraformInfoCMD = &cobra.Command{
@@ -30,17 +30,36 @@ var buildTerraformInfoCMD = &cobra.Command{
 	go run main.go microservice build-terraform-info /Users/freshteapot/dolittle/git/Operations/Source/V3/Azure/azure.json
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
+
 		logrus.SetFormatter(&logrus.JSONFormatter{})
 		logrus.SetOutput(os.Stdout)
 
 		logContext := logrus.StandardLogger()
 		gitRepoConfig := initGit(logContext)
 
+		platformEnvironment, _ := cmd.Flags().GetString("platform-environment")
+
+		filterPlatformEnvironment := funk.ContainsString([]string{
+			"dev",
+			"prod",
+		}, platformEnvironment)
+
+		if !filterPlatformEnvironment {
+			logContext.Fatal("The platform-environment can only be dev or prod")
+		}
+
+		if (platformEnvironment == "dev") && (gitRepoConfig.Branch != platformEnvironment) {
+			logContext.Fatal("The platform-environment does not match the branch")
+		}
+
+		if (platformEnvironment == "prod") && (gitRepoConfig.Branch != "main") {
+			logContext.Fatal("The platform-environment does not match the branch")
+		}
+
 		pathToFile := args[0]
 		b, err := ioutil.ReadFile(pathToFile)
 		if err != nil {
-			fmt.Println(err)
-			return
+			logContext.WithField("error", err).Fatal("Failed to find path")
 		}
 
 		gitRepo := gitStorage.NewGitStorage(
@@ -48,18 +67,28 @@ var buildTerraformInfoCMD = &cobra.Command{
 			gitRepoConfig,
 		)
 
-		customers := extractTerraformCustomers(b)
-		err = saveTerraformCustomers(gitRepo, customers)
+		customers, err := extractTerraformCustomers(platformEnvironment, b)
 		if err != nil {
-			fmt.Println(err)
-			return
+			logContext.WithField("error", err).Fatal("Failed to extract terraform customers")
 		}
 
-		applications := extractTerraformApplications(b)
+		err = saveTerraformCustomers(gitRepo, customers)
+		if err != nil {
+			logContext.WithField("error", err).Fatal("Failed to save terraform customers")
+		}
+
+		customerIDS := funk.Map(customers, func(customer platform.TerraformCustomer) string {
+			return customer.GUID
+		}).([]string)
+
+		applications, err := extractTerraformApplications(customerIDS, b)
+		if err != nil {
+			logContext.WithField("error", err).Fatal("Failed to extract terraform applications")
+		}
+
 		err = saveTerraformApplications(gitRepo, applications)
 		if err != nil {
-			fmt.Println(err)
-			return
+			logContext.WithField("error", err).Fatal("Failed to save terraform applications")
 		}
 	},
 }
@@ -86,20 +115,32 @@ func saveTerraformApplications(repo storage.Repo, applications []platform.Terraf
 	return nil
 }
 
-func extractTerraformCustomers(data []byte) []platform.TerraformCustomer {
+func extractTerraformCustomers(platformEnvironment string, data []byte) ([]platform.TerraformCustomer, error) {
 	var input interface{}
+	customers := make([]platform.TerraformCustomer, 0)
 	json.Unmarshal(data, &input)
 
-	jqQuery := `[.|to_entries | .[] | select(.value.value.kind=="dolittle-customer").value.value] | unique_by(.guid) | .[]`
+	jqQuery := `[.|to_entries | .[] | select(.value.value.kind == "dolittle-customer" and .value.value.platform_environment == $platformEnvironment).value.value] | unique_by(.guid) | .[]`
+
 	query, err := gojq.Parse(jqQuery)
 
 	if err != nil {
-		log.Fatalln(err)
+		return customers, err
 	}
 
-	iter := query.Run(input) // or query.RunWithContext
+	code, err := gojq.Compile(
+		query,
+		gojq.WithVariables([]string{
+			"$platformEnvironment",
+		}),
+	)
 
-	customers := make([]platform.TerraformCustomer, 0)
+	if err != nil {
+		return customers, err
+	}
+
+	iter := code.Run(input, platformEnvironment)
+
 	for {
 		v, ok := iter.Next()
 		if !ok {
@@ -107,36 +148,36 @@ func extractTerraformCustomers(data []byte) []platform.TerraformCustomer {
 		}
 
 		if err, ok := v.(error); ok {
-			log.Fatalln(err)
+			return customers, err
 		}
 
 		var c platform.TerraformCustomer
 		b, _ := json.Marshal(v)
 		err := json.Unmarshal(b, &c)
 		if err != nil {
-			log.Fatalln(err)
+			return customers, err
 		}
 
 		customers = append(customers, c)
 	}
 
-	return customers
+	return customers, nil
 }
 
-func extractTerraformApplications(data []byte) []platform.TerraformApplication {
+func extractTerraformApplications(customerIDS []string, data []byte) ([]platform.TerraformApplication, error) {
 	var input interface{}
+	applications := make([]platform.TerraformApplication, 0)
+
 	json.Unmarshal(data, &input)
 
-	jqQuery := `[.|to_entries | .[] | select(.value.value.kind=="dolittle-application").value.value] | unique_by(.guid) | .[]`
+	jqQuery := `[.|to_entries | .[] | select(.value.value.kind == "dolittle-application" or .value.value.kind == "dolittle-application-with-resources").value.value] | unique_by(.guid) | .[]`
 	query, err := gojq.Parse(jqQuery)
 
 	if err != nil {
-		log.Fatalln(err)
+		return applications, err
 	}
 
-	iter := query.Run(input) // or query.RunWithContext
-
-	applications := make([]platform.TerraformApplication, 0)
+	iter := query.Run(input)
 	for {
 		v, ok := iter.Next()
 		if !ok {
@@ -144,18 +185,26 @@ func extractTerraformApplications(data []byte) []platform.TerraformApplication {
 		}
 
 		if err, ok := v.(error); ok {
-			log.Fatalln(err)
+			return applications, err
 		}
 
 		var a platform.TerraformApplication
 		b, _ := json.Marshal(v)
 		err := json.Unmarshal(b, &a)
 		if err != nil {
-			log.Fatalln(err)
+			return applications, err
 		}
 
+		if !funk.ContainsString(customerIDS, a.Customer.GUID) {
+			fmt.Println(fmt.Sprintf("skipping as Customer %s (%s) is not on the list", a.Customer.Name, a.Customer.GUID))
+			continue
+		}
 		applications = append(applications, a)
 	}
 
-	return applications
+	return applications, nil
+}
+
+func init() {
+	buildTerraformInfoCMD.Flags().String("platform-environment", "prod", "Platform environment (dev or prod), not linked to application environment")
 }
