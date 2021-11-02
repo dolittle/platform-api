@@ -309,10 +309,14 @@ var serverCMD = &cobra.Command{
 		).Methods(http.MethodGet, http.MethodOptions)
 		router.PathPrefix(
 			"/application/{applicationID}/environment/{environment}/staticFiles/{microserviceID}/add",
-		).Handler(stdChainBase.ThenFunc(staticFilesService.Add)).Methods(http.MethodPost, http.MethodOptions)
+		).Handler(
+			stdChainBase.ThenFunc(staticFilesService.Add),
+		).Methods(http.MethodPost, http.MethodOptions)
 		router.PathPrefix(
 			"/application/{applicationID}/environment/{environment}/staticFiles/{microserviceID}/remove",
-		).Handler(stdChainBase.ThenFunc(staticFilesService.Remove)).Methods(http.MethodDelete, http.MethodOptions)
+		).Handler(
+			stdChainBase.ThenFunc(staticFilesService.Remove),
+		).Methods(http.MethodDelete, http.MethodOptions)
 
 		srv := &http.Server{
 			Handler:      router,
