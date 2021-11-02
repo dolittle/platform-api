@@ -69,15 +69,8 @@ func (s *service) Get(w http.ResponseWriter, r *http.Request) {
 		"key": key,
 	}).Info("lookup")
 
-	if r.Method == "GET" {
-		proxy.downloadBlob(w, key)
-	} else if r.Method == "HEAD" {
-		proxy.checkBlobExists(w, key)
-	} else if r.Method == "POST" {
-		proxy.uploadBlob(w, r, key)
-	} else if r.Method == "PUT" {
-		proxy.uploadBlob(w, r, key)
-	}
+	proxy.downloadBlob(w, key)
+
 }
 
 func (s *service) Upload(w http.ResponseWriter, r *http.Request) {
