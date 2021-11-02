@@ -4,20 +4,28 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"log"
 	"net/http"
+	"strings"
 
 	"github.com/Azure/azure-storage-blob-go/azblob"
 	"github.com/sirupsen/logrus"
 )
 
-type StorageProxy struct {
+type azureStorageProxy struct {
 	containerURL  *azblob.ContainerURL
 	defaultPrefix string
 	logContext    logrus.FieldLogger
 }
 
-func NewStorageProxy(logContext logrus.FieldLogger, containerURL *azblob.ContainerURL, defaultPrefix string) *StorageProxy {
+type StorageProxy interface {
+	Download(w http.ResponseWriter, name string)
+	Upload(w http.ResponseWriter, r *http.Request, name string)
+	Delete(w http.ResponseWriter, r *http.Request, name string)
+	Exists(w http.ResponseWriter, name string)
+	ListFiles(uriPrefix string) ([]string, error)
+}
+
+func NewStorageProxy(logContext logrus.FieldLogger, containerURL *azblob.ContainerURL, defaultPrefix string) azureStorageProxy {
 	metadataResponse, _ := containerURL.GetProperties(context.Background(), azblob.LeaseAccessConditions{})
 	if metadataResponse == nil {
 		// TODO this doesnt work, we manually created it
@@ -27,52 +35,65 @@ func NewStorageProxy(logContext logrus.FieldLogger, containerURL *azblob.Contain
 		}).Info("Creating container")
 		containerURL.Create(context.Background(), make(map[string]string), azblob.PublicAccessBlob)
 	}
-	return &StorageProxy{
+
+	return azureStorageProxy{
 		containerURL:  containerURL,
 		defaultPrefix: defaultPrefix,
 		logContext:    logContext,
 	}
 }
 
-func (proxy StorageProxy) objectName(name string) string {
+func (proxy azureStorageProxy) objectName(name string) string {
 	return proxy.defaultPrefix + name
 }
 
-func (proxy StorageProxy) handler(w http.ResponseWriter, r *http.Request) {
-	key := r.URL.Path
-	if key[0] == '/' {
-		key = key[1:]
+func (proxy azureStorageProxy) ListFiles(uriPrefix string) ([]string, error) {
+	containerURL := proxy.containerURL
+	files := make([]string, 0)
+	for marker := (azblob.Marker{}); marker.NotDone(); { // The parens around Marker{} are required to avoid compiler error.
+		// Get a result segment starting with the blob indicated by the current Marker.
+		listBlob, err := containerURL.ListBlobsFlatSegment(context.TODO(), marker, azblob.ListBlobsSegmentOptions{})
+		if err != nil {
+			return files, err
+		}
+
+		marker = listBlob.NextMarker
+
+		for _, blobInfo := range listBlob.Segment.BlobItems {
+			name := fmt.Sprintf("/%s/%s",
+				strings.Trim(uriPrefix, "/"),
+				strings.TrimPrefix(blobInfo.Name, proxy.defaultPrefix),
+			)
+			files = append(files, name)
+		}
 	}
-	fmt.Println(key)
-	if r.Method == "GET" {
-		proxy.downloadBlob(w, key)
-	} else if r.Method == "HEAD" {
-		proxy.checkBlobExists(w, key)
-	} else if r.Method == "POST" {
-		proxy.uploadBlob(w, r, key)
-	} else if r.Method == "PUT" {
-		proxy.uploadBlob(w, r, key)
-	}
+	return files, nil
 }
 
-func (proxy StorageProxy) downloadBlob(w http.ResponseWriter, name string) {
+func (proxy azureStorageProxy) Download(w http.ResponseWriter, name string) {
 	blockBlobURL := proxy.containerURL.NewBlockBlobURL(proxy.objectName(name))
 	get, err := blockBlobURL.Download(context.Background(), 0, 0, azblob.BlobAccessConditions{}, false, azblob.ClientProvidedKeyOptions{})
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+
+	// TODO we could pass in the desire to trigger Content-Disposition
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Disposition
 	bufferedReader := bufio.NewReader(get.Body(azblob.RetryReaderOptions{}))
 	_, err = bufferedReader.WriteTo(w)
 	if err != nil {
 		proxy.logContext.WithFields(logrus.Fields{
-			"name":  name,
-			"error": err,
-		}).Error("Failed to serve blob")
+			"method": "Download",
+			"name":   name,
+			"error":  err,
+		}).Error("Failed to Download")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 }
 
-func (proxy StorageProxy) checkBlobExists(w http.ResponseWriter, name string) {
+func (proxy azureStorageProxy) Exists(w http.ResponseWriter, name string) {
 	blockBlobURL := proxy.containerURL.NewBlockBlobURL(proxy.objectName(name))
 	response, err := blockBlobURL.GetProperties(context.Background(), azblob.BlobAccessConditions{}, azblob.ClientProvidedKeyOptions{})
 	if err != nil {
@@ -82,7 +103,7 @@ func (proxy StorageProxy) checkBlobExists(w http.ResponseWriter, name string) {
 	w.WriteHeader(response.StatusCode())
 }
 
-func (proxy StorageProxy) uploadBlob(w http.ResponseWriter, r *http.Request, name string) {
+func (proxy azureStorageProxy) Upload(w http.ResponseWriter, r *http.Request, name string) {
 	blockBlobURL := proxy.containerURL.NewBlockBlobURL(proxy.objectName(name))
 
 	_, err := azblob.UploadStreamToBlockBlob(
@@ -94,18 +115,28 @@ func (proxy StorageProxy) uploadBlob(w http.ResponseWriter, r *http.Request, nam
 	if err != nil {
 		// TODO perhaps this should not be fatal
 		proxy.logContext.WithFields(logrus.Fields{
-			"error": err,
-		}).Fatal("issue uploading")
+			"method": "Upload",
+			"error":  err,
+			"name":   name,
+		}).Error("issue uploading")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (proxy StorageProxy) deleteBlob(w http.ResponseWriter, r *http.Request, name string) {
+func (proxy azureStorageProxy) Delete(w http.ResponseWriter, r *http.Request, name string) {
 	blockBlobURL := proxy.containerURL.NewBlockBlobURL(proxy.objectName(name))
 
 	_, err := blockBlobURL.Delete(r.Context(), azblob.DeleteSnapshotsOptionNone, azblob.BlobAccessConditions{})
 	if err != nil {
-		log.Fatal(err)
+		proxy.logContext.WithFields(logrus.Fields{
+			"method": "Delete",
+			"error":  err,
+			"name":   name,
+		}).Error("issue deleting")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 	w.WriteHeader(http.StatusOK)
 }

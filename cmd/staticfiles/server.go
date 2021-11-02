@@ -79,7 +79,7 @@ var serverCMD = &cobra.Command{
 		service := staticfiles.NewService(
 			logContext.WithField("service", "static-files"),
 			uriPrefix,
-			*storageProxy,
+			storageProxy,
 			tenantID,
 		)
 
