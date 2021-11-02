@@ -2,9 +2,9 @@ package staticfiles
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -33,6 +33,10 @@ var serverCMD = &cobra.Command{
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
+		logrus.SetOutput(os.Stdout)
+
+		logContext := logrus.StandardLogger()
+
 		// fix: https://github.com/spf13/viper/issues/798
 		for _, key := range viper.AllKeys() {
 			viper.Set(key, viper.Get(key))
@@ -54,26 +58,26 @@ var serverCMD = &cobra.Command{
 
 		credential, err := azblob.NewSharedKeyCredential(azureAccountName, azureAccountKey)
 		if err != nil {
-			log.Fatalf("Failed to create shared credentials: %s", err)
+			logContext.Fatalf("Failed to create shared credentials: %s", err)
 		}
 
 		pipeline := azblob.NewPipeline(credential, azblob.PipelineOptions{})
 		azureURL, err := url.Parse(fmt.Sprintf("https://%s.blob.core.windows.net", azureAccountName))
 		if err != nil {
-			log.Fatalf("Failed to create a storage client: %s", err)
+			logContext.Fatalf("Failed to create a storage client: %s", err)
 		}
 
 		serviceURL := azblob.NewServiceURL(*azureURL, pipeline)
 		containerURL := serviceURL.NewContainerURL(azureBlobContainer)
 
 		storageProxy := staticfiles.NewStorageProxy(
-			logrus.WithField("service", "storageProxy"),
+			logContext.WithField("service", "storageProxy"),
 			&containerURL,
 			azureBlobContainerUriPrefix,
 		)
 
 		service := staticfiles.NewService(
-			logrus.WithField("service", "static-files"),
+			logContext.WithField("service", "static-files"),
 			uriPrefix,
 			*storageProxy,
 			tenantID,
@@ -114,8 +118,8 @@ var serverCMD = &cobra.Command{
 		serverSettings["azurestoragekey"] = fmt.Sprintf("%s***", azureAccountKey[:3])
 		serverSettings["sharedsecret"] = fmt.Sprintf("%s***", sharedSecret[:3])
 
-		logrus.WithField("settings", viper.Get("staticfiles.server")).Info("Starting Server")
-		log.Fatal(srv.ListenAndServe())
+		logContext.WithField("settings", viper.Get("staticfiles.server")).Info("Starting Server")
+		logContext.Fatal(srv.ListenAndServe())
 	},
 }
 

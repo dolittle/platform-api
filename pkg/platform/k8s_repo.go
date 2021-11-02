@@ -191,8 +191,8 @@ func (r *K8sRepo) GetMicroservices(applicationID string) ([]MicroserviceInfo, er
 		}).([]ImageInfo)
 
 		kind := ""
-		if hasKind, ok := annotationsMap["dolittle.io/microservice-kind"]; ok {
-			kind = hasKind
+		if annotationKind, ok := annotationsMap["dolittle.io/microservice-kind"]; ok {
+			kind = annotationKind
 		}
 
 		response[deploymentIndex] = MicroserviceInfo{
