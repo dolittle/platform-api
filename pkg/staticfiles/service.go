@@ -55,7 +55,7 @@ func (s Service) Upload(w http.ResponseWriter, r *http.Request) {
 
 	prefix := "/manage/add"
 	key = strings.TrimPrefix(key, prefix)
-	// TODO We are not including the uriSuffix in the upload, maybe we shoul
+	// TODO We are not including the uriSuffix in the upload, maybe we should
 	key = strings.TrimPrefix(key, "/")
 	s.logContext.WithFields(logrus.Fields{
 		"key": key,
