@@ -15,6 +15,7 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/platform/insights"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/purchaseorderapi"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/staticfiles"
 
 	gitStorage "github.com/dolittle-entropy/platform-api/pkg/platform/storage/git"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/tenant"
@@ -111,6 +112,8 @@ var serverCMD = &cobra.Command{
 			logrus.WithField("context", "purchase-order-api-service"),
 		)
 
+		staticFilesService := staticfiles.NewService(k8sRepo, clientset, logrus.WithField("context", "static-files-service"))
+
 		c := cors.New(cors.Options{
 			OptionsPassthrough: false,
 			Debug:              true,
@@ -131,44 +134,112 @@ var serverCMD = &cobra.Command{
 		})
 
 		// x-shared-secret not happy with this
-		stdChainBase := alice.New(c.Handler, middleware.LogTenantUser, middleware.RestrictHandlerWithHeaderName(sharedSecret, "x-shared-secret"))
+		stdChainBase := alice.New(c.Handler, middleware.LogTenantUser, middleware.RestrictHandlerWithSharedSecretAndIDS(sharedSecret, "x-shared-secret"))
 		stdChainWithJSON := stdChainBase.Append(middleware.EnforceJSONHandler)
 
 		//router.NotFoundHandler = http.HandlerFunc(MyNotFound)
 
-		router.Handle("/microservice", stdChainWithJSON.ThenFunc(microserviceService.Create)).Methods(http.MethodPost, http.MethodOptions)
-		router.Handle("/microservice", stdChainWithJSON.ThenFunc(microserviceService.Update)).Methods(http.MethodPut, http.MethodOptions)
-		router.Handle("/application", stdChainWithJSON.ThenFunc(applicationService.Create)).Methods(http.MethodPost, http.MethodOptions)
-		router.Handle("/tenant", stdChainWithJSON.ThenFunc(tenantService.Create)).Methods(http.MethodPost, http.MethodOptions)
-		router.Handle("/environment", stdChainWithJSON.ThenFunc(applicationService.SaveEnvironment)).Methods(http.MethodPost, http.MethodOptions)
+		router.Handle(
+			"/microservice",
+			stdChainWithJSON.ThenFunc(microserviceService.Create),
+		).Methods(http.MethodPost, http.MethodOptions)
+		router.Handle(
+			"/microservice",
+			stdChainWithJSON.ThenFunc(microserviceService.Update),
+		).Methods(http.MethodPut, http.MethodOptions)
+		router.Handle(
+			"/application",
+			stdChainWithJSON.ThenFunc(applicationService.Create),
+		).Methods(http.MethodPost, http.MethodOptions)
+		router.Handle(
+			"/tenant",
+			stdChainWithJSON.ThenFunc(tenantService.Create),
+		).Methods(http.MethodPost, http.MethodOptions)
+		router.Handle(
+			"/environment",
+			stdChainWithJSON.ThenFunc(applicationService.SaveEnvironment),
+		).Methods(http.MethodPost, http.MethodOptions)
 
-		router.Handle("/application/{applicationID}/environment", stdChainWithJSON.ThenFunc(applicationService.SaveEnvironment)).Methods(http.MethodPost, http.MethodOptions)
-		router.Handle("/application/{applicationID}/microservices", stdChainWithJSON.ThenFunc(microserviceService.GetByApplicationID)).Methods(http.MethodGet, http.MethodOptions)
-		router.Handle("/application/{applicationID}", stdChainWithJSON.ThenFunc(applicationService.GetByID)).Methods(http.MethodGet, http.MethodOptions)
-		router.Handle("/applications", stdChainWithJSON.ThenFunc(applicationService.GetApplications)).Methods(http.MethodGet, http.MethodOptions)
-		router.Handle("/application/{applicationID}/personalised-application-info", stdChainWithJSON.ThenFunc(applicationService.GetPersonalisedInfo)).Methods(http.MethodGet, http.MethodOptions)
+		router.Handle(
+			"/application/{applicationID}/environment",
+			stdChainWithJSON.ThenFunc(applicationService.SaveEnvironment),
+		).Methods(http.MethodPost, http.MethodOptions)
+		router.Handle(
+			"/application/{applicationID}/microservices",
+			stdChainWithJSON.ThenFunc(microserviceService.GetByApplicationID),
+		).Methods(http.MethodGet, http.MethodOptions)
+		router.Handle(
+			"/application/{applicationID}",
+			stdChainWithJSON.ThenFunc(applicationService.GetByID),
+		).Methods(http.MethodGet, http.MethodOptions)
+		router.Handle(
+			"/applications",
+			stdChainWithJSON.ThenFunc(applicationService.GetApplications),
+		).Methods(http.MethodGet, http.MethodOptions)
+		router.Handle(
+			"/application/{applicationID}/personalised-application-info",
+			stdChainWithJSON.ThenFunc(applicationService.GetPersonalisedInfo),
+		).Methods(http.MethodGet, http.MethodOptions)
 
-		router.Handle("/application/{applicationID}/environment/{environment}/microservice/{microserviceID}", stdChainWithJSON.ThenFunc(microserviceService.GetByID)).Methods(http.MethodGet, http.MethodOptions)
-		router.Handle("/application/{applicationID}/environment/{environment}/microservice/{microserviceID}", stdChainWithJSON.ThenFunc(microserviceService.Delete)).Methods(http.MethodDelete, http.MethodOptions)
+		router.Handle(
+			"/application/{applicationID}/environment/{environment}/microservice/{microserviceID}",
+			stdChainWithJSON.ThenFunc(microserviceService.GetByID),
+		).Methods(http.MethodGet, http.MethodOptions)
+		router.Handle(
+			"/application/{applicationID}/environment/{environment}/microservice/{microserviceID}",
+			stdChainWithJSON.ThenFunc(microserviceService.Delete),
+		).Methods(http.MethodDelete, http.MethodOptions)
 
-		router.Handle("/live/applications", stdChainWithJSON.ThenFunc(applicationService.GetLiveApplications)).Methods(http.MethodGet, http.MethodOptions)
-		router.Handle("/live/application/{applicationID}/microservices", stdChainWithJSON.ThenFunc(microserviceService.GetLiveByApplicationID)).Methods(http.MethodGet, http.MethodOptions)
-		router.Handle("/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/podstatus", stdChainWithJSON.ThenFunc(microserviceService.GetPodStatus)).Methods(http.MethodGet, http.MethodOptions)
-		router.Handle("/live/application/{applicationID}/pod/{podName}/logs", stdChainBase.ThenFunc(microserviceService.GetPodLogs)).Methods(http.MethodGet, http.MethodOptions)
-		router.Handle("/live/application/{applicationID}/configmap/{configMapName}", stdChainBase.ThenFunc(microserviceService.GetConfigMap)).Methods(http.MethodGet, http.MethodOptions)
-		router.Handle("/live/application/{applicationID}/secret/{secretName}", stdChainBase.ThenFunc(microserviceService.GetSecret)).Methods(http.MethodGet, http.MethodOptions)
+		router.Handle(
+			"/live/applications",
+			stdChainWithJSON.ThenFunc(applicationService.GetLiveApplications),
+		).Methods(http.MethodGet, http.MethodOptions)
+		router.Handle(
+			"/live/application/{applicationID}/microservices",
+			stdChainWithJSON.ThenFunc(microserviceService.GetLiveByApplicationID),
+		).Methods(http.MethodGet, http.MethodOptions)
+		router.Handle(
+			"/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/podstatus",
+			stdChainWithJSON.ThenFunc(microserviceService.GetPodStatus),
+		).Methods(http.MethodGet, http.MethodOptions)
+		router.Handle(
+			"/live/application/{applicationID}/pod/{podName}/logs",
+			stdChainBase.ThenFunc(microserviceService.GetPodLogs),
+		).Methods(http.MethodGet, http.MethodOptions)
+		router.Handle(
+			"/live/application/{applicationID}/configmap/{configMapName}",
+			stdChainBase.ThenFunc(microserviceService.GetConfigMap),
+		).Methods(http.MethodGet, http.MethodOptions)
+		router.Handle(
+			"/live/application/{applicationID}/secret/{secretName}", stdChainBase.ThenFunc(microserviceService.GetSecret),
+		).Methods(http.MethodGet, http.MethodOptions)
 
-		router.Handle("/live/application/{applicationID}/environment/{environment}/insights/runtime-v1", stdChainWithJSON.ThenFunc(insightsService.GetRuntimeV1)).Methods(http.MethodGet, http.MethodOptions)
-		router.Handle("/live/insights/loki/api/v1/query_range", stdChainWithJSON.ThenFunc(insightsService.ProxyLoki)).Methods(http.MethodGet, http.MethodOptions)
+		router.Handle(
+			"/live/application/{applicationID}/environment/{environment}/insights/runtime-v1",
+			stdChainWithJSON.ThenFunc(insightsService.GetRuntimeV1),
+		).Methods(http.MethodGet, http.MethodOptions)
+		router.Handle(
+			"/live/insights/loki/api/v1/query_range",
+			stdChainWithJSON.ThenFunc(insightsService.ProxyLoki),
+		).Methods(http.MethodGet, http.MethodOptions)
 
 		// kubectl auth can-i list pods --namespace application-11b6cf47-5d9f-438f-8116-0d9828654657 --as be194a45-24b4-4911-9c8d-37125d132b0b --as-group cc3d1c06-ffeb-488c-8b90-a4536c3e6dfa
 		router.Handle("/test/can-i", stdChainWithJSON.ThenFunc(microserviceService.CanI)).Methods(http.MethodPost)
 
 		// dev-web-adpator.application-{applicationID}.svc.local - kubernetes
 		// Lookup service not
-		router.Handle("/application/{applicationID}/environment/{environment}/businessmomentsadaptor/{microserviceID}/save", stdChainWithJSON.ThenFunc(microserviceService.BusinessMomentsAdaptorSave)).Methods(http.MethodPost, http.MethodOptions)
-		router.Handle("/application/{applicationID}/environment/{environment}/businessmomentsadaptor/{microserviceID}/rawdata", stdChainWithJSON.ThenFunc(microserviceService.BusinessMomentsAdaptorRawData)).Methods(http.MethodGet, http.MethodOptions)
-		router.Handle("/application/{applicationID}/environment/{environment}/businessmomentsadaptor/{microserviceID}/sync", stdChainWithJSON.ThenFunc(microserviceService.BusinessMomentsAdaptorSync)).Methods(http.MethodGet, http.MethodOptions)
+		router.Handle(
+			"/application/{applicationID}/environment/{environment}/businessmomentsadaptor/{microserviceID}/save",
+			stdChainWithJSON.ThenFunc(microserviceService.BusinessMomentsAdaptorSave),
+		).Methods(http.MethodPost, http.MethodOptions)
+		router.Handle(
+			"/application/{applicationID}/environment/{environment}/businessmomentsadaptor/{microserviceID}/rawdata",
+			stdChainWithJSON.ThenFunc(microserviceService.BusinessMomentsAdaptorRawData),
+		).Methods(http.MethodGet, http.MethodOptions)
+		router.Handle(
+			"/application/{applicationID}/environment/{environment}/businessmomentsadaptor/{microserviceID}/sync",
+			stdChainWithJSON.ThenFunc(microserviceService.BusinessMomentsAdaptorSync),
+		).Methods(http.MethodGet, http.MethodOptions)
 
 		router.Handle(
 			"/businessmomententity",
@@ -194,10 +265,36 @@ var serverCMD = &cobra.Command{
 			stdChainWithJSON.ThenFunc(businessMomentsService.DeleteMoment),
 		).Methods(http.MethodDelete, http.MethodOptions)
 
-		router.Handle("/backups/logs/latest/by/app/{applicationID}/{environment}", stdChainWithJSON.ThenFunc(backupService.GetLatestByApplication)).Methods(http.MethodGet, http.MethodOptions)
-		router.Handle("/backups/logs/link", stdChainWithJSON.ThenFunc(backupService.CreateLink)).Methods(http.MethodPost, http.MethodOptions)
+		router.Handle(
+			"/backups/logs/latest/by/app/{applicationID}/{environment}",
+			stdChainWithJSON.ThenFunc(backupService.GetLatestByApplication),
+		).Methods(http.MethodGet, http.MethodOptions)
 
-		router.Handle("/application/{applicationID}/environment/{environment}/purchaseorderapi/{microserviceID}/datastatus", stdChainBase.ThenFunc(purchaseorderapiService.GetDataStatus)).Methods(http.MethodGet, http.MethodOptions)
+		router.Handle(
+			"/backups/logs/link",
+			stdChainWithJSON.ThenFunc(backupService.CreateLink),
+		).Methods(http.MethodPost, http.MethodOptions)
+
+		router.Handle(
+			"/application/{applicationID}/environment/{environment}/purchaseorderapi/{microserviceID}/datastatus",
+			stdChainBase.ThenFunc(purchaseorderapiService.GetDataStatus),
+		).Methods(http.MethodGet, http.MethodOptions)
+
+		// platform.MicroserviceKindStaticFilesV1
+		router.Handle(
+			"/application/{applicationID}/environment/{environment}/staticFiles/{microserviceID}/list",
+			stdChainBase.ThenFunc(staticFilesService.GetAll),
+		).Methods(http.MethodGet, http.MethodOptions)
+		router.PathPrefix(
+			"/application/{applicationID}/environment/{environment}/staticFiles/{microserviceID}/add",
+		).Handler(
+			stdChainBase.ThenFunc(staticFilesService.Add),
+		).Methods(http.MethodPost, http.MethodOptions)
+		router.PathPrefix(
+			"/application/{applicationID}/environment/{environment}/staticFiles/{microserviceID}/remove",
+		).Handler(
+			stdChainBase.ThenFunc(staticFilesService.Remove),
+		).Methods(http.MethodDelete, http.MethodOptions)
 
 		srv := &http.Server{
 			Handler:      router,
