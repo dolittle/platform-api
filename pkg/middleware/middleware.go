@@ -18,7 +18,7 @@ func LogTenantUser(next http.Handler) http.Handler {
 	})
 }
 
-func RestrictHandlerWithHeaderName(secret string, name string) func(next http.Handler) http.Handler {
+func RestrictHandlerWithSharedSecretAndIDS(secret string, name string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			xSecret := r.Header.Get(name)
@@ -35,14 +35,23 @@ func RestrictHandlerWithHeaderName(secret string, name string) func(next http.Ha
 				return
 			}
 
-			// TODO confim secret1
 			next.ServeHTTP(w, r)
 		})
 	}
 }
 
-func RestrictHandler(secret string) func(next http.Handler) http.Handler {
-	return RestrictHandlerWithHeaderName(secret, "x-secret")
+func RestrictHandlerWithSharedSecret(secret string, name string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			xSecret := r.Header.Get(name)
+			if xSecret != secret {
+				utils.RespondWithError(w, http.StatusForbidden, "Shared secret is missing")
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 func EnforceJSONHandler(next http.Handler) http.Handler {

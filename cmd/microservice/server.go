@@ -15,7 +15,6 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/platform/insights"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/purchaseorderapi"
-	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/staticfiles"
 
 	gitStorage "github.com/dolittle-entropy/platform-api/pkg/platform/storage/git"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/tenant"
@@ -111,8 +110,6 @@ var serverCMD = &cobra.Command{
 			clientset,
 			logrus.WithField("context", "purchase-order-api-service"),
 		)
-
-		staticFilesService := staticfiles.NewService(k8sRepo, clientset, logrus.WithField("context", "static-files-service"))
 
 		c := cors.New(cors.Options{
 			OptionsPassthrough: false,
@@ -279,22 +276,6 @@ var serverCMD = &cobra.Command{
 			"/application/{applicationID}/environment/{environment}/purchaseorderapi/{microserviceID}/datastatus",
 			stdChainBase.ThenFunc(purchaseorderapiService.GetDataStatus),
 		).Methods(http.MethodGet, http.MethodOptions)
-
-		// platform.MicroserviceKindStaticFilesV1
-		router.Handle(
-			"/application/{applicationID}/environment/{environment}/staticFiles/{microserviceID}/list",
-			stdChainBase.ThenFunc(staticFilesService.GetAll),
-		).Methods(http.MethodGet, http.MethodOptions)
-		router.PathPrefix(
-			"/application/{applicationID}/environment/{environment}/staticFiles/{microserviceID}/add",
-		).Handler(
-			stdChainBase.ThenFunc(staticFilesService.Add),
-		).Methods(http.MethodPost, http.MethodOptions)
-		router.PathPrefix(
-			"/application/{applicationID}/environment/{environment}/staticFiles/{microserviceID}/remove",
-		).Handler(
-			stdChainBase.ThenFunc(staticFilesService.Remove),
-		).Methods(http.MethodDelete, http.MethodOptions)
 
 		srv := &http.Server{
 			Handler:      router,
