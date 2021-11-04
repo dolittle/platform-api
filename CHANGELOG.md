@@ -1,3 +1,9 @@
+# [1.2.0] - 2021-11-4 [PR: #51](https://github.com/dolittle/platform-api/pull/51)
+## Summary
+
+Querying the /applications data, will now return an empty array, not null.
+
+
 # [1.1.2] - 2021-11-4 [PR: #49](https://github.com/dolittle/platform-api/pull/49)
 ## Summary
 
