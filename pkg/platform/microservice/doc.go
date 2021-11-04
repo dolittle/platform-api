@@ -17,5 +17,5 @@ type service struct {
 	k8sDolittleRepo            platform.K8sRepo
 	gitRepo                    storage.Repo
 	parser                     parser.Parser
-	logger                     logrus.FieldLogger
+	logContext                 logrus.FieldLogger
 }

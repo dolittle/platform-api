@@ -9,7 +9,6 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 type service struct {
@@ -29,9 +28,9 @@ func (s *service) GetServiceAccountCredentials(w http.ResponseWriter, r *http.Re
 	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
 	userID := r.Header.Get("User-ID")
-	tenantID := r.Header.Get("Tenant-ID")
+	customerID := r.Header.Get("Tenant-ID")
 
-	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
 	if !allowed {
 		return
 	}
@@ -44,25 +43,14 @@ func (s *service) GetServiceAccountCredentials(w http.ResponseWriter, r *http.Re
 	logContext.Info("requested credentials")
 
 	secretName := "azure-devops"
-	secret, err := s.k8sDolittleRepo.GetSecret(applicationID, secretName)
+	secret, err := s.k8sDolittleRepo.GetSecret(logContext, applicationID, secretName)
 	if err != nil {
-		if !k8serrors.IsNotFound(err) {
-			logContext.WithFields(logrus.Fields{
-				"error":      err,
-				"secretName": secretName,
-			}).Error("issue talking to cluster")
-
-			utils.RespondWithError(w, http.StatusInternalServerError, "Something went wrong")
+		if err == platform.SecretNotFound {
+			utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Secret %s not found in application %s", secretName, applicationID))
 			return
 		}
 
-		logContext.WithFields(logrus.Fields{
-			"error":      err,
-			"secretName": secretName,
-			"hint":       "azure-devops-missing",
-		}).Error("application")
-
-		utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Secret %s not found in application %s", secretName, applicationID))
+		utils.RespondWithError(w, http.StatusInternalServerError, "Something went wrong")
 		return
 	}
 
@@ -74,9 +62,9 @@ func (s *service) GetContainerRegistryCredentials(w http.ResponseWriter, r *http
 	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
 	userID := r.Header.Get("User-ID")
-	tenantID := r.Header.Get("Tenant-ID")
+	customerID := r.Header.Get("Tenant-ID")
 
-	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
 	if !allowed {
 		return
 	}
@@ -85,29 +73,19 @@ func (s *service) GetContainerRegistryCredentials(w http.ResponseWriter, r *http
 		"method":      "GetServiceAccountCredentials",
 		"credentials": "containerRegistry",
 		"userID":      userID,
+		"customerID":  customerID,
 	})
 	logContext.Info("requested credentials")
 
 	secretName := "acr"
-	secret, err := s.k8sDolittleRepo.GetSecret(applicationID, secretName)
+	secret, err := s.k8sDolittleRepo.GetSecret(logContext, applicationID, secretName)
 	if err != nil {
-		if !k8serrors.IsNotFound(err) {
-			logContext.WithFields(logrus.Fields{
-				"error":      err,
-				"secretName": secretName,
-			}).Error("issue talking to cluster")
-
-			utils.RespondWithError(w, http.StatusInternalServerError, "Something went wrong")
+		if err == platform.SecretNotFound {
+			utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Secret %s not found in application %s", secretName, applicationID))
 			return
 		}
 
-		logContext.WithFields(logrus.Fields{
-			"error":      err,
-			"secretName": secretName,
-			"hint":       "acr-missing",
-		}).Error("application")
-
-		utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Secret %s not found in application %s", secretName, applicationID))
+		utils.RespondWithError(w, http.StatusInternalServerError, "Something went wrong")
 		return
 	}
 

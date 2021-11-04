@@ -11,13 +11,19 @@ import (
 	"time"
 
 	"github.com/dolittle-entropy/platform-api/pkg/utils"
+	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	v1 "k8s.io/api/apps/v1"
 	authV1 "k8s.io/api/authorization/v1"
 	coreV1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+)
+
+var (
+	SecretNotFound = errors.New("secret-not-found")
 )
 
 type K8sRepo struct {
@@ -405,13 +411,26 @@ func (r *K8sRepo) GetConfigMap(applicationID string, name string) (*coreV1.Confi
 	return configMap, nil
 }
 
-func (r *K8sRepo) GetSecret(applicationID string, name string) (*coreV1.Secret, error) {
+func (r *K8sRepo) GetSecret(logContext logrus.FieldLogger, applicationID string, name string) (*coreV1.Secret, error) {
 	client := r.k8sClient
 	ctx := context.TODO()
 	namespace := fmt.Sprintf("application-%s", applicationID)
 	secret, err := client.CoreV1().Secrets(namespace).Get(ctx, name, metaV1.GetOptions{})
 	if err != nil {
-		return secret, err
+		if !k8serrors.IsNotFound(err) {
+			logContext.WithFields(logrus.Fields{
+				"error":      err,
+				"secretName": name,
+			}).Error("issue talking to cluster")
+			return secret, err
+		}
+
+		logContext.WithFields(logrus.Fields{
+			"error":      err,
+			"secretName": name,
+		}).Error("secret not found")
+
+		return secret, SecretNotFound
 	}
 	return secret, nil
 }

@@ -42,16 +42,16 @@ func NewService(gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClien
 			gitRepo,
 			rawDataLogRepo,
 			logContext),
-		logger: logContext,
+		logContext: logContext,
 	}
 }
 
 // TODO https://dolittle.freshdesk.com/a/tickets/1352 how to add multiple entries to ingress
 func (s *service) Create(responseWriter http.ResponseWriter, request *http.Request) {
-	logger := s.logger.WithFields(logrus.Fields{
+	logContext := s.logContext.WithFields(logrus.Fields{
 		"method": "Create",
 	})
-	requestBytes, microserviceBase, err := s.readMicroserviceBase(request, logger)
+	requestBytes, microserviceBase, err := s.readMicroserviceBase(request, logContext)
 	if err != nil {
 		utils.RespondWithError(responseWriter, http.StatusBadRequest, fmt.Errorf("Invalid request payload: %w", err).Error())
 		return
@@ -120,10 +120,10 @@ func (s *service) Create(responseWriter http.ResponseWriter, request *http.Reque
 }
 
 func (s *service) Update(responseWriter http.ResponseWriter, request *http.Request) {
-	logger := s.logger.WithFields(logrus.Fields{
+	logContext := s.logContext.WithFields(logrus.Fields{
 		"method": "Update",
 	})
-	requestBytes, microserviceBase, err := s.readMicroserviceBase(request, logger)
+	requestBytes, microserviceBase, err := s.readMicroserviceBase(request, logContext)
 	if err != nil {
 		utils.RespondWithError(responseWriter, http.StatusBadRequest, fmt.Errorf("Invalid request payload: %w", err).Error())
 		return
@@ -185,17 +185,17 @@ func (s *service) Update(responseWriter http.ResponseWriter, request *http.Reque
 	}
 }
 
-func (s *service) readMicroserviceBase(request *http.Request, logger *logrus.Entry) (requestBytes []byte, microserviceBase platform.HttpMicroserviceBase, err error) {
+func (s *service) readMicroserviceBase(request *http.Request, logContext *logrus.Entry) (requestBytes []byte, microserviceBase platform.HttpMicroserviceBase, err error) {
 	microserviceBase = platform.HttpMicroserviceBase{}
 	requestBytes, err = ioutil.ReadAll(request.Body)
 	if err != nil {
-		logger.WithError(err).Error("Failed to read request body")
+		logContext.WithError(err).Error("Failed to read request body")
 		err = fmt.Errorf("failed to read request body: %w", err)
 		return
 	}
 
 	if err = json.Unmarshal(requestBytes, &microserviceBase); err != nil {
-		logger.WithError(err).Error("Failed to read json from request body")
+		logContext.WithError(err).Error("Failed to read json from request body")
 		err = fmt.Errorf("failed to read json from request body: %w", err)
 		return
 	}
@@ -203,8 +203,8 @@ func (s *service) readMicroserviceBase(request *http.Request, logger *logrus.Ent
 }
 
 func (s *service) GetByID(w http.ResponseWriter, r *http.Request) {
-	tenantID := r.Header.Get("Tenant-ID")
-	tenantInfo, err := s.gitRepo.GetTerraformTenant(tenantID)
+	customerID := r.Header.Get("Tenant-ID")
+	tenantInfo, err := s.gitRepo.GetTerraformTenant(customerID)
 	if err != nil {
 		// TODO handle not found
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -239,8 +239,8 @@ func (s *service) GetByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *service) GetByApplicationID(w http.ResponseWriter, r *http.Request) {
-	tenantID := r.Header.Get("Tenant-ID")
-	tenantInfo, err := s.gitRepo.GetTerraformTenant(tenantID)
+	customerID := r.Header.Get("Tenant-ID")
+	tenantInfo, err := s.gitRepo.GetTerraformTenant(customerID)
 	if err != nil {
 		// TODO handle not found
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -275,19 +275,19 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 	namespace := fmt.Sprintf("application-%s", applicationID)
 
 	userID := r.Header.Get("User-ID")
-	tenantID := r.Header.Get("Tenant-ID")
-	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
+	customerID := r.Header.Get("Tenant-ID")
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
 	if !allowed {
 		return
 	}
 
-	if !s.gitRepo.IsAutomationEnabled(tenantID, applicationID, environment) {
+	if !s.gitRepo.IsAutomationEnabled(customerID, applicationID, environment) {
 		utils.RespondWithError(
 			w,
 			http.StatusBadRequest,
 			fmt.Sprintf(
 				"Tenant %s with application %s in environment %s does not allow changes via Studio",
-				tenantID,
+				customerID,
 				applicationID,
 				environment,
 			),
@@ -299,7 +299,7 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 	statusCode := http.StatusOK
 
 	// Hairy stuff
-	msData, err := s.gitRepo.GetMicroservice(tenantID, applicationID, environment, microserviceID)
+	msData, err := s.gitRepo.GetMicroservice(customerID, applicationID, environment, microserviceID)
 
 	if err == nil {
 		// LOG THIS
@@ -324,7 +324,7 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if statusCode == http.StatusOK {
-		err = s.gitRepo.DeleteMicroservice(tenantID, applicationID, environment, microserviceID)
+		err = s.gitRepo.DeleteMicroservice(customerID, applicationID, environment, microserviceID)
 		if err != nil {
 			statusCode = http.StatusUnprocessableEntity
 			errStr = err.Error()
@@ -345,8 +345,8 @@ func (s *service) GetLiveByApplicationID(w http.ResponseWriter, r *http.Request)
 	applicationID := vars["applicationID"]
 
 	userID := r.Header.Get("User-ID")
-	tenantID := r.Header.Get("Tenant-ID")
-	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
+	customerID := r.Header.Get("Tenant-ID")
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
 	if !allowed {
 		return
 	}
@@ -383,8 +383,8 @@ func (s *service) GetPodStatus(w http.ResponseWriter, r *http.Request) {
 	environment := strings.ToLower(vars["environment"])
 
 	userID := r.Header.Get("User-ID")
-	tenantID := r.Header.Get("Tenant-ID")
-	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
+	customerID := r.Header.Get("Tenant-ID")
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
 	if !allowed {
 		return
 	}
@@ -409,8 +409,8 @@ func (s *service) GetPodLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID := r.Header.Get("User-ID")
-	tenantID := r.Header.Get("Tenant-ID")
-	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
+	customerID := r.Header.Get("Tenant-ID")
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
 	if !allowed {
 		return
 	}
@@ -436,7 +436,7 @@ func (s *service) GetConfigMap(w http.ResponseWriter, r *http.Request) {
 	configMapName := vars["configMapName"]
 
 	userID := r.Header.Get("User-ID")
-	tenantID := r.Header.Get("Tenant-ID")
+	customerID := r.Header.Get("Tenant-ID")
 	//contentType := strings.ToLower(r.Header.Get("Content-Type"))
 
 	download := r.FormValue("download")
@@ -458,7 +458,7 @@ func (s *service) GetConfigMap(w http.ResponseWriter, r *http.Request) {
 	// Hmm this will let them see things they are not allowed to see.
 	// But it wont let them update it
 	// TODO when / if we allow update, we will need more protection
-	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
 	if !allowed {
 		return
 	}
@@ -511,7 +511,7 @@ func (s *service) GetSecret(w http.ResponseWriter, r *http.Request) {
 	secretName := vars["secretName"]
 
 	userID := r.Header.Get("User-ID")
-	tenantID := r.Header.Get("Tenant-ID")
+	customerID := r.Header.Get("Tenant-ID")
 
 	download := r.FormValue("download")
 	fileType := r.FormValue("fileType")
@@ -545,20 +545,24 @@ func (s *service) GetSecret(w http.ResponseWriter, r *http.Request) {
 	// Hmm this will let them see things they are not allowed to see.
 	// But it wont let them update it
 	// TODO when / if we allow update, we will need more protection
-	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
 	if !allowed {
 		return
 	}
 
-	secret, err := s.k8sDolittleRepo.GetSecret(applicationID, secretName)
+	logContext := s.logContext.WithFields(logrus.Fields{
+		"method":     "GetSecret",
+		"userID":     userID,
+		"customerID": customerID,
+	})
+
+	secret, err := s.k8sDolittleRepo.GetSecret(logContext, applicationID, secretName)
 	if err != nil {
-		if !k8serrors.IsNotFound(err) {
-			fmt.Println(err)
-			utils.RespondWithError(w, http.StatusInternalServerError, "Something went wrong")
+		if err == platform.SecretNotFound {
+			utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Secret %s not found in application %s", secretName, applicationID))
 			return
 		}
-
-		utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Secret %s not found in application %s", secretName, applicationID))
+		utils.RespondWithError(w, http.StatusInternalServerError, "Something went wrong")
 		return
 	}
 
