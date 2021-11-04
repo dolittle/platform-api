@@ -1,3 +1,12 @@
+# [1.1.2] - 2021-11-4 [PR: #49](https://github.com/dolittle/platform-api/pull/49)
+## Summary
+
+- Formatting server
+- Bringing middleware.RestrictHandlerWithSharedSecret
+
+Linked to #43
+
+
 # [1.1.1] - 2021-11-2 [PR: #48](https://github.com/dolittle/platform-api/pull/48)
 ## Summary
 
