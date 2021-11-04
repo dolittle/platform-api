@@ -84,9 +84,10 @@ func (proxy azureStorageProxy) Download(w http.ResponseWriter, name string) {
 	_, err = bufferedReader.WriteTo(w)
 	if err != nil {
 		proxy.logContext.WithFields(logrus.Fields{
-			"method": "Download",
-			"name":   name,
-			"error":  err,
+			"method":       "Download",
+			"name":         name,
+			"error":        err,
+			"blockBlobURL": blockBlobURL.String(),
 		}).Error("Failed to Download")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -115,9 +116,10 @@ func (proxy azureStorageProxy) Upload(w http.ResponseWriter, r *http.Request, na
 	if err != nil {
 		// TODO perhaps this should not be fatal
 		proxy.logContext.WithFields(logrus.Fields{
-			"method": "Upload",
-			"error":  err,
-			"name":   name,
+			"method":       "Upload",
+			"error":        err,
+			"name":         name,
+			"blockBlobURL": blockBlobURL.String(),
 		}).Error("issue uploading")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -131,9 +133,10 @@ func (proxy azureStorageProxy) Delete(w http.ResponseWriter, r *http.Request, na
 	_, err := blockBlobURL.Delete(r.Context(), azblob.DeleteSnapshotsOptionNone, azblob.BlobAccessConditions{})
 	if err != nil {
 		proxy.logContext.WithFields(logrus.Fields{
-			"method": "Delete",
-			"error":  err,
-			"name":   name,
+			"method":       "Delete",
+			"error":        err,
+			"name":         name,
+			"blockBlobURL": blockBlobURL.String(),
 		}).Error("issue deleting")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
