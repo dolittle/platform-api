@@ -12,6 +12,7 @@ import (
 	"github.com/dolittle-entropy/platform-api/pkg/platform/application"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/backup"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/businessmoment"
+	"github.com/dolittle-entropy/platform-api/pkg/platform/cicd"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/insights"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice"
 	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/purchaseorderapi"
@@ -111,6 +112,10 @@ var serverCMD = &cobra.Command{
 			logrus.WithField("context", "purchase-order-api-service"),
 		)
 
+		cicdService := cicd.NewService(
+			logrus.WithField("context", "cicd-service"),
+			k8sRepo,
+		)
 		c := cors.New(cors.Options{
 			OptionsPassthrough: false,
 			Debug:              true,
@@ -275,6 +280,16 @@ var serverCMD = &cobra.Command{
 		router.Handle(
 			"/application/{applicationID}/environment/{environment}/purchaseorderapi/{microserviceID}/datastatus",
 			stdChainBase.ThenFunc(purchaseorderapiService.GetDataStatus),
+		).Methods(http.MethodGet, http.MethodOptions)
+
+		router.Handle(
+			"/application/{applicationID}/cicd/credentials/service-account",
+			stdChainBase.ThenFunc(cicdService.GetServiceAccountCredentials),
+		).Methods(http.MethodGet, http.MethodOptions)
+
+		router.Handle(
+			"/application/{applicationID}/cicd/credentials/container-registry",
+			stdChainBase.ThenFunc(cicdService.GetContainerRegistryCredentials),
 		).Methods(http.MethodGet, http.MethodOptions)
 
 		srv := &http.Server{
