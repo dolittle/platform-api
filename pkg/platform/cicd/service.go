@@ -36,9 +36,11 @@ func (s *service) GetServiceAccountCredentials(w http.ResponseWriter, r *http.Re
 	}
 
 	logContext := s.logContext.WithFields(logrus.Fields{
-		"method":      "GetServiceAccountCredentials",
-		"credentials": "serviceAccount",
-		"userID":      userID,
+		"method":        "GetServiceAccountCredentials",
+		"credentials":   "serviceAccount",
+		"customerID":    customerID,
+		"applicationID": applicationID,
+		"userID":        userID,
 	})
 	logContext.Info("requested credentials")
 
@@ -70,10 +72,11 @@ func (s *service) GetContainerRegistryCredentials(w http.ResponseWriter, r *http
 	}
 
 	logContext := s.logContext.WithFields(logrus.Fields{
-		"method":      "GetServiceAccountCredentials",
-		"credentials": "containerRegistry",
-		"userID":      userID,
-		"customerID":  customerID,
+		"method":        "GetServiceAccountCredentials",
+		"credentials":   "containerRegistry",
+		"customerID":    customerID,
+		"applicationID": applicationID,
+		"userID":        userID,
 	})
 	logContext.Info("requested credentials")
 
