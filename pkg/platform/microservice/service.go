@@ -558,7 +558,7 @@ func (s *service) GetSecret(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Config map %s not found in application %s", secret, applicationID))
+		utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Secret %s not found in application %s", secretName, applicationID))
 		return
 	}
 
