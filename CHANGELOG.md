@@ -1,3 +1,10 @@
+# [1.3.0] - 2021-11-4 [PR: #50](https://github.com/dolittle/platform-api/pull/50)
+## Summary
+
+- Endpoint for service-account credentials
+- Endpoint for container-registry credentials
+
+
 # [1.2.0] - 2021-11-4 [PR: #51](https://github.com/dolittle/platform-api/pull/51)
 ## Summary
 
