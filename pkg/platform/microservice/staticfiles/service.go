@@ -34,7 +34,7 @@ func NewService(k8sDolittleRepo platform.K8sRepo, k8sClient kubernetes.Interface
 }
 
 func (s *service) GetAll(responseWriter http.ResponseWriter, request *http.Request) {
-	tenantID := request.Header.Get("Tenant-ID")
+	customerID := request.Header.Get("Tenant-ID")
 
 	vars := mux.Vars(request)
 	applicationID := vars["applicationID"]
@@ -44,7 +44,7 @@ func (s *service) GetAll(responseWriter http.ResponseWriter, request *http.Reque
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"service":        "staticFiles",
 		"method":         "GetAll",
-		"tenantID":       tenantID,
+		"customerID":     customerID,
 		"applicationID":  applicationID,
 		"environment":    environment,
 		"microserviceID": microserviceID,
@@ -72,7 +72,7 @@ func (s *service) GetAll(responseWriter http.ResponseWriter, request *http.Reque
 }
 
 func (s *service) Add(responseWriter http.ResponseWriter, request *http.Request) {
-	tenantID := request.Header.Get("Tenant-ID")
+	customerID := request.Header.Get("Tenant-ID")
 
 	vars := mux.Vars(request)
 	applicationID := vars["applicationID"]
@@ -82,7 +82,7 @@ func (s *service) Add(responseWriter http.ResponseWriter, request *http.Request)
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"service":        "staticFiles",
 		"method":         "Add",
-		"tenantID":       tenantID,
+		"customerID":     customerID,
 		"applicationID":  applicationID,
 		"environment":    environment,
 		"microserviceID": microserviceID,
@@ -118,7 +118,7 @@ func (s *service) Add(responseWriter http.ResponseWriter, request *http.Request)
 }
 
 func (s *service) Remove(responseWriter http.ResponseWriter, request *http.Request) {
-	tenantID := request.Header.Get("Tenant-ID")
+	customerID := request.Header.Get("Tenant-ID")
 
 	vars := mux.Vars(request)
 	applicationID := vars["applicationID"]
@@ -128,7 +128,7 @@ func (s *service) Remove(responseWriter http.ResponseWriter, request *http.Reque
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"service":        "staticFiles",
 		"method":         "Remove",
-		"tenantID":       tenantID,
+		"customerID":     customerID,
 		"applicationID":  applicationID,
 		"environment":    environment,
 		"microserviceID": microserviceID,
