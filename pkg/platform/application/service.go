@@ -273,8 +273,9 @@ func (s *service) GetApplications(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := platform.HttpResponseApplications{
-		ID:   tenantID,
-		Name: tenantInfo.Name,
+		ID:           tenantID,
+		Name:         tenantInfo.Name,
+		Applications: make([]platform.ShortInfoWithEnvironment, 0),
 	}
 
 	for _, storedApplication := range storedApplications {
@@ -294,7 +295,6 @@ func (s *service) GetApplications(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	//microservices, err := s.gitRepo.GetMicroservices(tenantID, applicationID)
 	utils.RespondWithJSON(w, http.StatusOK, response)
 }
 
