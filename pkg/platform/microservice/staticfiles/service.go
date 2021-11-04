@@ -2,6 +2,7 @@ package staticfiles
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httputil"
@@ -17,6 +18,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/client-go/kubernetes"
+)
+
+var (
+	ShareSecretNotFound = errors.New("shared-secret-not-found")
 )
 
 type service struct {
@@ -185,6 +190,11 @@ func (s *service) getSharedSecret(applicationID string, environment string, micr
 	ctx := context.TODO()
 	namespace := fmt.Sprintf("application-%s", applicationID)
 	secrets, err := client.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
+
+	if err != nil {
+		return "", err
+	}
+
 	for _, secret := range secrets.Items {
 		annotations := secret.GetAnnotations()
 
@@ -203,8 +213,5 @@ func (s *service) getSharedSecret(applicationID string, environment string, micr
 		return string(secret.Data["HEADER_SECRET"]), nil
 	}
 
-	if err != nil {
-		return "", err
-	}
-	return "", nil
+	return "", ShareSecretNotFound
 }
