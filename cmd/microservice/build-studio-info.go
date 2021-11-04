@@ -55,7 +55,6 @@ var buildStudioInfoCMD = &cobra.Command{
 			panic(err.Error())
 		}
 
-		shouldCommit := viper.GetBool("commit")
 		resetAll := viper.GetBool("all")
 
 		customers := args
@@ -74,14 +73,14 @@ var buildStudioInfoCMD = &cobra.Command{
 		}
 
 		logContext.Infof("Resetting studio configuration for customers: %v", customers)
-		ResetStudioConfigs(gitRepo, customers, shouldCommit, logContext)
+		ResetStudioConfigs(gitRepo, customers, logContext)
 		logContext.Info("Done!")
 	},
 }
 
 // ResetStudioConfigs resets all of the found customers studio.json files to enable automation for all environments
 // and to enable overwriting
-func ResetStudioConfigs(repo storage.Repo, customers []string, shouldCommit bool, logger logrus.FieldLogger) error {
+func ResetStudioConfigs(repo storage.Repo, customers []string, logger logrus.FieldLogger) error {
 	logContext := logger.WithFields(logrus.Fields{
 		"function": "ResetStudioConfigs",
 	})
