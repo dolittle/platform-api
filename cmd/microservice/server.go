@@ -2,7 +2,6 @@ package microservice
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"time"
@@ -77,7 +76,7 @@ var serverCMD = &cobra.Command{
 		k8sRepo := platform.NewK8sRepo(clientset, config)
 
 		gitRepo := gitStorage.NewGitStorage(
-			logrus.WithField("context", "git-repo"),
+			logContext.WithField("context", "git-repo"),
 			gitRepoConfig,
 		)
 
@@ -85,23 +84,23 @@ var serverCMD = &cobra.Command{
 			gitRepo,
 			k8sRepo,
 			clientset,
-			logrus.WithField("context", "microservice-service"),
+			logContext.WithField("context", "microservice-service"),
 		)
 		applicationService := application.NewService(subscriptionID, gitRepo, k8sRepo)
 		tenantService := tenant.NewService()
 		businessMomentsService := businessmoment.NewService(
-			logrus.WithField("context", "business-moments-service"),
+			logContext.WithField("context", "business-moments-service"),
 			gitRepo,
 			k8sRepo,
 			clientset,
 		)
 		insightsService := insights.NewService(
-			logrus.WithField("context", "insights-service"),
+			logContext.WithField("context", "insights-service"),
 			k8sRepo,
 			"query-frontend.system-monitoring-logs.svc.cluster.local:8080",
 		)
 		backupService := backup.NewService(
-			logrus.WithField("context", "backup-service"),
+			logContext.WithField("context", "backup-service"),
 			gitRepo,
 			k8sRepo,
 			clientset,
@@ -110,14 +109,17 @@ var serverCMD = &cobra.Command{
 			gitRepo,
 			k8sRepo,
 			clientset,
-			logrus.WithField("context", "purchase-order-api-service"),
+			logContext.WithField("context", "purchase-order-api-service"),
 		)
-
 		cicdService := cicd.NewService(
-			logrus.WithField("context", "cicd-service"),
+			logContext.WithField("context", "cicd-service"),
 			k8sRepo,
 		)
-		staticFilesService := staticfiles.NewService(k8sRepo, clientset, logrus.WithField("context", "static-files-service"))
+		staticFilesService := staticfiles.NewService(
+			k8sRepo,
+			clientset,
+			logContext.WithField("context", "static-files-service"),
+		)
 
 		c := cors.New(cors.Options{
 			OptionsPassthrough: false,
@@ -318,7 +320,7 @@ var serverCMD = &cobra.Command{
 			ReadTimeout:  15 * time.Second,
 		}
 
-		log.Fatal(srv.ListenAndServe())
+		logContext.Fatal(srv.ListenAndServe())
 	},
 }
 
