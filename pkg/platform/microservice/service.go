@@ -558,7 +558,7 @@ func (s *service) GetSecret(w http.ResponseWriter, r *http.Request) {
 
 	secret, err := s.k8sDolittleRepo.GetSecret(logContext, applicationID, secretName)
 	if err != nil {
-		if err == platform.SecretNotFound {
+		if err == platform.NotFound {
 			utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Secret %s not found in application %s", secretName, applicationID))
 			return
 		}
