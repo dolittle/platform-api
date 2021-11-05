@@ -295,13 +295,6 @@ var serverCMD = &cobra.Command{
 			stdChainBase.ThenFunc(cicdService.GetContainerRegistryCredentials),
 		).Methods(http.MethodGet, http.MethodOptions)
 
-		//router.Handle(
-		//	"/application/{applicationID}/environment/{environment}/staticFiles/{microserviceID}/add",
-		//	stdChainBase.ThenFunc(staticFilesService.Add),
-		//).Methods(http.MethodPost, http.MethodOptions)
-
-		router.PathPrefix("/application/{applicationID}/environment/{environment}/staticFiles/{microserviceID}/add").Handler(stdChainBase.ThenFunc(staticFilesService.Add)).Methods(http.MethodPost, http.MethodOptions)
-
 		// platform.MicroserviceKindStaticFilesV1
 		router.Handle(
 			"/application/{applicationID}/environment/{environment}/staticFiles/{microserviceID}/list",
