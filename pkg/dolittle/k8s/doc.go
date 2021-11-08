@@ -1,7 +1,7 @@
 package k8s
 
 import (
-	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	"github.com/dolittle/platform-api/pkg/platform"
 	networkingv1 "k8s.io/api/networking/v1"
 )
 

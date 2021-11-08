@@ -1,6 +1,6 @@
 package main
 
-import "github.com/dolittle-entropy/platform-api/cmd"
+import "github.com/dolittle/platform-api/cmd"
 
 func main() {
 	cmd.Execute()

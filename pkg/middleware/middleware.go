@@ -5,7 +5,7 @@ import (
 	"mime"
 	"net/http"
 
-	"github.com/dolittle-entropy/platform-api/pkg/utils"
+	"github.com/dolittle/platform-api/pkg/utils"
 )
 
 func LogTenantUser(next http.Handler) http.Handler {

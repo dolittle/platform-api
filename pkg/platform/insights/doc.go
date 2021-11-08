@@ -1,7 +1,7 @@
 package insights
 
 import (
-	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/sirupsen/logrus"
 )
 

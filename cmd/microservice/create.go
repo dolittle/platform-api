@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
+	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/spf13/cobra"
 	networkingv1 "k8s.io/api/networking/v1"
 )

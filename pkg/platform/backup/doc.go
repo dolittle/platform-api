@@ -1,8 +1,8 @@
 package backup
 
 import (
-	"github.com/dolittle-entropy/platform-api/pkg/platform"
-	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
+	"github.com/dolittle/platform-api/pkg/platform"
+	"github.com/dolittle/platform-api/pkg/platform/storage"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 )

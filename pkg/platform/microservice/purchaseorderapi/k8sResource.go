@@ -3,9 +3,9 @@ package purchaseorderapi
 import (
 	"context"
 
-	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
-	"github.com/dolittle-entropy/platform-api/pkg/platform"
-	microserviceK8s "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/k8s"
+	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
+	"github.com/dolittle/platform-api/pkg/platform"
+	microserviceK8s "github.com/dolittle/platform-api/pkg/platform/microservice/k8s"
 	v1 "k8s.io/api/apps/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"

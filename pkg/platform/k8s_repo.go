@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dolittle-entropy/platform-api/pkg/utils"
+	"github.com/dolittle/platform-api/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	v1 "k8s.io/api/apps/v1"

@@ -1,14 +1,14 @@
 package purchaseorderapi_test
 
 import (
-	"github.com/dolittle-entropy/platform-api/pkg/platform"
-	. "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/purchaseorderapi"
+	"github.com/dolittle/platform-api/pkg/platform"
+	. "github.com/dolittle/platform-api/pkg/platform/microservice/purchaseorderapi"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	appsV1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 
-	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
+	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
 )
 
 var _ = Describe("For k8sResourceSpecFactory", func() {

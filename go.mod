@@ -1,4 +1,4 @@
-module github.com/dolittle-entropy/platform-api
+module github.com/dolittle/platform-api
 
 go 1.16
 

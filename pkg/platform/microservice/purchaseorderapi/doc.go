@@ -3,8 +3,8 @@ package purchaseorderapi
 import (
 	"context"
 
-	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
-	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
+	"github.com/dolittle/platform-api/pkg/platform"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 )

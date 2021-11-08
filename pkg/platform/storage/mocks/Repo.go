@@ -3,7 +3,7 @@
 package mocks
 
 import (
-	platform "github.com/dolittle-entropy/platform-api/pkg/platform"
+	platform "github.com/dolittle/platform-api/pkg/platform"
 	mock "github.com/stretchr/testify/mock"
 )
 

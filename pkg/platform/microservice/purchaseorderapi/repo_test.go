@@ -3,9 +3,9 @@ package purchaseorderapi_test
 import (
 	"fmt"
 
-	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
-	"github.com/dolittle-entropy/platform-api/pkg/platform"
-	. "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/purchaseorderapi"
+	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
+	"github.com/dolittle/platform-api/pkg/platform"
+	. "github.com/dolittle/platform-api/pkg/platform/microservice/purchaseorderapi"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/apps/v1"

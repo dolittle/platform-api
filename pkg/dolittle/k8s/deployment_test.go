@@ -7,7 +7,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 
-	. "github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
+	. "github.com/dolittle/platform-api/pkg/dolittle/k8s"
 )
 
 var _ = Describe("Deployment", func() {

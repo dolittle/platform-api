@@ -8,8 +8,8 @@ import (
 	"github.com/sirupsen/logrus"
 	logrusTest "github.com/sirupsen/logrus/hooks/test"
 
-	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
-	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
+	"github.com/dolittle/platform-api/pkg/platform"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
@@ -18,8 +18,8 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/testing"
 
-	. "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/rawdatalog"
-	mocks "github.com/dolittle-entropy/platform-api/pkg/platform/storage/mocks"
+	. "github.com/dolittle/platform-api/pkg/platform/microservice/rawdatalog"
+	mocks "github.com/dolittle/platform-api/pkg/platform/storage/mocks"
 )
 
 var _ = Describe("Repo", func() {
