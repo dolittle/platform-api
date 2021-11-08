@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dolittle-entropy/platform-api/pkg/rawdatalog"
+	"github.com/dolittle/platform-api/pkg/rawdatalog"
 	"github.com/rs/cors"
 
 	"github.com/gorilla/mux"

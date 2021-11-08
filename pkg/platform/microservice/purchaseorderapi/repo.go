@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
-	"github.com/dolittle-entropy/platform-api/pkg/platform"
-	microserviceK8s "github.com/dolittle-entropy/platform-api/pkg/platform/microservice/k8s"
+	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
+	"github.com/dolittle/platform-api/pkg/platform"
+	microserviceK8s "github.com/dolittle/platform-api/pkg/platform/microservice/k8s"
 	"k8s.io/client-go/kubernetes"
 )
 

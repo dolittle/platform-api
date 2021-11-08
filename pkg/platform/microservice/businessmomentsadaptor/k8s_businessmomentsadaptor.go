@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
-	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
+	"github.com/dolittle/platform-api/pkg/platform"
 	coreV1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

@@ -3,7 +3,7 @@ package storage
 import (
 	"errors"
 
-	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	"github.com/dolittle/platform-api/pkg/platform"
 )
 
 // TODO need a better name

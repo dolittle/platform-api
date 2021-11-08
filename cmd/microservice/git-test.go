@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	gitStorage "github.com/dolittle-entropy/platform-api/pkg/platform/storage/git"
+	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

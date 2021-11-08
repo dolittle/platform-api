@@ -6,9 +6,9 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/dolittle-entropy/platform-api/pkg/platform"
-	"github.com/dolittle-entropy/platform-api/pkg/platform/storage"
-	gitStorage "github.com/dolittle-entropy/platform-api/pkg/platform/storage/git"
+	"github.com/dolittle/platform-api/pkg/platform"
+	"github.com/dolittle/platform-api/pkg/platform/storage"
+	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
 	"github.com/itchyny/gojq"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"

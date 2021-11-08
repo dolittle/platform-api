@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	"github.com/dolittle/platform-api/pkg/platform"
 )
 
 var _ = Describe("Application", func() {

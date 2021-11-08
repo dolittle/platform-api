@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dolittle-entropy/platform-api/pkg/platform"
+	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

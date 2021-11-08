@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/dolittle-entropy/platform-api/pkg/dolittle/k8s"
+	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	v1 "k8s.io/api/apps/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"

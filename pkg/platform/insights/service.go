@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dolittle-entropy/platform-api/pkg/platform"
-	"github.com/dolittle-entropy/platform-api/pkg/platform/mongo"
-	"github.com/dolittle-entropy/platform-api/pkg/utils"
+	"github.com/dolittle/platform-api/pkg/platform"
+	"github.com/dolittle/platform-api/pkg/platform/mongo"
+	"github.com/dolittle/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )

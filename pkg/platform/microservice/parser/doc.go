@@ -1,8 +1,8 @@
 package parser
 
 import (
-	"github.com/dolittle-entropy/platform-api/pkg/platform"
-	"github.com/dolittle-entropy/platform-api/pkg/platform/microservice/k8s"
+	"github.com/dolittle/platform-api/pkg/platform"
+	"github.com/dolittle/platform-api/pkg/platform/microservice/k8s"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
