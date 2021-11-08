@@ -1,3 +1,9 @@
+# [1.3.1] - 2021-11-8 [PR: #53](https://github.com/dolittle/platform-api/pull/53)
+## Summary
+
+Change from github.com/dolittle-entropy/platform-api to github.com/dolittle/platform-api.
+
+
 # [1.3.0] - 2021-11-4 [PR: #50](https://github.com/dolittle/platform-api/pull/50)
 ## Summary
 
