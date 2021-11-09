@@ -226,6 +226,11 @@ var serverCMD = &cobra.Command{
 		).Methods(http.MethodGet, http.MethodOptions)
 
 		router.Handle(
+			"/application/{applicationID}/what-can-i-see",
+			stdChainWithJSON.ThenFunc(applicationService.WhatCanISee),
+		).Methods(http.MethodGet, http.MethodOptions)
+
+		router.Handle(
 			"/application/{applicationID}/environment/{environment}/microservice/{microserviceID}",
 			stdChainWithJSON.ThenFunc(microserviceService.GetByID),
 		).Methods(http.MethodGet, http.MethodOptions)
