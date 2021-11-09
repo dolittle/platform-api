@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/dolittle/platform-api/cmd/microservice"
 	"github.com/dolittle/platform-api/cmd/rawdatalog"
+	"github.com/dolittle/platform-api/cmd/staticfiles"
 	"github.com/dolittle/platform-api/cmd/tools"
 	"github.com/spf13/cobra"
 
@@ -24,4 +25,5 @@ func init() {
 	rootCmd.AddCommand(microservice.RootCmd)
 	rootCmd.AddCommand(rawdatalog.RootCmd)
 	rootCmd.AddCommand(tools.RootCmd)
+	rootCmd.AddCommand(staticfiles.RootCmd)
 }

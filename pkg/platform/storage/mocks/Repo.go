@@ -256,20 +256,6 @@ func (_m *Repo) SaveApplication(application platform.HttpResponseApplication) er
 	return r0
 }
 
-// SaveApplicationAndCommit provides a mock function with given fields: application
-func (_m *Repo) SaveApplicationAndCommit(application platform.HttpResponseApplication) error {
-	ret := _m.Called(application)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(platform.HttpResponseApplication) error); ok {
-		r0 = rf(application)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
 // SaveBusinessMoment provides a mock function with given fields: tenantID, input
 func (_m *Repo) SaveBusinessMoment(tenantID string, input platform.HttpInputBusinessMoment) error {
 	ret := _m.Called(tenantID, input)
@@ -314,20 +300,6 @@ func (_m *Repo) SaveMicroservice(tenantID string, applicationID string, environm
 
 // SaveStudioConfig provides a mock function with given fields: tenantID, config
 func (_m *Repo) SaveStudioConfig(tenantID string, config platform.StudioConfig) error {
-	ret := _m.Called(tenantID, config)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(string, platform.StudioConfig) error); ok {
-		r0 = rf(tenantID, config)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// SaveStudioConfigAndCommit provides a mock function with given fields: tenantID, config
-func (_m *Repo) SaveStudioConfigAndCommit(tenantID string, config platform.StudioConfig) error {
 	ret := _m.Called(tenantID, config)
 
 	var r0 error

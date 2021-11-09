@@ -138,6 +138,7 @@ const (
 	MicroserviceKindBusinessMomentsAdaptor MicroserviceKind = "business-moments-adaptor"
 	MicroserviceKindRawDataLogIngestor     MicroserviceKind = "raw-data-log-ingestor"
 	MicroserviceKindPurchaseOrderAPI       MicroserviceKind = "purchase-order-api" // TODO purchase-order-api VS purchase-order
+	MicroserviceKindStaticFilesV1          MicroserviceKind = "static-files-v1"
 )
 
 type HttpInputMicroserviceKind struct {
