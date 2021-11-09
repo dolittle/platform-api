@@ -28,8 +28,9 @@ type MicroserviceResourceStore struct {
 	Database string   `json:"database"`
 }
 type MicroserviceEndpoints struct {
-	Public  MicroserviceEndpointPort `json:"public"`
-	Private MicroserviceEndpointPort `json:"private"`
+	Public     MicroserviceEndpointPort `json:"public"`
+	Private    MicroserviceEndpointPort `json:"private"`
+	Management MicroserviceEndpointPort `json:"management"`
 }
 type MicroserviceEndpointPort struct {
 	Port int `json:"port"`
@@ -161,6 +162,9 @@ func NewMicroserviceConfigmap(microservice Microservice, customersTenantID strin
 		Private: MicroserviceEndpointPort{
 			Port: 50053,
 		},
+		Management: MicroserviceEndpointPort{
+			Port: 51052,
+		},
 	}
 
 	appsettings := Appsettings{
@@ -195,7 +199,6 @@ func NewMicroserviceConfigmap(microservice Microservice, customersTenantID strin
 	b, _ = json.MarshalIndent(emptyObject{}, "", "  ")
 	microservicesJSON := string(b)
 
-	// TODO the json objects are ugly :)
 	return &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "v1",
