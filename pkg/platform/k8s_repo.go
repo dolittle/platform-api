@@ -32,10 +32,15 @@ type K8sRepo struct {
 }
 
 func NewK8sRepo(k8sClient kubernetes.Interface, config *rest.Config) K8sRepo {
+
 	return K8sRepo{
 		baseConfig: config,
 		k8sClient:  k8sClient,
 	}
+}
+
+func (r *K8sRepo) GetClusterEndpoint() string {
+	return r.baseConfig.Host
 }
 
 //annotations:
