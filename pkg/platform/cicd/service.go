@@ -23,9 +23,9 @@ func NewService(logContext logrus.FieldLogger, k8sDolittleRepo platform.K8sRepo)
 	return s
 }
 
-func (s *service) GetAzureDevops(w http.ResponseWriter, r *http.Request) {
+func (s *service) GetDevops(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	vars["name"] = "azure-devops"
+	vars["name"] = "devops"
 	mux.SetURLVars(r, vars)
 	s.getServiceAccountCredentials(w, r)
 }

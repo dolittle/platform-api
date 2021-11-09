@@ -283,8 +283,8 @@ var serverCMD = &cobra.Command{
 		).Methods(http.MethodGet, http.MethodOptions)
 
 		router.Handle(
-			"/application/{applicationID}/cicd/credentials/service-account/azure-devops",
-			stdChainBase.ThenFunc(cicdService.GetAzureDevops),
+			"/application/{applicationID}/cicd/credentials/service-account/devops",
+			stdChainBase.ThenFunc(cicdService.GetDevops),
 		).Methods(http.MethodGet, http.MethodOptions)
 
 		router.Handle(
