@@ -1,4 +1,4 @@
-package platform_test
+package rawdatalog_test
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestPlatform(t *testing.T) {
+func TestSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Platform Suite")
+	RunSpecs(t, "Rawdatalog Suite")
 }
