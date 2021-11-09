@@ -96,7 +96,7 @@ var serverCMD = &cobra.Command{
 		)
 		applicationService := application.NewService(
 			subscriptionID,
-			clusterHostForDocs,
+			externalClusterHost,
 			gitRepo,
 			k8sRepo,
 		)
