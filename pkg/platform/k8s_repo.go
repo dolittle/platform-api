@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	SecretNotFound = errors.New("secret-not-found")
+	NotFound = errors.New("not-found")
 )
 
 type K8sRepo struct {
@@ -32,10 +32,15 @@ type K8sRepo struct {
 }
 
 func NewK8sRepo(k8sClient kubernetes.Interface, config *rest.Config) K8sRepo {
+
 	return K8sRepo{
 		baseConfig: config,
 		k8sClient:  k8sClient,
 	}
+}
+
+func (r *K8sRepo) GetClusterEndpoint() string {
+	return r.baseConfig.Host
 }
 
 //annotations:
@@ -430,9 +435,33 @@ func (r *K8sRepo) GetSecret(logContext logrus.FieldLogger, applicationID string,
 			"secretName": name,
 		}).Error("secret not found")
 
-		return secret, SecretNotFound
+		return secret, NotFound
 	}
 	return secret, nil
+}
+
+func (r *K8sRepo) GetServiceAccount(logContext logrus.FieldLogger, applicationID string, name string) (*coreV1.ServiceAccount, error) {
+	client := r.k8sClient
+	ctx := context.TODO()
+	namespace := fmt.Sprintf("application-%s", applicationID)
+	serviceAccount, err := client.CoreV1().ServiceAccounts(namespace).Get(ctx, name, metaV1.GetOptions{})
+	if err != nil {
+		if !k8serrors.IsNotFound(err) {
+			logContext.WithFields(logrus.Fields{
+				"error": err,
+				"name":  name,
+			}).Error("issue talking to cluster")
+			return serviceAccount, err
+		}
+
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+			"name":  name,
+		}).Error("service account not found")
+
+		return serviceAccount, NotFound
+	}
+	return serviceAccount, nil
 }
 
 // CanModifyApplication confirm user is in the tenant and application
