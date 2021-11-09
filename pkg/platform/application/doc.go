@@ -6,7 +6,8 @@ import (
 )
 
 type service struct {
-	subscriptionID  string
-	gitRepo         storage.Repo
-	k8sDolittleRepo platform.K8sRepo
+	subscriptionID      string
+	externalClusterHost string
+	gitRepo             storage.Repo
+	k8sDolittleRepo     platform.K8sRepo
 }

@@ -43,10 +43,13 @@ var serverCMD = &cobra.Command{
 		for _, key := range viper.AllKeys() {
 			viper.Set(key, viper.Get(key))
 		}
+
 		kubeconfig := viper.GetString("tools.server.kubeConfig")
-		// TODO hoist localhost into viper
+
+		getExternalClusterHostFromEnv := false
 		if kubeconfig == "incluster" {
 			kubeconfig = ""
+			getExternalClusterHostFromEnv = true
 		}
 
 		config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
@@ -57,6 +60,11 @@ var serverCMD = &cobra.Command{
 		listenOn := viper.GetString("tools.server.listenOn")
 		sharedSecret := viper.GetString("tools.server.secret")
 		subscriptionID := viper.GetString("tools.server.azure.subscriptionId")
+
+		externalClusterHost := config.Host
+		if getExternalClusterHostFromEnv {
+			externalClusterHost = viper.GetString("tools.server.kubernetes.externalClusterHost")
+		}
 
 		// create the clientset
 		clientset, err := kubernetes.NewForConfig(config)
@@ -86,7 +94,12 @@ var serverCMD = &cobra.Command{
 			clientset,
 			logrus.WithField("context", "microservice-service"),
 		)
-		applicationService := application.NewService(subscriptionID, gitRepo, k8sRepo)
+		applicationService := application.NewService(
+			subscriptionID,
+			clusterHostForDocs,
+			gitRepo,
+			k8sRepo,
+		)
 		tenantService := tenant.NewService()
 		businessMomentsService := businessmoment.NewService(
 			logrus.WithField("context", "business-moments-service"),
@@ -309,8 +322,10 @@ func init() {
 	viper.SetDefault("tools.server.secret", "change")
 	viper.SetDefault("tools.server.listenOn", "localhost:8080")
 	viper.SetDefault("tools.server.azure.subscriptionId", "")
+	viper.SetDefault("tools.server.kubernetes.externalClusterHost", "https://cluster-production-three-dns-cf4a27a3.hcp.westeurope.azmk8s.io:443")
 
 	viper.BindEnv("tools.server.secret", "HEADER_SECRET")
 	viper.BindEnv("tools.server.listenOn", "LISTEN_ON")
 	viper.BindEnv("tools.server.azure.subscriptionId", "AZURE_SUBSCRIPTION_ID")
+	viper.BindEnv("tools.server.kubernetes.externalClusterHost", "AZURE_EXTERNAL_CLUSTER_HOST")
 }
