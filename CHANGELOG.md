@@ -1,3 +1,9 @@
+# [1.3.2] - 2021-11-9 [PR: #52](https://github.com/dolittle/platform-api/pull/52)
+## Summary
+- Specific endpoint for devops to not expose all service accounts.
+- Lookup service account to find the secret name.
+
+
 # [1.3.1] - 2021-11-8 [PR: #53](https://github.com/dolittle/platform-api/pull/53)
 ## Summary
 
