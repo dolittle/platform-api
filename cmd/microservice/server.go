@@ -331,15 +331,11 @@ func getKubeRestConfig(kubeconfig string) (*rest.Config, error) {
 	if kubeconfig == "incluster" {
 		kubeconfig = ""
 	}
-
 	return clientcmd.BuildConfigFromFlags("", kubeconfig)
 }
 
+// getExternalClusterHost Return externalHost if set, otherwise fall back to the internalHost
 func getExternalClusterHost(externalHost string, internalHost string) string {
-	fmt.Println("externalHost", externalHost)
-	fmt.Println("internalHost", internalHost)
-	fmt.Println("defaultExternalClusterHost", defaultExternalClusterHost)
-
 	if externalHost != defaultExternalClusterHost {
 		return externalHost
 	}
