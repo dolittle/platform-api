@@ -1,3 +1,6 @@
 customers.json
 main
 platform-api
+
+# Ignore test output
+profile.cov

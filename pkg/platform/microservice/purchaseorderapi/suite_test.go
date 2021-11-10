@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestMicroservice(t *testing.T) {
+func TestSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "PurchaseOrderAPI Suite")
+	RunSpecs(t, "Platform/Microservice/PurchaseOrderApi Suite")
 }
