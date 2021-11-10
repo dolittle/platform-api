@@ -526,6 +526,13 @@ func (r *K8sRepo) AddServiceAccountToRoleBinding(logger logrus.FieldLogger, appl
 		return k8sRoleBinding, err
 	}
 
+	for _, subject := range k8sRoleBinding.Subjects {
+		// if the serviceaccount already exists in the rolebinding we don't need to update
+		if subject.Name == serviceaccount {
+			return k8sRoleBinding, nil
+		}
+	}
+
 	k8sRoleBinding.Subjects = append(k8sRoleBinding.Subjects, rbacv1.Subject{
 		Kind:      "ServiceAccount",
 		Name:      serviceaccount,

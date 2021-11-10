@@ -17,6 +17,11 @@ import (
 var createServiceAccountCMD = &cobra.Command{
 	Use:   "create-service-account",
 	Short: "Create a k8s devops service account for an application",
+	Long: `
+	Attempts to create a "devops" serviceaccount for the application and adds it to the already existing "developer" rolebinding.
+
+	go run main.go microservice create-service-account --all
+	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
 		logrus.SetOutput(os.Stdout)
@@ -58,7 +63,7 @@ var createServiceAccountCMD = &cobra.Command{
 					panic(err.Error())
 				}
 			}
-			logContext.Info("Created %v service accounts", len(applications))
+			logContext.Infof("Created %v service accounts", len(applications))
 			return
 		}
 
@@ -81,6 +86,7 @@ var createServiceAccountCMD = &cobra.Command{
 		if err != nil {
 			panic(err.Error())
 		}
+		logContext.Infof("Created 'devops' serviceaccount for application %s", applicationID)
 	},
 }
 
@@ -114,6 +120,8 @@ func addServiceAccount(logger logrus.FieldLogger, k8sRepo platform.K8sRepo, cust
 }
 
 func init() {
+	RootCmd.AddCommand(createServiceAccountCMD)
+
 	createServiceAccountCMD.Flags().Bool("all", false, "Creates a devops serviceaccount for all customers")
 	viper.BindPFlag("all", createServiceAccountCMD.Flags().Lookup("all"))
 }
