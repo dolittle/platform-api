@@ -16,11 +16,12 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
-func NewService(subscriptionID string, gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo) service {
+func NewService(subscriptionID string, externalClusterHost string, gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo) service {
 	return service{
-		subscriptionID:  subscriptionID,
-		gitRepo:         gitRepo,
-		k8sDolittleRepo: k8sDolittleRepo,
+		subscriptionID:      subscriptionID,
+		externalClusterHost: externalClusterHost,
+		gitRepo:             gitRepo,
+		k8sDolittleRepo:     k8sDolittleRepo,
 	}
 }
 
@@ -315,7 +316,7 @@ func (s *service) GetPersonalisedInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	clusterEndpoint := s.k8sDolittleRepo.GetClusterEndpoint()
+	clusterEndpoint := s.externalClusterHost
 	utils.RespondWithJSON(w, http.StatusOK, map[string]interface{}{
 		"customer":       terraformCustomer,
 		"application":    terraformApplication,

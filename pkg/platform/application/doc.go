@@ -6,7 +6,9 @@ import (
 )
 
 type service struct {
-	subscriptionID  string
-	gitRepo         storage.Repo
-	k8sDolittleRepo platform.K8sRepo
+	subscriptionID string
+	// externalClusterHost used to signify the full url to the apiserver outside of the cluster
+	externalClusterHost string
+	gitRepo             storage.Repo
+	k8sDolittleRepo     platform.K8sRepo
 }

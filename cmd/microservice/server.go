@@ -26,7 +26,12 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+)
+
+const (
+	defaultExternalClusterHost = "externalClusterHost"
 )
 
 var serverCMD = &cobra.Command{
@@ -43,26 +48,26 @@ var serverCMD = &cobra.Command{
 		for _, key := range viper.AllKeys() {
 			viper.Set(key, viper.Get(key))
 		}
-		kubeconfig := viper.GetString("tools.server.kubeConfig")
-		// TODO hoist localhost into viper
-		if kubeconfig == "incluster" {
-			kubeconfig = ""
-		}
 
-		config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+		config, err := getKubeRestConfig(viper.GetString("tools.server.kubeConfig"))
 		if err != nil {
 			panic(err.Error())
 		}
-
-		listenOn := viper.GetString("tools.server.listenOn")
-		sharedSecret := viper.GetString("tools.server.secret")
-		subscriptionID := viper.GetString("tools.server.azure.subscriptionId")
 
 		// create the clientset
 		clientset, err := kubernetes.NewForConfig(config)
 		if err != nil {
 			panic(err.Error())
 		}
+
+		externalClusterHost := getExternalClusterHost(
+			viper.GetString("tools.server.kubernetes.externalClusterHost"),
+			config.Host,
+		)
+
+		listenOn := viper.GetString("tools.server.listenOn")
+		sharedSecret := viper.GetString("tools.server.secret")
+		subscriptionID := viper.GetString("tools.server.azure.subscriptionId")
 
 		// Hide secret
 		serverSettings := viper.Get("tools.server").(map[string]interface{})
@@ -86,7 +91,12 @@ var serverCMD = &cobra.Command{
 			clientset,
 			logrus.WithField("context", "microservice-service"),
 		)
-		applicationService := application.NewService(subscriptionID, gitRepo, k8sRepo)
+		applicationService := application.NewService(
+			subscriptionID,
+			externalClusterHost,
+			gitRepo,
+			k8sRepo,
+		)
 		tenantService := tenant.NewService()
 		businessMomentsService := businessmoment.NewService(
 			logrus.WithField("context", "business-moments-service"),
@@ -309,8 +319,25 @@ func init() {
 	viper.SetDefault("tools.server.secret", "change")
 	viper.SetDefault("tools.server.listenOn", "localhost:8080")
 	viper.SetDefault("tools.server.azure.subscriptionId", "")
+	viper.SetDefault("tools.server.kubernetes.externalClusterHost", defaultExternalClusterHost)
 
 	viper.BindEnv("tools.server.secret", "HEADER_SECRET")
 	viper.BindEnv("tools.server.listenOn", "LISTEN_ON")
 	viper.BindEnv("tools.server.azure.subscriptionId", "AZURE_SUBSCRIPTION_ID")
+	viper.BindEnv("tools.server.kubernetes.externalClusterHost", "AZURE_EXTERNAL_CLUSTER_HOST")
+}
+
+func getKubeRestConfig(kubeconfig string) (*rest.Config, error) {
+	if kubeconfig == "incluster" {
+		kubeconfig = ""
+	}
+	return clientcmd.BuildConfigFromFlags("", kubeconfig)
+}
+
+// getExternalClusterHost Return externalHost if set, otherwise fall back to the internalHost
+func getExternalClusterHost(externalHost string, internalHost string) string {
+	if externalHost != defaultExternalClusterHost {
+		return externalHost
+	}
+	return internalHost
 }
