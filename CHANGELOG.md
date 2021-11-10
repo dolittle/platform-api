@@ -1,3 +1,11 @@
+# [1.3.4] - 2021-11-10 [PR: #55](https://github.com/dolittle/platform-api/pull/55)
+## Summary
+
+- Added a makefile to make it easier to test the project
+- Included more code paths into the tests
+- Show total test coverage via "make test".
+
+
 # [1.3.3] - 2021-11-10 [PR: #54](https://github.com/dolittle/platform-api/pull/54)
 ## Summary
 
