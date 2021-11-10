@@ -316,7 +316,7 @@ func (s *service) GetPersonalisedInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	clusterEndpoint := s.k8sDolittleRepo.GetClusterEndpoint()
+	clusterEndpoint := s.externalClusterHost
 	utils.RespondWithJSON(w, http.StatusOK, map[string]interface{}{
 		"customer":       terraformCustomer,
 		"application":    terraformApplication,

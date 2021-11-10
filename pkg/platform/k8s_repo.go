@@ -39,10 +39,6 @@ func NewK8sRepo(k8sClient kubernetes.Interface, config *rest.Config) K8sRepo {
 	}
 }
 
-func (r *K8sRepo) GetClusterEndpoint() string {
-	return r.baseConfig.Host
-}
-
 //annotations:
 //    dolittle.io/tenant-id: 388c0cc7-24b2-46a7-8735-b583ce21e01b
 //    dolittle.io/application-id: c52e450e-4877-47bf-a584-7874c205e2b9
