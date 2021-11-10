@@ -1,3 +1,9 @@
+# [1.3.3] - 2021-11-10 [PR: #54](https://github.com/dolittle/platform-api/pull/54)
+## Summary
+
+- Adding management port to endpoints.json
+
+
 # [1.3.2] - 2021-11-9 [PR: #52](https://github.com/dolittle/platform-api/pull/52)
 ## Summary
 - Specific endpoint for devops to not expose all service accounts.
