@@ -1,3 +1,9 @@
+# [1.3.5] - 2021-11-10 [PR: #57](https://github.com/dolittle/platform-api/pull/57)
+## Summary
+
+- Make the platform-api aware of the external host of the cluster for environment variable
+
+
 # [1.3.4] - 2021-11-10 [PR: #55](https://github.com/dolittle/platform-api/pull/55)
 ## Summary
 
