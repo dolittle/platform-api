@@ -509,7 +509,7 @@ func (r *K8sRepo) CreateServiceAccount(logger logrus.FieldLogger, customerID str
 	return newAccount, nil
 }
 
-func (r *K8sRepo) AddServiceAccountToRoleBinding(logger logrus.FieldLogger, applicationID string, roleBinding string, serviceaccount string) (*rbacv1.RoleBinding, error) {
+func (r *K8sRepo) AddServiceAccountToRoleBinding(logger logrus.FieldLogger, applicationID string, roleBinding string, serviceAccount string) (*rbacv1.RoleBinding, error) {
 	client := r.k8sClient
 	ctx := context.TODO()
 	namespace := fmt.Sprintf("application-%s", applicationID)
@@ -528,14 +528,14 @@ func (r *K8sRepo) AddServiceAccountToRoleBinding(logger logrus.FieldLogger, appl
 
 	for _, subject := range k8sRoleBinding.Subjects {
 		// if the serviceaccount already exists in the rolebinding we don't need to update
-		if subject.Name == serviceaccount {
+		if subject.Name == serviceAccount {
 			return k8sRoleBinding, nil
 		}
 	}
 
 	k8sRoleBinding.Subjects = append(k8sRoleBinding.Subjects, rbacv1.Subject{
 		Kind:      "ServiceAccount",
-		Name:      serviceaccount,
+		Name:      serviceAccount,
 		Namespace: namespace,
 	})
 
@@ -543,7 +543,7 @@ func (r *K8sRepo) AddServiceAccountToRoleBinding(logger logrus.FieldLogger, appl
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error":          err,
-			"serviceaccount": serviceaccount,
+			"serviceAccount": serviceAccount,
 		}).Error("couldn't update the rolebinding with the serviceaccount")
 		return updatedRoleBinding, err
 	}
