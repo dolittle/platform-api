@@ -1,3 +1,9 @@
+# [1.4.0] - 2021-11-11 [PR: #58](https://github.com/dolittle/platform-api/pull/58)
+## Summary
+
+Adds the new  `create-service-account` command, which creates a  service account called `devops` and adds it to the `developer` role binding
+
+
 # [1.3.5] - 2021-11-10 [PR: #57](https://github.com/dolittle/platform-api/pull/57)
 ## Summary
 
