@@ -53,40 +53,50 @@ var createServiceAccountCMD = &cobra.Command{
 			logContext.Fatal("Specify either the APPLICATIONID or the '--all' flag")
 		}
 
+		addedAccounts := 0
+
 		if createAll {
-			logContext.Info("Creating a devops service account for all applications")
+			logContext.Info("Adding a devops service account for all applications")
 			applications := extractApplications(ctx, client)
 
 			for _, application := range applications {
 				err := addServiceAccount(logContext, k8sRepo, application.TenantID, application.TenantName, application.ID, application.Name)
 				if err != nil {
+					if err != platform.AlreadyExists {
+						panic(err.Error())
+					}
+					logContext.Infof("Application '%s' already had the service account or rolebinding, skipping", application.ID)
+					// the account already existed or it already had a rolebinding so don't increment
+					continue
+				}
+				addedAccounts++
+			}
+			logContext.Infof("Added %v service accounts", addedAccounts)
+		} else {
+			if len(args) < 1 {
+				logContext.Fatal("Specify the APPLICATIONID or the '--all' flag")
+			}
+
+			applicationID := args[0]
+
+			namespace := fmt.Sprintf("application-%s", applicationID)
+			k8sNamespace, err := client.CoreV1().Namespaces().Get(ctx, namespace, v1.GetOptions{})
+			if err != nil {
+				logContext.Fatalf("Couldn't find the specified namespace: %s", namespace)
+			}
+
+			customerID := k8sNamespace.Annotations["dolittle.io/tenant-id"]
+			customerName := k8sNamespace.Labels["tenant"]
+			applicationName := k8sNamespace.Labels["application"]
+			err = addServiceAccount(logContext, k8sRepo, customerID, customerName, applicationID, applicationName)
+			if err != nil {
+				if err != platform.AlreadyExists {
 					panic(err.Error())
 				}
+				logContext.Infof("Application '%s' already had the service account or rolebinding, skipping", applicationID)
 			}
-			logContext.Infof("Created %v service accounts", len(applications))
-			return
 		}
-
-		if len(args) < 1 {
-			logContext.Fatal("Specify the APPLICATIONID or the '--all' flag")
-		}
-
-		applicationID := args[0]
-
-		namespace := fmt.Sprintf("application-%s", applicationID)
-		k8sNamespace, err := client.CoreV1().Namespaces().Get(ctx, namespace, v1.GetOptions{})
-		if err != nil {
-			logContext.Fatalf("Couldn't find the specified namespace: %s", namespace)
-		}
-
-		customerID := k8sNamespace.Annotations["dolittle.io/tenant-id"]
-		customerName := k8sNamespace.Labels["tenant"]
-		applicationName := k8sNamespace.Labels["application"]
-		addServiceAccount(logContext, k8sRepo, customerID, customerName, applicationID, applicationName)
-		if err != nil {
-			panic(err.Error())
-		}
-		logContext.Infof("Created 'devops' serviceaccount for application %s", applicationID)
+		logContext.Info("Finished!")
 	},
 }
 
@@ -102,19 +112,25 @@ func addServiceAccount(logger logrus.FieldLogger, k8sRepo platform.K8sRepo, cust
 	_, err := k8sRepo.CreateServiceAccount(logContext, customerID, customerName, applicationID, applicationName, serviceAccount)
 
 	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err,
-		}).Error("failed to create the devops serviceaccount")
+		if err != platform.AlreadyExists {
+			logger.WithFields(logrus.Fields{
+				"error": err,
+			}).Error("failed to create the devops serviceaccount")
+		}
 		return err
 	}
 
 	_, err = k8sRepo.AddServiceAccountToRoleBinding(logContext, applicationID, "developer", serviceAccount)
 	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err,
-		}).Error("failed to add the service account to the rolebinding")
+		if err != platform.AlreadyExists {
+			logger.WithFields(logrus.Fields{
+				"error": err,
+			}).Error("failed to add the service account to the rolebinding")
+		}
 		return err
 	}
+
+	logContext.Infof("Added a service account for application %s", applicationID)
 
 	return nil
 }
@@ -122,6 +138,6 @@ func addServiceAccount(logger logrus.FieldLogger, k8sRepo platform.K8sRepo, cust
 func init() {
 	RootCmd.AddCommand(createServiceAccountCMD)
 
-	createServiceAccountCMD.Flags().Bool("all", false, "Creates a devops serviceaccount for all customers")
+	createServiceAccountCMD.Flags().Bool("all", false, "Add a devops serviceaccount for all customers")
 	viper.BindPFlag("all", createServiceAccountCMD.Flags().Lookup("all"))
 }

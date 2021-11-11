@@ -24,7 +24,8 @@ import (
 )
 
 var (
-	NotFound = errors.New("not-found")
+	NotFound      = errors.New("not-found")
+	AlreadyExists = errors.New("already-exists")
 )
 
 type K8sRepo struct {
@@ -503,7 +504,7 @@ func (r *K8sRepo) CreateServiceAccount(logger logrus.FieldLogger, customerID str
 			"error": err,
 		}).Debug("service account already exists")
 
-		return newAccount, nil
+		return newAccount, AlreadyExists
 	}
 	return newAccount, nil
 }
@@ -528,7 +529,7 @@ func (r *K8sRepo) AddServiceAccountToRoleBinding(logger logrus.FieldLogger, appl
 	for _, subject := range k8sRoleBinding.Subjects {
 		// if the serviceaccount already exists in the rolebinding we don't need to update
 		if subject.Name == serviceAccount {
-			return k8sRoleBinding, nil
+			return k8sRoleBinding, AlreadyExists
 		}
 	}
 
