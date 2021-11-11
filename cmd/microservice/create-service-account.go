@@ -102,28 +102,52 @@ var createServiceAccountCMD = &cobra.Command{
 
 func addServiceAccount(logger logrus.FieldLogger, k8sRepo platform.K8sRepo, customerID string, customerName string, applicationID string, applicationName string) error {
 	serviceAccount := "devops"
+	roleBinding := "devops"
 	logContext := logger.WithFields(logrus.Fields{
 		"customerID":     customerID,
 		"applicationID":  applicationID,
 		"serviceAccount": serviceAccount,
-		"method":         "createServiceAccount",
+		"roleBinding":    roleBinding,
+		"function":       "createServiceAccount",
 	})
 
-	_, err := k8sRepo.CreateServiceAccount(logContext, customerID, customerName, applicationID, applicationName, serviceAccount)
+	_, err := k8sRepo.CreateServiceAccount(logContext,
+		customerID,
+		customerName,
+		applicationID,
+		applicationName,
+		serviceAccount,
+	)
 
 	if err != nil {
 		if err != platform.AlreadyExists {
-			logger.WithFields(logrus.Fields{
+			logContext.WithFields(logrus.Fields{
 				"error": err,
 			}).Error("failed to create the devops serviceaccount")
 		}
 		return err
 	}
 
-	_, err = k8sRepo.AddServiceAccountToRoleBinding(logContext, applicationID, "developer", serviceAccount)
+	_, err = k8sRepo.CreateRoleBinding(
+		logContext,
+		customerID,
+		customerName,
+		applicationID,
+		applicationName,
+		roleBinding,
+		"developer",
+	)
+	if err != nil && err != platform.AlreadyExists {
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("failed to create the rolebinding")
+		return err
+	}
+
+	_, err = k8sRepo.AddServiceAccountToRoleBinding(logContext, applicationID, roleBinding, serviceAccount)
 	if err != nil {
 		if err != platform.AlreadyExists {
-			logger.WithFields(logrus.Fields{
+			logContext.WithFields(logrus.Fields{
 				"error": err,
 			}).Error("failed to add the service account to the rolebinding")
 		}

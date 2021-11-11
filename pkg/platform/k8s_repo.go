@@ -473,14 +473,7 @@ func (r *K8sRepo) CreateServiceAccount(logger logrus.FieldLogger, customerID str
 		"serviceAccount": serviceAccountName,
 		"method":         "CreateServiceAccount",
 	})
-	annotations := map[string]string{
-		"dolittle.io/tenant-id":      customerID,
-		"dolittle.io/applciation-id": applicationID,
-	}
-	labels := map[string]string{
-		"tenant":      customerName,
-		"application": applicationName,
-	}
+	annotations, labels := r.createAnnotationsAndLabels(customerID, customerName, applicationID, applicationName)
 
 	serviceAccount := corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
@@ -551,6 +544,53 @@ func (r *K8sRepo) AddServiceAccountToRoleBinding(logger logrus.FieldLogger, appl
 	return updatedRoleBinding, err
 }
 
+// CreateRoleBinding creates a RoleBinding with the given name for the specified Role with empty Subjects
+func (r *K8sRepo) CreateRoleBinding(logger logrus.FieldLogger, customerID, customerName, applicationID, applicationName, roleBinding, role string) (*rbacv1.RoleBinding, error) {
+	client := r.k8sClient
+	ctx := context.TODO()
+	namespace := fmt.Sprintf("application-%s", applicationID)
+	logContext := logger.WithFields(logrus.Fields{
+		"namespace":     namespace,
+		"rolebinding":   roleBinding,
+		"role":          role,
+		"customerID":    customerID,
+		"applicationID": applicationID,
+		"method":        "CreateRoleBinding",
+	})
+
+	annotations, labels := r.createAnnotationsAndLabels(customerID, customerName, applicationID, applicationName)
+
+	k8sRolebinding := rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        roleBinding,
+			Namespace:   namespace,
+			Annotations: annotations,
+			Labels:      labels,
+		},
+		RoleRef: rbacv1.RoleRef{
+			Kind:     "Role",
+			Name:     role,
+			APIGroup: "rbac.authorization.k8s.io",
+		},
+	}
+
+	createdRoleBinding, err := client.RbacV1().RoleBindings(namespace).Create(ctx, &k8sRolebinding, metav1.CreateOptions{})
+	if err != nil {
+		if !k8serrors.IsAlreadyExists(err) {
+			logContext.WithFields(logrus.Fields{
+				"error": err,
+			}).Error("issue talking to cluster")
+			return createdRoleBinding, err
+		}
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Debug("RoleBinding already exists")
+		return createdRoleBinding, AlreadyExists
+	}
+
+	return createdRoleBinding, nil
+}
+
 // CanModifyApplication confirm user is in the tenant and application
 // Only works when we can use the namespace
 func (r *K8sRepo) CanModifyApplication(tenantID string, applicationID string, userID string) (bool, error) {
@@ -600,4 +640,16 @@ func (r *K8sRepo) CanModifyApplicationWithResourceAttributes(tenantID string, ap
 
 func (r *K8sRepo) GetRestConfig() *rest.Config {
 	return rest.CopyConfig(r.baseConfig)
+}
+
+func (r *K8sRepo) createAnnotationsAndLabels(customerID, customerName, applicationID, applicationName string) (map[string]string, map[string]string) {
+	annotations := map[string]string{
+		"dolittle.io/tenant-id":      customerID,
+		"dolittle.io/application-id": applicationID,
+	}
+	labels := map[string]string{
+		"tenant":      customerName,
+		"application": applicationName,
+	}
+	return annotations, labels
 }
