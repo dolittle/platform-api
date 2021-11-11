@@ -14,16 +14,18 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	v1 "k8s.io/api/apps/v1"
-	authV1 "k8s.io/api/authorization/v1"
-	coreV1 "k8s.io/api/core/v1"
+	authv1 "k8s.io/api/authorization/v1"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
 var (
-	NotFound = errors.New("not-found")
+	NotFound      = errors.New("not-found")
+	AlreadyExists = errors.New("already-exists")
 )
 
 type K8sRepo struct {
@@ -48,7 +50,7 @@ func NewK8sRepo(k8sClient kubernetes.Interface, config *rest.Config) K8sRepo {
 
 func (r *K8sRepo) GetIngress(applicationID string) (string, error) {
 	ctx := context.TODO()
-	opts := metaV1.ListOptions{
+	opts := metav1.ListOptions{
 		LabelSelector: "",
 	}
 
@@ -67,7 +69,7 @@ func (r *K8sRepo) GetApplication(applicationID string) (Application, error) {
 	client := r.k8sClient
 	ctx := context.TODO()
 	namespace := fmt.Sprintf("application-%s", applicationID)
-	ns, err := client.CoreV1().Namespaces().Get(ctx, namespace, metaV1.GetOptions{})
+	ns, err := client.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
 
 	if err != nil {
 		return Application{}, err
@@ -85,7 +87,7 @@ func (r *K8sRepo) GetApplication(applicationID string) (Application, error) {
 		},
 	}
 
-	ingresses, err := r.k8sClient.NetworkingV1().Ingresses(namespace).List(ctx, metaV1.ListOptions{})
+	ingresses, err := r.k8sClient.NetworkingV1().Ingresses(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return Application{}, err
 	}
@@ -141,7 +143,7 @@ func (r *K8sRepo) GetApplication(applicationID string) (Application, error) {
 func (r *K8sRepo) GetApplications(tenantID string) ([]ShortInfo, error) {
 	client := r.k8sClient
 	ctx := context.TODO()
-	items, err := client.CoreV1().Namespaces().List(ctx, metaV1.ListOptions{})
+	items, err := client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 
 	response := make([]ShortInfo, 0)
 	if err != nil {
@@ -169,7 +171,7 @@ func (r *K8sRepo) GetMicroservices(applicationID string) ([]MicroserviceInfo, er
 	client := r.k8sClient
 	ctx := context.TODO()
 	namespace := fmt.Sprintf("application-%s", applicationID)
-	deployments, err := client.AppsV1().Deployments(namespace).List(ctx, metaV1.ListOptions{})
+	deployments, err := client.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{})
 
 	response := make([]MicroserviceInfo, len(deployments.Items))
 	if err != nil {
@@ -185,7 +187,7 @@ func (r *K8sRepo) GetMicroservices(applicationID string) ([]MicroserviceInfo, er
 			continue
 		}
 
-		images := funk.Map(deployment.Spec.Template.Spec.Containers, func(container coreV1.Container) ImageInfo {
+		images := funk.Map(deployment.Spec.Template.Spec.Containers, func(container corev1.Container) ImageInfo {
 			return ImageInfo{
 				Name:  container.Name,
 				Image: container.Image,
@@ -213,7 +215,7 @@ func (r *K8sRepo) GetMicroserviceName(applicationID string, microserviceID strin
 	client := r.k8sClient
 	ctx := context.TODO()
 	namespace := fmt.Sprintf("application-%s", applicationID)
-	deployments, err := client.AppsV1().Deployments(namespace).List(ctx, metaV1.ListOptions{})
+	deployments, err := client.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -245,7 +247,7 @@ func (r *K8sRepo) GetPodStatus(applicationID string, microserviceID string, envi
 	client := r.k8sClient
 	ctx := context.TODO()
 	namespace := fmt.Sprintf("application-%s", applicationID)
-	pods, err := client.CoreV1().Pods(namespace).List(ctx, metaV1.ListOptions{})
+	pods, err := client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 
 	response := PodData{
 		Namespace: namespace,
@@ -281,7 +283,7 @@ func (r *K8sRepo) GetPodStatus(applicationID string, microserviceID string, envi
 			started = pod.Status.StartTime.String()
 		}
 
-		containers := funk.Map(pod.Status.ContainerStatuses, func(container coreV1.ContainerStatus) ContainerStatusInfo {
+		containers := funk.Map(pod.Status.ContainerStatuses, func(container corev1.ContainerStatus) ContainerStatusInfo {
 			// Not sure about this logic, I almost want to drop to the cli :P
 			// Much work to do here, to figure out the combinations we actually want to support, this will not be good enough
 			state := "waiting"
@@ -322,7 +324,7 @@ func (r *K8sRepo) GetLogs(applicationID string, containerName string, podName st
 	namespace := fmt.Sprintf("application-%s", applicationID)
 
 	count := int64(100)
-	podLogOptions := coreV1.PodLogOptions{
+	podLogOptions := corev1.PodLogOptions{
 		Container: containerName,
 		Follow:    false,
 		TailLines: &count,
@@ -372,13 +374,13 @@ func (r *K8sRepo) GetMicroserviceDNS(applicationID string, microserviceID string
 	client := r.k8sClient
 	ctx := context.TODO()
 	namespace := fmt.Sprintf("application-%s", applicationID)
-	services, err := client.CoreV1().Services(namespace).List(ctx, metaV1.ListOptions{})
+	services, err := client.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return "", err
 	}
 
 	found := false
-	var foundService coreV1.Service
+	var foundService corev1.Service
 
 	for _, service := range services.Items {
 		_, ok := service.ObjectMeta.Labels["microservice"]
@@ -401,22 +403,22 @@ func (r *K8sRepo) GetMicroserviceDNS(applicationID string, microserviceID string
 	return fmt.Sprintf("%s.application-%s.svc.cluster.local", foundService.Name, applicationID), nil
 }
 
-func (r *K8sRepo) GetConfigMap(applicationID string, name string) (*coreV1.ConfigMap, error) {
+func (r *K8sRepo) GetConfigMap(applicationID string, name string) (*corev1.ConfigMap, error) {
 	client := r.k8sClient
 	ctx := context.TODO()
 	namespace := fmt.Sprintf("application-%s", applicationID)
-	configMap, err := client.CoreV1().ConfigMaps(namespace).Get(ctx, name, metaV1.GetOptions{})
+	configMap, err := client.CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return configMap, err
 	}
 	return configMap, nil
 }
 
-func (r *K8sRepo) GetSecret(logContext logrus.FieldLogger, applicationID string, name string) (*coreV1.Secret, error) {
+func (r *K8sRepo) GetSecret(logContext logrus.FieldLogger, applicationID string, name string) (*corev1.Secret, error) {
 	client := r.k8sClient
 	ctx := context.TODO()
 	namespace := fmt.Sprintf("application-%s", applicationID)
-	secret, err := client.CoreV1().Secrets(namespace).Get(ctx, name, metaV1.GetOptions{})
+	secret, err := client.CoreV1().Secrets(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
 			logContext.WithFields(logrus.Fields{
@@ -436,11 +438,11 @@ func (r *K8sRepo) GetSecret(logContext logrus.FieldLogger, applicationID string,
 	return secret, nil
 }
 
-func (r *K8sRepo) GetServiceAccount(logContext logrus.FieldLogger, applicationID string, name string) (*coreV1.ServiceAccount, error) {
+func (r *K8sRepo) GetServiceAccount(logContext logrus.FieldLogger, applicationID string, name string) (*corev1.ServiceAccount, error) {
 	client := r.k8sClient
 	ctx := context.TODO()
 	namespace := fmt.Sprintf("application-%s", applicationID)
-	serviceAccount, err := client.CoreV1().ServiceAccounts(namespace).Get(ctx, name, metaV1.GetOptions{})
+	serviceAccount, err := client.CoreV1().ServiceAccounts(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
 			logContext.WithFields(logrus.Fields{
@@ -460,10 +462,99 @@ func (r *K8sRepo) GetServiceAccount(logContext logrus.FieldLogger, applicationID
 	return serviceAccount, nil
 }
 
+func (r *K8sRepo) CreateServiceAccount(logger logrus.FieldLogger, customerID string, customerName string, applicationID string, applicationName string, serviceAccountName string) (*corev1.ServiceAccount, error) {
+	client := r.k8sClient
+	ctx := context.TODO()
+	namespace := fmt.Sprintf("application-%s", applicationID)
+	logContext := logger.WithFields(logrus.Fields{
+		"customerID":     customerID,
+		"applicationID":  applicationID,
+		"namespace":      namespace,
+		"serviceAccount": serviceAccountName,
+		"method":         "CreateServiceAccount",
+	})
+	annotations := map[string]string{
+		"dolittle.io/tenant-id":      customerID,
+		"dolittle.io/applciation-id": applicationID,
+	}
+	labels := map[string]string{
+		"tenant":      customerName,
+		"application": applicationName,
+	}
+
+	serviceAccount := corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        serviceAccountName,
+			Namespace:   namespace,
+			Annotations: annotations,
+			Labels:      labels,
+		},
+	}
+
+	newAccount, err := client.CoreV1().ServiceAccounts(namespace).Create(ctx, &serviceAccount, metav1.CreateOptions{})
+	if err != nil {
+		if !k8serrors.IsAlreadyExists(err) {
+			logContext.WithFields(logrus.Fields{
+				"error": err,
+			}).Error("issue talking to cluster")
+			return newAccount, err
+		}
+
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Debug("service account already exists")
+
+		return newAccount, AlreadyExists
+	}
+	return newAccount, nil
+}
+
+func (r *K8sRepo) AddServiceAccountToRoleBinding(logger logrus.FieldLogger, applicationID string, roleBinding string, serviceAccount string) (*rbacv1.RoleBinding, error) {
+	client := r.k8sClient
+	ctx := context.TODO()
+	namespace := fmt.Sprintf("application-%s", applicationID)
+	logContext := logger.WithFields(logrus.Fields{
+		"namespace":   namespace,
+		"rolebinding": roleBinding,
+	})
+
+	k8sRoleBinding, err := client.RbacV1().RoleBindings(namespace).Get(ctx, roleBinding, metav1.GetOptions{})
+	if err != nil {
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("couldn't find the rolebinding")
+		return k8sRoleBinding, err
+	}
+
+	for _, subject := range k8sRoleBinding.Subjects {
+		// if the serviceaccount already exists in the rolebinding we don't need to update
+		if subject.Name == serviceAccount {
+			return k8sRoleBinding, AlreadyExists
+		}
+	}
+
+	k8sRoleBinding.Subjects = append(k8sRoleBinding.Subjects, rbacv1.Subject{
+		Kind:      "ServiceAccount",
+		Name:      serviceAccount,
+		Namespace: namespace,
+	})
+
+	updatedRoleBinding, err := client.RbacV1().RoleBindings(namespace).Update(ctx, k8sRoleBinding, metav1.UpdateOptions{})
+	if err != nil {
+		logContext.WithFields(logrus.Fields{
+			"error":          err,
+			"serviceAccount": serviceAccount,
+		}).Error("couldn't update the rolebinding with the serviceaccount")
+		return updatedRoleBinding, err
+	}
+
+	return updatedRoleBinding, err
+}
+
 // CanModifyApplication confirm user is in the tenant and application
 // Only works when we can use the namespace
 func (r *K8sRepo) CanModifyApplication(tenantID string, applicationID string, userID string) (bool, error) {
-	attribute := authV1.ResourceAttributes{
+	attribute := authv1.ResourceAttributes{
 		Namespace: fmt.Sprintf("application-%s", applicationID),
 		Verb:      "list",
 		Resource:  "pods",
@@ -474,7 +565,7 @@ func (r *K8sRepo) CanModifyApplication(tenantID string, applicationID string, us
 // CanModifyApplicationWithResourceAttributes confirm user is in the tenant and application
 // Only works when we can use the namespace
 // TODO bringing online the ad group from microsoft will allow us to check group access
-func (r *K8sRepo) CanModifyApplicationWithResourceAttributes(tenantID string, applicationID string, userID string, attribute authV1.ResourceAttributes) (bool, error) {
+func (r *K8sRepo) CanModifyApplicationWithResourceAttributes(tenantID string, applicationID string, userID string, attribute authv1.ResourceAttributes) (bool, error) {
 	config := r.GetRestConfig()
 
 	config.Impersonate = rest.ImpersonationConfig{
@@ -489,15 +580,15 @@ func (r *K8sRepo) CanModifyApplicationWithResourceAttributes(tenantID string, ap
 		panic(err.Error())
 	}
 
-	selfCheck := authV1.SelfSubjectAccessReview{
-		Spec: authV1.SelfSubjectAccessReviewSpec{
+	selfCheck := authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
 			ResourceAttributes: &attribute,
 		},
 	}
 
 	resp, err := clientset.AuthorizationV1().
 		SelfSubjectAccessReviews().
-		Create(context.TODO(), &selfCheck, metaV1.CreateOptions{})
+		Create(context.TODO(), &selfCheck, metav1.CreateOptions{})
 
 	if err != nil {
 		// TODO do we hide this error and log it?
