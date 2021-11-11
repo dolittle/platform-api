@@ -1,3 +1,11 @@
+# [2.0.0] - 2021-11-11 [PR: #60](https://github.com/dolittle/platform-api/pull/60)
+## Summary
+
+Changes the `create-service-account` command to create a new `devops` rolebinding instead of adding to the existing `developer` rolebinding.
+
+This is so that we don't have to worry about modifying the `developer` rolebinding in the future.
+
+
 # [1.4.0] - 2021-11-11 [PR: #58](https://github.com/dolittle/platform-api/pull/58)
 ## Summary
 
