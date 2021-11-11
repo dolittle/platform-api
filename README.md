@@ -10,7 +10,7 @@
 ---
 
 <p align="center">
-    <a href="https://hub.docker.com/r/dolittle/platform-api"><img src="https://img.shields.io/docker/v/dolittle/platform-api?label=dolittle%2Fplatform-api&logo=docker&sort=semver" alt="Latest Docker image"></a>
+    <a href="https://hub.docker.com/r/dolittle/platform-api"><img src="https://img.shields.io/docker/v/dolittle/platform-api/latest?label=dolittle%2Fplatform-api&logo=docker" alt="Latest Docker image"></a>
     <a href="https://github.com/dolittle/platform-api/actions/workflows/ci.yml"><img src="https://github.com/dolittle/platform-api/actions/workflows/ci.yml/badge.svg" alt="Build status"></a>
 </p>
 
