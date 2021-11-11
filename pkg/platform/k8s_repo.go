@@ -472,7 +472,6 @@ func (r *K8sRepo) CreateServiceAccount(logger logrus.FieldLogger, customerID str
 		"serviceAccount": serviceAccountName,
 		"method":         "CreateServiceAccount",
 	})
-	// @joel I could also fetch all of this info from k8s namespace object instead of having to pass it in
 	annotations := map[string]string{
 		"dolittle.io/tenant-id":      customerID,
 		"dolittle.io/applciation-id": applicationID,
