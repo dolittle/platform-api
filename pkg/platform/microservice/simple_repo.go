@@ -9,7 +9,7 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform"
 	. "github.com/dolittle/platform-api/pkg/platform/microservice/k8s"
 	networkingv1 "k8s.io/api/networking/v1"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 )
@@ -27,8 +27,6 @@ func NewSimpleRepo(k8sClient kubernetes.Interface) simpleRepo {
 }
 
 func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputSimpleInfo) error {
-	// TODO not sure where this comes from really, assume dynamic
-
 	environment := input.Environment
 	host := applicationIngress.Host
 	secretName := applicationIngress.SecretName
@@ -75,42 +73,42 @@ func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.
 	client := r.k8sClient
 	ctx := context.TODO()
 
-	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, microserviceConfigmap, metaV1.CreateOptions{})
+	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, microserviceConfigmap, metav1.CreateOptions{})
 	if K8sHandleResourceCreationError(err, func() { K8sPrintAlreadyExists("microservice config map") }) != nil {
 		return err
 	}
 
-	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, configEnvVariables, metaV1.CreateOptions{})
+	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, configEnvVariables, metav1.CreateOptions{})
 	if K8sHandleResourceCreationError(err, func() { K8sPrintAlreadyExists("config env variables") }) != nil {
 		return err
 	}
 
-	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, configFiles, metaV1.CreateOptions{})
+	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, configFiles, metav1.CreateOptions{})
 	if K8sHandleResourceCreationError(err, func() { K8sPrintAlreadyExists("config files") }) != nil {
 		return err
 	}
 
-	_, err = client.CoreV1().Secrets(namespace).Create(ctx, configSecrets, metaV1.CreateOptions{})
+	_, err = client.CoreV1().Secrets(namespace).Create(ctx, configSecrets, metav1.CreateOptions{})
 	if K8sHandleResourceCreationError(err, func() { K8sPrintAlreadyExists("config secrets") }) != nil {
 		return err
 	}
 
-	_, err = client.NetworkingV1().Ingresses(namespace).Create(ctx, ingress, metaV1.CreateOptions{})
+	_, err = client.NetworkingV1().Ingresses(namespace).Create(ctx, ingress, metav1.CreateOptions{})
 	if K8sHandleResourceCreationError(err, func() { K8sPrintAlreadyExists("ingress") }) != nil {
 		return err
 	}
 
-	_, err = client.NetworkingV1().NetworkPolicies(namespace).Create(ctx, networkPolicy, metaV1.CreateOptions{})
+	_, err = client.NetworkingV1().NetworkPolicies(namespace).Create(ctx, networkPolicy, metav1.CreateOptions{})
 	if K8sHandleResourceCreationError(err, func() { K8sPrintAlreadyExists("network policy") }) != nil {
 		return err
 	}
 
-	_, err = client.CoreV1().Services(namespace).Create(ctx, service, metaV1.CreateOptions{})
+	_, err = client.CoreV1().Services(namespace).Create(ctx, service, metav1.CreateOptions{})
 	if K8sHandleResourceCreationError(err, func() { K8sPrintAlreadyExists("service") }) != nil {
 		return err
 	}
 
-	_, err = client.AppsV1().Deployments(namespace).Create(ctx, deployment, metaV1.CreateOptions{})
+	_, err = client.AppsV1().Deployments(namespace).Create(ctx, deployment, metav1.CreateOptions{})
 	if K8sHandleResourceCreationError(err, func() { K8sPrintAlreadyExists("deployment") }) != nil {
 		return err
 	}
@@ -131,7 +129,7 @@ func (r simpleRepo) Delete(namespace string, microserviceID string) error {
 	}
 
 	// Selector information for microservice, based on labels
-	listOpts := metaV1.ListOptions{
+	listOpts := metav1.ListOptions{
 		LabelSelector: labels.FormatLabels(deployment.GetObjectMeta().GetLabels()),
 	}
 

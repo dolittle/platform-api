@@ -48,11 +48,64 @@ func NewDeployment(microservice Microservice, headImage string, runtimeImage str
 	configEnvVariablesName = strings.ToLower(configEnvVariablesName)
 	configSecretEnvVariablesName = strings.ToLower(configSecretEnvVariablesName)
 
-	//envFrom:
-	//        - configMapRef:
-	//            name: dev-excelsior-env-variables
-	//        - secretRef:
-	//            name: dev-excelsior-secret-env-variables
+	containers := []apiv1.Container{
+		{
+			Name:  "head",
+			Image: headImage,
+			Ports: []apiv1.ContainerPort{
+				{
+					Name:          "http",
+					Protocol:      apiv1.ProtocolTCP,
+					ContainerPort: 80,
+				},
+			},
+			EnvFrom: []apiv1.EnvFromSource{
+				{
+					ConfigMapRef: &apiv1.ConfigMapEnvSource{
+						LocalObjectReference: apiv1.LocalObjectReference{
+							Name: configEnvVariablesName,
+						},
+					},
+				},
+				{
+					SecretRef: &apiv1.SecretEnvSource{
+						LocalObjectReference: apiv1.LocalObjectReference{
+							Name: configSecretEnvVariablesName,
+						},
+					},
+				},
+			},
+			VolumeMounts: []apiv1.VolumeMount{
+				{
+					MountPath: "/app/.dolittle/tenants.json",
+					SubPath:   "tenants.json",
+					Name:      "tenants-config",
+				},
+				{
+					MountPath: "/app/.dolittle/resources.json",
+					SubPath:   "resources.json",
+					Name:      "dolittle-config",
+				},
+				{
+					MountPath: "/app/.dolittle/clients.json",
+					SubPath:   "clients.json",
+					Name:      "dolittle-config",
+				},
+				{
+					MountPath: "/app/.dolittle/event-horizons.json",
+					SubPath:   "event-horizons.json",
+					Name:      "dolittle-config",
+				},
+				{
+					MountPath: "/app/data",
+					Name:      "config-files",
+				},
+			},
+		},
+	}
+	if runtimeImage != "none" {
+		containers = append(containers, Runtime(runtimeImage))
+	}
 
 	deployment := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -79,62 +132,7 @@ func NewDeployment(microservice Microservice, headImage string, runtimeImage str
 					ImagePullSecrets: []apiv1.LocalObjectReference{
 						{"acr"},
 					},
-					Containers: []apiv1.Container{
-						{
-							Name:  "head",
-							Image: headImage,
-							Ports: []apiv1.ContainerPort{
-								{
-									Name:          "http",
-									Protocol:      apiv1.ProtocolTCP,
-									ContainerPort: 80,
-								},
-							},
-							EnvFrom: []apiv1.EnvFromSource{
-								{
-									ConfigMapRef: &apiv1.ConfigMapEnvSource{
-										LocalObjectReference: apiv1.LocalObjectReference{
-											Name: configEnvVariablesName,
-										},
-									},
-								},
-								{
-									SecretRef: &apiv1.SecretEnvSource{
-										LocalObjectReference: apiv1.LocalObjectReference{
-											Name: configSecretEnvVariablesName,
-										},
-									},
-								},
-							},
-							VolumeMounts: []apiv1.VolumeMount{
-								{
-									MountPath: "/app/.dolittle/tenants.json",
-									SubPath:   "tenants.json",
-									Name:      "tenants-config",
-								},
-								{
-									MountPath: "/app/.dolittle/resources.json",
-									SubPath:   "resources.json",
-									Name:      "dolittle-config",
-								},
-								{
-									MountPath: "/app/.dolittle/clients.json",
-									SubPath:   "clients.json",
-									Name:      "dolittle-config",
-								},
-								{
-									MountPath: "/app/.dolittle/event-horizons.json",
-									SubPath:   "event-horizons.json",
-									Name:      "dolittle-config",
-								},
-								{
-									MountPath: "/app/data",
-									Name:      "config-files",
-								},
-							},
-						},
-						Runtime(runtimeImage),
-					},
+					Containers: containers,
 					Volumes: []apiv1.Volume{
 						{
 							Name: "tenants-config",
