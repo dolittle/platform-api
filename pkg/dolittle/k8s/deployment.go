@@ -6,6 +6,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -174,6 +175,14 @@ func NewDeployment(microservice Microservice, headImage string, runtimeImage str
 }
 
 func Runtime(image string) apiv1.Container {
+	limit, err := resource.ParseQuantity("1Gi")
+	if err != nil {
+		panic(err)
+	}
+	request, err := resource.ParseQuantity("250Mi")
+	if err != nil {
+		panic(err)
+	}
 	return apiv1.Container{
 		Name:  "runtime",
 		Image: image,
@@ -182,6 +191,14 @@ func Runtime(image string) apiv1.Container {
 				Name:          "runtime",
 				Protocol:      apiv1.ProtocolTCP,
 				ContainerPort: 50052,
+			},
+		},
+		Resources: apiv1.ResourceRequirements{
+			Limits: apiv1.ResourceList{
+				apiv1.ResourceMemory: limit,
+			},
+			Requests: apiv1.ResourceList{
+				apiv1.ResourceMemory: request,
 			},
 		},
 		VolumeMounts: []apiv1.VolumeMount{
