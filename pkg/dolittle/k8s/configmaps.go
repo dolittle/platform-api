@@ -167,6 +167,10 @@ func NewMicroserviceConfigmap(microservice Microservice, customersTenantID strin
 		},
 	}
 
+	metrics := MicroserviceEndpointPort{
+		Port: 9700,
+	}
+
 	appsettings := Appsettings{
 		Logging: AppsettingsLogging{
 			Includescopes: false,
@@ -199,6 +203,9 @@ func NewMicroserviceConfigmap(microservice Microservice, customersTenantID strin
 	b, _ = json.MarshalIndent(emptyObject{}, "", "  ")
 	microservicesJSON := string(b)
 
+	b, _ = json.MarshalIndent(metrics, "", "  ")
+	metricsJSON := string(b)
+
 	return &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "v1",
@@ -217,6 +224,7 @@ func NewMicroserviceConfigmap(microservice Microservice, customersTenantID strin
 			"microservices.json":          microservicesJSON,
 			"endpoints.json":              endpointsJSON,
 			"appsettings.json":            appsettingsJSON,
+			"metrics.json":                metricsJSON,
 		},
 	}
 }

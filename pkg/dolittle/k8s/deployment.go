@@ -192,6 +192,11 @@ func Runtime(image string) apiv1.Container {
 				Protocol:      apiv1.ProtocolTCP,
 				ContainerPort: 50052,
 			},
+			{
+				Name:          "runtime-metrics",
+				Protocol:      apiv1.ProtocolTCP,
+				ContainerPort: 9700,
+			},
 		},
 		Resources: apiv1.ResourceRequirements{
 			Limits: apiv1.ResourceList{
