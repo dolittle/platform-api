@@ -1,3 +1,13 @@
+# [2.1.0] - 2021-11-23 [PR: #61](https://github.com/dolittle/platform-api/pull/61)
+## Summary
+
+Add's the ability to create a base microservice without a Runtime container by defining the wanted Runtime image as `"none"` in the request.
+
+Also adds memory limits to newly created Runtime containers in a microservice. The request is for 250MB and the limit is 1GB.
+
+Related to https://github.com/dolittle/Studio/pull/136
+
+
 # [2.0.0] - 2021-11-11 [PR: #60](https://github.com/dolittle/platform-api/pull/60)
 ## Summary
 
