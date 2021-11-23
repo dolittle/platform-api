@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/dolittle/platform-api/pkg/git"
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
@@ -35,7 +36,7 @@ var buildTerraformInfoCMD = &cobra.Command{
 		logrus.SetOutput(os.Stdout)
 
 		logContext := logrus.StandardLogger()
-		gitRepoConfig := initGit(logContext)
+		gitRepoConfig := git.InitGit(logContext)
 
 		platformEnvironment, _ := cmd.Flags().GetString("platform-environment")
 

@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/dolittle/platform-api/pkg/git"
 	"github.com/dolittle/platform-api/pkg/middleware"
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/platform/application"
@@ -42,7 +43,7 @@ var serverCMD = &cobra.Command{
 		logrus.SetOutput(os.Stdout)
 
 		logContext := logrus.StandardLogger()
-		gitRepoConfig := initGit(logContext)
+		gitRepoConfig := git.InitGit(logContext)
 
 		// fix: https://github.com/spf13/viper/issues/798
 		for _, key := range viper.AllKeys() {

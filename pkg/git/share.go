@@ -1,4 +1,4 @@
-package microservice
+package git
 
 import (
 	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func initGit(logContext logrus.FieldLogger) gitStorage.GitStorageConfig {
+func InitGit(logContext logrus.FieldLogger) gitStorage.GitStorageConfig {
 	gitDirectoryOnly := viper.GetBool("tools.server.gitRepo.directoryOnly")
 	gitRepoURL := ""
 	gitSshKeysFolder := ""
