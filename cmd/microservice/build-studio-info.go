@@ -22,7 +22,7 @@ var buildStudioInfoCMD = &cobra.Command{
 	It will attempt to update the git repo with resetted studio configurations (studio.json).
 
 	GIT_REPO_SSH_KEY="/Users/freshteapot/dolittle/.ssh/test-deploy" \
-	GIT_REPO_BRANCH=auto-dev \
+	GIT_REPO_BRANCH=dev \
 	GIT_REPO_URL="git@github.com:freshteapot/test-deploy-key.git" \
 	go run main.go microservice build-studio-info --kube-config="/Users/freshteapot/.kube/config"
 	`,
