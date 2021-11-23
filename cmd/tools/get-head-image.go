@@ -97,43 +97,7 @@ var getHeadImageCMD = &cobra.Command{
 			return
 		}
 
-		//tenantID := found.ObjectMeta.Annotations["dolittle.io/tenant-id"]
-		//gitRepo.GetMicroservice(tenantID, applicationID, environment, microserviceID)
-		type output struct {
-			Name           string `json:"name"`
-			CurrentImage   string `json:"current_name"`
-			ClusterImage   string `json:"cluster_name"`
-			Match          bool   `json:"match"`
-			ApplicationID  string `json:"application_id"`
-			MicroserviceID string `json:"microservice_id"`
-			Environment    string `json:"environment"`
-		}
-
-		for _, clusterContainer := range deployment.Spec.Template.Spec.Containers {
-			found := funk.Find(currentDeployment.Spec.Template.Spec.Containers, func(container corev1.Container) bool {
-				return clusterContainer.Name == container.Name
-			})
-
-			if found == nil {
-				//fmt.Println("skip")
-				continue
-			}
-
-			current := found.(corev1.Container)
-			info := output{
-				Name:           current.Name,
-				CurrentImage:   current.Image,
-				ClusterImage:   clusterContainer.Image,
-				ApplicationID:  applicationID,
-				MicroserviceID: microserviceID,
-				Environment:    environment,
-			}
-
-			info.Match = info.ClusterImage == info.CurrentImage
-			b, _ := json.Marshal(info)
-			fmt.Println(string(b))
-		}
-
+		getOutput(applicationID, environment, microserviceID, deployment, currentDeployment)
 	},
 }
 
@@ -142,6 +106,45 @@ func init() {
 	getHeadImageCMD.Flags().String("application-id", "", "Name of Application")
 	getHeadImageCMD.Flags().String("environment", "prod", "Application environment")
 	getHeadImageCMD.Flags().String("microservice-id", "", "microservice-id")
+}
+
+func getOutput(applicationID string, environment string, microserviceID string, cluster v1.Deployment, current v1.Deployment) {
+	//tenantID := found.ObjectMeta.Annotations["dolittle.io/tenant-id"]
+	//gitRepo.GetMicroservice(tenantID, applicationID, environment, microserviceID)
+	type output struct {
+		Name           string `json:"name"`
+		CurrentImage   string `json:"current_name"`
+		ClusterImage   string `json:"cluster_name"`
+		Match          bool   `json:"match"`
+		ApplicationID  string `json:"application_id"`
+		MicroserviceID string `json:"microservice_id"`
+		Environment    string `json:"environment"`
+	}
+
+	for _, clusterContainer := range cluster.Spec.Template.Spec.Containers {
+		found := funk.Find(current.Spec.Template.Spec.Containers, func(container corev1.Container) bool {
+			return clusterContainer.Name == container.Name
+		})
+
+		if found == nil {
+			//fmt.Println("skip")
+			continue
+		}
+
+		current := found.(corev1.Container)
+		info := output{
+			Name:           current.Name,
+			CurrentImage:   current.Image,
+			ClusterImage:   clusterContainer.Image,
+			ApplicationID:  applicationID,
+			MicroserviceID: microserviceID,
+			Environment:    environment,
+		}
+
+		info.Match = info.ClusterImage == info.CurrentImage
+		b, _ := json.Marshal(info)
+		fmt.Println(string(b))
+	}
 }
 
 func getDeploymentFromMicroserviceYAML(filePath string) (position int, deployment v1.Deployment, err error) {
