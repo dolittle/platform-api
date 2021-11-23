@@ -218,12 +218,20 @@ var _ = Describe("Deployment", func() {
 		It("should create a runtime container with the correct image", func() {
 			Expect(container.Image).To(Equal(runtimeImage))
 		})
+		It("should create a runtime container with port 9700 exposed", func() {
+			Expect(container.Ports[1].ContainerPort).To(Equal(int32(9700)))
+		})
+		It("should create a runtime container with port 9700 named 'runtime-metrics'", func() {
+			Expect(container.Ports[1].Name).To(Equal("runtime-metrics"))
+		})
+
 		It("should create a runtime container with port 50052 exposed", func() {
 			Expect(container.Ports[0].ContainerPort).To(Equal(int32(50052)))
 		})
 		It("should create a runtime container with port 50052 named 'runtime'", func() {
 			Expect(container.Ports[0].Name).To(Equal("runtime"))
 		})
+
 		It("should create a runtime container with 'tenants.json' mounted", func() {
 			Expect(container.VolumeMounts[0].MountPath).To(Equal("/app/.dolittle/tenants.json"))
 			Expect(container.VolumeMounts[0].SubPath).To(Equal("tenants.json"))
