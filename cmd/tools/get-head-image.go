@@ -1,13 +1,14 @@
 package tools
 
 import (
+	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"log"
 	"os"
-	"strings"
 
 	"github.com/dolittle/platform-api/pkg/git"
 	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
@@ -15,9 +16,13 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/thoas/go-funk"
+	"github.com/vmware-labs/yaml-jsonpath/pkg/yamlpath"
+	"gopkg.in/yaml.v3"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	k8sJson "k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -34,9 +39,6 @@ var getHeadImageCMD = &cobra.Command{
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		// Lookup image based on microserviceID?
-		// Lookup image based on application/env/microserviceID?
-		// Get all
 		logrus.SetFormatter(&logrus.JSONFormatter{})
 		logrus.SetOutput(os.Stdout)
 
@@ -67,6 +69,7 @@ var getHeadImageCMD = &cobra.Command{
 		applicationID, _ := cmd.Flags().GetString("application-id")
 		microserviceID, _ := cmd.Flags().GetString("microservice-id")
 		environment, _ := cmd.Flags().GetString("environment")
+		dryRun, _ := cmd.Flags().GetBool("dry-run")
 
 		deployment := getDeployment(clientset, applicationID, environment, microserviceID)
 
@@ -87,17 +90,53 @@ var getHeadImageCMD = &cobra.Command{
 			environment,
 			microserviceName,
 		)
-		// TODO use currentIndex for saving
-		_, currentDeployment, err := getDeploymentFromMicroserviceYAML(filePath)
+
+		stream, _ := ioutil.ReadFile(filePath)
+		rawResources, err := SplitYAML(stream)
+		if err != nil {
+			fmt.Println("after splitting the yaml")
+			panic(err)
+		}
+
+		currentIndex, currentDeployment, rawYAML, err := getDeploymentFromMicroserviceYAML(rawResources)
 		if err != nil {
 			logContext.WithFields(logrus.Fields{
-				"error":     err,
-				"file_path": filePath,
+				"error":         err,
+				"file_path":     filePath,
+				"current_index": currentIndex,
 			}).Error("failed getDeploymentFromMicroserviceYAML")
 			return
 		}
 
-		getOutput(applicationID, environment, microserviceID, deployment, currentDeployment)
+		updateImages(deployment, currentDeployment, rawYAML)
+
+		s := runtime.NewScheme()
+		serializer := k8sJson.NewSerializerWithOptions(
+			k8sJson.DefaultMetaFactory,
+			s,
+			s,
+			k8sJson.SerializerOptions{
+				Yaml:   true,
+				Pretty: true,
+				Strict: true,
+			},
+		)
+
+		if dryRun {
+			serializer.Encode(&currentDeployment, os.Stdout)
+			return
+		}
+
+		outputFilePath := fmt.Sprintf("%s/Source/V3/Kubernetes/Customers/%s/%s/%s/%s/microservice-deployment.yml",
+			gitRepoConfig.RepoRoot,
+			customer,
+			applicationName,
+			environment,
+			microserviceName,
+		)
+		file, _ := os.Create(outputFilePath)
+		defer file.Close()
+		serializer.Encode(&currentDeployment, file)
 	},
 }
 
@@ -106,67 +145,91 @@ func init() {
 	getHeadImageCMD.Flags().String("application-id", "", "Name of Application")
 	getHeadImageCMD.Flags().String("environment", "prod", "Application environment")
 	getHeadImageCMD.Flags().String("microservice-id", "", "microservice-id")
+	getHeadImageCMD.Flags().Bool("dry-run", false, "Output the data, do not write to disk")
 }
 
-func getOutput(applicationID string, environment string, microserviceID string, cluster v1.Deployment, current v1.Deployment) {
-	//tenantID := found.ObjectMeta.Annotations["dolittle.io/tenant-id"]
-	//gitRepo.GetMicroservice(tenantID, applicationID, environment, microserviceID)
-	type output struct {
-		Name           string `json:"name"`
-		CurrentImage   string `json:"current_name"`
-		ClusterImage   string `json:"cluster_name"`
-		Match          bool   `json:"match"`
-		ApplicationID  string `json:"application_id"`
-		MicroserviceID string `json:"microservice_id"`
-		Environment    string `json:"environment"`
+func updateContainerImage(rawYAML yaml.Node, name string, image string) {
+	p, err := yamlpath.NewPath(
+		fmt.Sprintf(`$..spec.containers[*][?(@.name=="%s")].image`, name),
+	)
+
+	if err != nil {
+		log.Fatalf("cannot create path: %v", err)
 	}
 
+	q, err := p.Find(&rawYAML)
+	if err != nil {
+		log.Fatalf("unexpected error: %v", err)
+	}
+
+	q[0].Value = image
+}
+
+func updateImages(cluster v1.Deployment, current v1.Deployment, rawYAML yaml.Node) {
 	for _, clusterContainer := range cluster.Spec.Template.Spec.Containers {
-		found := funk.Find(current.Spec.Template.Spec.Containers, func(container corev1.Container) bool {
+		index := funk.IndexOf(current.Spec.Template.Spec.Containers, func(container corev1.Container) bool {
 			return clusterContainer.Name == container.Name
 		})
 
-		if found == nil {
-			//fmt.Println("skip")
+		if index == -1 {
+			fmt.Println("Not found, might be a bad thing")
 			continue
 		}
 
-		current := found.(corev1.Container)
-		info := output{
-			Name:           current.Name,
-			CurrentImage:   current.Image,
-			ClusterImage:   clusterContainer.Image,
-			ApplicationID:  applicationID,
-			MicroserviceID: microserviceID,
-			Environment:    environment,
-		}
+		currentContainer := current.Spec.Template.Spec.Containers[index]
 
-		info.Match = info.ClusterImage == info.CurrentImage
-		b, _ := json.Marshal(info)
-		fmt.Println(string(b))
+		if clusterContainer.Image != currentContainer.Image {
+			updateContainerImage(rawYAML, clusterContainer.Name, clusterContainer.Image)
+		}
 	}
 }
 
-func getDeploymentFromMicroserviceYAML(filePath string) (position int, deployment v1.Deployment, err error) {
-	decode := scheme.Codecs.UniversalDeserializer().Decode
-	stream, _ := ioutil.ReadFile(filePath)
+func SplitYAML(resources []byte) ([][]byte, error) {
+	dec := yaml.NewDecoder(bytes.NewReader(resources))
 
-	data := string(stream)
-	parts := strings.Split(data, "---\n")
-	for index, part := range parts {
-		b := []byte(part)
-		obj, gKV, err := decode(b, nil, nil)
+	var res [][]byte
+	for {
+		var value interface{}
+		err := dec.Decode(&value)
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
+			return nil, err
+		}
+		valueBytes, err := yaml.Marshal(value)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, valueBytes)
+	}
+	return res, nil
+}
+
+func getDeploymentFromMicroserviceYAML(resources [][]byte) (index int, deployment v1.Deployment, rawYAML yaml.Node, err error) {
+	decode := scheme.Codecs.UniversalDeserializer().Decode
+
+	for index, resource := range resources {
+		var n yaml.Node
+		err := yaml.Unmarshal(resource, &n)
+		if err != nil {
+			log.Fatalf("cannot unmarshal data: %v", err)
+		}
+
+		obj, gKV, err := decode(resource, nil, nil)
+		if err != nil {
+			fmt.Println(err)
 			continue
 		}
 
 		if gKV.Kind == "Deployment" {
+			yaml.Unmarshal(resource, &rawYAML)
 			deployment := obj.(*v1.Deployment)
 			// Maybe we can use DeepCopy
-			return index, *deployment, nil
+			return index, *deployment, rawYAML, nil
 		}
 	}
-	return -1, v1.Deployment{}, errors.New("not-found")
+	return -1, v1.Deployment{}, rawYAML, errors.New("not-found")
 }
 
 func getDeployment(k8sClient kubernetes.Interface, applicationID string, environment string, microserviceID string) v1.Deployment {
