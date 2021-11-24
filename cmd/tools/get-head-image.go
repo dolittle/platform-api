@@ -78,6 +78,7 @@ var getHeadImageCMD = &cobra.Command{
 			logContext.Error("Microservice not found")
 			return
 		}
+
 		// TODO check if in platform?
 		// Lookup in manual location
 		customer := deployment.Labels["tenant"]
@@ -191,6 +192,9 @@ func updateImages(cluster v1.Deployment, current v1.Deployment, rawYAML yaml.Nod
 		currentContainer := current.Spec.Template.Spec.Containers[index]
 
 		if clusterContainer.Image != currentContainer.Image {
+			// This is what we need if we drop the yaml stuff
+			current.Spec.Template.Spec.Containers[index].Image = clusterContainer.Image
+
 			updateContainerImage(rawYAML, clusterContainer.Name, clusterContainer.Image)
 		}
 	}
