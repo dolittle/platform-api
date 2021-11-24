@@ -225,7 +225,6 @@ func getDeploymentFromMicroserviceYAML(resources [][]byte) (index int, deploymen
 		if gKV.Kind == "Deployment" {
 			yaml.Unmarshal(resource, &rawYAML)
 			deployment := obj.(*v1.Deployment)
-			// Maybe we can use DeepCopy
 			return index, *deployment, rawYAML, nil
 		}
 	}
