@@ -3,6 +3,7 @@ package tools
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -137,6 +138,17 @@ var getHeadImageCMD = &cobra.Command{
 		file, _ := os.Create(outputFilePath)
 		defer file.Close()
 		serializer.Encode(&currentDeployment, file)
+
+		type Summary struct {
+			FileName string `json:"file_name"`
+		}
+
+		summary := Summary{
+			FileName: outputFilePath,
+		}
+
+		b, _ := json.Marshal(summary)
+		fmt.Println(string(b))
 	},
 }
 
