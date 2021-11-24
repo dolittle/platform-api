@@ -1,3 +1,11 @@
+# [2.1.1] - 2021-11-24 [PR: #63](https://github.com/dolittle/platform-api/pull/63)
+## Summary
+
+Add a containerPort called `runtime-metrics` on 9700 when creating a Runtime container. This is so that we can scrape the Runtime metrics from it.
+
+Also adds the `metrics.json` configuration file to the Runtime's configurations. Currently it's not read, aka changes to it won't reflect on the `runtime-metrics` containerPort (just like how `endpoint.json` also doesn't affect the actual opened ports of the container).
+
+
 # [2.1.0] - 2021-11-23 [PR: #61](https://github.com/dolittle/platform-api/pull/61)
 ## Summary
 
