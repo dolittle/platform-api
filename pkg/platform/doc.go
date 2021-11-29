@@ -41,20 +41,13 @@ type HttpInputEnvironment struct {
 	Ingresses         EnvironmentIngresses `json:"ingresses"`
 }
 
-type HttpResponseApplication2 struct {
+type HttpResponseApplication struct {
 	ID            string                 `json:"id"`
 	Name          string                 `json:"name"`
 	TenantID      string                 `json:"tenantId"`
+	TenantName    string                 `json:"tenantName"`
 	Environments  []HttpInputEnvironment `json:"environments"`
-	Microservices []HttpMicroserviceBase `json:"microservices"`
-}
-
-type HttpResponseApplication struct {
-	ID           string                 `json:"id"`
-	Name         string                 `json:"name"`
-	TenantID     string                 `json:"tenantId"`
-	TenantName   string                 `json:"tenantName"`
-	Environments []HttpInputEnvironment `json:"environments"`
+	Microservices []HttpMicroserviceBase `json:"microservices,omitempty"`
 }
 
 type HttpResponseApplications struct {
