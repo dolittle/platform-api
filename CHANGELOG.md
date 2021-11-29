@@ -1,3 +1,11 @@
+# [2.1.2] - 2021-11-29 [PR: #62](https://github.com/dolittle/platform-api/pull/62)
+## Summary
+
+Sharing the git InitGit command
+
+Linked to https://app.asana.com/0/1201338547604691/1201417201813836/f
+
+
 # [2.1.1] - 2021-11-24 [PR: #63](https://github.com/dolittle/platform-api/pull/63)
 ## Summary
 
