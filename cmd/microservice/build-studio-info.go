@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 
+	"github.com/dolittle/platform-api/pkg/git"
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
@@ -21,7 +22,7 @@ var buildStudioInfoCMD = &cobra.Command{
 	It will attempt to update the git repo with resetted studio configurations (studio.json).
 
 	GIT_REPO_SSH_KEY="/Users/freshteapot/dolittle/.ssh/test-deploy" \
-	GIT_REPO_BRANCH=auto-dev \
+	GIT_REPO_BRANCH=dev \
 	GIT_REPO_URL="git@github.com:freshteapot/test-deploy-key.git" \
 	go run main.go microservice build-studio-info --kube-config="/Users/freshteapot/.kube/config"
 	`,
@@ -30,7 +31,7 @@ var buildStudioInfoCMD = &cobra.Command{
 		logrus.SetOutput(os.Stdout)
 
 		logContext := logrus.StandardLogger()
-		gitRepoConfig := initGit(logContext)
+		gitRepoConfig := git.InitGit(logContext)
 
 		gitRepo := gitStorage.NewGitStorage(
 			logrus.WithField("context", "git-repo"),

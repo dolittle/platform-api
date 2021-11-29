@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/dolittle/platform-api/pkg/git"
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
@@ -25,7 +26,7 @@ var buildTerraformInfoCMD = &cobra.Command{
 	terraform output -json > azure.json
 
 	GIT_REPO_SSH_KEY="/Users/freshteapot/dolittle/.ssh/test-deploy" \
-	GIT_REPO_BRANCH=auto-dev \
+	GIT_REPO_BRANCH=dev \
 	GIT_REPO_URL="git@github.com:freshteapot/test-deploy-key.git" \
 	go run main.go microservice build-terraform-info /Users/freshteapot/dolittle/git/Operations/Source/V3/Azure/azure.json
 	`,
@@ -35,7 +36,7 @@ var buildTerraformInfoCMD = &cobra.Command{
 		logrus.SetOutput(os.Stdout)
 
 		logContext := logrus.StandardLogger()
-		gitRepoConfig := initGit(logContext)
+		gitRepoConfig := git.InitGit(logContext)
 
 		platformEnvironment, _ := cmd.Flags().GetString("platform-environment")
 

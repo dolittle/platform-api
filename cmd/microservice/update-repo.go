@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/dolittle/platform-api/pkg/git"
 	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -17,7 +18,7 @@ var updateRepoCMD = &cobra.Command{
 		logrus.SetOutput(os.Stdout)
 
 		logContext := logrus.StandardLogger()
-		gitRepoConfig := initGit(logContext)
+		gitRepoConfig := git.InitGit(logContext)
 
 		gitRepo := gitStorage.NewGitStorage(
 			logrus.WithField("context", "git-repo"),
