@@ -1,21 +1,27 @@
 package platform_test
 
 import (
-	"regexp"
-
+	"github.com/dolittle/platform-api/pkg/platform"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("k8s repo test", func() {
 	When("Working with the Ingress", func() {
-		FIt("Get the Customer TenantID from nginx configuration", func() {
-			sample := `proxy_set_header Tenant-ID "61838650-f8b7-412f-8e46-dc6165fc3dc4";`
-			r, _ := regexp.Compile(`proxy_set_header Tenant-ID "(\S+)"`)
+		When("Get the Customer TenantID from nginx configuration", func() {
+			It("Not found", func() {
+				sample := `nothing`
+				expect := ""
+				customerTenantID := platform.GetCustomerTenantIDFromNginxConfigurationSnippet(sample)
+				Expect(customerTenantID).To(Equal(expect))
 
-			matches := r.FindStringSubmatch(sample)
-			Expect(len(matches)).To(Equal(2))
-			Expect(matches[1]).To(Equal("61838650-f8b7-412f-8e46-dc6165fc3dc4"))
+			})
+			It("Found", func() {
+				sample := `proxy_set_header Tenant-ID "61838650-f8b7-412f-8e46-dc6165fc3dc4";`
+				expect := "61838650-f8b7-412f-8e46-dc6165fc3dc4"
+				customerTenantID := platform.GetCustomerTenantIDFromNginxConfigurationSnippet(sample)
+				Expect(customerTenantID).To(Equal(expect))
+			})
 		})
 	})
 })
