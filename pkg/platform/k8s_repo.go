@@ -3,10 +3,12 @@ package platform
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -16,6 +18,7 @@ import (
 	v1 "k8s.io/api/apps/v1"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -199,12 +202,26 @@ func (r *K8sRepo) GetMicroservices(applicationID string) ([]MicroserviceInfo, er
 			kind = hasKind
 		}
 
+		environment := labelMap["environment"]
+		microserviceID := annotationsMap["dolittle.io/microservice-id"]
+		ingressURLS, err := r.GetIngressURLsWithCustomerTenantID(applicationID, environment, microserviceID)
+		if err != nil {
+			return response, err
+		}
+
+		ingressHTTPIngressPath, err := r.GetIngressHTTPIngressPath(applicationID, environment, microserviceID)
+		if err != nil {
+			return response, err
+		}
+
 		response[deploymentIndex] = MicroserviceInfo{
-			Name:        labelMap["microservice"],
-			ID:          annotationsMap["dolittle.io/microservice-id"],
-			Environment: labelMap["environment"],
-			Images:      images,
-			Kind:        kind,
+			Name:         labelMap["microservice"],
+			ID:           microserviceID,
+			Environment:  environment,
+			Images:       images,
+			Kind:         kind,
+			IngressURLS:  ingressURLS,
+			IngressPaths: ingressHTTPIngressPath,
 		}
 	}
 
@@ -652,4 +669,94 @@ func (r *K8sRepo) createAnnotationsAndLabels(customerID, customerName, applicati
 		"application": applicationName,
 	}
 	return annotations, labels
+}
+
+func (r *K8sRepo) GetIngressURLsWithCustomerTenantID(applicationID string, environment string, microserviceID string) ([]IngressURLWithCustomerTenantID, error) {
+	client := r.k8sClient
+	ctx := context.TODO()
+	namespace := fmt.Sprintf("application-%s", applicationID)
+	urls := make([]IngressURLWithCustomerTenantID, 0)
+
+	ingresses, err := client.NetworkingV1().Ingresses(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("environment=%s", environment),
+	})
+
+	if err != nil {
+		return urls, err
+	}
+
+	for _, ingress := range ingresses.Items {
+		annotationsMap := ingress.GetAnnotations()
+		if annotationsMap["dolittle.io/microservice-id"] != microserviceID {
+			continue
+		}
+
+		customerTenantID := ""
+		if _, ok := annotationsMap["nginx.ingress.kubernetes.io/configuration-snippet"]; ok {
+			customerTenantID = GetCustomerTenantIDFromNginxConfigurationSnippet(annotationsMap["nginx.ingress.kubernetes.io/configuration-snippet"])
+		}
+
+		for _, rule := range ingress.Spec.Rules {
+			for _, rulePath := range rule.HTTP.Paths {
+				url := fmt.Sprintf("https://%s%s", rule.Host, rulePath.Path)
+				urls = append(urls, IngressURLWithCustomerTenantID{
+					URL:              url,
+					CustomerTenantID: customerTenantID,
+				})
+			}
+		}
+	}
+
+	return urls, nil
+}
+
+func (r *K8sRepo) GetIngressHTTPIngressPath(applicationID string, environment string, microserviceID string) ([]networkingv1.HTTPIngressPath, error) {
+	client := r.k8sClient
+	ctx := context.TODO()
+	namespace := fmt.Sprintf("application-%s", applicationID)
+	items := make([]networkingv1.HTTPIngressPath, 0)
+
+	ingresses, err := client.NetworkingV1().Ingresses(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("environment=%s", environment),
+	})
+
+	if err != nil {
+		return items, err
+	}
+
+	for _, ingress := range ingresses.Items {
+		annotationsMap := ingress.GetAnnotations()
+		if annotationsMap["dolittle.io/microservice-id"] != microserviceID {
+			continue
+		}
+
+		for _, rule := range ingress.Spec.Rules {
+			for _, rulePath := range rule.HTTP.Paths {
+				// For now, there is no need to expose it
+				rulePath.Backend = networkingv1.IngressBackend{}
+
+				diffA, _ := json.Marshal(rulePath)
+				exists := funk.Contains(items, func(item networkingv1.HTTPIngressPath) bool {
+					diffB, _ := json.Marshal(item)
+					return string(diffA) == string(diffB)
+				})
+
+				if exists {
+					continue
+				}
+				items = append(items, rulePath)
+			}
+		}
+	}
+
+	return items, nil
+}
+
+func GetCustomerTenantIDFromNginxConfigurationSnippet(input string) string {
+	r, _ := regexp.Compile(`proxy_set_header Tenant-ID "(\S+)"`)
+	matches := r.FindStringSubmatch(input)
+	if len(matches) != 2 {
+		return ""
+	}
+	return matches[1]
 }

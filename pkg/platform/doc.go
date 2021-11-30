@@ -1,6 +1,10 @@
 package platform
 
-import "errors"
+import (
+	"errors"
+
+	networkingv1 "k8s.io/api/networking/v1"
+)
 
 type Microservice interface {
 	GetBase() MicroserviceBase
@@ -71,11 +75,13 @@ type ContainerStatusInfo struct {
 }
 
 type MicroserviceInfo struct {
-	Name        string      `json:"name"`
-	Environment string      `json:"environment"`
-	ID          string      `json:"id"`
-	Images      []ImageInfo `json:"images"`
-	Kind        string      `json:"kind"`
+	Name         string                           `json:"name"`
+	Environment  string                           `json:"environment"`
+	ID           string                           `json:"id"`
+	Images       []ImageInfo                      `json:"images"`
+	Kind         string                           `json:"kind"`
+	IngressURLS  []IngressURLWithCustomerTenantID `json:"ingressUrls"`
+	IngressPaths []networkingv1.HTTPIngressPath   `json:"ingressPaths"`
 }
 type PodInfo struct {
 	Name       string                `json:"name"`
@@ -372,4 +378,9 @@ type PurchaseOrderStatus struct {
 	Status              string `json:"status"`
 	LastReceivedPayload string `json:"lastReceivedPayload"`
 	Error               string `json:"error"`
+}
+
+type IngressURLWithCustomerTenantID struct {
+	URL              string `json:"url"`
+	CustomerTenantID string `json:"customerTenantID"`
 }
