@@ -710,6 +710,7 @@ func (r *K8sRepo) GetIngressURLsWithCustomerTenantID(applicationID string, envir
 	return urls, nil
 }
 
+// GetIngressHTTPIngressPath Return unique Ingress Paths
 func (r *K8sRepo) GetIngressHTTPIngressPath(applicationID string, environment string, microserviceID string) ([]networkingv1.HTTPIngressPath, error) {
 	client := r.k8sClient
 	ctx := context.TODO()
