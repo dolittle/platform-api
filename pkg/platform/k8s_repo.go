@@ -3,7 +3,6 @@ package platform
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -736,10 +735,8 @@ func (r *K8sRepo) GetIngressHTTPIngressPath(applicationID string, environment st
 				// For now, there is no need to expose it
 				rulePath.Backend = networkingv1.IngressBackend{}
 
-				diffA, _ := json.Marshal(rulePath)
 				exists := funk.Contains(items, func(item networkingv1.HTTPIngressPath) bool {
-					diffB, _ := json.Marshal(item)
-					return string(diffA) == string(diffB)
+					return rulePath == item
 				})
 
 				if exists {
