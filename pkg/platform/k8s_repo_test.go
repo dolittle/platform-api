@@ -1,9 +1,18 @@
 package platform_test
 
 import (
+	"errors"
+
 	"github.com/dolittle/platform-api/pkg/platform"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	networkingv1 "k8s.io/api/networking/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/testing"
 )
 
 var _ = Describe("k8s repo test", func() {
@@ -23,5 +32,200 @@ var _ = Describe("k8s repo test", func() {
 				Expect(customerTenantID).To(Equal(expect))
 			})
 		})
+
+		When("GetIngressHTTPIngressPath", func() {
+			var (
+				applicationID  string
+				environment    string
+				microserviceID string
+				want           error
+				clientSet      *fake.Clientset
+				config         *rest.Config
+				k8sRepo        platform.K8sRepo
+			)
+
+			BeforeEach(func() {
+				applicationID = "fake-application-123"
+				environment = "Dev"
+				microserviceID = "fake-microservice-123"
+				want = errors.New("fail")
+				clientSet = &fake.Clientset{}
+				config = &rest.Config{}
+				k8sRepo = platform.NewK8sRepo(clientSet, config)
+
+			})
+
+			It("Error getting list", func() {
+				clientSet.AddReactor("list", "ingresses", func(action testing.Action) (handled bool, ret runtime.Object, err error) {
+					data := &networkingv1.IngressList{}
+					return true, data, want
+				})
+
+				_, err := k8sRepo.GetIngressHTTPIngressPath(applicationID, environment, microserviceID)
+				Expect(err).To(Equal(want))
+			})
+
+			It("When List is empty", func() {
+				clientSet.AddReactor("list", "ingresses", func(action testing.Action) (handled bool, ret runtime.Object, err error) {
+					filters := action.(testing.ListActionImpl).ListRestrictions
+					Expect(filters.Labels.Matches(labels.Set{"environment": environment})).To(BeTrue())
+
+					data := &networkingv1.IngressList{}
+					return true, data, nil
+				})
+
+				items, err := k8sRepo.GetIngressHTTPIngressPath(applicationID, environment, microserviceID)
+				Expect(err).To(BeNil())
+				Expect(len(items)).To(Equal(0))
+			})
+
+			It("When List has no ingresses linked to this microservice", func() {
+				clientSet.AddReactor("list", "ingresses", func(action testing.Action) (handled bool, ret runtime.Object, err error) {
+					filters := action.(testing.ListActionImpl).ListRestrictions
+					Expect(filters.Labels.Matches(labels.Set{"environment": environment})).To(BeTrue())
+					className := "nginx"
+
+					data := &networkingv1.IngressList{
+						Items: []networkingv1.Ingress{
+							{
+								ObjectMeta: metav1.ObjectMeta{
+									Name: "ignore-1",
+									Labels: map[string]string{
+										"environment": environment,
+									},
+								},
+								Spec: networkingv1.IngressSpec{
+									IngressClassName: &className,
+									Rules:            []networkingv1.IngressRule{},
+								},
+							},
+						},
+					}
+					return true, data, nil
+				})
+
+				items, err := k8sRepo.GetIngressHTTPIngressPath(applicationID, environment, microserviceID)
+				Expect(err).To(BeNil())
+				Expect(len(items)).To(Equal(0))
+			})
+
+			When("Ingresses are found", func() {
+				It("Only 1", func() {
+					clientSet.AddReactor("list", "ingresses", func(action testing.Action) (handled bool, ret runtime.Object, err error) {
+						filters := action.(testing.ListActionImpl).ListRestrictions
+						Expect(filters.Labels.Matches(labels.Set{"environment": environment})).To(BeTrue())
+						className := "nginx"
+
+						pathType := networkingv1.PathTypePrefix
+						data := &networkingv1.IngressList{
+							Items: []networkingv1.Ingress{
+								{
+									ObjectMeta: metav1.ObjectMeta{
+										Name: "ignore-1",
+										Labels: map[string]string{
+											"environment": environment,
+										},
+										Annotations: map[string]string{
+											"dolittle.io/microservice-id": microserviceID,
+										},
+									},
+									Spec: networkingv1.IngressSpec{
+										IngressClassName: &className,
+										Rules: []networkingv1.IngressRule{
+											{
+												Host: "fake",
+												IngressRuleValue: networkingv1.IngressRuleValue{
+													HTTP: &networkingv1.HTTPIngressRuleValue{
+														Paths: []networkingv1.HTTPIngressPath{
+															{
+																Path:     "/",
+																PathType: &pathType,
+																Backend:  networkingv1.IngressBackend{},
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						}
+						return true, data, nil
+					})
+
+					items, err := k8sRepo.GetIngressHTTPIngressPath(applicationID, environment, microserviceID)
+					Expect(err).To(BeNil())
+					Expect(len(items)).To(Equal(1))
+					Expect(items[0].Path).To(Equal("/"))
+				})
+
+				It("Confirm unique rules", func() {
+
+					clientSet.AddReactor("list", "ingresses", func(action testing.Action) (handled bool, ret runtime.Object, err error) {
+						filters := action.(testing.ListActionImpl).ListRestrictions
+						Expect(filters.Labels.Matches(labels.Set{"environment": environment})).To(BeTrue())
+						className := "nginx"
+
+						pathType := networkingv1.PathTypePrefix
+						data := &networkingv1.IngressList{
+							Items: []networkingv1.Ingress{
+								{
+									ObjectMeta: metav1.ObjectMeta{
+										Name: "ignore-1",
+										Labels: map[string]string{
+											"environment": environment,
+										},
+										Annotations: map[string]string{
+											"dolittle.io/microservice-id": microserviceID,
+										},
+									},
+									Spec: networkingv1.IngressSpec{
+										IngressClassName: &className,
+										Rules: []networkingv1.IngressRule{
+											{
+												Host: "fake",
+												IngressRuleValue: networkingv1.IngressRuleValue{
+													HTTP: &networkingv1.HTTPIngressRuleValue{
+														Paths: []networkingv1.HTTPIngressPath{
+															{
+																Path:     "/",
+																PathType: &pathType,
+																Backend:  networkingv1.IngressBackend{},
+															},
+														},
+													},
+												},
+											},
+											{
+												Host: "fake",
+												IngressRuleValue: networkingv1.IngressRuleValue{
+													HTTP: &networkingv1.HTTPIngressRuleValue{
+														Paths: []networkingv1.HTTPIngressPath{
+															networkingv1.HTTPIngressPath{
+																Path:     "/",
+																PathType: &pathType,
+																Backend:  networkingv1.IngressBackend{},
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						}
+						return true, data, nil
+					})
+
+					items, err := k8sRepo.GetIngressHTTPIngressPath(applicationID, environment, microserviceID)
+					Expect(err).To(BeNil())
+					Expect(len(items)).To(Equal(1))
+					Expect(items[0].Path).To(Equal("/"))
+				})
+			})
+		})
+
 	})
 })
