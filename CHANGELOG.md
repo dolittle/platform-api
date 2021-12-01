@@ -1,3 +1,11 @@
+# [2.1.3] - 2021-12-1 [PR: #65](https://github.com/dolittle/platform-api/pull/65)
+## Summary
+
+- Rename HttpResponseApplications2 to HttpResponseApplication
+- Expose the Ingress host + path per customer Tenant ID
+- Expose Unique Ingress Paths (microservice paths)
+
+
 # [2.1.2] - 2021-11-29 [PR: #62](https://github.com/dolittle/platform-api/pull/62)
 ## Summary
 
