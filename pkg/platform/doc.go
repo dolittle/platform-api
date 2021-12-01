@@ -1,6 +1,10 @@
 package platform
 
-import "errors"
+import (
+	"errors"
+
+	networkingv1 "k8s.io/api/networking/v1"
+)
 
 type Microservice interface {
 	GetBase() MicroserviceBase
@@ -41,20 +45,13 @@ type HttpInputEnvironment struct {
 	Ingresses         EnvironmentIngresses `json:"ingresses"`
 }
 
-type HttpResponseApplication2 struct {
+type HttpResponseApplication struct {
 	ID            string                 `json:"id"`
 	Name          string                 `json:"name"`
 	TenantID      string                 `json:"tenantId"`
+	TenantName    string                 `json:"tenantName"`
 	Environments  []HttpInputEnvironment `json:"environments"`
-	Microservices []HttpMicroserviceBase `json:"microservices"`
-}
-
-type HttpResponseApplication struct {
-	ID           string                 `json:"id"`
-	Name         string                 `json:"name"`
-	TenantID     string                 `json:"tenantId"`
-	TenantName   string                 `json:"tenantName"`
-	Environments []HttpInputEnvironment `json:"environments"`
+	Microservices []HttpMicroserviceBase `json:"microservices,omitempty"`
 }
 
 type HttpResponseApplications struct {
@@ -78,11 +75,13 @@ type ContainerStatusInfo struct {
 }
 
 type MicroserviceInfo struct {
-	Name        string      `json:"name"`
-	Environment string      `json:"environment"`
-	ID          string      `json:"id"`
-	Images      []ImageInfo `json:"images"`
-	Kind        string      `json:"kind"`
+	Name         string                           `json:"name"`
+	Environment  string                           `json:"environment"`
+	ID           string                           `json:"id"`
+	Images       []ImageInfo                      `json:"images"`
+	Kind         string                           `json:"kind"`
+	IngressURLS  []IngressURLWithCustomerTenantID `json:"ingressUrls"`
+	IngressPaths []networkingv1.HTTPIngressPath   `json:"ingressPaths"`
 }
 type PodInfo struct {
 	Name       string                `json:"name"`
@@ -379,4 +378,9 @@ type PurchaseOrderStatus struct {
 	Status              string `json:"status"`
 	LastReceivedPayload string `json:"lastReceivedPayload"`
 	Error               string `json:"error"`
+}
+
+type IngressURLWithCustomerTenantID struct {
+	URL              string `json:"url"`
+	CustomerTenantID string `json:"customerTenantID"`
 }

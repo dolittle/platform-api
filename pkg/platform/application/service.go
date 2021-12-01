@@ -247,10 +247,16 @@ func (s *service) GetByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	microservices, err := s.gitRepo.GetMicroservices(tenantID, applicationID)
-	utils.RespondWithJSON(w, http.StatusOK, platform.HttpResponseApplication2{
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	utils.RespondWithJSON(w, http.StatusOK, platform.HttpResponseApplication{
 		ID:            application.ID,
 		Name:          application.Name,
 		TenantID:      application.TenantID,
+		TenantName:    application.TenantName,
 		Environments:  application.Environments,
 		Microservices: microservices,
 	})
