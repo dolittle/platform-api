@@ -14,4 +14,6 @@ Tools to interact with the platform`,
 
 func init() {
 	RootCmd.AddCommand(createCustomerHclCMD)
+	RootCmd.AddCommand(getHeadImageCMD)
+	RootCmd.AddCommand(getMicoservicesCMD)
 }

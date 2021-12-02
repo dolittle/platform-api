@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/Azure/azure-storage-file-go v0.8.0
+	github.com/evanphx/json-patch v4.11.0+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/go-git/go-git/v5 v5.3.0
 	github.com/google/uuid v1.1.2
@@ -22,6 +23,8 @@ require (
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.7.0
 	github.com/thoas/go-funk v0.9.0
+	github.com/tidwall/pretty v1.2.0 // indirect
+	github.com/vmware-labs/yaml-jsonpath v0.3.2
 	github.com/zclconf/go-cty v1.9.1
 	go.mongodb.org/mongo-driver v1.7.0
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
@@ -29,8 +32,10 @@ require (
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/sys v0.0.0-20210906170528-6f6e22806c34 // indirect
 	golang.org/x/text v0.3.7 // indirect
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	k8s.io/api v0.20.4
 	k8s.io/apimachinery v0.20.4
 	k8s.io/client-go v0.20.4
+	k8s.io/kube-openapi v0.0.0-20210421082810-95288971da7e // indirect
 	sigs.k8s.io/yaml v1.2.0
 )
