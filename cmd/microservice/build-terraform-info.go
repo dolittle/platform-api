@@ -25,8 +25,15 @@ var buildTerraformInfoCMD = &cobra.Command{
 	cd Source/V3/Azure
 	terraform output -json > azure.json
 
+	GIT_REPO_BRANCH=dev \
+	GIT_REPO_DRY_RUN=true \
+	GIT_REPO_DIRECTORY="/tmp/dolittle-local-dev" \
+	GIT_REPO_DIRECTORY_ONLY=true \
+	go run main.go microservice build-terraform-info ~/Dolittle/Operations/Source/V3/Azure/azure.json
+
 	GIT_REPO_SSH_KEY="/Users/freshteapot/dolittle/.ssh/test-deploy" \
 	GIT_REPO_BRANCH=dev \
+	GIT_REPO_DRY_RUN=true \
 	GIT_REPO_URL="git@github.com:freshteapot/test-deploy-key.git" \
 	go run main.go microservice build-terraform-info /Users/freshteapot/dolittle/git/Operations/Source/V3/Azure/azure.json
 	`,
@@ -58,7 +65,7 @@ var buildTerraformInfoCMD = &cobra.Command{
 		}
 
 		pathToFile := args[0]
-		b, err := ioutil.ReadFile(pathToFile)
+		fileBytes, err := ioutil.ReadFile(pathToFile)
 		if err != nil {
 			logContext.WithField("error", err).Fatal("Failed to find path")
 		}
@@ -68,7 +75,7 @@ var buildTerraformInfoCMD = &cobra.Command{
 			gitRepoConfig,
 		)
 
-		customers, err := extractTerraformCustomers(platformEnvironment, b)
+		customers, err := extractTerraformCustomers(platformEnvironment, fileBytes)
 		if err != nil {
 			logContext.WithField("error", err).Fatal("Failed to extract terraform customers")
 		}
@@ -82,7 +89,7 @@ var buildTerraformInfoCMD = &cobra.Command{
 			return customer.GUID
 		}).([]string)
 
-		applications, err := extractTerraformApplications(customerIDS, b)
+		applications, err := extractTerraformApplications(customerIDS, fileBytes)
 		if err != nil {
 			logContext.WithField("error", err).Fatal("Failed to extract terraform applications")
 		}
@@ -143,23 +150,23 @@ func extractTerraformCustomers(platformEnvironment string, data []byte) ([]platf
 	iter := code.Run(input, platformEnvironment)
 
 	for {
-		v, ok := iter.Next()
+		value, ok := iter.Next()
 		if !ok {
 			break
 		}
 
-		if err, ok := v.(error); ok {
+		if err, ok := value.(error); ok {
 			return customers, err
 		}
 
-		var c platform.TerraformCustomer
-		b, _ := json.Marshal(v)
-		err := json.Unmarshal(b, &c)
+		var terraformCustomer platform.TerraformCustomer
+		valueBytes, _ := json.Marshal(value)
+		err := json.Unmarshal(valueBytes, &terraformCustomer)
 		if err != nil {
 			return customers, err
 		}
 
-		customers = append(customers, c)
+		customers = append(customers, terraformCustomer)
 	}
 
 	return customers, nil
