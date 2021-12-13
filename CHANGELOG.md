@@ -1,3 +1,9 @@
+# [2.2.0] - 2021-12-13 [PR: #67](https://github.com/dolittle/platform-api/pull/67)
+## Summary
+
+Added a few more attributes to the terraformCustomer based on information from the Operations repo.
+
+
 # [2.1.3] - 2021-12-1 [PR: #65](https://github.com/dolittle/platform-api/pull/65)
 ## Summary
 
