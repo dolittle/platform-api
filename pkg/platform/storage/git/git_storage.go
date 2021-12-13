@@ -56,7 +56,7 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *G
 		if err != nil {
 			s.logContext.WithFields(logrus.Fields{
 				"error": err,
-			}).Fatal("repo exists")
+			}).Fatal("repo doesn't exist")
 		}
 		s.Repo = r
 		return s
@@ -101,7 +101,7 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *G
 		if err != nil {
 			s.logContext.WithFields(logrus.Fields{
 				"error": err,
-			}).Fatal("repo exists")
+			}).Fatal("repo doesn't exist")
 		}
 	}
 

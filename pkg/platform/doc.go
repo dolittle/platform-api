@@ -251,10 +251,13 @@ type HttpResponsePodLog struct {
 }
 
 type TerraformCustomer struct {
-	Name                    string `json:"name"`
-	GUID                    string `json:"guid"`
-	AzureStorageAccountName string `json:"azure_storage_account_name"`
-	ContainerRegistryName   string `json:"container_registry_name"`
+	Name                      string `json:"name"`
+	GUID                      string `json:"guid"`
+	AzureStorageAccountName   string `json:"azure_storage_account_name"`
+	AzureStorageAccountKey    string `json:"azure_storage_account_key"`
+	ContainerRegistryName     string `json:"container_registry_name"`
+	ContainerRegistryPassword string `json:"container_registry_password"`
+	ContainerRegistryUsername string `json:"container_registry_username"`
 }
 
 type StudioConfig struct {
