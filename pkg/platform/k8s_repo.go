@@ -791,5 +791,5 @@ func (r *K8sRepo) RestartMicroservice(applicationID string, environment string, 
 		}
 	}
 
-	return err
+	return nil
 }
