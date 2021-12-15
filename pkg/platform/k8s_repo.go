@@ -259,7 +259,7 @@ func (r *K8sRepo) GetMicroserviceName(applicationID string, microserviceID strin
 	return foundDeployment.Name, err
 }
 
-func (r *K8sRepo) GetPodStatus(applicationID string, microserviceID string, environment string) (PodData, error) {
+func (r *K8sRepo) GetPodStatus(applicationID string, environment string, microserviceID string) (PodData, error) {
 	client := r.k8sClient
 	ctx := context.TODO()
 	namespace := fmt.Sprintf("application-%s", applicationID)
@@ -757,4 +757,39 @@ func GetCustomerTenantIDFromNginxConfigurationSnippet(input string) string {
 		return ""
 	}
 	return matches[1]
+}
+
+func (r *K8sRepo) RestartMicroservice(applicationID string, environment string, microserviceID string) error {
+	client := r.k8sClient
+	ctx := context.TODO()
+	namespace := fmt.Sprintf("application-%s", applicationID)
+	pods, err := client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+
+	if err != nil {
+		return err
+	}
+
+	podsToRestart := make([]string, 0)
+	for _, pod := range pods.Items {
+		annotationsMap := pod.GetObjectMeta().GetAnnotations()
+		labelMap := pod.GetObjectMeta().GetLabels()
+
+		if annotationsMap["dolittle.io/microservice-id"] != microserviceID {
+			continue
+		}
+
+		if strings.ToLower(labelMap["environment"]) != environment {
+			continue
+		}
+		podsToRestart = append(podsToRestart, pod.Name)
+	}
+
+	for _, podName := range podsToRestart {
+		err := client.CoreV1().Pods(namespace).Delete(ctx, podName, metav1.DeleteOptions{})
+		if err != nil {
+			return err
+		}
+	}
+
+	return err
 }

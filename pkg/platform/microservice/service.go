@@ -389,7 +389,7 @@ func (s *service) GetPodStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	status, err := s.k8sDolittleRepo.GetPodStatus(applicationID, microserviceID, environment)
+	status, err := s.k8sDolittleRepo.GetPodStatus(applicationID, environment, microserviceID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -656,5 +656,36 @@ func (s *service) CanI(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.RespondWithJSON(w, http.StatusNotFound, map[string]string{
 		"allowed": allowedStr,
+	})
+}
+
+func (s *service) Restart(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	applicationID := vars["applicationID"]
+	microserviceID := vars["microserviceID"]
+	environment := strings.ToLower(vars["environment"])
+
+	userID := r.Header.Get("User-ID")
+	customerID := r.Header.Get("Tenant-ID")
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
+	if !allowed {
+		return
+	}
+
+	err := s.k8sDolittleRepo.RestartMicroservice(applicationID, environment, microserviceID)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	status, err := s.k8sDolittleRepo.GetPodStatus(applicationID, environment, microserviceID)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	utils.RespondWithJSON(w, http.StatusOK, map[string]interface{}{
+		"message": "Microservice restarted",
+		"status":  status,
 	})
 }

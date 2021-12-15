@@ -215,10 +215,17 @@ var serverCMD = &cobra.Command{
 			"/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/podstatus",
 			stdChainWithJSON.ThenFunc(microserviceService.GetPodStatus),
 		).Methods(http.MethodGet, http.MethodOptions)
+
+		router.Handle(
+			"/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/restart",
+			stdChainWithJSON.ThenFunc(microserviceService.Restart),
+		).Methods(http.MethodDelete, http.MethodOptions)
+
 		router.Handle(
 			"/live/application/{applicationID}/pod/{podName}/logs",
 			stdChainBase.ThenFunc(microserviceService.GetPodLogs),
 		).Methods(http.MethodGet, http.MethodOptions)
+
 		router.Handle(
 			"/live/application/{applicationID}/configmap/{configMapName}",
 			stdChainBase.ThenFunc(microserviceService.GetConfigMap),
