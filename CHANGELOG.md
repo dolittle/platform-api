@@ -1,3 +1,10 @@
+# [2.3.0] - 2021-12-15 [PR: #68](https://github.com/dolittle/platform-api/pull/68)
+## Summary
+
+- Building the application info to include ModuleName and ApplicationID.
+- Terraform create customer now includes the module_name.
+
+
 # [2.2.0] - 2021-12-13 [PR: #67](https://github.com/dolittle/platform-api/pull/67)
 ## Summary
 
