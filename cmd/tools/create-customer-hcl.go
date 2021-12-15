@@ -61,16 +61,17 @@ var createCustomerHclCMD = &cobra.Command{
 
 func generateTerraformForCustomer(root *hclwrite.Body, customer tfCustomer) {
 	/*
-	   module "customer_test_marka" {
-	     source               = "./modules/dolittle-customer-with-resources"
-	     guid                 = "XXX"
-	     name                 = "Test Marka"
-	     platform_environment = "dev"
-	   }
+		module "customer_test_marka" {
+			source               = "./modules/dolittle-customer-with-resources"
+			guid                 = "XXX"
+			name                 = "Test Marka"
+			platform_environment = "dev"
+			module_name          = "customer_test_marka"
+		}
 
-	   output "customer_test_marka" {
-	     value = module.customer_test_marka
-	   }
+		output "customer_test_marka" {
+			value = module.customer_test_marka
+		}
 	*/
 
 	moduleBlock := root.AppendNewBlock("module", []string{customer.TfName})
@@ -79,6 +80,7 @@ func generateTerraformForCustomer(root *hclwrite.Body, customer tfCustomer) {
 	moduleBody.SetAttributeValue("guid", cty.StringVal(customer.Guid))
 	moduleBody.SetAttributeValue("name", cty.StringVal(customer.Name))
 	moduleBody.SetAttributeValue("platform_environment", cty.StringVal(customer.PlatformEnvironment))
+	moduleBody.SetAttributeValue("module_name", cty.StringVal(customer.TfName))
 
 	root.AppendNewline()
 
