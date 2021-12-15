@@ -1,3 +1,9 @@
+# [2.3.1] - 2021-12-15 [PR: #69](https://github.com/dolittle/platform-api/pull/69)
+## Summary
+
+- Api to restart microservice
+
+
 # [2.3.0] - 2021-12-15 [PR: #68](https://github.com/dolittle/platform-api/pull/68)
 ## Summary
 
