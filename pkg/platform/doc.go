@@ -252,12 +252,13 @@ type HttpResponsePodLog struct {
 
 type TerraformCustomer struct {
 	Name                      string `json:"name"`
-	GUID                      string `json:"guid"`
+	GUID                      string `json:"guid"` // This is customerID
 	AzureStorageAccountName   string `json:"azure_storage_account_name"`
 	AzureStorageAccountKey    string `json:"azure_storage_account_key"`
 	ContainerRegistryName     string `json:"container_registry_name"`
 	ContainerRegistryPassword string `json:"container_registry_password"`
 	ContainerRegistryUsername string `json:"container_registry_username"`
+	ModuleName                string `json:"module_name"`
 }
 
 type StudioConfig struct {
@@ -321,14 +322,12 @@ var (
 )
 
 type TerraformApplication struct {
-	Customer struct {
-		GUID string `json:"guid"`
-		Name string `json:"name"`
-	} `json:"customer"`
-	GroupID string `json:"group_id"`
-	GUID    string `json:"guid"`
-	Kind    string `json:"kind"`
-	Name    string `json:"name"`
+	Customer      TerraformCustomer `json:"customer"`
+	GroupID       string            `json:"group_id"`
+	GUID          string            `json:"guid"` // This is applicationID
+	ApplicationID string            `json:"application_id"`
+	Kind          string            `json:"kind"`
+	Name          string            `json:"name"`
 }
 
 /*
