@@ -678,14 +678,7 @@ func (s *service) Restart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	status, err := s.k8sDolittleRepo.GetPodStatus(applicationID, environment, microserviceID)
-	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
 	utils.RespondWithJSON(w, http.StatusOK, map[string]interface{}{
 		"message": "Microservice restarted",
-		"status":  status,
 	})
 }
