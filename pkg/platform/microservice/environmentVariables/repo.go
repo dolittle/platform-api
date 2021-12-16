@@ -1,13 +1,12 @@
 package environmentVariables
 
 import (
-	"encoding/base64"
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -31,11 +30,6 @@ func NewEnvironmentVariablesK8sRepo(k8sDolittleRepo platform.K8sRepo, k8sClient 
 }
 
 func (r k8sRepo) GetEnvironmentVariables(applicationID string, environment string, microserviceID string) ([]platform.StudioEnvironmentVariable, error) {
-	// Get name of microservice
-	// Get configmap
-	// Get secret
-	// Build data
-	emptyData := make([]platform.StudioEnvironmentVariable, 0)
 	data := make([]platform.StudioEnvironmentVariable, 0)
 	// TODO this should use environment in GetMicroserviceName
 	name, err := r.k8sDolittleRepo.GetMicroserviceName(applicationID, microserviceID)
@@ -47,8 +41,6 @@ func (r k8sRepo) GetEnvironmentVariables(applicationID string, environment strin
 
 	configMap, err := r.k8sDolittleRepo.GetConfigMap(applicationID, configmapName)
 	if err != nil {
-		fmt.Println(configmapName)
-		fmt.Println(err)
 		return data, errors.New("unable to load data from configmap")
 	}
 
@@ -67,15 +59,11 @@ func (r k8sRepo) GetEnvironmentVariables(applicationID string, environment strin
 		})
 	}
 
+	// When using StringData, it does not appear I need to handle this
 	for name, value := range secret.Data {
-		decodedValue, err := base64.StdEncoding.DecodeString(string(value))
-		if err != nil {
-			return emptyData, errors.New("bad data")
-		}
-
 		data = append(data, platform.StudioEnvironmentVariable{
 			Name:     name,
-			Value:    string(decodedValue),
+			Value:    string(value),
 			IsSecret: true,
 		})
 	}
@@ -84,11 +72,8 @@ func (r k8sRepo) GetEnvironmentVariables(applicationID string, environment strin
 }
 
 func (r k8sRepo) UpdateEnvironmentVariables(applicationID string, environment string, microserviceID string, data []platform.StudioEnvironmentVariable) error {
-	// TODO check for empty name
-	// TODO check for empty value
-	// TODO check for isSecret
 	err := errors.New("bad data")
-
+	uniqueKeys := make([]string, 0)
 	for _, item := range data {
 		if item.Name == "" {
 			return err
@@ -105,7 +90,15 @@ func (r k8sRepo) UpdateEnvironmentVariables(applicationID string, environment st
 		if strings.TrimSpace(item.Value) != item.Value {
 			return err
 		}
+
+		// Check for duplicate keys
+		if funk.ContainsString(uniqueKeys, item.Name) {
+			return err
+		}
+
+		uniqueKeys = append(uniqueKeys, item.Name)
 	}
+	// Check for duplicate names
 
 	// Get name of microservice
 	name, err := r.k8sDolittleRepo.GetMicroserviceName(applicationID, microserviceID)
@@ -137,6 +130,10 @@ func (r k8sRepo) UpdateEnvironmentVariables(applicationID string, environment st
 		configMap.Data[item.Name] = item.Value
 	}
 
+	// Because I am overriding all, this is required to make sure
+	// Current data is cleared, as I suspect StringData has some magic under the hood on
+	// saving and on reading
+	secret.Data = make(map[string][]byte)
 	secret.StringData = make(map[string]string)
 
 	for _, item := range data {

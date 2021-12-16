@@ -58,7 +58,7 @@ func (s *service) GetEnvironmentVariables(w http.ResponseWriter, r *http.Request
 
 func (s *service) UpdateEnvironmentVariables(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	fmt.Println(vars)
+
 	applicationID := vars["applicationID"]
 	microserviceID := vars["microserviceID"]
 	environment := strings.ToLower(vars["environment"])
