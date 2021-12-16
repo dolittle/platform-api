@@ -65,7 +65,7 @@ func (s *service) UpdateEnvironmentVariables(w http.ResponseWriter, r *http.Requ
 
 	userID := r.Header.Get("User-ID")
 	customerID := r.Header.Get("Tenant-ID")
-	fmt.Println("data", customerID, applicationID, userID)
+
 	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
 	if !allowed {
 		return
