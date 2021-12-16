@@ -227,6 +227,7 @@ func (r *K8sRepo) GetMicroservices(applicationID string) ([]MicroserviceInfo, er
 	return response, err
 }
 
+// TODO Can I add environment here GetMicroserviceName
 func (r *K8sRepo) GetMicroserviceName(applicationID string, microserviceID string) (string, error) {
 	client := r.k8sClient
 	ctx := context.TODO()
@@ -792,4 +793,36 @@ func (r *K8sRepo) RestartMicroservice(applicationID string, environment string, 
 	}
 
 	return nil
+}
+
+func (r *K8sRepo) WriteConfigMap(configMap *corev1.ConfigMap) (*corev1.ConfigMap, error) {
+	client := r.k8sClient
+	ctx := context.TODO()
+	namespace := configMap.ObjectMeta.Namespace
+	return client.CoreV1().ConfigMaps(namespace).Update(ctx, configMap, metav1.UpdateOptions{})
+}
+
+func (r *K8sRepo) WriteSecret(secret *corev1.Secret) (*corev1.Secret, error) {
+	client := r.k8sClient
+	ctx := context.TODO()
+	namespace := secret.ObjectMeta.Namespace
+	return client.CoreV1().Secrets(namespace).Update(ctx, secret, metav1.UpdateOptions{})
+}
+
+// TODO move once resources land
+func GetMicroserviceEnvironmentVariableConfigmapName(name string) string {
+	return strings.ToLower(
+		fmt.Sprintf("%s-env-variables",
+			name,
+		),
+	)
+}
+
+// TODO move once resources land
+func GetMicroserviceEnvironmentVariableSecretName(name string) string {
+	return strings.ToLower(
+		fmt.Sprintf("%s-secret-env-variables",
+			name,
+		),
+	)
 }
