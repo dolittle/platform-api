@@ -1,3 +1,10 @@
+# [2.3.2] - 2021-12-17 [PR: #70](https://github.com/dolittle/platform-api/pull/70)
+## Summary
+
+- api to get the current environment variables in a Studio friendly manner
+- api to update environment variables from the Studio
+
+
 # [2.3.1] - 2021-12-15 [PR: #69](https://github.com/dolittle/platform-api/pull/69)
 ## Summary
 
