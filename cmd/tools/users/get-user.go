@@ -23,12 +23,6 @@ var getUserCMD = &cobra.Command{
 			return
 		}
 
-		customerID, _ := cmd.Flags().GetString("customer-id")
-		if customerID == "" {
-			fmt.Println("A customerID is required")
-			return
-		}
-
 		url := "http://localhost:4434/identities"
 		// TODO look up users
 		kratosUsers, err := user.GetUsersFromKratos(url)
