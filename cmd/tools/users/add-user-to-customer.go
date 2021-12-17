@@ -13,7 +13,7 @@ var addUserToCustomerCMD = &cobra.Command{
 	Long: `
 	Given an email add to a customerID
 
-	go run main.go tools users add-user-to-customer --email="human@dolitte.com" --customer-id="fake-customer-id"
+	go run main.go tools users add-user-to-customer --email="human@dolittle.com" --customer-id="fake-customer-id"
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		email, _ := cmd.Flags().GetString("email")
