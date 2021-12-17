@@ -106,4 +106,5 @@ func (s *service) UpdateEnvironmentVariables(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	response.Data = data
+	utils.RespondWithJSON(w, http.StatusOK, response)
 }
