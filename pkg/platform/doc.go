@@ -386,3 +386,15 @@ type IngressURLWithCustomerTenantID struct {
 	URL              string `json:"url"`
 	CustomerTenantID string `json:"customerTenantID"`
 }
+
+type StudioEnvironmentVariable struct {
+	Name     string `json:"name"`
+	Value    string `json:"value"`
+	IsSecret bool   `json:"isSecret"`
+}
+type HttpResponseEnvironmentVariables struct {
+	ApplicationID  string                      `json:"applicationId"`
+	MicroserviceID string                      `json:"microserviceId"`
+	Environment    string                      `json:"environment"`
+	Data           []StudioEnvironmentVariable `json:"data"`
+}

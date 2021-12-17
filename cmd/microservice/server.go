@@ -16,6 +16,7 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform/cicd"
 	"github.com/dolittle/platform-api/pkg/platform/insights"
 	"github.com/dolittle/platform-api/pkg/platform/microservice"
+	"github.com/dolittle/platform-api/pkg/platform/microservice/environmentVariables"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/purchaseorderapi"
 
 	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
@@ -92,6 +93,17 @@ var serverCMD = &cobra.Command{
 			clientset,
 			logrus.WithField("context", "microservice-service"),
 		)
+
+		microserviceEnvironmentVariablesService := environmentVariables.NewService(
+			environmentVariables.NewEnvironmentVariablesK8sRepo(
+				k8sRepo,
+				clientset,
+				logrus.WithField("context", "microservice-environment-variables-repo"),
+			),
+			k8sRepo,
+			logrus.WithField("context", "microservice-environment-variables-service"),
+		)
+
 		applicationService := application.NewService(
 			subscriptionID,
 			externalClusterHost,
@@ -220,6 +232,16 @@ var serverCMD = &cobra.Command{
 			"/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/restart",
 			stdChainWithJSON.ThenFunc(microserviceService.Restart),
 		).Methods(http.MethodDelete, http.MethodOptions)
+
+		router.Handle(
+			"/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/environment-variables",
+			stdChainWithJSON.ThenFunc(microserviceEnvironmentVariablesService.GetEnvironmentVariables),
+		).Methods(http.MethodGet, http.MethodOptions)
+
+		router.Handle(
+			"/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/environment-variables",
+			stdChainWithJSON.ThenFunc(microserviceEnvironmentVariablesService.UpdateEnvironmentVariables),
+		).Methods(http.MethodPut, http.MethodOptions)
 
 		router.Handle(
 			"/live/application/{applicationID}/pod/{podName}/logs",
