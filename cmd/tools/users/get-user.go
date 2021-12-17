@@ -14,7 +14,7 @@ var getUserCMD = &cobra.Command{
 	Long: `
 	Given an email get user
 
-	go run main.go tools users get-user --email="human@dolitte.com"
+	go run main.go tools users get-user --email="human@dolittle.com"
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		email, _ := cmd.Flags().GetString("email")
