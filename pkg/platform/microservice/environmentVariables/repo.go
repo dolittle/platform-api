@@ -73,7 +73,7 @@ func (r k8sRepo) GetEnvironmentVariables(applicationID string, environment strin
 
 func (r k8sRepo) UpdateEnvironmentVariables(applicationID string, environment string, microserviceID string, data []platform.StudioEnvironmentVariable) error {
 	err := errors.New("bad data")
-	uniqueKeys := make([]string, 0)
+	uniqueNames := make([]string, 0)
 	for _, item := range data {
 		if item.Name == "" {
 			return err
@@ -92,13 +92,12 @@ func (r k8sRepo) UpdateEnvironmentVariables(applicationID string, environment st
 		}
 
 		// Check for duplicate keys
-		if funk.ContainsString(uniqueKeys, item.Name) {
+		if funk.ContainsString(uniqueNames, item.Name) {
 			return err
 		}
 
-		uniqueKeys = append(uniqueKeys, item.Name)
+		uniqueNames = append(uniqueNames, item.Name)
 	}
-	// Check for duplicate names
 
 	// Get name of microservice
 	name, err := r.k8sDolittleRepo.GetMicroserviceName(applicationID, microserviceID)

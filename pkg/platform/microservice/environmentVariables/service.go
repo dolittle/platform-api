@@ -2,7 +2,6 @@ package environmentVariables
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -46,7 +45,7 @@ func (s *service) GetEnvironmentVariables(w http.ResponseWriter, r *http.Request
 		MicroserviceID: microserviceID,
 		Data:           make([]platform.StudioEnvironmentVariable, 0),
 	}
-	s.logContext.Info("Get environment variables")
+
 	data, err := s.environmentVariablesRepo.GetEnvironmentVariables(applicationID, environment, microserviceID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -79,12 +78,10 @@ func (s *service) UpdateEnvironmentVariables(w http.ResponseWriter, r *http.Requ
 	}
 
 	s.logContext.Info("Update environment variables")
-	s.logContext.Info("Get environment variables")
 
 	var input platform.HttpResponseEnvironmentVariables
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		fmt.Println(err)
 		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
