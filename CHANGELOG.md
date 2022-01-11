@@ -1,3 +1,8 @@
+# [2.3.3] - 2022-1-11 [PR: #71](https://github.com/dolittle/platform-api/pull/71)
+## Summary
+- Disable creation of microservice, whilst we fix a few bugs
+
+
 # [2.3.2] - 2021-12-17 [PR: #70](https://github.com/dolittle/platform-api/pull/70)
 ## Summary
 
