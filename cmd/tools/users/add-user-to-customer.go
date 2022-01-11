@@ -28,6 +28,8 @@ var addUserToCustomerCMD = &cobra.Command{
 			return
 		}
 
+		outputCurl, _ := cmd.Flags().GetBool("output-curl")
+
 		url := "http://localhost:4434/identities"
 		// TODO look up users
 		kratosUsers, err := user.GetUsersFromKratos(url)
@@ -60,4 +62,5 @@ var addUserToCustomerCMD = &cobra.Command{
 func init() {
 	addUserToCustomerCMD.Flags().String("email", "", "Email address of the user")
 	addUserToCustomerCMD.Flags().String("customer-id", "", "Customer Id to give the email access too")
+	addUserToCustomerCMD.PersistentFlags().Bool("ouput-curl", false, "Don't add the user, but instead output the curl command to do it")
 }
