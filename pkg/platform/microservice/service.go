@@ -48,6 +48,12 @@ func NewService(gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClien
 
 // TODO https://dolittle.freshdesk.com/a/tickets/1352 how to add multiple entries to ingress
 func (s *service) Create(responseWriter http.ResponseWriter, request *http.Request) {
+	disabled := true
+	if disabled {
+		utils.RespondWithError(responseWriter, http.StatusUnprocessableEntity, "Creation of microservice currently disabled")
+		return
+	}
+
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"method": "Create",
 	})
@@ -120,6 +126,12 @@ func (s *service) Create(responseWriter http.ResponseWriter, request *http.Reque
 }
 
 func (s *service) Update(responseWriter http.ResponseWriter, request *http.Request) {
+	disabled := true
+	if disabled {
+		utils.RespondWithError(responseWriter, http.StatusUnprocessableEntity, "Update of microservice currently disabled")
+		return
+	}
+
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"method": "Update",
 	})
@@ -267,6 +279,12 @@ func (s *service) GetByApplicationID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
+	disabled := true
+	if disabled {
+		utils.RespondWithError(w, http.StatusUnprocessableEntity, "Deletion of microservice currently disabled")
+		return
+	}
+
 	vars := mux.Vars(r)
 	// I feel we shouldn't need namespace
 	applicationID := vars["applicationID"]
