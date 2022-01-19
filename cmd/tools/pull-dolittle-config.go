@@ -23,9 +23,9 @@ import (
 
 var pullDolittleConfigCMD = &cobra.Command{
 	Use:   "pull-dolittle-config",
-	Short: "Pulls and writes all dolittle configmaps to the specified directory",
+	Short: "Pulls all dolittle configmaps from the cluster and writes them to their respective microservice inside the specified repo",
 	Long: `
-	
+	go run main.go tools pull-dolittle-config <repo-root>
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
