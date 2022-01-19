@@ -17,6 +17,7 @@ import (
 
 	"k8s.io/client-go/tools/clientcmd"
 
+	"k8s.io/apimachinery/pkg/runtime"
 	k8sJson "k8s.io/apimachinery/pkg/runtime/serializer/json"
 )
 
@@ -111,11 +112,26 @@ func writeToDisk(rootFolder string, configMaps []corev1.ConfigMap) error {
 			return err
 		}
 
-		//s := runtime.NewScheme()
+		// based of https://github.com/kubernetes/kubernetes/issues/3030#issuecomment-700099699
+		// create the scheme and make it aware of the corev1 types
+		s := runtime.NewScheme()
+		err = corev1.AddToScheme(s)
+		if err != nil {
+			return err
+		}
+
+		// get the GroupVersionKind of the configMap type from the schema
+		gvks, _, err := s.ObjectKinds(&configMap)
+		if err != nil {
+			return err
+		}
+		// set the configMaps GroupVersionKind to match the one that the schema knows of
+		configMap.GetObjectKind().SetGroupVersionKind(gvks[0])
+
 		serializer := k8sJson.NewSerializerWithOptions(
 			k8sJson.DefaultMetaFactory,
-			nil,
-			nil,
+			s,
+			s,
 			k8sJson.SerializerOptions{
 				Yaml:   true,
 				Pretty: true,
@@ -133,7 +149,6 @@ func writeToDisk(rootFolder string, configMaps []corev1.ConfigMap) error {
 		if err != nil {
 			return err
 		}
-		// log.Fatal("Testing like a boss")
 	}
 
 	return nil
