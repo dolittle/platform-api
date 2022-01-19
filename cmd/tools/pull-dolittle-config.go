@@ -2,8 +2,6 @@ package tools
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -170,34 +168,6 @@ func getDolittleConfigMaps(ctx context.Context, client kubernetes.Interface, nam
 	return results, nil
 }
 
-func getNamespaces(ctx context.Context, client kubernetes.Interface) []corev1.Namespace {
-	namespacesList, err := client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
-	if err != nil {
-		panic(err.Error())
-	}
-	return namespacesList.Items
-}
-
-func isApplicationNamespace(namespace corev1.Namespace) bool {
-	if !strings.HasPrefix(namespace.GetName(), "application-") {
-		return false
-	}
-	if _, hasAnnotation := namespace.Annotations["dolittle.io/tenant-id"]; !hasAnnotation {
-		return false
-	}
-	if _, hasAnnotation := namespace.Annotations["dolittle.io/application-id"]; !hasAnnotation {
-		return false
-	}
-	if _, hasLabel := namespace.Labels["tenant"]; !hasLabel {
-		return false
-	}
-	if _, hasLabel := namespace.Labels["application"]; !hasLabel {
-		return false
-	}
-
-	return true
-}
-
 func initializeSchemeAndSerializer() (*runtime.Scheme, *k8sJson.Serializer, error) {
 	// based of https://github.com/kubernetes/kubernetes/issues/3030#issuecomment-700099699
 	// create the scheme and make it aware of the corev1 types
@@ -221,12 +191,5 @@ func initializeSchemeAndSerializer() (*runtime.Scheme, *k8sJson.Serializer, erro
 }
 
 func init() {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		log.Fatal(err)
-	}
 	pullDolittleConfigCMD.PersistentFlags().Bool("dry-run", false, "Will not write to disk")
-	pullDolittleConfigCMD.PersistentFlags().String("kube-config", fmt.Sprintf("%s/.kube/config", homeDir), "Full path to kubeconfig, set to 'incluster' to make it use kubernetes lookup instead")
-	viper.BindPFlag("tools.server.kubeConfig", pullDolittleConfigCMD.PersistentFlags().Lookup("kube-config"))
-	viper.BindEnv("tools.server.kubeConfig", "KUBECONFIG")
 }
