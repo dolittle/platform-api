@@ -23,7 +23,7 @@ import (
 
 var pullDolittleConfigCMD = &cobra.Command{
 	Use:   "pull-dolittle-config",
-	Short: "Pulls a dolittle config map to the repo",
+	Short: "Pulls and writes all dolittle configmaps to the specified directory",
 	Long: `
 	
 	`,
@@ -31,10 +31,10 @@ var pullDolittleConfigCMD = &cobra.Command{
 		logrus.SetFormatter(&logrus.JSONFormatter{})
 		logrus.SetOutput(os.Stdout)
 
-		logContext := logrus.StandardLogger()
+		logger := logrus.StandardLogger()
 
 		if len(args) == 0 {
-			logContext.Error("Specify the directory to write to")
+			logger.Error("Specify the directory to write to")
 			return
 		}
 
@@ -56,26 +56,37 @@ var pullDolittleConfigCMD = &cobra.Command{
 			panic(err.Error())
 		}
 
+		scheme, serializer, err := initializeSchemeAndSerializer()
+		if err != nil {
+			panic(err.Error())
+		}
+
 		namespaces := getNamespaces(ctx, client)
 		for _, namespace := range namespaces {
 			if !isApplicationNamespace(namespace) {
 				continue
 			}
+			customer := namespace.Labels["tenant"]
+			application := namespace.Labels["application"]
+			logContext := logger.WithFields(logrus.Fields{
+				"customer":    customer,
+				"application": application,
+			})
+
 			configMaps, err := getDolittleConfigMaps(ctx, client, namespace.GetName())
 			if err != nil {
 				logContext.Fatal("Failed to get configmaps")
 			}
 
 			logContext.WithFields(logrus.Fields{
-				"customer":        namespace.Labels["tenant"],
-				"application":     namespace.Labels["application"],
 				"totalConfigMaps": len(configMaps),
-			}).Info("")
+			}).Info("Found dolittle configmaps")
+
 			if dryRun {
 				continue
 			}
 
-			err = writeToDisk(args[0], configMaps)
+			err = writeConfigMapsToDirectory(args[0], configMaps, scheme, serializer)
 			if err != nil {
 				logContext.WithFields(logrus.Fields{
 					"error": err,
@@ -104,42 +115,20 @@ func getMicroserviceDirectory(rootFolder string, configMap corev1.ConfigMap) str
 	)
 }
 
-func writeToDisk(rootFolder string, configMaps []corev1.ConfigMap) error {
+func writeConfigMapsToDirectory(rootDirectory string, configMaps []corev1.ConfigMap, scheme *runtime.Scheme, serializer *k8sJson.Serializer) error {
 	for _, configMap := range configMaps {
-		microserviceDirectory := getMicroserviceDirectory(rootFolder, configMap)
+		// @joel let's discuss what to do with this
+		configMap.ManagedFields = nil
+
+		setConfigMapGVK(scheme, &configMap)
+
+		microserviceDirectory := getMicroserviceDirectory(rootDirectory, configMap)
 		err := os.MkdirAll(microserviceDirectory, 0755)
 		if err != nil {
 			return err
 		}
 
-		// based of https://github.com/kubernetes/kubernetes/issues/3030#issuecomment-700099699
-		// create the scheme and make it aware of the corev1 types
-		s := runtime.NewScheme()
-		err = corev1.AddToScheme(s)
-		if err != nil {
-			return err
-		}
-
-		// get the GroupVersionKind of the configMap type from the schema
-		gvks, _, err := s.ObjectKinds(&configMap)
-		if err != nil {
-			return err
-		}
-		// set the configMaps GroupVersionKind to match the one that the schema knows of
-		configMap.GetObjectKind().SetGroupVersionKind(gvks[0])
-
-		serializer := k8sJson.NewSerializerWithOptions(
-			k8sJson.DefaultMetaFactory,
-			s,
-			s,
-			k8sJson.SerializerOptions{
-				Yaml:   true,
-				Pretty: true,
-				Strict: true,
-			},
-		)
-
-		file, err := os.Create(filepath.Join(microserviceDirectory, "microservice-dolittle-config.yml"))
+		file, err := os.Create(filepath.Join(microserviceDirectory, "microservice-configmap-dolittle.yml"))
 		if err != nil {
 			return err
 		}
@@ -151,6 +140,17 @@ func writeToDisk(rootFolder string, configMaps []corev1.ConfigMap) error {
 		}
 	}
 
+	return nil
+}
+
+func setConfigMapGVK(schema *runtime.Scheme, configMap *corev1.ConfigMap) error {
+	// get the GroupVersionKind of the configMap type from the schema
+	gvks, _, err := schema.ObjectKinds(configMap)
+	if err != nil {
+		return err
+	}
+	// set the configMaps GroupVersionKind to match the one that the schema knows of
+	configMap.GetObjectKind().SetGroupVersionKind(gvks[0])
 	return nil
 }
 
@@ -198,8 +198,29 @@ func isApplicationNamespace(namespace corev1.Namespace) bool {
 	return true
 }
 
-func init() {
+func initializeSchemeAndSerializer() (*runtime.Scheme, *k8sJson.Serializer, error) {
+	// based of https://github.com/kubernetes/kubernetes/issues/3030#issuecomment-700099699
+	// create the scheme and make it aware of the corev1 types
+	scheme := runtime.NewScheme()
+	err := corev1.AddToScheme(scheme)
+	if err != nil {
+		return scheme, nil, err
+	}
 
+	serializer := k8sJson.NewSerializerWithOptions(
+		k8sJson.DefaultMetaFactory,
+		scheme,
+		scheme,
+		k8sJson.SerializerOptions{
+			Yaml:   true,
+			Pretty: true,
+			Strict: true,
+		},
+	)
+	return scheme, serializer, nil
+}
+
+func init() {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		log.Fatal(err)
