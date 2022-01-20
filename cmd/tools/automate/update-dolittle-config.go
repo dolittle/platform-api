@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 
 	configK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
-	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -32,7 +32,6 @@ var updateDolittleConfigCMD = &cobra.Command{
 
 		logger := logrus.StandardLogger()
 
-		dryRun, _ := cmd.Flags().GetBool("dry-run")
 		ctx := context.TODO()
 		kubeconfig := viper.GetString("tools.server.kubeConfig")
 
@@ -50,14 +49,14 @@ var updateDolittleConfigCMD = &cobra.Command{
 			panic(err.Error())
 		}
 
-		k8sRepo := platform.NewK8sRepo(client, config)
-
-		scheme, serializer, err := initializeSchemeAndSerializer()
-		if err != nil {
-			panic(err.Error())
-		}
+		//k8sRepo := platform.NewK8sRepo(client, config)
 
 		doAll, _ := cmd.Flags().GetBool("all")
+		dryRun, _ := cmd.Flags().GetBool("dry-run")
+
+		logContext := logger.WithFields(logrus.Fields{
+			"dry_run": dryRun,
+		})
 
 		if doAll {
 			namespaces := getNamespaces(ctx, client)
@@ -68,7 +67,7 @@ var updateDolittleConfigCMD = &cobra.Command{
 
 				customer := namespace.Labels["tenant"]
 				application := namespace.Labels["application"]
-				logContext := logger.WithFields(logrus.Fields{
+				logContext = logContext.WithFields(logrus.Fields{
 					"customer":    customer,
 					"application": application,
 				})
@@ -92,37 +91,27 @@ var updateDolittleConfigCMD = &cobra.Command{
 			}
 			return
 		}
-		return
 
-		// Single lookup
-		// TODO
-		applicationID := "TODO"
-		name := "TODO"
-		configMap, err := k8sRepo.GetConfigMap(applicationID, name)
+		applicationID, _ := cmd.Flags().GetString("application-id")
+		environment, _ := cmd.Flags().GetString("environment")
+		microservivceID, _ := cmd.Flags().GetString("microservice-id")
+
+		logContext = logContext.WithFields(logrus.Fields{
+			"application_id":   applicationID,
+			"environment":      environment,
+			"microservivce_id": microservivceID,
+		})
+
+		configMap, err := getOneDolittleConfigMap(ctx, client, applicationID, environment, microservivceID)
 		if err != nil {
-			panic(err.Error())
+			logContext.Fatal("Failed to get configmap")
 		}
 
-		// TODO
-		microservice := configK8s.Microservice{}
-		platform := configK8s.NewMicroserviceConfigmapPlatformData(microservice)
-		b, _ := json.MarshalIndent(platform, "", "  ")
-		platformJSON := string(b)
-		configMap.Data["platform.json"] = platformJSON
-
-		// TODO not sure if we need to worry about this if we go straight back to k8s.
-		//configMap.ManagedFields = nil
-		//configMap.ResourceVersion = ""
-
-		setConfigMapGVK(scheme, configMap)
-
-		// TODO writes to stdout
-		// TODO add flag to update the cluster
-		// TODO add flag to write to file (for git)
-		err = serializer.Encode(configMap, os.Stdout)
+		err = updateConfigMap(ctx, client, logContext, *configMap, dryRun)
 		if err != nil {
-			panic(err.Error())
+			logContext.Fatal("Failed to update configmap")
 		}
+
 	},
 }
 
@@ -146,7 +135,8 @@ func updateConfigMap(ctx context.Context, client kubernetes.Interface, logContex
 		logContext.Info("Would write")
 		return nil
 	}
-
+	fmt.Println("MISTAKE")
+	return nil
 	_, err := client.CoreV1().ConfigMaps(namespace).Update(ctx, &configMap, v1.UpdateOptions{})
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
@@ -160,4 +150,7 @@ func updateConfigMap(ctx context.Context, client kubernetes.Interface, logContex
 func init() {
 	updateDolittleConfigCMD.PersistentFlags().Bool("dry-run", false, "Will not write to disk")
 	updateDolittleConfigCMD.Flags().Bool("all", false, "To update all of the dolittle configmaps in the cluster")
+	updateDolittleConfigCMD.Flags().String("application-id", "", "Application ID")
+	updateDolittleConfigCMD.Flags().String("microservice-id", "", "Microservice ID")
+	updateDolittleConfigCMD.Flags().String("environment", "", "environment")
 }

@@ -2,6 +2,8 @@ package automate
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"strings"
 
 	configK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
@@ -10,6 +12,51 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
+
+func getDolittleConfigMaps(ctx context.Context, client kubernetes.Interface, namespace string) ([]corev1.ConfigMap, error) {
+	results := make([]corev1.ConfigMap, 0)
+	configmaps, err := client.CoreV1().ConfigMaps(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return results, err
+	}
+
+	for _, configMap := range configmaps.Items {
+		if !strings.HasSuffix(configMap.GetName(), "-dolittle") {
+			continue
+		}
+		results = append(results, configMap)
+	}
+	return results, nil
+}
+
+func getOneDolittleConfigMap(ctx context.Context, client kubernetes.Interface, applicationID string, environment string, microserviceID string) (*corev1.ConfigMap, error) {
+	namespace := fmt.Sprintf("application-%s", applicationID)
+	var result *corev1.ConfigMap
+	configmaps, err := client.CoreV1().ConfigMaps(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return result, err
+	}
+
+	for _, configMap := range configmaps.Items {
+		labels := configMap.GetLabels()
+		annotations := configMap.GetAnnotations()
+
+		if annotations["dolittle.io/microservice-id"] != microserviceID {
+			continue
+		}
+
+		if labels["environment"] != environment {
+			continue
+		}
+
+		if !strings.HasSuffix(configMap.GetName(), "-dolittle") {
+			continue
+		}
+
+		return &configMap, nil
+	}
+	return result, errors.New("not.found")
+}
 
 // TODO Taken from K8sGetDeployments, we should maybe refactor this into shared command
 // TODO func K8sGetDeployments(client kubernetes.Interface, context context.Context, namespace string) ([]v1.Deployment, error) {

@@ -4,13 +4,11 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"k8s.io/client-go/tools/clientcmd"
@@ -153,22 +151,6 @@ func setConfigMapGVK(schema *runtime.Scheme, configMap *corev1.ConfigMap) error 
 	// set the configMaps GroupVersionKind to match the one that the schema knows of
 	configMap.GetObjectKind().SetGroupVersionKind(gvks[0])
 	return nil
-}
-
-func getDolittleConfigMaps(ctx context.Context, client kubernetes.Interface, namespace string) ([]corev1.ConfigMap, error) {
-	results := make([]corev1.ConfigMap, 0)
-	configmaps, err := client.CoreV1().ConfigMaps(namespace).List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return results, err
-	}
-
-	for _, configMap := range configmaps.Items {
-		if !strings.HasSuffix(configMap.GetName(), "-dolittle") {
-			continue
-		}
-		results = append(results, configMap)
-	}
-	return results, nil
 }
 
 func initializeSchemeAndSerializer() (*runtime.Scheme, *k8sJson.Serializer, error) {

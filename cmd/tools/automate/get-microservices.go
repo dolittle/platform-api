@@ -13,9 +13,13 @@ import (
 )
 
 type MicroserviceMetadataShortInfo struct {
-	ApplicationID  string `json:"applicationId"`
-	MicroserviceID string `json:"microserviceId"`
-	Environment    string `json:"environment"`
+	CustomerID       string `json:"customerId"`
+	CustomerName     string `json:"customerName"`
+	ApplicationID    string `json:"applicationId"`
+	ApplicationName  string `json:"applicationName"`
+	Environment      string `json:"environment"`
+	MicroserviceID   string `json:"microserviceId"`
+	MicroserviceName string `json:"microserviceName"`
 }
 
 var getMicroservicesMetaDataCMD = &cobra.Command{
@@ -53,9 +57,13 @@ var getMicroservicesMetaDataCMD = &cobra.Command{
 		data := make([]MicroserviceMetadataShortInfo, 0)
 		for _, microservice := range microservices {
 			data = append(data, MicroserviceMetadataShortInfo{
-				ApplicationID:  microservice.Application.ID,
-				Environment:    microservice.Environment,
-				MicroserviceID: microservice.ID,
+				ApplicationID:    microservice.Application.ID,
+				ApplicationName:  microservice.Application.Name,
+				Environment:      microservice.Environment,
+				MicroserviceID:   microservice.ID,
+				MicroserviceName: microservice.Name,
+				CustomerName:     microservice.Tenant.Name,
+				CustomerID:       microservice.Tenant.ID,
 			})
 		}
 
