@@ -23,14 +23,31 @@ var updateDolittleConfigCMD = &cobra.Command{
 	Use:   "update-dolittle-config",
 	Short: "Update xxx-config-dolittle",
 	Long: `
-	Update one or all dolittle configmaps, used by building blocks that have the runtime in use.
+Update one or all dolittle configmaps, used by building blocks that have the runtime in use.
 
-		go run main.go tools automate update-dolittle-config
+# Update all
+	go run main.go tools automate update-dolittle-config --all
 
-		Via Stdin
+# Update one via parameters
 
-		go run main.go tools automate get-microservices-metadata > ms.json 
+	go run main.go tools automate update-dolittle-config \
+	--application-id="11b6cf47-5d9f-438f-8116-0d9828654657" \
+	--environment="Dev" \
+	--microservice-id="ec6a1a81-ed83-bb42-b82b-5e8bedc3cbc6" \
+	--dry-run=true
 
+# Update one or many via Stdin
+
+	# Get metadata
+
+	go run main.go tools automate get-microservices-metadata > ms.json
+
+	# Filter and run a dry run
+
+	cat ms.json| jq -c '.[]' | grep 'Nor-Sea' | grep 'Test' | \
+	go run main.go tools automate update-dolittle-config --dry-run --stdin | \
+	jq -r '.data' | \
+	yq e -
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
