@@ -72,8 +72,6 @@ Update one or all dolittle configmaps, used by building blocks that have the run
 			panic(err.Error())
 		}
 
-		//k8sRepo := platform.NewK8sRepo(client, config)
-
 		doAll, _ := cmd.Flags().GetBool("all")
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
 		viaStdin, _ := cmd.Flags().GetBool("stdin")
@@ -214,8 +212,7 @@ func updateConfigMap(ctx context.Context, client kubernetes.Interface, logContex
 		logContext.Info("Would write")
 		return nil
 	}
-	fmt.Println("MISTAKE")
-	return nil
+
 	_, err := client.CoreV1().ConfigMaps(namespace).Update(ctx, &configMap, v1.UpdateOptions{})
 	if err != nil {
 		logContext.WithFields(logrus.Fields{

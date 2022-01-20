@@ -24,7 +24,7 @@ func dumpConfigMap(configMap *corev1.ConfigMap) []byte {
 
 	var buf bytes.Buffer
 
-	err = serializer.Encode(configMap, &buf)
+	_ = serializer.Encode(configMap, &buf)
 	return buf.Bytes()
 }
 
