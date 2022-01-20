@@ -26,6 +26,11 @@ var updateDolittleConfigCMD = &cobra.Command{
 	Update one or all dolittle configmaps, used by building blocks that have the runtime in use.
 
 		go run main.go tools automate update-dolittle-config
+
+		Via Stdin
+
+		go run main.go tools automate get-microservices-metadata > ms.json 
+
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
@@ -54,6 +59,7 @@ var updateDolittleConfigCMD = &cobra.Command{
 
 		doAll, _ := cmd.Flags().GetBool("all")
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
+		viaStdin, _ := cmd.Flags().GetBool("stdin")
 
 		logContext := logger.WithFields(logrus.Fields{
 			"dry_run": dryRun,
@@ -99,38 +105,52 @@ var updateDolittleConfigCMD = &cobra.Command{
 			microserviceID string
 		)
 
-		reader := bufio.NewReader(os.Stdin)
-		text, _ := reader.ReadString('\n')
-		if text != "" {
-			microserviceMetadata, err := getOneConfigViaStdin(text)
-			if err != nil {
-				logContext.Fatal("Data via stdin is not valid")
+		if viaStdin {
+			scanner := bufio.NewScanner(os.Stdin)
+			for scanner.Scan() {
+				config := scanner.Text()
+
+				microserviceMetadata, err := getOneConfigViaStdin(config)
+				if err != nil {
+					logContext.Fatal("Data via stdin is not valid")
+				}
+
+				applicationID = microserviceMetadata.ApplicationID
+				environment = microserviceMetadata.Environment
+				microserviceID = microserviceMetadata.MicroserviceID
+				processOne(ctx, client, logContext, dryRun, applicationID, environment, microserviceID)
 			}
 
-			applicationID = microserviceMetadata.ApplicationID
-			environment = microserviceMetadata.Environment
-			microserviceID = microserviceMetadata.MicroserviceID
-		} else {
-			applicationID, environment, microserviceID = getOneConfigViaParameters(cmd)
+			if scanner.Err() != nil {
+				// Handle error.
+				fmt.Println(scanner.Err())
+				return
+			}
+			return
 		}
 
-		logContext = logContext.WithFields(logrus.Fields{
-			"application_id":   applicationID,
-			"environment":      environment,
-			"microservivce_id": microserviceID,
-		})
-
-		configMap, err := getOneDolittleConfigMap(ctx, client, applicationID, environment, microserviceID)
-		if err != nil {
-			logContext.Fatal("Failed to get configmap")
-		}
-
-		err = updateConfigMap(ctx, client, logContext, *configMap, dryRun)
-		if err != nil {
-			logContext.Fatal("Failed to update configmap")
-		}
+		applicationID, environment, microserviceID = getOneConfigViaParameters(cmd)
+		processOne(ctx, client, logContext, dryRun, applicationID, environment, microserviceID)
 
 	},
+}
+
+func processOne(ctx context.Context, client kubernetes.Interface, logContext logrus.FieldLogger, dryRun bool, applicationID string, environment string, microserviceID string) {
+	logContext = logContext.WithFields(logrus.Fields{
+		"application_id":   applicationID,
+		"environment":      environment,
+		"microservivce_id": microserviceID,
+	})
+
+	configMap, err := getOneDolittleConfigMap(ctx, client, applicationID, environment, microserviceID)
+	if err != nil {
+		logContext.Fatal("Failed to get configmap")
+	}
+
+	err = updateConfigMap(ctx, client, logContext, *configMap, dryRun)
+	if err != nil {
+		logContext.Fatal("Failed to update configmap")
+	}
 }
 
 func getOneConfigViaStdin(input string) (MicroserviceMetadataShortInfo, error) {
@@ -190,6 +210,7 @@ func updateConfigMap(ctx context.Context, client kubernetes.Interface, logContex
 func init() {
 	updateDolittleConfigCMD.PersistentFlags().Bool("dry-run", false, "Will not write to disk")
 	updateDolittleConfigCMD.Flags().Bool("all", false, "To update all of the dolittle configmaps in the cluster")
+	updateDolittleConfigCMD.Flags().Bool("stdin", false, "Read from stdin")
 	updateDolittleConfigCMD.Flags().String("application-id", "", "Application ID")
 	updateDolittleConfigCMD.Flags().String("microservice-id", "", "Microservice ID")
 	updateDolittleConfigCMD.Flags().String("environment", "", "environment")
