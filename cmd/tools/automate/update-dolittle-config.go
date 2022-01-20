@@ -1,9 +1,9 @@
-package tools
+package automate
 
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"os"
 
 	configK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
@@ -11,6 +11,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"k8s.io/client-go/tools/clientcmd"
@@ -18,9 +20,11 @@ import (
 
 var updateDolittleConfigCMD = &cobra.Command{
 	Use:   "update-dolittle-config",
-	Short: "Pulls all dolittle configmaps from the cluster and writes them to their respective microservice inside the specified repo",
+	Short: "Update xxx-config-dolittle",
 	Long: `
-	go run main.go tools update-dolittle-config <repo-root>
+	Update one or all dolittle configmaps, used by building blocks that have the runtime in use.
+
+		go run main.go tools automate update-dolittle-config
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
@@ -28,7 +32,7 @@ var updateDolittleConfigCMD = &cobra.Command{
 
 		logger := logrus.StandardLogger()
 
-		//dryRun, _ := cmd.Flags().GetBool("dry-run")
+		dryRun, _ := cmd.Flags().GetBool("dry-run")
 		ctx := context.TODO()
 		kubeconfig := viper.GetString("tools.server.kubeConfig")
 
@@ -56,12 +60,12 @@ var updateDolittleConfigCMD = &cobra.Command{
 		doAll, _ := cmd.Flags().GetBool("all")
 
 		if doAll {
-
 			namespaces := getNamespaces(ctx, client)
 			for _, namespace := range namespaces {
 				if !isApplicationNamespace(namespace) {
 					continue
 				}
+
 				customer := namespace.Labels["tenant"]
 				application := namespace.Labels["application"]
 				logContext := logger.WithFields(logrus.Fields{
@@ -80,18 +84,13 @@ var updateDolittleConfigCMD = &cobra.Command{
 				}).Info("Found dolittle configmaps to update")
 
 				for _, configMap := range configMaps {
-					microservice := convertObjectMetaToMicroservice(configMap.GetObjectMeta())
-
-					microservicePlatform := configK8s.NewMicroserviceConfigmapPlatformData(microservice)
-					b, _ := json.MarshalIndent(microservicePlatform, "", "  ")
-					platformJSON := string(b)
-					configMap.Data["platform.json"] = platformJSON
-
-					fmt.Println(configMap.Data)
-
-					// client.CoreV1().ConfigMaps(namespace.GetName()).Update(ctx, &configMap, v1.UpdateOptions{})
+					err := updateConfigMap(ctx, client, logContext, configMap, dryRun)
+					if err != nil {
+						logContext.Fatal("Failed to update configmap")
+					}
 				}
 			}
+			return
 		}
 		return
 
@@ -125,6 +124,37 @@ var updateDolittleConfigCMD = &cobra.Command{
 			panic(err.Error())
 		}
 	},
+}
+
+func updateConfigMap(ctx context.Context, client kubernetes.Interface, logContext logrus.FieldLogger, configMap corev1.ConfigMap, dryRun bool) error {
+	microservice := convertObjectMetaToMicroservice(configMap.GetObjectMeta())
+	platform := configK8s.NewMicroserviceConfigmapPlatformData(microservice)
+	b, _ := json.MarshalIndent(platform, "", "  ")
+	platformJSON := string(b)
+	configMap.Data["platform.json"] = platformJSON
+
+	namespace := configMap.Namespace
+
+	logContext.WithFields(logrus.Fields{
+		"microservice_id": microservice.ID,
+		"application_id":  microservice.Application.ID,
+		"environment":     microservice.Environment,
+		"namespace":       microservice.Environment,
+	})
+
+	if dryRun {
+		logContext.Info("Would write")
+		return nil
+	}
+
+	_, err := client.CoreV1().ConfigMaps(namespace).Update(ctx, &configMap, v1.UpdateOptions{})
+	if err != nil {
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("updating configmap")
+		return errors.New("update.failed")
+	}
+	return nil
 }
 
 func init() {
