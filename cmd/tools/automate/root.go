@@ -21,6 +21,7 @@ func init() {
 	RootCmd.AddCommand(pullDolittleConfigCMD)
 	RootCmd.AddCommand(getMicroservicesMetaDataCMD)
 	RootCmd.AddCommand(updateDolittleConfigCMD)
+	RootCmd.AddCommand(importDolittleConfigMapsCMD)
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
