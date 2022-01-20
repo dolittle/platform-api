@@ -111,7 +111,9 @@ var updateDolittleConfigCMD = &cobra.Command{
 		platformJSON := string(b)
 		configMap.Data["platform.json"] = platformJSON
 
-		configMap.ManagedFields = nil
+		// TODO not sure if we need to worry about this if we go straight back to k8s.
+		//configMap.ManagedFields = nil
+		//configMap.ResourceVersion = ""
 
 		setConfigMapGVK(scheme, configMap)
 

@@ -117,6 +117,7 @@ func writeConfigMapsToDirectory(rootDirectory string, configMaps []corev1.Config
 	for _, configMap := range configMaps {
 		// @joel let's discuss what to do with this
 		configMap.ManagedFields = nil
+		configMap.ResourceVersion = ""
 
 		setConfigMapGVK(scheme, &configMap)
 
