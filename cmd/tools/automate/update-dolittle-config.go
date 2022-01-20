@@ -120,6 +120,12 @@ func updateConfigMap(ctx context.Context, client kubernetes.Interface, logContex
 	platform := configK8s.NewMicroserviceConfigmapPlatformData(microservice)
 	b, _ := json.MarshalIndent(platform, "", "  ")
 	platformJSON := string(b)
+
+	if configMap.Data == nil {
+		// TODO this is a sign it might not be using a runtime, maybe we skip
+		configMap.Data = make(map[string]string)
+	}
+
 	configMap.Data["platform.json"] = platformJSON
 
 	namespace := configMap.Namespace
@@ -132,6 +138,9 @@ func updateConfigMap(ctx context.Context, client kubernetes.Interface, logContex
 	})
 
 	if dryRun {
+		b := dumpConfigMap(&configMap)
+
+		logContext = logContext.WithField("data", string(b))
 		logContext.Info("Would write")
 		return nil
 	}

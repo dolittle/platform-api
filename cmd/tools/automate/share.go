@@ -1,6 +1,7 @@
 package automate
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -12,6 +13,20 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
+
+func dumpConfigMap(configMap *corev1.ConfigMap) []byte {
+	scheme, serializer, err := initializeSchemeAndSerializer()
+	if err != nil {
+		panic(err.Error())
+	}
+
+	setConfigMapGVK(scheme, configMap)
+
+	var buf bytes.Buffer
+
+	err = serializer.Encode(configMap, &buf)
+	return buf.Bytes()
+}
 
 func getDolittleConfigMaps(ctx context.Context, client kubernetes.Interface, namespace string) ([]corev1.ConfigMap, error) {
 	results := make([]corev1.ConfigMap, 0)
