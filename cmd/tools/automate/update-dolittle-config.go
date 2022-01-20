@@ -82,6 +82,7 @@ var updateDolittleConfigCMD = &cobra.Command{
 				configMaps, err := getDolittleConfigMaps(ctx, client, namespace.GetName())
 
 				if err != nil {
+					// TODO this might be to strict, perhaps we have a flag to let them skip?
 					logContext.Fatal("Failed to get configmaps")
 				}
 
@@ -144,6 +145,7 @@ func processOne(ctx context.Context, client kubernetes.Interface, logContext log
 
 	configMap, err := getOneDolittleConfigMap(ctx, client, applicationID, environment, microserviceID)
 	if err != nil {
+		// TODO this might be to strict, perhaps we have a flag to let them skip?
 		logContext.Fatal("Failed to get configmap")
 	}
 
