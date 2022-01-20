@@ -1,6 +1,7 @@
 package automate
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
@@ -92,17 +93,34 @@ var updateDolittleConfigCMD = &cobra.Command{
 			return
 		}
 
-		applicationID, _ := cmd.Flags().GetString("application-id")
-		environment, _ := cmd.Flags().GetString("environment")
-		microservivceID, _ := cmd.Flags().GetString("microservice-id")
+		var (
+			applicationID  string
+			environment    string
+			microserviceID string
+		)
+
+		reader := bufio.NewReader(os.Stdin)
+		text, _ := reader.ReadString('\n')
+		if text != "" {
+			microserviceMetadata, err := getOneConfigViaStdin(text)
+			if err != nil {
+				logContext.Fatal("Data via stdin is not valid")
+			}
+
+			applicationID = microserviceMetadata.ApplicationID
+			environment = microserviceMetadata.Environment
+			microserviceID = microserviceMetadata.MicroserviceID
+		} else {
+			applicationID, environment, microserviceID = getOneConfigViaParameters(cmd)
+		}
 
 		logContext = logContext.WithFields(logrus.Fields{
 			"application_id":   applicationID,
 			"environment":      environment,
-			"microservivce_id": microservivceID,
+			"microservivce_id": microserviceID,
 		})
 
-		configMap, err := getOneDolittleConfigMap(ctx, client, applicationID, environment, microservivceID)
+		configMap, err := getOneDolittleConfigMap(ctx, client, applicationID, environment, microserviceID)
 		if err != nil {
 			logContext.Fatal("Failed to get configmap")
 		}
@@ -113,6 +131,19 @@ var updateDolittleConfigCMD = &cobra.Command{
 		}
 
 	},
+}
+
+func getOneConfigViaStdin(input string) (MicroserviceMetadataShortInfo, error) {
+	var data MicroserviceMetadataShortInfo
+	err := json.Unmarshal([]byte(input), &data)
+	return data, err
+}
+
+func getOneConfigViaParameters(cmd *cobra.Command) (applicationID string, environment string, microserviceID string) {
+	applicationID, _ = cmd.Flags().GetString("application-id")
+	environment, _ = cmd.Flags().GetString("environment")
+	microserviceID, _ = cmd.Flags().GetString("microservice-id")
+	return applicationID, environment, microserviceID
 }
 
 func updateConfigMap(ctx context.Context, client kubernetes.Interface, logContext logrus.FieldLogger, configMap corev1.ConfigMap, dryRun bool) error {
