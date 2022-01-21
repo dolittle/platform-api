@@ -70,7 +70,7 @@ func (s *service) getServiceAccountCredentials(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	utils.RespondWithJSON(w, http.StatusOK, secret.Data)
+	utils.RespondWithJSON(w, http.StatusOK, secret)
 }
 
 func (s *service) GetContainerRegistryCredentials(w http.ResponseWriter, r *http.Request) {
