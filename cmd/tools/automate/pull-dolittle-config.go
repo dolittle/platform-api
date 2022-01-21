@@ -95,7 +95,6 @@ var pullDolittleConfigCMD = &cobra.Command{
 
 func writeConfigMapsToDirectory(rootDirectory string, configMaps []corev1.ConfigMap, scheme *runtime.Scheme, serializer *k8sJson.Serializer) error {
 	for _, configMap := range configMaps {
-		// @joel let's discuss what to do with this
 		// We remove these fields to make it cleaner and to make it a little less painful
 		// to do multiple manual changes if we were debugging.
 		configMap.ManagedFields = nil
