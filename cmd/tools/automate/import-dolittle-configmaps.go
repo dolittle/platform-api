@@ -22,14 +22,13 @@ var importDolittleConfigMapsCMD = &cobra.Command{
 Creates all of the given dolittle configmaps and their namespaces from the given JSON so that it's easy to populate a development cluster.
 
 The JSON has to be created in the following format:
-	kubectl get cm -A -l microservice -o json | jq -c '.items[] | select(.metadata.name | test(".+-dolittle$"))' > configmaps.json
+	kubectl get cm -A -l microservice -o json | jq -c '.items[] | select(.metadata.name | test(".+-dolittle$"))' > configmaps.ndjson
 
 NOTE! MAKE SURE TO REMEMBER TO CHANGE YOUR CONTEXT:
 	kubectl config use-context k3d-dolittle-dev
 
 Then you can feed it to the command:
-
-	cat configmaps.json | go run main.go tools automate import-dolittle-configmaps
+	cat configmaps.ndjson | go run main.go tools automate import-dolittle-configmaps
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
