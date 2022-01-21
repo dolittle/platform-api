@@ -5,6 +5,7 @@ import (
 	"context"
 	"os"
 
+	"github.com/dolittle/platform-api/pkg/platform/automate"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -54,7 +55,7 @@ Then you can feed it to the command:
 			panic(err.Error())
 		}
 
-		scheme, serializer, err := initializeSchemeAndSerializer()
+		scheme, serializer, err := automate.InitializeSchemeAndSerializerForConfigMap()
 		if err != nil {
 			panic(err.Error())
 		}

@@ -13,6 +13,7 @@ import (
 
 	"k8s.io/client-go/tools/clientcmd"
 
+	"github.com/dolittle/platform-api/pkg/platform/automate"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sJson "k8s.io/apimachinery/pkg/runtime/serializer/json"
 )
@@ -52,14 +53,14 @@ var pullDolittleConfigCMD = &cobra.Command{
 			panic(err.Error())
 		}
 
-		scheme, serializer, err := initializeSchemeAndSerializer()
+		scheme, serializer, err := automate.InitializeSchemeAndSerializerForConfigMap()
 		if err != nil {
 			panic(err.Error())
 		}
 
-		namespaces := getNamespaces(ctx, client)
+		namespaces := automate.GetNamespaces(ctx, client)
 		for _, namespace := range namespaces {
-			if !isApplicationNamespace(namespace) {
+			if !automate.IsApplicationNamespace(namespace) {
 				continue
 			}
 			customer := namespace.Labels["tenant"]
@@ -69,7 +70,7 @@ var pullDolittleConfigCMD = &cobra.Command{
 				"application": application,
 			})
 
-			configMaps, err := getDolittleConfigMaps(ctx, client, namespace.GetName())
+			configMaps, err := automate.GetDolittleConfigMaps(ctx, client, namespace.GetName())
 			if err != nil {
 				logContext.Fatal("Failed to get configmaps")
 			}
@@ -92,25 +93,6 @@ var pullDolittleConfigCMD = &cobra.Command{
 	},
 }
 
-func getMicroserviceDirectory(rootFolder string, configMap corev1.ConfigMap) string {
-	labels := configMap.GetObjectMeta().GetLabels()
-	customer := labels["tenant"]
-	application := labels["application"]
-	environment := labels["environment"]
-	microservice := labels["microservice"]
-
-	return filepath.Join(rootFolder,
-		"Source",
-		"V3",
-		"Kubernetes",
-		"Customers",
-		customer,
-		application,
-		environment,
-		microservice,
-	)
-}
-
 func writeConfigMapsToDirectory(rootDirectory string, configMaps []corev1.ConfigMap, scheme *runtime.Scheme, serializer *k8sJson.Serializer) error {
 	for _, configMap := range configMaps {
 		// @joel let's discuss what to do with this
@@ -119,9 +101,9 @@ func writeConfigMapsToDirectory(rootDirectory string, configMaps []corev1.Config
 		configMap.ManagedFields = nil
 		configMap.ResourceVersion = ""
 
-		setConfigMapGVK(scheme, &configMap)
+		automate.SetConfigMapGVK(scheme, &configMap)
 
-		microserviceDirectory := getMicroserviceDirectory(rootDirectory, configMap)
+		microserviceDirectory := automate.GetMicroserviceDirectory(rootDirectory, configMap)
 		err := os.MkdirAll(microserviceDirectory, 0755)
 		if err != nil {
 			return err
@@ -140,39 +122,6 @@ func writeConfigMapsToDirectory(rootDirectory string, configMaps []corev1.Config
 	}
 
 	return nil
-}
-
-func setConfigMapGVK(schema *runtime.Scheme, configMap *corev1.ConfigMap) error {
-	// get the GroupVersionKind of the configMap type from the schema
-	gvks, _, err := schema.ObjectKinds(configMap)
-	if err != nil {
-		return err
-	}
-	// set the configMaps GroupVersionKind to match the one that the schema knows of
-	configMap.GetObjectKind().SetGroupVersionKind(gvks[0])
-	return nil
-}
-
-func initializeSchemeAndSerializer() (*runtime.Scheme, *k8sJson.Serializer, error) {
-	// based of https://github.com/kubernetes/kubernetes/issues/3030#issuecomment-700099699
-	// create the scheme and make it aware of the corev1 types
-	scheme := runtime.NewScheme()
-	err := corev1.AddToScheme(scheme)
-	if err != nil {
-		return scheme, nil, err
-	}
-
-	serializer := k8sJson.NewSerializerWithOptions(
-		k8sJson.DefaultMetaFactory,
-		scheme,
-		scheme,
-		k8sJson.SerializerOptions{
-			Yaml:   true,
-			Pretty: true,
-			Strict: true,
-		},
-	)
-	return scheme, serializer, nil
 }
 
 func init() {

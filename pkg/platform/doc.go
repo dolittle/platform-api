@@ -398,3 +398,13 @@ type HttpResponseEnvironmentVariables struct {
 	Environment    string                      `json:"environment"`
 	Data           []StudioEnvironmentVariable `json:"data"`
 }
+
+type MicroserviceMetadataShortInfo struct {
+	CustomerID       string `json:"customerId"`
+	CustomerName     string `json:"customerName"`
+	ApplicationID    string `json:"applicationId"`
+	ApplicationName  string `json:"applicationName"`
+	Environment      string `json:"environment"`
+	MicroserviceID   string `json:"microserviceId"`
+	MicroserviceName string `json:"microserviceName"`
+}

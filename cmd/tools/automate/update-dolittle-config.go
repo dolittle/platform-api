@@ -3,19 +3,15 @@ package automate
 import (
 	"bufio"
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 
-	configK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
+	"github.com/dolittle/platform-api/pkg/platform/automate"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -81,9 +77,9 @@ Update one or all dolittle configmaps, used by building blocks that have the run
 		})
 
 		if doAll {
-			namespaces := getNamespaces(ctx, client)
+			namespaces := automate.GetNamespaces(ctx, client)
 			for _, namespace := range namespaces {
-				if !isApplicationNamespace(namespace) {
+				if !automate.IsApplicationNamespace(namespace) {
 					continue
 				}
 
@@ -94,7 +90,7 @@ Update one or all dolittle configmaps, used by building blocks that have the run
 					"application": application,
 				})
 
-				configMaps, err := getDolittleConfigMaps(ctx, client, namespace.GetName())
+				configMaps, err := automate.GetDolittleConfigMaps(ctx, client, namespace.GetName())
 
 				if err != nil {
 					// TODO this might be to strict, perhaps we have a flag to let them skip?
@@ -106,7 +102,7 @@ Update one or all dolittle configmaps, used by building blocks that have the run
 				}).Info("Found dolittle configmaps to update")
 
 				for _, configMap := range configMaps {
-					err := updateConfigMap(ctx, client, logContext, configMap, dryRun)
+					err := automate.UpdateConfigMap(ctx, client, logContext, configMap, dryRun)
 					if err != nil {
 						logContext.Fatal("Failed to update configmap")
 					}
@@ -126,7 +122,7 @@ Update one or all dolittle configmaps, used by building blocks that have the run
 			for scanner.Scan() {
 				config := scanner.Text()
 
-				microserviceMetadata, err := getOneConfigViaStdin(config)
+				microserviceMetadata, err := automate.GetOneConfigViaStdin(config)
 				if err != nil {
 					logContext.Fatal("Data via stdin is not valid")
 				}
@@ -158,22 +154,16 @@ func processOne(ctx context.Context, client kubernetes.Interface, logContext log
 		"microservivce_id": microserviceID,
 	})
 
-	configMap, err := getOneDolittleConfigMap(ctx, client, applicationID, environment, microserviceID)
+	configMap, err := automate.GetOneDolittleConfigMap(ctx, client, applicationID, environment, microserviceID)
 	if err != nil {
 		// TODO this might be to strict, perhaps we have a flag to let them skip?
 		logContext.Fatal("Failed to get configmap")
 	}
 
-	err = updateConfigMap(ctx, client, logContext, *configMap, dryRun)
+	err = automate.UpdateConfigMap(ctx, client, logContext, *configMap, dryRun)
 	if err != nil {
 		logContext.Fatal("Failed to update configmap")
 	}
-}
-
-func getOneConfigViaStdin(input string) (MicroserviceMetadataShortInfo, error) {
-	var data MicroserviceMetadataShortInfo
-	err := json.Unmarshal([]byte(input), &data)
-	return data, err
 }
 
 func getOneConfigViaParameters(cmd *cobra.Command) (applicationID string, environment string, microserviceID string) {
@@ -181,46 +171,6 @@ func getOneConfigViaParameters(cmd *cobra.Command) (applicationID string, enviro
 	environment, _ = cmd.Flags().GetString("environment")
 	microserviceID, _ = cmd.Flags().GetString("microservice-id")
 	return applicationID, environment, microserviceID
-}
-
-func updateConfigMap(ctx context.Context, client kubernetes.Interface, logContext logrus.FieldLogger, configMap corev1.ConfigMap, dryRun bool) error {
-	microservice := convertObjectMetaToMicroservice(configMap.GetObjectMeta())
-	platform := configK8s.NewMicroserviceConfigmapPlatformData(microservice)
-	b, _ := json.MarshalIndent(platform, "", "  ")
-	platformJSON := string(b)
-
-	if configMap.Data == nil {
-		// TODO this is a sign it might not be using a runtime, maybe we skip
-		configMap.Data = make(map[string]string)
-	}
-
-	configMap.Data["platform.json"] = platformJSON
-
-	namespace := configMap.Namespace
-
-	logContext.WithFields(logrus.Fields{
-		"microservice_id": microservice.ID,
-		"application_id":  microservice.Application.ID,
-		"environment":     microservice.Environment,
-		"namespace":       microservice.Environment,
-	})
-
-	if dryRun {
-		b := dumpConfigMap(&configMap)
-
-		logContext = logContext.WithField("data", string(b))
-		logContext.Info("Would write")
-		return nil
-	}
-
-	_, err := client.CoreV1().ConfigMaps(namespace).Update(ctx, &configMap, v1.UpdateOptions{})
-	if err != nil {
-		logContext.WithFields(logrus.Fields{
-			"error": err,
-		}).Error("updating configmap")
-		return errors.New("update.failed")
-	}
-	return nil
 }
 
 func init() {
