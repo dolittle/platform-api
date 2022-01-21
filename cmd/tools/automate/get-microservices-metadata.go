@@ -18,10 +18,21 @@ var getMicroservicesMetaDataCMD = &cobra.Command{
 	Use:   "get-microservices-metadata",
 	Short: "Get all microservices metadata from the cluster",
 	Long: `
-	go run main.go tools automate get-microservices-metadata
+go run main.go tools automate get-microservices-metadata
 
-	Outputs:
-		TODO
+Returns an array of metadata
+
+Outputs:
+	Example of the metadata
+	{
+		"customerId": "508c1745-5f2a-4b4c-b7a5-2fbb1484346d",
+		"customerName": "Dolittle",
+		"applicationId": "fe7736bb-57fc-4166-bb91-6954f4dd4eb7",
+		"applicationName": "Studio",
+		"environment": "Dev",
+		"microserviceId": "f966abb5-3d22-4c2d-b5cb-1c49e5946e03",
+		"microserviceName": "SelfServiceWeb"
+	}
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := context.TODO()
