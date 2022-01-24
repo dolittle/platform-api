@@ -149,9 +149,9 @@ Update one or all dolittle configmaps, used by building blocks that have the run
 
 func processOne(ctx context.Context, client kubernetes.Interface, logContext logrus.FieldLogger, dryRun bool, applicationID string, environment string, microserviceID string) {
 	logContext = logContext.WithFields(logrus.Fields{
-		"application_id":   applicationID,
-		"environment":      environment,
-		"microservivce_id": microserviceID,
+		"application_id":  applicationID,
+		"environment":     environment,
+		"microservice_id": microserviceID,
 	})
 
 	configMap, err := automate.GetOneDolittleConfigMap(ctx, client, applicationID, environment, microserviceID)
