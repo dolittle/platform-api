@@ -3,9 +3,9 @@ package automate
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -20,22 +20,52 @@ import (
 	k8sJson "k8s.io/apimachinery/pkg/runtime/serializer/json"
 )
 
-func SetConfigMapGVK(schema *runtime.Scheme, configMap *corev1.ConfigMap) error {
-	// get the GroupVersionKind of the configMap type from the schema
-	gvks, _, err := schema.ObjectKinds(configMap)
+// SetRuntimeObjectGVK set's the given objects GroupVersionKind to the one the schema
+// is aware of. This is because the k8s API doesn't always return the objects correct
+// TypeMeta with these fields populated.
+// See https://github.com/kubernetes/kubernetes/issues/3030#issuecomment-700099699
+func SetRuntimeObjectGVK(schema *runtime.Scheme, runtimeObject runtime.Object) error {
+	// get the GroupVersionKind of the object type from the schema
+	gvks, _, err := schema.ObjectKinds(runtimeObject)
 	if err != nil {
 		return err
 	}
-	// set the configMaps GroupVersionKind to match the one that the schema knows of
-	configMap.GetObjectKind().SetGroupVersionKind(gvks[0])
+	// set the runtimeObjects GroupVersionKind to match the one that the schema knows of
+	runtimeObject.GetObjectKind().SetGroupVersionKind(gvks[0])
+	return nil
+}
+
+// WriteResourceToFile serializes and writes the given resource to the given directory and file
+// The resource should already have it's ManagedFields and ResourceVersion's cleared out to avoid noise in the file
+func WriteResourceToFile(microserviceDirectory string, fileName string, resource runtime.Object, serializer *k8sJson.Serializer) error {
+	err := os.MkdirAll(microserviceDirectory, 0755)
+	if err != nil {
+		return err
+	}
+
+	file, err := os.Create(filepath.Join(microserviceDirectory, fileName))
+	if err != nil {
+		return err
+	}
+
+	defer file.Close()
+	err = serializer.Encode(resource, file)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func InitializeSchemeAndSerializerForConfigMap() (*runtime.Scheme, *k8sJson.Serializer, error) {
 	// based of https://github.com/kubernetes/kubernetes/issues/3030#issuecomment-700099699
-	// create the scheme and make it aware of the corev1 types
+	// create the scheme and make it aware of the corev1 & appv1 types
 	scheme := runtime.NewScheme()
 	err := corev1.AddToScheme(scheme)
+	if err != nil {
+		return scheme, nil, err
+	}
+	err = appsv1.AddToScheme(scheme)
 	if err != nil {
 		return scheme, nil, err
 	}
@@ -53,17 +83,16 @@ func InitializeSchemeAndSerializerForConfigMap() (*runtime.Scheme, *k8sJson.Seri
 	return scheme, serializer, nil
 }
 
-func DumpConfigMap(configMap *corev1.ConfigMap) []byte {
+func SerializeRuntimeObject(runtimeObject runtime.Object) []byte {
 	scheme, serializer, err := InitializeSchemeAndSerializerForConfigMap()
 	if err != nil {
 		panic(err.Error())
 	}
 
-	SetConfigMapGVK(scheme, configMap)
+	SetRuntimeObjectGVK(scheme, runtimeObject)
 
 	var buf bytes.Buffer
-
-	_ = serializer.Encode(configMap, &buf)
+	_ = serializer.Encode(runtimeObject, &buf)
 	return buf.Bytes()
 }
 
@@ -83,7 +112,7 @@ func GetDolittleConfigMaps(ctx context.Context, client kubernetes.Interface, nam
 	return results, nil
 }
 
-func GetOneDolittleConfigMap(ctx context.Context, client kubernetes.Interface, applicationID string, environment string, microserviceID string) (*corev1.ConfigMap, error) {
+func GetDolittleConfigMap(ctx context.Context, client kubernetes.Interface, applicationID string, environment string, microserviceID string) (*corev1.ConfigMap, error) {
 	namespace := fmt.Sprintf("application-%s", applicationID)
 	var result *corev1.ConfigMap
 	configmaps, err := client.CoreV1().ConfigMaps(namespace).List(ctx, metav1.ListOptions{})
@@ -129,6 +158,34 @@ func GetDeployments(ctx context.Context, client kubernetes.Interface, namespace 
 		microserviceDeployments = append(microserviceDeployments, deployment)
 	}
 	return microserviceDeployments, nil
+}
+
+// GetRuntimeDeployment get's a microservices deployment and the index of the Runtime container within that deployment
+func GetRuntimeDeployment(ctx context.Context, client kubernetes.Interface, applicationID string, environment string, microserviceID string) (int, appsv1.Deployment, error) {
+	namespace := fmt.Sprintf("application-%s", applicationID)
+
+	deployments, err := GetDeployments(ctx, client, namespace)
+	if err != nil {
+		return -1, appsv1.Deployment{}, err
+	}
+
+	for _, deployment := range deployments {
+		if deployment.Annotations["dolittle.io/microservice-id"] != microserviceID {
+			continue
+		}
+
+		if deployment.Labels["environment"] != environment {
+			continue
+		}
+
+		for index, container := range deployment.Spec.Template.Spec.Containers {
+			if container.Name == "runtime" {
+				return index, deployment, nil
+			}
+		}
+	}
+
+	return -1, appsv1.Deployment{}, errors.New("not.found")
 }
 
 func ConvertObjectMetaToMicroservice(objectMeta metav1.Object) configK8s.Microservice {
@@ -209,8 +266,8 @@ func IsApplicationNamespace(namespace corev1.Namespace) bool {
 	return true
 }
 
-func GetMicroserviceDirectory(rootFolder string, configMap corev1.ConfigMap) string {
-	labels := configMap.GetObjectMeta().GetLabels()
+func GetMicroserviceDirectory(rootFolder string, objectMeta metav1.Object) string {
+	labels := objectMeta.GetLabels()
 	customer := labels["tenant"]
 	application := labels["application"]
 	environment := labels["environment"]
@@ -228,42 +285,99 @@ func GetMicroserviceDirectory(rootFolder string, configMap corev1.ConfigMap) str
 	)
 }
 
-func UpdateConfigMap(ctx context.Context, client kubernetes.Interface, logContext logrus.FieldLogger, configMap corev1.ConfigMap, dryRun bool) error {
+func AddDataToConfigMap(ctx context.Context, client kubernetes.Interface, logContext logrus.FieldLogger, key string, data []byte, configMap corev1.ConfigMap, dryRun bool) error {
 	microservice := ConvertObjectMetaToMicroservice(configMap.GetObjectMeta())
-	platform := configK8s.NewMicroserviceConfigmapPlatformData(microservice)
-	b, _ := json.MarshalIndent(platform, "", "  ")
-	platformJSON := string(b)
+	logContext.WithFields(logrus.Fields{
+		"microservice_id": microservice.ID,
+		"microservice":    microservice.Name,
+		"application_id":  microservice.Application.ID,
+		"environment":     microservice.Environment,
+		"namespace":       configMap.Namespace,
+		"function":        "AddDataToConfigMap",
+	})
 
 	if configMap.Data == nil {
 		// TODO this is a sign it might not be using a runtime, maybe we skip
 		configMap.Data = make(map[string]string)
 	}
 
-	configMap.Data["platform.json"] = platformJSON
-
-	namespace := configMap.Namespace
-
-	logContext.WithFields(logrus.Fields{
-		"microservice_id": microservice.ID,
-		"application_id":  microservice.Application.ID,
-		"environment":     microservice.Environment,
-		"namespace":       microservice.Environment,
-	})
-
-	if dryRun {
-		b := DumpConfigMap(&configMap)
-
-		logContext = logContext.WithField("data", string(b))
-		logContext.Info("Would write")
+	if _, ok := configMap.Data[key]; ok {
+		logContext.Infof("Key %s already exists in the configmap, skipping the update", key)
 		return nil
 	}
 
-	_, err := client.CoreV1().ConfigMaps(namespace).Update(ctx, &configMap, metav1.UpdateOptions{})
+	configMap.Data[key] = string(data)
+
+	if dryRun {
+		bytes := SerializeRuntimeObject(&configMap)
+
+		logContext = logContext.WithField("data", string(bytes))
+		logContext.Info("--dry-run enabled, skipping update")
+		return nil
+	}
+
+	_, err := client.CoreV1().ConfigMaps(configMap.Namespace).Update(ctx, &configMap, metav1.UpdateOptions{})
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
 		}).Error("updating configmap")
 		return errors.New("update.failed")
 	}
+	return nil
+}
+
+// AddVolumeMountToContainer adds the given volumeMount to the container specified by containerIndex within the given deployment
+func AddVolumeMountToContainer(ctx context.Context,
+	client kubernetes.Interface,
+	logContext logrus.FieldLogger,
+	volumeMount corev1.VolumeMount,
+	containerIndex int,
+	deployment appsv1.Deployment,
+	dryRun bool) error {
+	microservice := ConvertObjectMetaToMicroservice(deployment.GetObjectMeta())
+
+	logContext.WithFields(logrus.Fields{
+		"microservice_id": microservice.ID,
+		"microservice":    microservice.Name,
+		"application_id":  microservice.Application.ID,
+		"application":     microservice.Application.Name,
+		"environment":     microservice.Environment,
+		"namespace":       deployment.Namespace,
+		"function":        "AddVolumeMountToRuntimeContainer",
+		"mount_path":      volumeMount.MountPath,
+		"sub_path":        volumeMount.SubPath,
+	})
+
+	container := deployment.Spec.Template.Spec.Containers[containerIndex]
+
+	hasPlatformMount := false
+	for _, containerMounts := range container.VolumeMounts {
+		if containerMounts.SubPath == volumeMount.SubPath {
+			hasPlatformMount = true
+		}
+	}
+
+	if hasPlatformMount {
+		logContext.Infof("Container already had a volumemount on subpath %s", volumeMount.SubPath)
+		return nil
+	}
+
+	container.VolumeMounts = append(container.VolumeMounts, volumeMount)
+	// mutate the deployment with the modified container
+	deployment.Spec.Template.Spec.Containers[containerIndex] = container
+
+	if dryRun {
+		bytes := SerializeRuntimeObject(&deployment)
+		logContext.WithFields(logrus.Fields{
+			"data": string(bytes),
+		}).Info("--dry-run enabled, skipping the update")
+		return nil
+	}
+
+	_, err := client.AppsV1().Deployments(deployment.Namespace).Update(ctx, &deployment, metav1.UpdateOptions{})
+	if err != nil {
+		logContext.Fatal(err.Error())
+	}
+
 	return nil
 }

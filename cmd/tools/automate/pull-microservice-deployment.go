@@ -7,9 +7,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/dolittle/platform-api/pkg/platform/automate"
@@ -17,11 +17,11 @@ import (
 	k8sJson "k8s.io/apimachinery/pkg/runtime/serializer/json"
 )
 
-var pullDolittleConfigCMD = &cobra.Command{
-	Use:   "pull-dolittle-config",
-	Short: "Pulls all dolittle configmaps from the cluster and writes them to their respective microservice inside the specified repo",
+var pullMicroserviceDeploymentCMD = &cobra.Command{
+	Use:   "pull-microservice-deployment",
+	Short: "Pulls all dolittle microservice deployments from the cluster and writes them to their respective microservice inside the specified repo",
 	Long: `
-	go run main.go tools pull-dolittle-config <repo-root>
+	go run main.go tools pull-microservice-deployment <repo-root>
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
@@ -69,20 +69,30 @@ var pullDolittleConfigCMD = &cobra.Command{
 				"application": application,
 			})
 
-			configMaps, err := automate.GetDolittleConfigMaps(ctx, client, namespace.GetName())
+			deployments, err := automate.GetDeployments(ctx, client, namespace.GetName())
 			if err != nil {
-				logContext.Fatal("Failed to get configmaps")
+				logContext.Fatal("Failed to get deployments")
 			}
 
+			// var runtimeDeployments []appsv1.Deployment
+			// for _, deployment := range allDeployments {
+			// 	for _, container := range deployment.Spec.Template.Spec.Containers {
+			// 		if container.Name == "runtime" {
+			// 			runtimeDeployments = append(runtimeDeployments, deployment)
+			// 			break
+			// 		}
+			// 	}
+			// }
+
 			logContext.WithFields(logrus.Fields{
-				"totalConfigMaps": len(configMaps),
-			}).Info("Found dolittle configmaps")
+				"totalDeployments": len(deployments),
+			}).Info("Found microservice deployments")
 
 			if dryRun {
 				continue
 			}
 
-			err = writeConfigMapsToDirectory(args[0], configMaps, scheme, serializer)
+			err = writeDeploymentsToDirectory(args[0], deployments, scheme, serializer)
 			if err != nil {
 				logContext.WithFields(logrus.Fields{
 					"error": err,
@@ -92,22 +102,24 @@ var pullDolittleConfigCMD = &cobra.Command{
 	},
 }
 
-func writeConfigMapsToDirectory(rootDirectory string, configMaps []corev1.ConfigMap, scheme *runtime.Scheme, serializer *k8sJson.Serializer) error {
-	for _, configMap := range configMaps {
+func writeDeploymentsToDirectory(rootDirectory string, deployments []appsv1.Deployment, scheme *runtime.Scheme, serializer *k8sJson.Serializer) error {
+	for _, deployment := range deployments {
 		// We remove these fields to make it cleaner and to make it a little less painful
 		// to do multiple manual changes if we were debugging.
-		configMap.ManagedFields = nil
-		configMap.ResourceVersion = ""
+		deployment.ManagedFields = nil
+		deployment.ResourceVersion = ""
+		deployment.Status = appsv1.DeploymentStatus{}
+		delete(deployment.ObjectMeta.Annotations, "kubectl.kubernetes.io/last-applied-configuration")
 
-		automate.SetRuntimeObjectGVK(scheme, &configMap)
+		automate.SetRuntimeObjectGVK(scheme, &deployment)
 
-		microserviceDirectory := automate.GetMicroserviceDirectory(rootDirectory, configMap.GetObjectMeta())
-		automate.WriteResourceToFile(microserviceDirectory, "microservice-configmap-dolittle.yml", &configMap, serializer)
+		microserviceDirectory := automate.GetMicroserviceDirectory(rootDirectory, deployment.GetObjectMeta())
+		automate.WriteResourceToFile(microserviceDirectory, "microservice-deployment.yml", &deployment, serializer)
 	}
 
 	return nil
 }
 
 func init() {
-	pullDolittleConfigCMD.PersistentFlags().Bool("dry-run", false, "Will not write to disk")
+	pullMicroserviceDeploymentCMD.PersistentFlags().Bool("dry-run", false, "Will not write to disk")
 }

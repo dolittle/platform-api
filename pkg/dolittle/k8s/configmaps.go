@@ -153,7 +153,7 @@ func NewMicroserviceResources(microservice Microservice, customersTenantID strin
 	}
 }
 
-func NewMicroserviceConfigmapPlatformData(microservice Microservice) MicroservicePlatform {
+func NewMicroserviceConfigMapPlatformData(microservice Microservice) MicroservicePlatform {
 	return MicroservicePlatform{
 		Applicationname:  microservice.Application.Name,
 		Applicationid:    microservice.Application.ID,
@@ -194,7 +194,7 @@ func NewMicroserviceConfigmap(microservice Microservice, customersTenantID strin
 		Port: 9700,
 	}
 
-	platform := NewMicroserviceConfigmapPlatformData(microservice)
+	platform := NewMicroserviceConfigMapPlatformData(microservice)
 
 	appsettings := Appsettings{
 		Logging: AppsettingsLogging{
