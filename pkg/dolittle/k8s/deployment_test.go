@@ -181,10 +181,15 @@ var _ = Describe("Deployment", func() {
 			Expect(deployment.Spec.Template.Spec.Containers[1].VolumeMounts[4].SubPath).To(Equal("microservices.json"))
 			Expect(deployment.Spec.Template.Spec.Containers[1].VolumeMounts[4].Name).To(Equal("dolittle-config"))
 		})
-		It("should create a runtime container with 'appsettings.json' mounted", func() {
-			Expect(deployment.Spec.Template.Spec.Containers[1].VolumeMounts[5].MountPath).To(Equal("/app/appsettings.json"))
-			Expect(deployment.Spec.Template.Spec.Containers[1].VolumeMounts[5].SubPath).To(Equal("appsettings.json"))
+		It("should create a runtime container with 'platform.json' mounted", func() {
+			Expect(deployment.Spec.Template.Spec.Containers[1].VolumeMounts[5].MountPath).To(Equal("/app/.dolittle/platform.json"))
+			Expect(deployment.Spec.Template.Spec.Containers[1].VolumeMounts[5].SubPath).To(Equal("platform.json"))
 			Expect(deployment.Spec.Template.Spec.Containers[1].VolumeMounts[5].Name).To(Equal("dolittle-config"))
+		})
+		It("should create a runtime container with 'appsettings.json' mounted", func() {
+			Expect(deployment.Spec.Template.Spec.Containers[1].VolumeMounts[6].MountPath).To(Equal("/app/appsettings.json"))
+			Expect(deployment.Spec.Template.Spec.Containers[1].VolumeMounts[6].SubPath).To(Equal("appsettings.json"))
+			Expect(deployment.Spec.Template.Spec.Containers[1].VolumeMounts[6].Name).To(Equal("dolittle-config"))
 		})
 		It("should create a pod template with the 'tenants-config' volume", func() {
 			Expect(deployment.Spec.Template.Spec.Volumes[0].Name).To(Equal("tenants-config"))
@@ -257,10 +262,15 @@ var _ = Describe("Deployment", func() {
 			Expect(container.VolumeMounts[4].SubPath).To(Equal("microservices.json"))
 			Expect(container.VolumeMounts[4].Name).To(Equal("dolittle-config"))
 		})
-		It("should create a runtime container with 'appsettings.json' mounted", func() {
-			Expect(container.VolumeMounts[5].MountPath).To(Equal("/app/appsettings.json"))
-			Expect(container.VolumeMounts[5].SubPath).To(Equal("appsettings.json"))
+		It("should create a runtime container with 'platform.json' mounted", func() {
+			Expect(container.VolumeMounts[5].MountPath).To(Equal("/app/.dolittle/platform.json"))
+			Expect(container.VolumeMounts[5].SubPath).To(Equal("platform.json"))
 			Expect(container.VolumeMounts[5].Name).To(Equal("dolittle-config"))
+		})
+		It("should create a runtime container with 'appsettings.json' mounted", func() {
+			Expect(container.VolumeMounts[6].MountPath).To(Equal("/app/appsettings.json"))
+			Expect(container.VolumeMounts[6].SubPath).To(Equal("appsettings.json"))
+			Expect(container.VolumeMounts[6].Name).To(Equal("dolittle-config"))
 		})
 	})
 })
