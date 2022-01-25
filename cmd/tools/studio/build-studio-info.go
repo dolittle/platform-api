@@ -1,4 +1,4 @@
-package microservice
+package studio
 
 import (
 	"context"
@@ -21,17 +21,21 @@ var buildStudioInfoCMD = &cobra.Command{
 	Long: `
 	It will attempt to update the git repo with resetted studio configurations (studio.json).
 
-	GIT_REPO_SSH_KEY="/Users/freshteapot/dolittle/.ssh/test-deploy" \
 	GIT_REPO_BRANCH=dev \
-	GIT_REPO_URL="git@github.com:freshteapot/test-deploy-key.git" \
-	go run main.go microservice build-studio-info --kube-config="/Users/freshteapot/.kube/config"
+	GIT_REPO_DRY_RUN=true \
+	GIT_REPO_DIRECTORY="/tmp/dolittle-local-dev" \
+	GIT_REPO_DIRECTORY_ONLY=true \
+	go run main.go tools studio build-studio-info
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
 		logrus.SetOutput(os.Stdout)
 
 		logContext := logrus.StandardLogger()
-		gitRepoConfig := git.InitGit(logContext)
+		resetAll, _ := cmd.Flags().GetBool("all")
+		disabledEnvironments, _ := cmd.Flags().GetBool("disable-environments")
+		platformEnvironment, _ := cmd.Flags().GetString("platform-environment")
+		gitRepoConfig := git.InitGit(logContext, platformEnvironment)
 
 		gitRepo := gitStorage.NewGitStorage(
 			logrus.WithField("context", "git-repo"),
@@ -56,9 +60,6 @@ var buildStudioInfoCMD = &cobra.Command{
 			panic(err.Error())
 		}
 
-		shouldCommit := viper.GetBool("commit")
-		resetAll := viper.GetBool("all")
-
 		customers := args
 
 		if len(customers) > 0 && resetAll {
@@ -74,25 +75,36 @@ var buildStudioInfoCMD = &cobra.Command{
 			logContext.Fatal("No customers found or no CUSTOMERID given")
 		}
 
-		logContext.Infof("Resetting studio configuration for customers: %v", customers)
-		ResetStudioConfigs(gitRepo, customers, shouldCommit, logContext)
+		filteredCustomer := filterCustomers(gitRepo, customers, platformEnvironment)
+		logContext.Infof("Resetting studio configuration for customers: %v", filteredCustomer)
+
+		studioConfig := GetConfig(disabledEnvironments)
+		ResetStudioConfigs(gitRepo, filteredCustomer, studioConfig, logContext)
 		logContext.Info("Done!")
 	},
 }
 
+func GetConfig(disabledEnvironments bool) platform.StudioConfig {
+	config := platform.StudioConfig{
+		BuildOverwrite:       true,
+		DisabledEnvironments: make([]string, 0),
+	}
+
+	if disabledEnvironments {
+		config.DisabledEnvironments = append(config.DisabledEnvironments, "*")
+	}
+	return config
+}
+
 // ResetStudioConfigs resets all of the found customers studio.json files to enable automation for all environments
 // and to enable overwriting
-func ResetStudioConfigs(repo storage.Repo, customers []string, shouldCommit bool, logger logrus.FieldLogger) error {
+func ResetStudioConfigs(repo storage.Repo, customers []string, config platform.StudioConfig, logger logrus.FieldLogger) error {
 	logContext := logger.WithFields(logrus.Fields{
 		"function": "ResetStudioConfigs",
 	})
 
-	defaultConfig := platform.StudioConfig{
-		BuildOverwrite:       true,
-		DisabledEnvironments: make([]string, 0),
-	}
 	for _, customer := range customers {
-		if err := repo.SaveStudioConfig(customer, defaultConfig); err != nil {
+		if err := repo.SaveStudioConfig(customer, config); err != nil {
 			logContext.WithFields(logrus.Fields{
 				"error":      err,
 				"customerID": customer,
@@ -114,8 +126,7 @@ func extractCustomers(ctx context.Context, client kubernetes.Interface) []string
 }
 
 func init() {
-	RootCmd.AddCommand(buildStudioInfoCMD)
-
+	buildStudioInfoCMD.Flags().String("platform-environment", "dev", "Platform environment (dev or prod), not linked to application environment")
+	buildStudioInfoCMD.Flags().Bool("disable-environments", false, "If flag set, Disable all environments")
 	buildStudioInfoCMD.Flags().Bool("all", false, "Discovers all customers from the platform and resets all studio.json's to default state (everything allowed)")
-	viper.BindPFlag("all", buildStudioInfoCMD.Flags().Lookup("all"))
 }

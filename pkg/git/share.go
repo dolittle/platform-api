@@ -21,7 +21,7 @@ func SetupViper() {
 	viper.SetDefault("tools.server.gitRepo.dryRun", false)
 }
 
-func InitGit(logContext logrus.FieldLogger) gitStorage.GitStorageConfig {
+func InitGit(logContext logrus.FieldLogger, platformEnvironment string) gitStorage.GitStorageConfig {
 	gitDirectoryOnly := viper.GetBool("tools.server.gitRepo.directoryOnly")
 	gitRepoURL := ""
 	gitSshKeysFolder := ""
@@ -59,11 +59,12 @@ func InitGit(logContext logrus.FieldLogger) gitStorage.GitStorageConfig {
 	gitDryRun := viper.GetBool("tools.server.gitRepo.dryRun")
 
 	return gitStorage.GitStorageConfig{
-		URL:           gitRepoURL,
-		Branch:        gitRepoBranch,
-		PrivateKey:    gitSshKeysFolder,
-		RepoRoot:      gitLocalDirectory,
-		DirectoryOnly: gitDirectoryOnly,
-		DryRun:        gitDryRun,
+		URL:                 gitRepoURL,
+		Branch:              gitRepoBranch,
+		PrivateKey:          gitSshKeysFolder,
+		RepoRoot:            gitLocalDirectory,
+		DirectoryOnly:       gitDirectoryOnly,
+		DryRun:              gitDryRun,
+		PlatformEnvironment: platformEnvironment,
 	}
 }

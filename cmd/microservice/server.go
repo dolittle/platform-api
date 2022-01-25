@@ -44,7 +44,8 @@ var serverCMD = &cobra.Command{
 		logrus.SetOutput(os.Stdout)
 
 		logContext := logrus.StandardLogger()
-		gitRepoConfig := git.InitGit(logContext)
+		platformEnvironment := viper.GetString("tools.server.platformEnvironment")
+		gitRepoConfig := git.InitGit(logContext, platformEnvironment)
 
 		// fix: https://github.com/spf13/viper/issues/798
 		for _, key := range viper.AllKeys() {

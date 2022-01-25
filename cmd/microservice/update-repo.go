@@ -8,6 +8,7 @@ import (
 	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var updateRepoCMD = &cobra.Command{
@@ -18,7 +19,8 @@ var updateRepoCMD = &cobra.Command{
 		logrus.SetOutput(os.Stdout)
 
 		logContext := logrus.StandardLogger()
-		gitRepoConfig := git.InitGit(logContext)
+		platformEnvironment := viper.GetString("tools.server.platformEnvironment")
+		gitRepoConfig := git.InitGit(logContext, platformEnvironment)
 
 		gitRepo := gitStorage.NewGitStorage(
 			logrus.WithField("context", "git-repo"),
