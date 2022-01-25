@@ -187,12 +187,13 @@ func extractTerraformApplications(customers []platform.TerraformCustomer, data [
 		if err != nil {
 			return applications, err
 		}
-		// TODO https://app.asana.com/0/0/1201706582610616/f
+
 		customer, err := findCustomer(customers, a.Customer.GUID)
 		if err != nil {
 			fmt.Printf("skipping as Customer (%s) is not found\n", a.Customer.GUID)
 			continue
 		}
+		// We map to the actual customer, as the customer struct has all the customer values
 		a.Customer = customer
 		applications = append(applications, a)
 	}
