@@ -1,7 +1,8 @@
-package microservice
+package studio
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -29,13 +30,7 @@ var buildTerraformInfoCMD = &cobra.Command{
 	GIT_REPO_DRY_RUN=true \
 	GIT_REPO_DIRECTORY="/tmp/dolittle-local-dev" \
 	GIT_REPO_DIRECTORY_ONLY=true \
-	go run main.go microservice build-terraform-info ~/Dolittle/Operations/Source/V3/Azure/azure.json
-
-	GIT_REPO_SSH_KEY="/Users/freshteapot/dolittle/.ssh/test-deploy" \
-	GIT_REPO_BRANCH=dev \
-	GIT_REPO_DRY_RUN=true \
-	GIT_REPO_URL="git@github.com:freshteapot/test-deploy-key.git" \
-	go run main.go microservice build-terraform-info /Users/freshteapot/dolittle/git/Operations/Source/V3/Azure/azure.json
+	go run main.go tools studio build-terraform-info ~/Dolittle/Operations/Source/V3/Azure/azure.json
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 
@@ -43,10 +38,11 @@ var buildTerraformInfoCMD = &cobra.Command{
 		logrus.SetOutput(os.Stdout)
 
 		logContext := logrus.StandardLogger()
-		gitRepoConfig := git.InitGit(logContext)
 
 		platformEnvironment, _ := cmd.Flags().GetString("platform-environment")
+		gitRepoConfig := git.InitGit(logContext, platformEnvironment)
 
+		// TODO possibly change this if / when we introduce dynamic platform-environment
 		filterPlatformEnvironment := funk.ContainsString([]string{
 			"dev",
 			"prod",
@@ -54,14 +50,6 @@ var buildTerraformInfoCMD = &cobra.Command{
 
 		if !filterPlatformEnvironment {
 			logContext.Fatal("The platform-environment can only be dev or prod")
-		}
-
-		if (platformEnvironment == "dev") && (gitRepoConfig.Branch != platformEnvironment) {
-			logContext.Fatal("The platform-environment does not match the branch")
-		}
-
-		if (platformEnvironment == "prod") && (gitRepoConfig.Branch != "main") {
-			logContext.Fatal("The platform-environment does not match the branch")
 		}
 
 		pathToFile := args[0]
@@ -85,11 +73,7 @@ var buildTerraformInfoCMD = &cobra.Command{
 			logContext.WithField("error", err).Fatal("Failed to save terraform customers")
 		}
 
-		customerIDS := funk.Map(customers, func(customer platform.TerraformCustomer) string {
-			return customer.GUID
-		}).([]string)
-
-		applications, err := extractTerraformApplications(customerIDS, fileBytes)
+		applications, err := extractTerraformApplications(customers, fileBytes)
 		if err != nil {
 			logContext.WithField("error", err).Fatal("Failed to extract terraform applications")
 		}
@@ -172,7 +156,7 @@ func extractTerraformCustomers(platformEnvironment string, data []byte) ([]platf
 	return customers, nil
 }
 
-func extractTerraformApplications(customerIDS []string, data []byte) ([]platform.TerraformApplication, error) {
+func extractTerraformApplications(customers []platform.TerraformCustomer, data []byte) ([]platform.TerraformApplication, error) {
 	var input interface{}
 	applications := make([]platform.TerraformApplication, 0)
 
@@ -204,16 +188,28 @@ func extractTerraformApplications(customerIDS []string, data []byte) ([]platform
 			return applications, err
 		}
 
-		if !funk.ContainsString(customerIDS, a.Customer.GUID) {
-			fmt.Println(fmt.Sprintf("skipping as Customer %s (%s) is not on the list", a.Customer.Name, a.Customer.GUID))
+		customer, err := findCustomer(customers, a.Customer.GUID)
+		if err != nil {
+			fmt.Printf("skipping as Customer (%s) is not found\n", a.Customer.GUID)
 			continue
 		}
+		// We map to the actual customer, as the customer struct has all the customer values
+		a.Customer = customer
 		applications = append(applications, a)
 	}
 
 	return applications, nil
 }
 
+func findCustomer(customers []platform.TerraformCustomer, customerID string) (platform.TerraformCustomer, error) {
+	for _, customer := range customers {
+		if customer.GUID == customerID {
+			return customer, nil
+		}
+	}
+	return platform.TerraformCustomer{}, errors.New("not.found")
+}
+
 func init() {
-	buildTerraformInfoCMD.Flags().String("platform-environment", "prod", "Platform environment (dev or prod), not linked to application environment")
+	buildTerraformInfoCMD.Flags().String("platform-environment", "dev", "Platform environment (dev or prod), not linked to application environment")
 }

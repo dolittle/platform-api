@@ -1,4 +1,4 @@
-package microservice
+package studio
 
 import (
 	"fmt"
@@ -11,15 +11,18 @@ import (
 )
 
 var RootCmd = &cobra.Command{
-	Use:   "microservice",
-	Short: "Microservice tools",
-	Long:  ``,
+	Use:   "studio",
+	Short: "Studio specific tools",
+	Long: `
+
+Tools to help create files needed for studio from kubernetes and / or terraform`,
 }
 
 func init() {
-	RootCmd.AddCommand(createCMD)
-	RootCmd.AddCommand(updateRepoCMD)
-	RootCmd.AddCommand(gitTestCMD)
+	RootCmd.AddCommand(createServiceAccountCMD)
+	RootCmd.AddCommand(buildStudioInfoCMD)
+	RootCmd.AddCommand(buildTerraformInfoCMD)
+	RootCmd.AddCommand(buildApplicationInfoCMD)
 
 	RootCmd.PersistentFlags().Bool("git-dry-run", false, "Don't commit and push changes")
 	viper.BindPFlag("tools.server.gitRepo.dryRun", RootCmd.PersistentFlags().Lookup("git-dry-run"))

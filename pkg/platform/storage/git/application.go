@@ -15,7 +15,7 @@ import (
 )
 
 func (s *GitStorage) GetApplicationDirectory(tenantID string, applicationID string) string {
-	return filepath.Join(s.Directory, tenantID, applicationID)
+	return filepath.Join(s.Directory, s.config.PlatformEnvironment, tenantID, applicationID)
 }
 
 func (s *GitStorage) SaveApplication(application platform.HttpResponseApplication) error {

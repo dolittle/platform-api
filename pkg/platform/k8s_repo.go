@@ -26,8 +26,8 @@ import (
 )
 
 var (
-	NotFound      = errors.New("not-found")
-	AlreadyExists = errors.New("already-exists")
+	ErrNotFound      = errors.New("not-found")
+	ErrAlreadyExists = errors.New("already-exists")
 )
 
 type K8sRepo struct {
@@ -450,7 +450,7 @@ func (r *K8sRepo) GetSecret(logContext logrus.FieldLogger, applicationID string,
 			"secretName": name,
 		}).Error("secret not found")
 
-		return secret, NotFound
+		return secret, ErrNotFound
 	}
 	return secret, nil
 }
@@ -474,7 +474,7 @@ func (r *K8sRepo) GetServiceAccount(logContext logrus.FieldLogger, applicationID
 			"name":  name,
 		}).Error("service account not found")
 
-		return serviceAccount, NotFound
+		return serviceAccount, ErrNotFound
 	}
 	return serviceAccount, nil
 }
@@ -514,7 +514,7 @@ func (r *K8sRepo) CreateServiceAccount(logger logrus.FieldLogger, customerID str
 			"error": err,
 		}).Debug("service account already exists")
 
-		return newAccount, AlreadyExists
+		return newAccount, ErrAlreadyExists
 	}
 	return newAccount, nil
 }
@@ -539,7 +539,7 @@ func (r *K8sRepo) AddServiceAccountToRoleBinding(logger logrus.FieldLogger, appl
 	for _, subject := range k8sRoleBinding.Subjects {
 		// if the serviceaccount already exists in the rolebinding we don't need to update
 		if subject.Name == serviceAccount {
-			return k8sRoleBinding, AlreadyExists
+			return k8sRoleBinding, ErrAlreadyExists
 		}
 	}
 
@@ -602,7 +602,7 @@ func (r *K8sRepo) CreateRoleBinding(logger logrus.FieldLogger, customerID, custo
 		logContext.WithFields(logrus.Fields{
 			"error": err,
 		}).Debug("RoleBinding already exists")
-		return createdRoleBinding, AlreadyExists
+		return createdRoleBinding, ErrAlreadyExists
 	}
 
 	return createdRoleBinding, nil

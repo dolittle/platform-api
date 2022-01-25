@@ -2,6 +2,7 @@ package tools
 
 import (
 	"github.com/dolittle/platform-api/cmd/tools/automate"
+	"github.com/dolittle/platform-api/cmd/tools/studio"
 	"github.com/spf13/cobra"
 )
 
@@ -14,6 +15,7 @@ Tools to interact with the platform`,
 }
 
 func init() {
+	RootCmd.AddCommand(studio.RootCmd)
 	RootCmd.AddCommand(createCustomerHclCMD)
 	RootCmd.AddCommand(automate.RootCmd)
 }

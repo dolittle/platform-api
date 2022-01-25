@@ -55,7 +55,7 @@ func (s *service) getServiceAccountCredentials(w http.ResponseWriter, r *http.Re
 
 	serviceAccount, err := s.k8sDolittleRepo.GetServiceAccount(logContext, applicationID, serviceAccountName)
 	if err != nil {
-		if err == platform.NotFound {
+		if err == platform.ErrNotFound {
 			utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Service account %s not found in application %s", serviceAccountName, applicationID))
 			return
 		}
@@ -96,7 +96,7 @@ func (s *service) GetContainerRegistryCredentials(w http.ResponseWriter, r *http
 	secretName := "acr"
 	secret, err := s.k8sDolittleRepo.GetSecret(logContext, applicationID, secretName)
 	if err != nil {
-		if err == platform.NotFound {
+		if err == platform.ErrNotFound {
 			utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Secret %s not found in application %s", secretName, applicationID))
 			return
 		}

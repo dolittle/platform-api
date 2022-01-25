@@ -1,8 +1,6 @@
 package platform
 
 import (
-	"errors"
-
 	networkingv1 "k8s.io/api/networking/v1"
 )
 
@@ -260,6 +258,7 @@ type TerraformCustomer struct {
 	ContainerRegistryPassword string `json:"container_registry_password"`
 	ContainerRegistryUsername string `json:"container_registry_username"`
 	ModuleName                string `json:"module_name"`
+	PlatformEnvironment       string `json:"platform_environment"`
 }
 
 type StudioConfig struct {
@@ -317,10 +316,6 @@ type HttpInputPurchaseOrderExtra struct {
 	Webhooks       []RawDataLogIngestorWebhookConfig  `json:"webhooks"`
 	RawDataLogName string                             `json:"rawDataLogName"`
 }
-
-var (
-	ErrNotFound = errors.New("not-found")
-)
 
 type TerraformApplication struct {
 	Customer      TerraformCustomer `json:"customer"`

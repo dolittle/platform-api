@@ -1,4 +1,4 @@
-package microservice
+package studio
 
 import (
 	"context"
@@ -20,7 +20,7 @@ var createServiceAccountCMD = &cobra.Command{
 	Long: `
 	Attempts to create a "devops" serviceaccount for the application and adds it to the already existing "developer" rolebinding.
 
-	go run main.go microservice create-service-account --all
+	go run main.go toolds studio create-service-account --all
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
@@ -48,7 +48,7 @@ var createServiceAccountCMD = &cobra.Command{
 
 		k8sRepo := platform.NewK8sRepo(client, config)
 
-		createAll := viper.GetBool("all")
+		createAll, _ := cmd.Flags().GetBool("all")
 		if createAll && len(args) > 0 {
 			logContext.Fatal("Specify either the APPLICATIONID or the '--all' flag")
 		}
@@ -62,7 +62,7 @@ var createServiceAccountCMD = &cobra.Command{
 			for _, application := range applications {
 				err := addServiceAccount(logContext, k8sRepo, application.TenantID, application.TenantName, application.ID, application.Name)
 				if err != nil {
-					if err != platform.AlreadyExists {
+					if err != platform.ErrAlreadyExists {
 						panic(err.Error())
 					}
 					logContext.Infof("Application '%s' already had the service account or rolebinding, skipping", application.ID)
@@ -90,7 +90,7 @@ var createServiceAccountCMD = &cobra.Command{
 			applicationName := k8sNamespace.Labels["application"]
 			err = addServiceAccount(logContext, k8sRepo, customerID, customerName, applicationID, applicationName)
 			if err != nil {
-				if err != platform.AlreadyExists {
+				if err != platform.ErrAlreadyExists {
 					panic(err.Error())
 				}
 				logContext.Infof("Application '%s' already had the service account or rolebinding, skipping", applicationID)
@@ -120,7 +120,7 @@ func addServiceAccount(logger logrus.FieldLogger, k8sRepo platform.K8sRepo, cust
 	)
 
 	if err != nil {
-		if err != platform.AlreadyExists {
+		if err != platform.ErrAlreadyExists {
 			logContext.WithFields(logrus.Fields{
 				"error": err,
 			}).Error("failed to create the devops serviceaccount")
@@ -137,7 +137,7 @@ func addServiceAccount(logger logrus.FieldLogger, k8sRepo platform.K8sRepo, cust
 		roleBinding,
 		"developer",
 	)
-	if err != nil && err != platform.AlreadyExists {
+	if err != nil && err != platform.ErrAlreadyExists {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
 		}).Error("failed to create the rolebinding")
@@ -146,7 +146,7 @@ func addServiceAccount(logger logrus.FieldLogger, k8sRepo platform.K8sRepo, cust
 
 	_, err = k8sRepo.AddServiceAccountToRoleBinding(logContext, applicationID, roleBinding, serviceAccount)
 	if err != nil {
-		if err != platform.AlreadyExists {
+		if err != platform.ErrAlreadyExists {
 			logContext.WithFields(logrus.Fields{
 				"error": err,
 			}).Error("failed to add the service account to the rolebinding")
@@ -160,8 +160,5 @@ func addServiceAccount(logger logrus.FieldLogger, k8sRepo platform.K8sRepo, cust
 }
 
 func init() {
-	RootCmd.AddCommand(createServiceAccountCMD)
-
 	createServiceAccountCMD.Flags().Bool("all", false, "Add a devops serviceaccount for all customers")
-	viper.BindPFlag("all", createServiceAccountCMD.Flags().Lookup("all"))
 }

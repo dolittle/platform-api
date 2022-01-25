@@ -1,3 +1,28 @@
+# [2.4.0] - 2022-1-25 [PR: #78](https://github.com/dolittle/platform-api/pull/78)
+## Summary
+
+Include platform_environment in the sub-folder for the location of the studio files within git storage.
+
+- Building json files now includes platform-environment
+- Removed unused shouldCommit
+- Removed old code examples
+- Fixed a wrong variable
+- Moved all to be local for its specific function
+- Introduced disable-environments flag for studio.json creation
+- Make go-staticcheck happy plus moving studio commands into own sub-package
+
+
+### Added
+- `--platform-environment` to tools studio {build-studio-info, build-terraform-info, build-applicationinfo-info}
+- The server via PLATFORM_ENVIRONMENT aware of where to get the data for studio from.
+
+### Changed
+- moved `microservice build-terraform-info` to `tools studio build-terraform-info`
+- moved `microservice build-studio-info` to `tools studio build-studio-info`
+- moved `microservice build-application-info` to `tools studio build-application-info`
+- `tools studio build-studio-info` has the ability to disable-environments via the `--disable-environments` flag
+
+
 # [2.3.3] - 2022-1-11 [PR: #71](https://github.com/dolittle/platform-api/pull/71)
 ## Summary
 - Disable creation of microservice, whilst we fix a few bugs
