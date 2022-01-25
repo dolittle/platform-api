@@ -259,6 +259,7 @@ type TerraformCustomer struct {
 	ContainerRegistryPassword string `json:"container_registry_password"`
 	ContainerRegistryUsername string `json:"container_registry_username"`
 	ModuleName                string `json:"module_name"`
+	PlatformEnvironment       string `json:"module_name"`
 }
 
 type StudioConfig struct {

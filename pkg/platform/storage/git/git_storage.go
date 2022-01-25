@@ -18,12 +18,13 @@ import (
 )
 
 type GitStorageConfig struct {
-	URL           string
-	Branch        string
-	PrivateKey    string
-	RepoRoot      string
-	DirectoryOnly bool
-	DryRun        bool
+	URL                 string
+	Branch              string
+	PrivateKey          string
+	RepoRoot            string
+	DirectoryOnly       bool
+	DryRun              bool
+	PlatformEnvironment string
 }
 
 type GitStorage struct {

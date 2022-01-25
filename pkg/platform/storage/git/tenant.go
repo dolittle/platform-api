@@ -5,5 +5,5 @@ import (
 )
 
 func (s *GitStorage) GetTenantDirectory(tenantID string) string {
-	return filepath.Join(s.Directory, tenantID)
+	return filepath.Join(s.Directory, s.config.PlatformEnvironment, tenantID)
 }

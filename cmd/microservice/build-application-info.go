@@ -29,17 +29,19 @@ var buildApplicationInfoCMD = &cobra.Command{
 	Long: `
 	It will attempt to update the git repo with data from the cluster and skip those that have been setup.
 
-	GIT_REPO_SSH_KEY="/Users/freshteapot/dolittle/.ssh/test-deploy" \
 	GIT_REPO_BRANCH=dev \
-	GIT_REPO_URL="git@github.com:freshteapot/test-deploy-key.git" \
-	go run main.go microservice build-application-info --kube-config="/Users/freshteapot/.kube/config"
+	GIT_REPO_DRY_RUN=true \
+	GIT_REPO_DIRECTORY="/tmp/dolittle-local-dev" \
+	GIT_REPO_DIRECTORY_ONLY=true \
+	go run main.go microservice build-application-info
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
 		logrus.SetOutput(os.Stdout)
-
 		logContext := logrus.StandardLogger()
-		gitRepoConfig := git.InitGit(logContext)
+
+		platformEnvironment, _ := cmd.Flags().GetString("platform-environment")
+		gitRepoConfig := git.InitGit(logContext, platformEnvironment)
 
 		gitRepo := gitStorage.NewGitStorage(
 			logrus.WithField("context", "git-repo"),
@@ -64,20 +66,18 @@ var buildApplicationInfoCMD = &cobra.Command{
 			panic(err.Error())
 		}
 
-		shouldCommit := viper.GetBool("commit")
-
 		logContext.Info("Starting to extract applications from the cluster")
 		applications := extractApplications(ctx, client)
 
 		logContext.Info(fmt.Sprintf("Saving %v application(s)", len(applications)))
-		SaveApplications(gitRepo, applications, shouldCommit, logContext)
+		SaveApplications(gitRepo, applications, logContext)
 		logContext.Info("Done!")
 	},
 }
 
 // SaveApplications saves the Applications into applications.json and also creates a default studio.json if
 // the customer doesn't have one
-func SaveApplications(repo storage.Repo, applications []platform.HttpResponseApplication, shouldCommit bool, logger logrus.FieldLogger) error {
+func SaveApplications(repo storage.Repo, applications []platform.HttpResponseApplication, logger logrus.FieldLogger) error {
 	logContext := logger.WithFields(logrus.Fields{
 		"function": "SaveApplications",
 	})
@@ -312,5 +312,5 @@ func tryGetIngressSecretNameForHost(ingress netV1.Ingress, host string) (bool, s
 }
 
 func init() {
-	RootCmd.AddCommand(buildApplicationInfoCMD)
+	buildApplicationInfoCMD.Flags().String("platform-environment", "dev", "Platform environment (dev or prod), not linked to application environment")
 }
