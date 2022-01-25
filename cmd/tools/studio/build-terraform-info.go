@@ -187,8 +187,7 @@ func extractTerraformApplications(customers []platform.TerraformCustomer, data [
 		if err != nil {
 			return applications, err
 		}
-
-		// TODO let us link here and stop relying on the correct data in terraform
+		// TODO https://app.asana.com/0/0/1201706582610616/f
 		customer, err := findCustomer(customers, a.Customer.GUID)
 		if err != nil {
 			fmt.Printf("skipping as Customer (%s) is not found\n", a.Customer.GUID)
