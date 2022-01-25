@@ -219,9 +219,8 @@ func ConvertObjectMetaToMicroservice(objectMeta metav1.Object) configK8s.Microse
 		Tenant:      customerTenant,
 		Application: k8sApplication,
 		Environment: environment,
-		// TODO wwhen we explicitly set the kind as an annotation we can rely on it
-		ResourceID: "",
-		Kind:       kind,
+		ResourceID:  "",
+		Kind:        kind,
 	}
 }
 
