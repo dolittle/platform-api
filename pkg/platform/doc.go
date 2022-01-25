@@ -134,6 +134,7 @@ type MicroserviceKind string
 
 const (
 	MicroserviceKindSimple                 MicroserviceKind = "simple"
+	MicroserviceKindUnknown                MicroserviceKind = "unknown"
 	MicroserviceKindBusinessMomentsAdaptor MicroserviceKind = "business-moments-adaptor"
 	MicroserviceKindRawDataLogIngestor     MicroserviceKind = "raw-data-log-ingestor"
 	MicroserviceKindPurchaseOrderAPI       MicroserviceKind = "purchase-order-api" // TODO purchase-order-api VS purchase-order

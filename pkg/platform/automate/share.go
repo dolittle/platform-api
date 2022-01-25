@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	configK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
+	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -205,6 +206,13 @@ func ConvertObjectMetaToMicroservice(objectMeta metav1.Object) configK8s.Microse
 
 	environment := labels["environment"]
 
+	var kind platform.MicroserviceKind
+	if kindString, ok := annotations["dolittle.io/microservice-kind"]; !ok {
+		kind = platform.MicroserviceKindUnknown
+	} else {
+		kind = platform.MicroserviceKind(kindString)
+	}
+
 	return configK8s.Microservice{
 		ID:          microserviceID,
 		Name:        microserviceName,
@@ -213,6 +221,7 @@ func ConvertObjectMetaToMicroservice(objectMeta metav1.Object) configK8s.Microse
 		Environment: environment,
 		// TODO wwhen we explicitly set the kind as an annotation we can rely on it
 		ResourceID: "",
+		Kind:       kind,
 	}
 }
 
