@@ -1,108 +1,18 @@
-package microservice
+package studio
 
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"os"
 	"regexp"
 	"strings"
 
-	"github.com/dolittle/platform-api/pkg/git"
 	"github.com/dolittle/platform-api/pkg/platform"
-	"github.com/dolittle/platform-api/pkg/platform/storage"
-	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	coreV1 "k8s.io/api/core/v1"
-	netV1 "k8s.io/api/networking/v1"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 )
-
-var buildApplicationInfoCMD = &cobra.Command{
-	Use:   "build-application-info",
-	Short: "Write application info into the git repo",
-	Long: `
-	It will attempt to update the git repo with data from the cluster and skip those that have been setup.
-
-	GIT_REPO_BRANCH=dev \
-	GIT_REPO_DRY_RUN=true \
-	GIT_REPO_DIRECTORY="/tmp/dolittle-local-dev" \
-	GIT_REPO_DIRECTORY_ONLY=true \
-	go run main.go microservice build-application-info
-	`,
-	Run: func(cmd *cobra.Command, args []string) {
-		logrus.SetFormatter(&logrus.JSONFormatter{})
-		logrus.SetOutput(os.Stdout)
-		logContext := logrus.StandardLogger()
-
-		platformEnvironment, _ := cmd.Flags().GetString("platform-environment")
-		gitRepoConfig := git.InitGit(logContext, platformEnvironment)
-
-		gitRepo := gitStorage.NewGitStorage(
-			logrus.WithField("context", "git-repo"),
-			gitRepoConfig,
-		)
-
-		ctx := context.TODO()
-		kubeconfig := viper.GetString("tools.server.kubeConfig")
-
-		if kubeconfig == "incluster" {
-			kubeconfig = ""
-		}
-		// TODO hoist localhost into viper
-		config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-		if err != nil {
-			panic(err.Error())
-		}
-
-		// create the clientset
-		client, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			panic(err.Error())
-		}
-
-		logContext.Info("Starting to extract applications from the cluster")
-		applications := extractApplications(ctx, client)
-
-		logContext.Info(fmt.Sprintf("Saving %v application(s)", len(applications)))
-		SaveApplications(gitRepo, applications, logContext)
-		logContext.Info("Done!")
-	},
-}
-
-// SaveApplications saves the Applications into applications.json and also creates a default studio.json if
-// the customer doesn't have one
-func SaveApplications(repo storage.Repo, applications []platform.HttpResponseApplication, logger logrus.FieldLogger) error {
-	logContext := logger.WithFields(logrus.Fields{
-		"function": "SaveApplications",
-	})
-	for _, application := range applications {
-		studioConfig, err := repo.GetStudioConfig(application.TenantID)
-		if err != nil {
-			logContext.WithFields(logrus.Fields{
-				"error":      err,
-				"customerID": application.TenantID,
-			}).Fatalf("didn't find a studio config for customer %s, create a config for this customer by running 'microservice build-studio-info %s'",
-				application.TenantID, application.TenantID)
-		}
-
-		if !studioConfig.BuildOverwrite {
-			continue
-		}
-		if err = repo.SaveApplication(application); err != nil {
-			logContext.WithFields(logrus.Fields{
-				"error":    err,
-				"tenantID": application.TenantID,
-			}).Fatal("failed to save application")
-		}
-	}
-	return nil
-}
 
 func extractApplications(ctx context.Context, client kubernetes.Interface) []platform.HttpResponseApplication {
 	applications := make([]platform.HttpResponseApplication, 0)
@@ -116,15 +26,15 @@ func extractApplications(ctx context.Context, client kubernetes.Interface) []pla
 	return applications
 }
 
-func getNamespaces(ctx context.Context, client kubernetes.Interface) []coreV1.Namespace {
-	namespacesList, err := client.CoreV1().Namespaces().List(ctx, metaV1.ListOptions{})
+func getNamespaces(ctx context.Context, client kubernetes.Interface) []corev1.Namespace {
+	namespacesList, err := client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		panic(err.Error())
 	}
 	return namespacesList.Items
 }
 
-func isApplicationNamespace(namespace coreV1.Namespace) bool {
+func isApplicationNamespace(namespace corev1.Namespace) bool {
 	if !strings.HasPrefix(namespace.GetName(), "application-") {
 		return false
 	}
@@ -144,7 +54,7 @@ func isApplicationNamespace(namespace coreV1.Namespace) bool {
 	return true
 }
 
-func getApplicationFromK8s(ctx context.Context, client kubernetes.Interface, namespace coreV1.Namespace) platform.HttpResponseApplication {
+func getApplicationFromK8s(ctx context.Context, client kubernetes.Interface, namespace corev1.Namespace) platform.HttpResponseApplication {
 	application := platform.HttpResponseApplication{
 		ID:         namespace.Annotations["dolittle.io/application-id"],
 		Name:       namespace.Labels["application"],
@@ -178,15 +88,15 @@ func getApplicationEnvironmentsFromK8s(ctx context.Context, client kubernetes.In
 	return environments
 }
 
-func getConfigmaps(ctx context.Context, client kubernetes.Interface, namespace string) []coreV1.ConfigMap {
-	configmapList, err := client.CoreV1().ConfigMaps(namespace).List(ctx, metaV1.ListOptions{})
+func getConfigmaps(ctx context.Context, client kubernetes.Interface, namespace string) []corev1.ConfigMap {
+	configmapList, err := client.CoreV1().ConfigMaps(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		panic(err.Error())
 	}
 	return configmapList.Items
 }
 
-func isEnvironmentTenantsConfig(configmap coreV1.ConfigMap) bool {
+func isEnvironmentTenantsConfig(configmap corev1.ConfigMap) bool {
 	if _, hasAnnotation := configmap.Annotations["dolittle.io/tenant-id"]; !hasAnnotation {
 		return false
 	}
@@ -253,8 +163,8 @@ func getEnvironmentIngressesFromK8s(ctx context.Context, client kubernetes.Inter
 	return ingresses
 }
 
-func getIngresses(ctx context.Context, client kubernetes.Interface, namespace string, environmentLabels labels.Set) []netV1.Ingress {
-	ingressList, err := client.NetworkingV1().Ingresses(namespace).List(ctx, metaV1.ListOptions{
+func getIngresses(ctx context.Context, client kubernetes.Interface, namespace string, environmentLabels labels.Set) []netv1.Ingress {
+	ingressList, err := client.NetworkingV1().Ingresses(namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labels.FormatLabels(environmentLabels),
 	})
 	if err != nil {
@@ -263,7 +173,7 @@ func getIngresses(ctx context.Context, client kubernetes.Interface, namespace st
 	return ingressList.Items
 }
 
-func isMicroserviceIngress(ingress netV1.Ingress) bool {
+func isMicroserviceIngress(ingress netv1.Ingress) bool {
 	if _, hasAnnotation := ingress.Annotations["dolittle.io/tenant-id"]; !hasAnnotation {
 		return false
 	}
@@ -291,7 +201,7 @@ func isMicroserviceIngress(ingress netV1.Ingress) bool {
 
 var tenantFromIngressAnnotationExtractor = regexp.MustCompile(`proxy_set_header\s+Tenant-ID\s+"([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})"`)
 
-func tryGetTenantFromIngress(ingress netV1.Ingress) (bool, platform.TenantId) {
+func tryGetTenantFromIngress(ingress netv1.Ingress) (bool, platform.TenantId) {
 	tenantHeaderAnnotation := ingress.GetObjectMeta().GetAnnotations()["nginx.ingress.kubernetes.io/configuration-snippet"]
 	tenantID := tenantFromIngressAnnotationExtractor.FindStringSubmatch(tenantHeaderAnnotation)
 	if tenantID == nil {
@@ -300,7 +210,7 @@ func tryGetTenantFromIngress(ingress netV1.Ingress) (bool, platform.TenantId) {
 	return true, platform.TenantId(tenantID[1])
 }
 
-func tryGetIngressSecretNameForHost(ingress netV1.Ingress, host string) (bool, string) {
+func tryGetIngressSecretNameForHost(ingress netv1.Ingress, host string) (bool, string) {
 	for _, tlsConfig := range ingress.Spec.TLS {
 		for _, tlsHost := range tlsConfig.Hosts {
 			if tlsHost == host {
@@ -309,8 +219,4 @@ func tryGetIngressSecretNameForHost(ingress netV1.Ingress, host string) (bool, s
 		}
 	}
 	return false, ""
-}
-
-func init() {
-	buildApplicationInfoCMD.Flags().String("platform-environment", "dev", "Platform environment (dev or prod), not linked to application environment")
 }

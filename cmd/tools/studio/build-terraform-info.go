@@ -1,4 +1,4 @@
-package microservice
+package studio
 
 import (
 	"encoding/json"
@@ -191,7 +191,7 @@ func extractTerraformApplications(customers []platform.TerraformCustomer, data [
 		// TODO let us link here and stop relying on the correct data in terraform
 		customer, err := findCustomer(customers, a.Customer.GUID)
 		if err != nil {
-			fmt.Println(fmt.Sprintf("skipping as Customer (%s) is not found", a.Customer.GUID))
+			fmt.Printf("skipping as Customer (%s) is not found\n", a.Customer.GUID)
 			continue
 		}
 		a.Customer = customer
