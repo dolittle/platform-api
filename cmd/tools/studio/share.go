@@ -131,7 +131,7 @@ func getTenantsFromTenantsJson(tenantsJsonContent string) []platform.TenantId {
 }
 
 func getEnvironmentIngressesFromK8s(ctx context.Context, client kubernetes.Interface, namespace string, environmentLabels labels.Set) platform.EnvironmentIngresses {
-	ingresses := make(map[platform.TenantId]platform.EnvironmentIngress, 0)
+	ingresses := make(map[platform.TenantId]platform.EnvironmentIngress)
 	for _, ingress := range getIngresses(ctx, client, namespace, environmentLabels) {
 		if !isMicroserviceIngress(ingress) {
 			continue
