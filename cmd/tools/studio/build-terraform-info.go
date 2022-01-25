@@ -207,8 +207,7 @@ func findCustomer(customers []platform.TerraformCustomer, customerID string) (pl
 			return customer, nil
 		}
 	}
-	var found platform.TerraformCustomer
-	return found, errors.New("not.found")
+	return platform.TerraformCustomer{}, errors.New("not.found")
 }
 
 func init() {
