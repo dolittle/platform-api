@@ -30,7 +30,7 @@ var buildTerraformInfoCMD = &cobra.Command{
 	GIT_REPO_DRY_RUN=true \
 	GIT_REPO_DIRECTORY="/tmp/dolittle-local-dev" \
 	GIT_REPO_DIRECTORY_ONLY=true \
-	go run main.go microservice build-terraform-info ~/Dolittle/Operations/Source/V3/Azure/azure.json
+	go run main.go tools studio build-terraform-info ~/Dolittle/Operations/Source/V3/Azure/azure.json
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 

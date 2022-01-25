@@ -25,7 +25,7 @@ var buildStudioInfoCMD = &cobra.Command{
 	GIT_REPO_DRY_RUN=true \
 	GIT_REPO_DIRECTORY="/tmp/dolittle-local-dev" \
 	GIT_REPO_DIRECTORY_ONLY=true \
-	go run main.go microservice build-studio-info
+	go run main.go tools studio build-studio-info
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
@@ -128,5 +128,4 @@ func init() {
 	buildStudioInfoCMD.Flags().String("platform-environment", "dev", "Platform environment (dev or prod), not linked to application environment")
 	buildStudioInfoCMD.Flags().Bool("disable-environments", false, "If flag set, Disable all environments")
 	buildStudioInfoCMD.Flags().Bool("all", false, "Discovers all customers from the platform and resets all studio.json's to default state (everything allowed)")
-	viper.BindPFlag("all", buildStudioInfoCMD.Flags().Lookup("all"))
 }
