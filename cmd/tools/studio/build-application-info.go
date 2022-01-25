@@ -58,12 +58,15 @@ var buildApplicationInfoCMD = &cobra.Command{
 		if err != nil {
 			panic(err.Error())
 		}
-
+		// TODO if the namespace had a label or annotation...
+		// TODO Currently cheap to look up all
 		logContext.Info("Starting to extract applications from the cluster")
 		applications := extractApplications(ctx, client)
 
-		logContext.Info(fmt.Sprintf("Saving %v application(s)", len(applications)))
-		SaveApplications(gitRepo, applications, logContext)
+		filteredApplications := filterApplications(gitRepo, applications, platformEnvironment)
+
+		logContext.Info(fmt.Sprintf("Saving %v application(s)", len(filteredApplications)))
+		SaveApplications(gitRepo, filteredApplications, logContext)
 		logContext.Info("Done!")
 	},
 }

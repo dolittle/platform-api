@@ -7,12 +7,43 @@ import (
 	"strings"
 
 	"github.com/dolittle/platform-api/pkg/platform"
+	"github.com/dolittle/platform-api/pkg/platform/storage"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 )
+
+func filterCustomers(repo storage.Repo, customers []string, platformEnvironment string) []string {
+	filtered := make([]string, 0)
+	for _, customerID := range customers {
+		customer, err := repo.GetTerraformTenant(customerID)
+		if err != nil {
+			continue
+		}
+		if customer.PlatformEnvironment != platformEnvironment {
+			continue
+		}
+		filtered = append(filtered, customerID)
+	}
+	return filtered
+}
+
+func filterApplications(repo storage.Repo, applications []platform.HttpResponseApplication, platformEnvironment string) []platform.HttpResponseApplication {
+	filtered := make([]platform.HttpResponseApplication, 0)
+	for _, application := range applications {
+		customer, err := repo.GetTerraformTenant(application.TenantID)
+		if err != nil {
+			continue
+		}
+		if customer.PlatformEnvironment != platformEnvironment {
+			continue
+		}
+		filtered = append(filtered, application)
+	}
+	return filtered
+}
 
 func extractApplications(ctx context.Context, client kubernetes.Interface) []platform.HttpResponseApplication {
 	applications := make([]platform.HttpResponseApplication, 0)

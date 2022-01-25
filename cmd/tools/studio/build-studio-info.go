@@ -75,10 +75,11 @@ var buildStudioInfoCMD = &cobra.Command{
 			logContext.Fatal("No customers found or no CUSTOMERID given")
 		}
 
-		logContext.Infof("Resetting studio configuration for customers: %v", customers)
+		filteredCustomer := filterCustomers(gitRepo, customers, platformEnvironment)
+		logContext.Infof("Resetting studio configuration for customers: %v", filteredCustomer)
 
 		studioConfig := GetConfig(disabledEnvironments)
-		ResetStudioConfigs(gitRepo, customers, studioConfig, logContext)
+		ResetStudioConfigs(gitRepo, filteredCustomer, studioConfig, logContext)
 		logContext.Info("Done!")
 	},
 }
