@@ -74,16 +74,6 @@ var pullMicroserviceDeploymentCMD = &cobra.Command{
 				logContext.Fatal("Failed to get deployments")
 			}
 
-			// var runtimeDeployments []appsv1.Deployment
-			// for _, deployment := range allDeployments {
-			// 	for _, container := range deployment.Spec.Template.Spec.Containers {
-			// 		if container.Name == "runtime" {
-			// 			runtimeDeployments = append(runtimeDeployments, deployment)
-			// 			break
-			// 		}
-			// 	}
-			// }
-
 			logContext.WithFields(logrus.Fields{
 				"totalDeployments": len(deployments),
 			}).Info("Found microservice deployments")
