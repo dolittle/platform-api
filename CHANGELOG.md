@@ -1,3 +1,12 @@
+# [2.4.1] - 2022-1-26 [PR: #77](https://github.com/dolittle/platform-api/pull/77)
+## Summary
+
+Fixes the `getServiceAccountCredentials()` method to return the whole k8s Secret resource. This is because Azure DevOps requires the whole Secret resource instead of just the data part when setting up a kubernetes connection.
+
+The Studio button that calls this endpoint:
+![image](https://user-images.githubusercontent.com/10163775/150506082-c26b1701-4f4f-481b-8af4-8021e3a52d66.png)
+
+
 # [2.4.0] - 2022-1-25 [PR: #78](https://github.com/dolittle/platform-api/pull/78)
 ## Summary
 
