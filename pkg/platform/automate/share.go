@@ -305,7 +305,6 @@ func AddDataToConfigMap(ctx context.Context, client kubernetes.Interface, logCon
 	})
 
 	if configMap.Data == nil {
-		// TODO this is a sign it might not be using a runtime, maybe we skip
 		configMap.Data = make(map[string]string)
 	}
 
