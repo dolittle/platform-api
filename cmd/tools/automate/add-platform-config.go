@@ -169,6 +169,13 @@ func addPlatformDataToMicroservice(ctx context.Context, client kubernetes.Interf
 		}).Fatal("Failed to get runtime deployment")
 	}
 	runtimeContainerIndex := automate.GetContainerIndex(deployment, "runtime")
+	if runtimeContainerIndex == -1 {
+		logContext.WithFields(logrus.Fields{
+			"deployment_name":      deployment.Name,
+			"deployment_namespace": deployment.Namespace,
+		}).Info("deployment didn't have a runtime container, skipping")
+		return
+	}
 
 	platformMount := corev1.VolumeMount{
 		Name:      "dolittle-config",
