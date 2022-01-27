@@ -176,13 +176,14 @@ func (r businessMomentsAdaptorRepo) Create(namespace string, tenant k8s.Tenant, 
 	return nil
 }
 
-func (r businessMomentsAdaptorRepo) Delete(namespace string, microserviceID string) error {
+func (r businessMomentsAdaptorRepo) Delete(applicationID, environment, microserviceID string) error {
 	ctx := context.TODO()
-	deployment, err := automate.GetDeployment(ctx, r.k8sClient, namespace, microserviceID)
+	deployment, err := automate.GetDeployment(ctx, r.k8sClient, applicationID, environment, microserviceID)
 	if err != nil {
 		return err
 	}
 
+	namespace := fmt.Sprintf("application-%s", applicationID)
 	if err = K8sStopDeployment(r.k8sClient, ctx, namespace, &deployment); err != nil {
 		return err
 	}

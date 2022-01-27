@@ -215,18 +215,25 @@ func GetDeployments(ctx context.Context, client kubernetes.Interface, namespace 
 	return microserviceDeployments, nil
 }
 
-// Gets the deployment that is linked to the microserviceID in the given namespace
-// Caveat: This will only get the first deployment that has the given dolittle.io/microservice-id annotation
-func GetDeployment(ctx context.Context, client kubernetes.Interface, namespace, microserviceID string) (appsv1.Deployment, error) {
+// GetDeployment Gets the deployment that is linked to the microserviceID and environment in
+// the given applications namespace
+func GetDeployment(ctx context.Context, client kubernetes.Interface, applicationID, environment, microserviceID string) (appsv1.Deployment, error) {
+	namespace := fmt.Sprintf("application-%s", applicationID)
 	deployments, err := GetDeployments(ctx, client, namespace)
 	if err != nil {
 		return appsv1.Deployment{}, err
 	}
 
 	for _, deployment := range deployments {
-		if deployment.Annotations["dolittle.io/microservice-id"] == microserviceID {
-			return deployment, nil
+		if deployment.Annotations["dolittle.io/microservice-id"] != microserviceID {
+			continue
 		}
+
+		if deployment.Labels["environment"] != environment {
+			continue
+		}
+
+		return deployment, nil
 	}
 
 	return appsv1.Deployment{}, errors.New("not-found")

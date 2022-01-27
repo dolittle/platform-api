@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 
 	configK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
@@ -163,8 +162,7 @@ func addPlatformDataToMicroservice(ctx context.Context, client kubernetes.Interf
 		}).Fatal("Failed to update configmap")
 	}
 
-	namespace := fmt.Sprintf("application-%s", applicationID)
-	deployment, err := automate.GetDeployment(ctx, client, namespace, microserviceID)
+	deployment, err := automate.GetDeployment(ctx, client, applicationID, environment, microserviceID)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,

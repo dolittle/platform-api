@@ -2,6 +2,7 @@ package purchaseorderapi
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
@@ -62,21 +63,23 @@ func (r *k8sResource) Create(namespace, headImage, runtimeImage string, k8sMicro
 }
 
 // Delete stops the running purchase order api and deletes the kubernetes resources.
-func (r *k8sResource) Delete(namespace, microserviceID string, ctx context.Context) error {
-	deployment, err := r.getAndStopDeployment(ctx, namespace, microserviceID)
+func (r *k8sResource) Delete(applicationID, environment, microserviceID string, ctx context.Context) error {
+	deployment, err := r.getAndStopDeployment(ctx, applicationID, environment, microserviceID)
 	if err != nil {
 		return err
 	}
 
+	namespace := fmt.Sprintf("application-%s", applicationID)
 	return r.deleteResources(ctx, namespace, deployment)
 }
 
-func (r *k8sResource) getAndStopDeployment(ctx context.Context, namespace, microserviceID string) (v1.Deployment, error) {
-	deployment, err := automate.GetDeployment(ctx, r.k8sClient, namespace, microserviceID)
+func (r *k8sResource) getAndStopDeployment(ctx context.Context, applicationID, environment, microserviceID string) (v1.Deployment, error) {
+	deployment, err := automate.GetDeployment(ctx, r.k8sClient, applicationID, environment, microserviceID)
 	if err != nil {
 		return deployment, err
 	}
 
+	namespace := fmt.Sprintf("application-%s", applicationID)
 	if err = microserviceK8s.K8sStopDeployment(r.k8sClient, ctx, namespace, &deployment); err != nil {
 		return deployment, err
 	}

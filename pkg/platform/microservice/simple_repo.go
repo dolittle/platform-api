@@ -117,14 +117,15 @@ func (r simpleRepo) Create(namespace string, tenant k8s.Tenant, application k8s.
 	return nil
 }
 
-func (r simpleRepo) Delete(namespace string, microserviceID string) error {
+func (r simpleRepo) Delete(applicationID, environment, microserviceID string) error {
 	ctx := context.TODO()
 
-	deployment, err := automate.GetDeployment(ctx, r.k8sClient, namespace, microserviceID)
+	deployment, err := automate.GetDeployment(ctx, r.k8sClient, applicationID, environment, microserviceID)
 	if err != nil {
 		return err
 	}
 
+	namespace := fmt.Sprintf("application-%s", applicationID)
 	if err = K8sStopDeployment(r.k8sClient, ctx, namespace, &deployment); err != nil {
 		return err
 	}

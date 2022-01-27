@@ -140,8 +140,8 @@ func (s *Handler) UpdateWebhooks(inputBytes []byte, applicationInfo platform.App
 	return ms, s.updatePurchaseOrderAPIWebhooks(msK8sInfo, ms.Extra.Webhooks, ms.Environment, ms.Dolittle.MicroserviceID, logger)
 }
 
-func (s *Handler) Delete(namespace, microserviceID string) error {
-	if err := s.repo.Delete(namespace, microserviceID); err != nil {
+func (s *Handler) Delete(applicationID, environment, microserviceID string) error {
+	if err := s.repo.Delete(applicationID, environment, microserviceID); err != nil {
 		return fmt.Errorf("failed to delete Purchase Order API: %w", err)
 	}
 	return nil
