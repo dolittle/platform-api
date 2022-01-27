@@ -1,3 +1,9 @@
+# [2.5.1] - 2022-1-27 [PR: #79](https://github.com/dolittle/platform-api/pull/79)
+## Summary
+
+Changes the `GetDeployment` function to require `applicationID` & `environment` instead of just a `namespace`. This is because some microservices reuse the same microserviceID accross environment. This makes it so that you can reliably always get the correct deployment from the correct environment.
+
+
 # [2.5.0] - 2022-1-27 [PR: #73](https://github.com/dolittle/platform-api/pull/73)
 ## Summary
 
