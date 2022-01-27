@@ -7,6 +7,7 @@ import (
 
 	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
+	"github.com/dolittle/platform-api/pkg/platform/automate"
 	microserviceK8s "github.com/dolittle/platform-api/pkg/platform/microservice/k8s"
 	"k8s.io/client-go/kubernetes"
 )
@@ -86,7 +87,7 @@ func (r *repo) EnvironmentHasPurchaseOrderAPI(namespace string, input platform.H
 	environmentName := strings.ToLower(input.Environment)
 
 	ctx := context.TODO()
-	deployments, err := microserviceK8s.K8sGetDeployments(r.k8sClient, ctx, namespace)
+	deployments, err := automate.GetDeployments(ctx, r.k8sClient, namespace)
 	if err != nil {
 		return false, err
 	}

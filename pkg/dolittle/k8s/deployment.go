@@ -233,6 +233,11 @@ func Runtime(image string) apiv1.Container {
 				Name:      "dolittle-config",
 			},
 			{
+				MountPath: "/app/.dolittle/platform.json",
+				SubPath:   "platform.json",
+				Name:      "dolittle-config",
+			},
+			{
 				MountPath: "/app/appsettings.json",
 				SubPath:   "appsettings.json",
 				Name:      "dolittle-config",

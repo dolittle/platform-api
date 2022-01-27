@@ -15,6 +15,7 @@ import (
 
 	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
+	"github.com/dolittle/platform-api/pkg/platform/automate"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/businessmomentsadaptor"
 	. "github.com/dolittle/platform-api/pkg/platform/microservice/k8s"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -177,7 +178,7 @@ func (r businessMomentsAdaptorRepo) Create(namespace string, tenant k8s.Tenant, 
 
 func (r businessMomentsAdaptorRepo) Delete(namespace string, microserviceID string) error {
 	ctx := context.TODO()
-	deployment, err := K8sGetDeployment(r.k8sClient, ctx, namespace, microserviceID)
+	deployment, err := automate.GetDeployment(ctx, r.k8sClient, namespace, microserviceID)
 	if err != nil {
 		return err
 	}

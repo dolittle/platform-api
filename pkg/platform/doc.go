@@ -132,6 +132,7 @@ type MicroserviceKind string
 
 const (
 	MicroserviceKindSimple                 MicroserviceKind = "simple"
+	MicroserviceKindUnknown                MicroserviceKind = "unknown"
 	MicroserviceKindBusinessMomentsAdaptor MicroserviceKind = "business-moments-adaptor"
 	MicroserviceKindRawDataLogIngestor     MicroserviceKind = "raw-data-log-ingestor"
 	MicroserviceKindPurchaseOrderAPI       MicroserviceKind = "purchase-order-api" // TODO purchase-order-api VS purchase-order
@@ -392,4 +393,14 @@ type HttpResponseEnvironmentVariables struct {
 	MicroserviceID string                      `json:"microserviceId"`
 	Environment    string                      `json:"environment"`
 	Data           []StudioEnvironmentVariable `json:"data"`
+}
+
+type MicroserviceMetadataShortInfo struct {
+	CustomerID       string `json:"customerId"`
+	CustomerName     string `json:"customerName"`
+	ApplicationID    string `json:"applicationId"`
+	ApplicationName  string `json:"applicationName"`
+	Environment      string `json:"environment"`
+	MicroserviceID   string `json:"microserviceId"`
+	MicroserviceName string `json:"microserviceName"`
 }

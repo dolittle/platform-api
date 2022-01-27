@@ -5,6 +5,7 @@ import (
 
 	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
+	"github.com/dolittle/platform-api/pkg/platform/automate"
 	microserviceK8s "github.com/dolittle/platform-api/pkg/platform/microservice/k8s"
 	v1 "k8s.io/api/apps/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -71,7 +72,7 @@ func (r *k8sResource) Delete(namespace, microserviceID string, ctx context.Conte
 }
 
 func (r *k8sResource) getAndStopDeployment(ctx context.Context, namespace, microserviceID string) (v1.Deployment, error) {
-	deployment, err := microserviceK8s.K8sGetDeployment(r.k8sClient, ctx, namespace, microserviceID)
+	deployment, err := automate.GetDeployment(ctx, r.k8sClient, namespace, microserviceID)
 	if err != nil {
 		return deployment, err
 	}

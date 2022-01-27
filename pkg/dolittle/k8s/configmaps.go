@@ -36,6 +36,17 @@ type MicroserviceEndpointPort struct {
 	Port int `json:"port"`
 }
 
+// platform.json
+type MicroservicePlatform struct {
+	Applicationname  string `json:"applicationName"`
+	Applicationid    string `json:"applicationID"`
+	Microservicename string `json:"microserviceName"`
+	Microserviceid   string `json:"microserviceID"`
+	Customername     string `json:"customerName"`
+	Customerid       string `json:"customerID"`
+	Environment      string `json:"environment"`
+}
+
 type Appsettings struct {
 	Logging AppsettingsLogging `json:"Logging"`
 }
@@ -142,6 +153,18 @@ func NewMicroserviceResources(microservice Microservice, customersTenantID strin
 	}
 }
 
+func NewMicroserviceConfigMapPlatformData(microservice Microservice) MicroservicePlatform {
+	return MicroservicePlatform{
+		Applicationname:  microservice.Application.Name,
+		Applicationid:    microservice.Application.ID,
+		Microservicename: microservice.Name,
+		Microserviceid:   microservice.ID,
+		Customername:     microservice.Tenant.Name,
+		Customerid:       microservice.Tenant.ID,
+		Environment:      microservice.Environment,
+	}
+}
+
 func NewMicroserviceConfigmap(microservice Microservice, customersTenantID string) *corev1.ConfigMap {
 	name := fmt.Sprintf("%s-%s-dolittle",
 		microservice.Environment,
@@ -170,6 +193,8 @@ func NewMicroserviceConfigmap(microservice Microservice, customersTenantID strin
 	metrics := MicroserviceEndpointPort{
 		Port: 9700,
 	}
+
+	platform := NewMicroserviceConfigMapPlatformData(microservice)
 
 	appsettings := Appsettings{
 		Logging: AppsettingsLogging{
@@ -206,6 +231,9 @@ func NewMicroserviceConfigmap(microservice Microservice, customersTenantID strin
 	b, _ = json.MarshalIndent(metrics, "", "  ")
 	metricsJSON := string(b)
 
+	b, _ = json.MarshalIndent(platform, "", "  ")
+	platformJSON := string(b)
+
 	return &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "v1",
@@ -225,6 +253,7 @@ func NewMicroserviceConfigmap(microservice Microservice, customersTenantID strin
 			"endpoints.json":              endpointsJSON,
 			"appsettings.json":            appsettingsJSON,
 			"metrics.json":                metricsJSON,
+			"platform.json":               platformJSON,
 		},
 	}
 }

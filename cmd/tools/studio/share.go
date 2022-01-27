@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/dolittle/platform-api/pkg/platform"
+	"github.com/dolittle/platform-api/pkg/platform/automate"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
@@ -48,41 +49,13 @@ func filterApplications(repo storage.Repo, applications []platform.HttpResponseA
 func extractApplications(ctx context.Context, client kubernetes.Interface) []platform.HttpResponseApplication {
 	applications := make([]platform.HttpResponseApplication, 0)
 
-	for _, namespace := range getNamespaces(ctx, client) {
-		if isApplicationNamespace(namespace) {
+	for _, namespace := range automate.GetNamespaces(ctx, client) {
+		if automate.IsApplicationNamespace(namespace) {
 			applications = append(applications, getApplicationFromK8s(ctx, client, namespace))
 		}
 	}
 
 	return applications
-}
-
-func getNamespaces(ctx context.Context, client kubernetes.Interface) []corev1.Namespace {
-	namespacesList, err := client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
-	if err != nil {
-		panic(err.Error())
-	}
-	return namespacesList.Items
-}
-
-func isApplicationNamespace(namespace corev1.Namespace) bool {
-	if !strings.HasPrefix(namespace.GetName(), "application-") {
-		return false
-	}
-	if _, hasAnnotation := namespace.Annotations["dolittle.io/tenant-id"]; !hasAnnotation {
-		return false
-	}
-	if _, hasAnnotation := namespace.Annotations["dolittle.io/application-id"]; !hasAnnotation {
-		return false
-	}
-	if _, hasLabel := namespace.Labels["tenant"]; !hasLabel {
-		return false
-	}
-	if _, hasLabel := namespace.Labels["application"]; !hasLabel {
-		return false
-	}
-
-	return true
 }
 
 func getApplicationFromK8s(ctx context.Context, client kubernetes.Interface, namespace corev1.Namespace) platform.HttpResponseApplication {
