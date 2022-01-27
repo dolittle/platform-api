@@ -7,14 +7,11 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/dolittle/platform-api/pkg/platform/automate"
-	"k8s.io/apimachinery/pkg/runtime"
-	k8sJson "k8s.io/apimachinery/pkg/runtime/serializer/json"
 )
 
 var pullDolittleConfigCMD = &cobra.Command{
@@ -52,11 +49,6 @@ var pullDolittleConfigCMD = &cobra.Command{
 			panic(err.Error())
 		}
 
-		scheme, serializer, err := automate.InitializeSchemeAndSerializer()
-		if err != nil {
-			panic(err.Error())
-		}
-
 		namespaces := automate.GetNamespaces(ctx, client)
 		for _, namespace := range namespaces {
 			if !automate.IsApplicationNamespace(namespace) {
@@ -82,7 +74,7 @@ var pullDolittleConfigCMD = &cobra.Command{
 				continue
 			}
 
-			err = writeConfigMapsToDirectory(args[0], configMaps, scheme, serializer)
+			err = automate.WriteConfigMapsToDirectory(args[0], configMaps)
 			if err != nil {
 				logContext.WithFields(logrus.Fields{
 					"error": err,
@@ -90,22 +82,6 @@ var pullDolittleConfigCMD = &cobra.Command{
 			}
 		}
 	},
-}
-
-func writeConfigMapsToDirectory(rootDirectory string, configMaps []corev1.ConfigMap, scheme *runtime.Scheme, serializer *k8sJson.Serializer) error {
-	for _, configMap := range configMaps {
-		// We remove these fields to make it cleaner and to make it a little less painful
-		// to do multiple manual changes if we were debugging.
-		configMap.ManagedFields = nil
-		configMap.ResourceVersion = ""
-
-		automate.SetRuntimeObjectGVK(scheme, &configMap)
-
-		microserviceDirectory := automate.GetMicroserviceDirectory(rootDirectory, configMap.GetObjectMeta())
-		automate.WriteResourceToFile(microserviceDirectory, "microservice-configmap-dolittle.yml", &configMap, serializer)
-	}
-
-	return nil
 }
 
 func init() {

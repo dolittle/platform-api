@@ -58,6 +58,30 @@ func WriteResourceToFile(microserviceDirectory string, fileName string, resource
 	return nil
 }
 
+func WriteConfigMapsToDirectory(rootDirectory string, configMaps []corev1.ConfigMap) error {
+	scheme, serializer, err := InitializeSchemeAndSerializer()
+	if err != nil {
+		return err
+	}
+
+	for _, configMap := range configMaps {
+		// We remove these fields to make it cleaner and to make it a little less painful
+		// to do multiple manual changes if we were debugging.
+		configMap.ManagedFields = nil
+		configMap.ResourceVersion = ""
+
+		SetRuntimeObjectGVK(scheme, &configMap)
+
+		microserviceDirectory := GetMicroserviceDirectory(rootDirectory, configMap.GetObjectMeta())
+		err := WriteResourceToFile(microserviceDirectory, "microservice-configmap-dolittle.yml", &configMap, serializer)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func InitializeSchemeAndSerializer() (*runtime.Scheme, *k8sJson.Serializer, error) {
 	// based of https://github.com/kubernetes/kubernetes/issues/3030#issuecomment-700099699
 	// create the scheme and make it aware of the corev1 & appv1 types
