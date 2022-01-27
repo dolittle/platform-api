@@ -106,7 +106,7 @@ func (r *repo) EnvironmentHasPurchaseOrderAPI(namespace string, input platform.H
 }
 
 // Delete stops the running purchase order api and deletes the kubernetes resources.
-func (r *repo) Delete(namespace string, microserviceID string) error {
+func (r *repo) Delete(applicationID, environment, microserviceID string) error {
 	ctx := context.TODO()
-	return r.k8sResource.Delete(namespace, microserviceID, ctx)
+	return r.k8sResource.Delete(applicationID, environment, microserviceID, ctx)
 }

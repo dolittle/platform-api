@@ -326,13 +326,13 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			switch whatKind.Kind {
 			case platform.MicroserviceKindSimple:
-				err = s.simpleRepo.Delete(namespace, microserviceID)
+				err = s.simpleRepo.Delete(applicationID, environment, microserviceID)
 			case platform.MicroserviceKindBusinessMomentsAdaptor:
-				err = s.businessMomentsAdaptorRepo.Delete(namespace, microserviceID)
+				err = s.businessMomentsAdaptorRepo.Delete(applicationID, environment, microserviceID)
 			case platform.MicroserviceKindRawDataLogIngestor:
 				err = s.rawDataLogIngestorRepo.Delete(namespace, microserviceID)
 			case platform.MicroserviceKindPurchaseOrderAPI:
-				err = s.purchaseOrderHandler.Delete(namespace, microserviceID)
+				err = s.purchaseOrderHandler.Delete(applicationID, environment, microserviceID)
 			}
 			if err != nil {
 				statusCode = http.StatusUnprocessableEntity

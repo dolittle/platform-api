@@ -212,6 +212,9 @@ func (r RawDataLogIngestorRepo) Delete(namespace string, microserviceID string) 
 			continue
 		}
 
+		// TODO microservice-id isn't unique, it can be shared by microservices accoss environments sadly
+		// so this should also check for the correct environment to be 100% sure
+		// it probably doesn't matter too much for RawDataLogIngerstorRepo currently
 		if deployment.ObjectMeta.Annotations["dolittle.io/microservice-id"] == microserviceID {
 			found = true
 			foundDeployment = deployment
