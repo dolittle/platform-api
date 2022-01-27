@@ -9,12 +9,9 @@ import (
 	"github.com/spf13/viper"
 	"k8s.io/client-go/kubernetes"
 
-	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/dolittle/platform-api/pkg/platform/automate"
-	"k8s.io/apimachinery/pkg/runtime"
-	k8sJson "k8s.io/apimachinery/pkg/runtime/serializer/json"
 )
 
 var pullMicroserviceDeploymentCMD = &cobra.Command{
