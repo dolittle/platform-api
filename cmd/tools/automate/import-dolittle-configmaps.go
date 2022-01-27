@@ -55,7 +55,7 @@ Then you can feed it to the command:
 			panic(err.Error())
 		}
 
-		scheme, serializer, err := automate.InitializeSchemeAndSerializerForConfigMap()
+		scheme, serializer, err := automate.InitializeSchemeAndSerializer()
 		if err != nil {
 			panic(err.Error())
 		}

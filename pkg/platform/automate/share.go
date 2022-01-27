@@ -58,7 +58,7 @@ func WriteResourceToFile(microserviceDirectory string, fileName string, resource
 	return nil
 }
 
-func InitializeSchemeAndSerializerForConfigMap() (*runtime.Scheme, *k8sJson.Serializer, error) {
+func InitializeSchemeAndSerializer() (*runtime.Scheme, *k8sJson.Serializer, error) {
 	// based of https://github.com/kubernetes/kubernetes/issues/3030#issuecomment-700099699
 	// create the scheme and make it aware of the corev1 & appv1 types
 	scheme := runtime.NewScheme()
@@ -85,7 +85,7 @@ func InitializeSchemeAndSerializerForConfigMap() (*runtime.Scheme, *k8sJson.Seri
 }
 
 func SerializeRuntimeObject(runtimeObject runtime.Object) []byte {
-	scheme, serializer, err := InitializeSchemeAndSerializerForConfigMap()
+	scheme, serializer, err := InitializeSchemeAndSerializer()
 	if err != nil {
 		panic(err.Error())
 	}
