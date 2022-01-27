@@ -7,7 +7,6 @@ import (
 	"log"
 
 	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
-	"github.com/dolittle/platform-api/pkg/platform/automate"
 	v1 "k8s.io/api/apps/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,23 +30,6 @@ func CreateTodoIngress() k8s.Ingress {
 		Host:       fmt.Sprintf("%s.dolittle.cloud", domainPrefix),
 		SecretName: fmt.Sprintf("%s-certificate", domainPrefix),
 	}
-}
-
-// Gets the deployment that is linked to the microserviceID in the given namespace
-// Caveat: This will only get the first deployment that has the given dolittle.io/microservice-id annotation
-func K8sGetDeployment(client kubernetes.Interface, context context.Context, namespace, microserviceID string) (v1.Deployment, error) {
-	deployments, err := automate.GetDeployments(context, client, namespace)
-	if err != nil {
-		return v1.Deployment{}, err
-	}
-
-	for _, deployment := range deployments {
-		if deployment.Annotations["dolittle.io/microservice-id"] == microserviceID {
-			return deployment, nil
-		}
-	}
-
-	return v1.Deployment{}, errors.New("not-found")
 }
 
 // K8sHasDeploymentWithName gets the microservice deployment that is has a specific name in the given namespace

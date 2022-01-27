@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 
 	configK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
@@ -162,19 +163,21 @@ func addPlatformDataToMicroservice(ctx context.Context, client kubernetes.Interf
 		}).Fatal("Failed to update configmap")
 	}
 
-	containerIndex, deployment, err := automate.GetRuntimeDeployment(ctx, client, applicationID, environment, microserviceID)
+	namespace := fmt.Sprintf("application-%s", applicationID)
+	deployment, err := automate.GetDeployment(ctx, client, namespace, microserviceID)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
 		}).Fatal("Failed to get runtime deployment")
 	}
+	runtimeContainerIndex := automate.GetContainerIndex(deployment, "runtime")
 
 	platformMount := corev1.VolumeMount{
 		Name:      "dolittle-config",
 		MountPath: "/app/.dolittle/platform.json",
 		SubPath:   "platform.json",
 	}
-	err = automate.AddVolumeMountToContainer(ctx, client, logContext, platformMount, containerIndex, deployment, dryRun)
+	err = automate.AddVolumeMountToContainer(ctx, client, logContext, platformMount, runtimeContainerIndex, deployment, dryRun)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,

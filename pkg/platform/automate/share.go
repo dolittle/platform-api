@@ -161,32 +161,31 @@ func GetDeployments(ctx context.Context, client kubernetes.Interface, namespace 
 	return microserviceDeployments, nil
 }
 
-// GetRuntimeDeployment get's a microservices deployment and the index of the Runtime container within that deployment
-func GetRuntimeDeployment(ctx context.Context, client kubernetes.Interface, applicationID string, environment string, microserviceID string) (int, appsv1.Deployment, error) {
-	namespace := fmt.Sprintf("application-%s", applicationID)
-
+// Gets the deployment that is linked to the microserviceID in the given namespace
+// Caveat: This will only get the first deployment that has the given dolittle.io/microservice-id annotation
+func GetDeployment(ctx context.Context, client kubernetes.Interface, namespace, microserviceID string) (appsv1.Deployment, error) {
 	deployments, err := GetDeployments(ctx, client, namespace)
 	if err != nil {
-		return -1, appsv1.Deployment{}, err
+		return appsv1.Deployment{}, err
 	}
 
 	for _, deployment := range deployments {
-		if deployment.Annotations["dolittle.io/microservice-id"] != microserviceID {
-			continue
-		}
-
-		if deployment.Labels["environment"] != environment {
-			continue
-		}
-
-		for index, container := range deployment.Spec.Template.Spec.Containers {
-			if container.Name == "runtime" {
-				return index, deployment, nil
-			}
+		if deployment.Annotations["dolittle.io/microservice-id"] == microserviceID {
+			return deployment, nil
 		}
 	}
 
-	return -1, appsv1.Deployment{}, errors.New("not.found")
+	return appsv1.Deployment{}, errors.New("not-found")
+}
+
+// GetContainerIndex get's the index of the container within the deployment with the given name
+func GetContainerIndex(deployment appsv1.Deployment, name string) int {
+	for index, container := range deployment.Spec.Template.Spec.Containers {
+		if container.Name == name {
+			return index
+		}
+	}
+	return -1
 }
 
 func ConvertObjectMetaToMicroservice(objectMeta metav1.Object) configK8s.Microservice {
