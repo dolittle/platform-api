@@ -58,6 +58,8 @@ func WriteResourceToFile(microserviceDirectory string, fileName string, resource
 	return nil
 }
 
+// WriteConfigMapsToDirectory writes the given configmaps to their respective microservice directories
+// inside the rootDirectory
 func WriteConfigMapsToDirectory(rootDirectory string, configMaps []corev1.ConfigMap) error {
 	scheme, serializer, err := InitializeSchemeAndSerializer()
 	if err != nil {
@@ -74,6 +76,34 @@ func WriteConfigMapsToDirectory(rootDirectory string, configMaps []corev1.Config
 
 		microserviceDirectory := GetMicroserviceDirectory(rootDirectory, configMap.GetObjectMeta())
 		err := WriteResourceToFile(microserviceDirectory, "microservice-configmap-dolittle.yml", &configMap, serializer)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// WriteDeploymentsToDirectory writes the given deployments to their respective microservice directories
+// inside the rootDirectory
+func WriteDeploymentsToDirectory(rootDirectory string, deployments []appsv1.Deployment) error {
+	scheme, serializer, err := InitializeSchemeAndSerializer()
+	if err != nil {
+		return err
+	}
+
+	for _, deployment := range deployments {
+		// We remove these fields to make it cleaner and to make it a little less painful
+		// to do multiple manual changes if we were debugging.
+		deployment.ManagedFields = nil
+		deployment.ResourceVersion = ""
+		deployment.Status = appsv1.DeploymentStatus{}
+		delete(deployment.ObjectMeta.Annotations, "kubectl.kubernetes.io/last-applied-configuration")
+
+		SetRuntimeObjectGVK(scheme, &deployment)
+
+		microserviceDirectory := GetMicroserviceDirectory(rootDirectory, deployment.GetObjectMeta())
+		err := WriteResourceToFile(microserviceDirectory, "microservice-deployment.yml", &deployment, serializer)
 		if err != nil {
 			return err
 		}

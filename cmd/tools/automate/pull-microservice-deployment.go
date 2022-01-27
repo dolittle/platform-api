@@ -52,11 +52,6 @@ var pullMicroserviceDeploymentCMD = &cobra.Command{
 			panic(err.Error())
 		}
 
-		scheme, serializer, err := automate.InitializeSchemeAndSerializer()
-		if err != nil {
-			panic(err.Error())
-		}
-
 		namespaces := automate.GetNamespaces(ctx, client)
 		for _, namespace := range namespaces {
 			if !automate.IsApplicationNamespace(namespace) {
@@ -82,7 +77,7 @@ var pullMicroserviceDeploymentCMD = &cobra.Command{
 				continue
 			}
 
-			err = writeDeploymentsToDirectory(args[0], deployments, scheme, serializer)
+			err = automate.WriteDeploymentsToDirectory(args[0], deployments)
 			if err != nil {
 				logContext.WithFields(logrus.Fields{
 					"error": err,
@@ -90,24 +85,6 @@ var pullMicroserviceDeploymentCMD = &cobra.Command{
 			}
 		}
 	},
-}
-
-func writeDeploymentsToDirectory(rootDirectory string, deployments []appsv1.Deployment, scheme *runtime.Scheme, serializer *k8sJson.Serializer) error {
-	for _, deployment := range deployments {
-		// We remove these fields to make it cleaner and to make it a little less painful
-		// to do multiple manual changes if we were debugging.
-		deployment.ManagedFields = nil
-		deployment.ResourceVersion = ""
-		deployment.Status = appsv1.DeploymentStatus{}
-		delete(deployment.ObjectMeta.Annotations, "kubectl.kubernetes.io/last-applied-configuration")
-
-		automate.SetRuntimeObjectGVK(scheme, &deployment)
-
-		microserviceDirectory := automate.GetMicroserviceDirectory(rootDirectory, deployment.GetObjectMeta())
-		automate.WriteResourceToFile(microserviceDirectory, "microservice-deployment.yml", &deployment, serializer)
-	}
-
-	return nil
 }
 
 func init() {
