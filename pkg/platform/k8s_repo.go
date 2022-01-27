@@ -43,13 +43,6 @@ func NewK8sRepo(k8sClient kubernetes.Interface, config *rest.Config) K8sRepo {
 	}
 }
 
-//annotations:
-//    dolittle.io/tenant-id: 388c0cc7-24b2-46a7-8735-b583ce21e01b
-//    dolittle.io/application-id: c52e450e-4877-47bf-a584-7874c205e2b9
-//  labels:
-//    tenant: Flokk
-//    application: Shepherd
-
 func (r *K8sRepo) GetIngress(applicationID string) (string, error) {
 	ctx := context.TODO()
 	opts := metav1.ListOptions{
@@ -196,10 +189,7 @@ func (r *K8sRepo) GetMicroservices(applicationID string) ([]MicroserviceInfo, er
 			}
 		}).([]ImageInfo)
 
-		kind := ""
-		if hasKind, ok := annotationsMap["dolittle.io/microservice-kind"]; ok {
-			kind = hasKind
-		}
+		kind := GetMicroserviceKindFromAnnotations(annotationsMap)
 
 		environment := labelMap["environment"]
 		microserviceID := annotationsMap["dolittle.io/microservice-id"]
@@ -218,7 +208,7 @@ func (r *K8sRepo) GetMicroservices(applicationID string) ([]MicroserviceInfo, er
 			ID:           microserviceID,
 			Environment:  environment,
 			Images:       images,
-			Kind:         kind,
+			Kind:         string(kind),
 			IngressURLS:  ingressURLS,
 			IngressPaths: ingressHTTPIngressPath,
 		}
@@ -825,4 +815,12 @@ func GetMicroserviceEnvironmentVariableSecretName(name string) string {
 			name,
 		),
 	)
+}
+
+func GetMicroserviceKindFromAnnotations(annotations map[string]string) (kind MicroserviceKind) {
+	kind = MicroserviceKindUnknown
+	if kindString, ok := annotations["dolittle.io/microservice-kind"]; ok {
+		kind = MicroserviceKind(kindString)
+	}
+	return
 }

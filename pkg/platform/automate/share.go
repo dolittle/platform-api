@@ -205,12 +205,7 @@ func ConvertObjectMetaToMicroservice(objectMeta metav1.Object) configK8s.Microse
 
 	environment := labels["environment"]
 
-	var kind platform.MicroserviceKind
-	if kindString, ok := annotations["dolittle.io/microservice-kind"]; !ok {
-		kind = platform.MicroserviceKindUnknown
-	} else {
-		kind = platform.MicroserviceKind(kindString)
-	}
+	kind := platform.GetMicroserviceKindFromAnnotations(annotations)
 
 	return configK8s.Microservice{
 		ID:          microserviceID,
