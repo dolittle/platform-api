@@ -151,7 +151,7 @@ func addPlatformDataToMicroservice(ctx context.Context, client kubernetes.Interf
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
-		}).Error("Failed to get configmap")
+		}).Error("Failed to get dolittle configmap")
 		return
 	}
 
@@ -176,11 +176,11 @@ func addPlatformDataToMicroservice(ctx context.Context, client kubernetes.Interf
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
-		}).Fatal("Failed to get runtime deployment")
+		}).Fatal("Failed to get deployment")
 	}
 	runtimeContainerIndex := automate.GetContainerIndex(deployment, "runtime")
 	if runtimeContainerIndex == -1 {
-		logContext.Info("deployment didn't have a runtime container")
+		logContext.Error("deployment didn't have a runtime container")
 		return
 	}
 

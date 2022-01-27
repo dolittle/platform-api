@@ -408,6 +408,7 @@ func AddVolumeMountToContainer(ctx context.Context,
 		"function":        "AddVolumeMountToRuntimeContainer",
 		"mount_path":      volumeMount.MountPath,
 		"sub_path":        volumeMount.SubPath,
+		"volumeMount":     volumeMount.Name,
 	})
 
 	container := deployment.Spec.Template.Spec.Containers[containerIndex]
@@ -422,6 +423,16 @@ func AddVolumeMountToContainer(ctx context.Context,
 	if hasPlatformMount {
 		logContext.Infof("Container already had a volumemount on subpath %s", volumeMount.SubPath)
 		return nil
+	}
+
+	hasVolume := false
+	for _, volume := range deployment.Spec.Template.Spec.Volumes {
+		if volume.Name == volumeMount.Name {
+			hasVolume = true
+		}
+	}
+	if !hasVolume {
+		logContext.Fatal("Deployment didn't have a volume to match the volumeMounts name")
 	}
 
 	container.VolumeMounts = append(container.VolumeMounts, volumeMount)
