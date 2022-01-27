@@ -88,8 +88,10 @@ Add platform.json to one or all dolittle configmaps & Runtime containers volumeM
 
 			for _, microservice := range microservices {
 				logContext = logContext.WithFields(logrus.Fields{
-					"customer":    microservice.Tenant.Name,
-					"customer_id": microservice.Tenant.ID,
+					"customer":     microservice.Tenant.Name,
+					"customer_id":  microservice.Tenant.ID,
+					"microservice": microservice.Name,
+					"application":  microservice.Application.Name,
 				})
 				addPlatformDataToMicroservice(ctx, client, logContext, microservice.Application.ID, microservice.Environment, microservice.ID, dryRun)
 			}
@@ -110,8 +112,10 @@ Add platform.json to one or all dolittle configmaps & Runtime containers volumeM
 
 				microserviceMetadata, err := automate.ParseMicroserviceMetadata(metadataJSON)
 				logContext = logContext.WithFields(logrus.Fields{
-					"customer":    microserviceMetadata.CustomerName,
-					"customer_id": microserviceMetadata.CustomerID,
+					"customer":          microserviceMetadata.CustomerName,
+					"customer_id":       microserviceMetadata.CustomerID,
+					"microservice_name": microserviceMetadata.MicroserviceName,
+					"application":       microserviceMetadata.ApplicationName,
 				})
 
 				if err != nil {
@@ -151,6 +155,12 @@ func addPlatformDataToMicroservice(ctx context.Context, client kubernetes.Interf
 		}).Fatal("Failed to get configmap")
 	}
 
+	// here we can add the missing names if it wasn't already added, like when figuring out from CLI flags
+	logContext = logContext.WithFields(logrus.Fields{
+		"microservice": configMap.Labels["microservice"],
+		"application":  configMap.Labels["application"],
+	})
+
 	microservice := automate.ConvertObjectMetaToMicroservice(configMap.GetObjectMeta())
 	platform := configK8s.NewMicroserviceConfigMapPlatformData(microservice)
 	platformJSON, _ := json.MarshalIndent(platform, "", "  ")
@@ -170,10 +180,7 @@ func addPlatformDataToMicroservice(ctx context.Context, client kubernetes.Interf
 	}
 	runtimeContainerIndex := automate.GetContainerIndex(deployment, "runtime")
 	if runtimeContainerIndex == -1 {
-		logContext.WithFields(logrus.Fields{
-			"deployment_name":      deployment.Name,
-			"deployment_namespace": deployment.Namespace,
-		}).Info("deployment didn't have a runtime container, skipping")
+		logContext.Info("deployment didn't have a runtime container, skipping")
 		return
 	}
 
