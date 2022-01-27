@@ -6,6 +6,7 @@ import (
 
 	"github.com/dolittle/platform-api/pkg/git"
 	"github.com/dolittle/platform-api/pkg/platform"
+	"github.com/dolittle/platform-api/pkg/platform/automate"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
 	"github.com/sirupsen/logrus"
@@ -116,8 +117,8 @@ func ResetStudioConfigs(repo storage.Repo, customers []string, config platform.S
 
 func extractCustomers(ctx context.Context, client kubernetes.Interface) []string {
 	var customers []string
-	for _, namespace := range getNamespaces(ctx, client) {
-		if isApplicationNamespace(namespace) {
+	for _, namespace := range automate.GetNamespaces(ctx, client) {
+		if automate.IsApplicationNamespace(namespace) {
 			customerID := namespace.Annotations["dolittle.io/tenant-id"]
 			customers = append(customers, customerID)
 		}
