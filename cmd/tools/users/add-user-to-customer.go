@@ -29,6 +29,7 @@ var addUserToCustomerCMD = &cobra.Command{
 		}
 
 		outputCurl, _ := cmd.Flags().GetBool("output-curl")
+		fmt.Println(outputCurl)
 
 		url := "http://localhost:4434/identities"
 		// TODO look up users
