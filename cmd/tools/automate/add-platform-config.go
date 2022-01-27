@@ -149,10 +149,10 @@ func addPlatformDataToMicroservice(ctx context.Context, client kubernetes.Interf
 
 	configMap, err := automate.GetDolittleConfigMap(ctx, client, applicationID, environment, microserviceID)
 	if err != nil {
-		// TODO this might be to strict, perhaps we have a flag to let them skip?
 		logContext.WithFields(logrus.Fields{
 			"error": err,
-		}).Fatal("Failed to get configmap")
+		}).Error("Failed to get configmap")
+		return
 	}
 
 	// here we can add the missing names if it wasn't already added, like when figuring out from CLI flags
@@ -180,7 +180,7 @@ func addPlatformDataToMicroservice(ctx context.Context, client kubernetes.Interf
 	}
 	runtimeContainerIndex := automate.GetContainerIndex(deployment, "runtime")
 	if runtimeContainerIndex == -1 {
-		logContext.Info("deployment didn't have a runtime container, skipping")
+		logContext.Info("deployment didn't have a runtime container")
 		return
 	}
 
