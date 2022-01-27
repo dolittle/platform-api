@@ -1,3 +1,36 @@
+# [2.5.0] - 2022-1-27 [PR: #73](https://github.com/dolittle/platform-api/pull/73)
+## Summary
+
+- Adds new command `pull-dolittle-config` which pulls all of the `*-dolittle` configmaps from the cluster and writes them into the `Source/V3/Kubernetes/Customers/<customer>/<application>/<environment>/<microservice>/microservice-configmap-dolittle.yml` files. Related PR https://github.com/dolittle-platform/Operations/pull/150
+Usage:
+```sh
+go run main.go tools automate pull-dolittle-config <repo-root>
+```
+
+- Adds new command `add-platform-config` which updates the `*-dolittle` configmaps in the cluster with the new `platform.json` resource and also updates the microservices deployments Runtime container to have a volumeMount for the `platform.json`
+Usage:
+```sh
+	go run main.go tools automate add-platform-config \
+	--application-id="11b6cf47-5d9f-438f-8116-0d9828654657" \
+	--environment="Dev" \
+	--microservice-id="ec6a1a81-ed83-bb42-b82b-5e8bedc3cbc6" \
+	--dry-run=true
+```
+
+- Adds new command `get-microservices-metadata` which outputs a JSON array of all of the metadata of all of the clusters microservices
+
+- Adds new command `pull-microservice-deployment` which pulls all microservices deployments from the cluster and writes them into `Source/V3/Kubernetes/Customers/<customer>/<application>/<environment>/<microservice>/microservice-deployment.yml` files. Related PR https://github.com/dolittle-platform/Operations/pull/155
+Usage:
+```sh
+go run main.go tools automate pull-microservice-deployment <repo-root>
+```
+
+- Adds new command `import-dolittle-configmaps` which ca n be used to bootstrap your local cluster. From PR https://github.com/dolittle/platform-api/pull/74
+
+- When pulling the deployments or configmaps and converting the given resource to a `configK8s.Microservice` struct, if the given resource doesn't have a `dolittle.io/microservice-kind` specified it will default to the new `MicroserviceKindUnknown`. This is only internal for now and it's not set to the k8s resources annotations.
+- Adds new package `automate` to help with the `platform tools automate` commands
+
+
 # [2.4.1] - 2022-1-26 [PR: #77](https://github.com/dolittle/platform-api/pull/77)
 ## Summary
 
