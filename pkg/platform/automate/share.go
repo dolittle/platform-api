@@ -374,7 +374,7 @@ func AddDataToConfigMap(ctx context.Context, client kubernetes.Interface, logCon
 		bytes := SerializeRuntimeObject(&configMap)
 
 		logContext = logContext.WithField("data", string(bytes))
-		logContext.Info("--dry-run enabled, skipping update")
+		logContext.Info("--dry-run enabled, skipping the update")
 		return nil
 	}
 
