@@ -622,7 +622,7 @@ func (r *K8sRepo) CanModifyApplicationWithResourceAttributes(tenantID string, ap
 		},
 	}
 
-	clientset, err := kubernetes.NewForConfig(config)
+	client, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -633,7 +633,7 @@ func (r *K8sRepo) CanModifyApplicationWithResourceAttributes(tenantID string, ap
 		},
 	}
 
-	resp, err := clientset.AuthorizationV1().
+	resp, err := client.AuthorizationV1().
 		SelfSubjectAccessReviews().
 		Create(context.TODO(), &selfCheck, metav1.CreateOptions{})
 

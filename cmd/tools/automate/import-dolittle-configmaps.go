@@ -38,7 +38,7 @@ Then you can feed it to the command:
 
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
 
-		client, _ := platformK8s.InitKubernetesClient()
+		k8sClient, _ := platformK8s.InitKubernetesClient()
 
 		scheme, serializer, err := automate.InitializeSchemeAndSerializer()
 		if err != nil {
@@ -90,8 +90,8 @@ Then you can feed it to the command:
 			}
 		}
 
-		createNamespaces(client, namespaces, dryRun, logger)
-		createConfigMaps(client, configMaps, dryRun, logger)
+		createNamespaces(k8sClient, namespaces, dryRun, logger)
+		createConfigMaps(k8sClient, configMaps, dryRun, logger)
 	},
 }
 

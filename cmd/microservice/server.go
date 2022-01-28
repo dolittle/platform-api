@@ -50,11 +50,11 @@ var serverCMD = &cobra.Command{
 			viper.Set(key, viper.Get(key))
 		}
 
-		clientset, config := platformK8s.InitKubernetesClient()
+		k8sClient, k8sConfig := platformK8s.InitKubernetesClient()
 
 		externalClusterHost := getExternalClusterHost(
 			viper.GetString("tools.server.kubernetes.externalClusterHost"),
-			config.Host,
+			k8sConfig.Host,
 		)
 
 		listenOn := viper.GetString("tools.server.listenOn")
@@ -70,7 +70,7 @@ var serverCMD = &cobra.Command{
 
 		router := mux.NewRouter()
 
-		k8sRepo := platform.NewK8sRepo(clientset, config)
+		k8sRepo := platform.NewK8sRepo(k8sClient, k8sConfig)
 
 		gitRepo := gitStorage.NewGitStorage(
 			logrus.WithField("context", "git-repo"),
@@ -80,14 +80,14 @@ var serverCMD = &cobra.Command{
 		microserviceService := microservice.NewService(
 			gitRepo,
 			k8sRepo,
-			clientset,
+			k8sClient,
 			logrus.WithField("context", "microservice-service"),
 		)
 
 		microserviceEnvironmentVariablesService := environmentVariables.NewService(
 			environmentVariables.NewEnvironmentVariablesK8sRepo(
 				k8sRepo,
-				clientset,
+				k8sClient,
 				logrus.WithField("context", "microservice-environment-variables-repo"),
 			),
 			k8sRepo,
@@ -105,7 +105,7 @@ var serverCMD = &cobra.Command{
 			logrus.WithField("context", "business-moments-service"),
 			gitRepo,
 			k8sRepo,
-			clientset,
+			k8sClient,
 		)
 		insightsService := insights.NewService(
 			logrus.WithField("context", "insights-service"),
@@ -116,12 +116,12 @@ var serverCMD = &cobra.Command{
 			logrus.WithField("context", "backup-service"),
 			gitRepo,
 			k8sRepo,
-			clientset,
+			k8sClient,
 		)
 		purchaseorderapiService := purchaseorderapi.NewService(
 			gitRepo,
 			k8sRepo,
-			clientset,
+			k8sClient,
 			logrus.WithField("context", "purchase-order-api-service"),
 		)
 

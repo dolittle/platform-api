@@ -34,9 +34,9 @@ Outputs:
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := context.TODO()
-		client, _ := platformK8s.InitKubernetesClient()
+		k8sClient, _ := platformK8s.InitKubernetesClient()
 
-		microservices, err := automate.GetAllCustomerMicroservices(ctx, client)
+		microservices, err := automate.GetAllCustomerMicroservices(ctx, k8sClient)
 		if err != nil {
 			panic(err.Error())
 		}

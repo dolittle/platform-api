@@ -40,12 +40,12 @@ var buildApplicationInfoCMD = &cobra.Command{
 		)
 
 		ctx := context.TODO()
-		client, _ := platformK8s.InitKubernetesClient()
+		k8sClient, _ := platformK8s.InitKubernetesClient()
 
 		// TODO if the namespace had a label or annotation...
 		// TODO Currently cheap to look up all
 		logContext.Info("Starting to extract applications from the cluster")
-		applications := extractApplications(ctx, client)
+		applications := extractApplications(ctx, k8sClient)
 
 		filteredApplications := filterApplications(gitRepo, applications, platformEnvironment)
 

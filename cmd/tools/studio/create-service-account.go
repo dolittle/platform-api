@@ -27,9 +27,9 @@ var createServiceAccountCMD = &cobra.Command{
 		logContext := logrus.StandardLogger()
 
 		ctx := context.TODO()
-		client, config := platformK8s.InitKubernetesClient()
+		k8sClient, k8sConfig := platformK8s.InitKubernetesClient()
 
-		k8sRepo := platform.NewK8sRepo(client, config)
+		k8sRepo := platform.NewK8sRepo(k8sClient, k8sConfig)
 
 		createAll, _ := cmd.Flags().GetBool("all")
 		if createAll && len(args) > 0 {
@@ -40,7 +40,7 @@ var createServiceAccountCMD = &cobra.Command{
 
 		if createAll {
 			logContext.Info("Adding a devops service account for all applications")
-			applications := extractApplications(ctx, client)
+			applications := extractApplications(ctx, k8sClient)
 
 			for _, application := range applications {
 				err := addServiceAccount(logContext, k8sRepo, application.TenantID, application.TenantName, application.ID, application.Name)
@@ -63,7 +63,7 @@ var createServiceAccountCMD = &cobra.Command{
 			applicationID := args[0]
 
 			namespace := fmt.Sprintf("application-%s", applicationID)
-			k8sNamespace, err := client.CoreV1().Namespaces().Get(ctx, namespace, v1.GetOptions{})
+			k8sNamespace, err := k8sClient.CoreV1().Namespaces().Get(ctx, namespace, v1.GetOptions{})
 			if err != nil {
 				logContext.Fatalf("Couldn't find the specified namespace: %s", namespace)
 			}

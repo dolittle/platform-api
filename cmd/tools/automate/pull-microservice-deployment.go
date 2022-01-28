@@ -30,9 +30,9 @@ var pullMicroserviceDeploymentCMD = &cobra.Command{
 
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
 		ctx := context.TODO()
-		client, _ := platformK8s.InitKubernetesClient()
+		k8sClient, _ := platformK8s.InitKubernetesClient()
 
-		namespaces := automate.GetNamespaces(ctx, client)
+		namespaces := automate.GetNamespaces(ctx, k8sClient)
 		for _, namespace := range namespaces {
 			if !automate.IsApplicationNamespace(namespace) {
 				continue
@@ -44,7 +44,7 @@ var pullMicroserviceDeploymentCMD = &cobra.Command{
 				"application": application,
 			})
 
-			deployments, err := automate.GetDeployments(ctx, client, namespace.GetName())
+			deployments, err := automate.GetDeployments(ctx, k8sClient, namespace.GetName())
 			if err != nil {
 				logContext.Fatal("Failed to get deployments")
 			}

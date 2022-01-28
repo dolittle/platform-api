@@ -43,7 +43,7 @@ var buildStudioInfoCMD = &cobra.Command{
 		)
 
 		ctx := context.TODO()
-		client, _ := platformK8s.InitKubernetesClient()
+		k8sClient, _ := platformK8s.InitKubernetesClient()
 
 		customers := args
 
@@ -53,7 +53,7 @@ var buildStudioInfoCMD = &cobra.Command{
 
 		if resetAll {
 			logContext.Info("Discovering all customers from the platform")
-			customers = extractCustomers(ctx, client)
+			customers = extractCustomers(ctx, k8sClient)
 		}
 
 		if len(customers) == 0 {
