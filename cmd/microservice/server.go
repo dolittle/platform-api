@@ -19,6 +19,7 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform/microservice/environmentVariables"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/purchaseorderapi"
 
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
 	"github.com/dolittle/platform-api/pkg/platform/tenant"
 	"github.com/gorilla/mux"
@@ -27,9 +28,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 const (
@@ -52,16 +50,7 @@ var serverCMD = &cobra.Command{
 			viper.Set(key, viper.Get(key))
 		}
 
-		config, err := getKubeRestConfig(viper.GetString("tools.server.kubeConfig"))
-		if err != nil {
-			panic(err.Error())
-		}
-
-		// create the clientset
-		clientset, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			panic(err.Error())
-		}
+		clientset, config := platformK8s.InitKubernetesClient()
 
 		externalClusterHost := getExternalClusterHost(
 			viper.GetString("tools.server.kubernetes.externalClusterHost"),
@@ -356,13 +345,6 @@ func init() {
 	viper.BindEnv("tools.server.listenOn", "LISTEN_ON")
 	viper.BindEnv("tools.server.azure.subscriptionId", "AZURE_SUBSCRIPTION_ID")
 	viper.BindEnv("tools.server.kubernetes.externalClusterHost", "AZURE_EXTERNAL_CLUSTER_HOST")
-}
-
-func getKubeRestConfig(kubeconfig string) (*rest.Config, error) {
-	if kubeconfig == "incluster" {
-		kubeconfig = ""
-	}
-	return clientcmd.BuildConfigFromFlags("", kubeconfig)
 }
 
 // getExternalClusterHost Return externalHost if set, otherwise fall back to the internalHost

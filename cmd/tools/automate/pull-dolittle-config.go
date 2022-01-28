@@ -6,12 +6,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"k8s.io/client-go/kubernetes"
-
-	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/dolittle/platform-api/pkg/platform/automate"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 )
 
 var pullDolittleConfigCMD = &cobra.Command{
@@ -33,21 +30,7 @@ var pullDolittleConfigCMD = &cobra.Command{
 
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
 		ctx := context.TODO()
-		kubeconfig := viper.GetString("tools.server.kubeConfig")
-
-		if kubeconfig == "incluster" {
-			kubeconfig = ""
-		}
-
-		config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-		if err != nil {
-			panic(err.Error())
-		}
-
-		client, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			panic(err.Error())
-		}
+		client, _ := platformK8s.InitKubernetesClient()
 
 		namespaces := automate.GetNamespaces(ctx, client)
 		for _, namespace := range namespaces {

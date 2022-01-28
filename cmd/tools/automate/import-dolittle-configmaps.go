@@ -6,14 +6,13 @@ import (
 	"os"
 
 	"github.com/dolittle/platform-api/pkg/platform/automate"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 var importDolittleConfigMapsCMD = &cobra.Command{
@@ -39,21 +38,7 @@ Then you can feed it to the command:
 
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
 
-		kubeconfig := viper.GetString("tools.server.kubeConfig")
-
-		if kubeconfig == "incluster" {
-			kubeconfig = ""
-		}
-
-		config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-		if err != nil {
-			panic(err.Error())
-		}
-
-		client, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			panic(err.Error())
-		}
+		client, _ := platformK8s.InitKubernetesClient()
 
 		scheme, serializer, err := automate.InitializeSchemeAndSerializer()
 		if err != nil {
@@ -110,7 +95,7 @@ Then you can feed it to the command:
 	},
 }
 
-func createNamespaces(client *kubernetes.Clientset, namespaces map[string]corev1.Namespace, dryRun bool, logger logrus.FieldLogger) {
+func createNamespaces(client kubernetes.Interface, namespaces map[string]corev1.Namespace, dryRun bool, logger logrus.FieldLogger) {
 	ctx := context.TODO()
 	for name, namespace := range namespaces {
 		logContext := logger.WithFields(logrus.Fields{
@@ -135,7 +120,7 @@ func createNamespaces(client *kubernetes.Clientset, namespaces map[string]corev1
 	}
 }
 
-func createConfigMaps(client *kubernetes.Clientset, configMaps []*corev1.ConfigMap, dryRun bool, logger logrus.FieldLogger) {
+func createConfigMaps(client kubernetes.Interface, configMaps []*corev1.ConfigMap, dryRun bool, logger logrus.FieldLogger) {
 
 	ctx := context.TODO()
 	for _, configMap := range configMaps {

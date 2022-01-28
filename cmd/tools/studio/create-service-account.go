@@ -6,12 +6,10 @@ import (
 	"os"
 
 	"github.com/dolittle/platform-api/pkg/platform"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 var createServiceAccountCMD = &cobra.Command{
@@ -29,22 +27,7 @@ var createServiceAccountCMD = &cobra.Command{
 		logContext := logrus.StandardLogger()
 
 		ctx := context.TODO()
-		kubeconfig := viper.GetString("tools.server.kubeConfig")
-
-		if kubeconfig == "incluster" {
-			kubeconfig = ""
-		}
-
-		config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-		if err != nil {
-			panic(err.Error())
-		}
-
-		// create the clientset
-		client, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			panic(err.Error())
-		}
+		client, config := platformK8s.InitKubernetesClient()
 
 		k8sRepo := platform.NewK8sRepo(client, config)
 

@@ -8,14 +8,13 @@ import (
 
 	configK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/dolittle/platform-api/pkg/platform/automate"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 var addPlatformConfigCMD = &cobra.Command{
@@ -55,21 +54,7 @@ Add platform.json to one or all dolittle configmaps & Runtime containers volumeM
 		logger := logrus.StandardLogger()
 
 		ctx := context.TODO()
-		kubeconfig := viper.GetString("tools.server.kubeConfig")
-
-		if kubeconfig == "incluster" {
-			kubeconfig = ""
-		}
-
-		config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-		if err != nil {
-			panic(err.Error())
-		}
-
-		client, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			panic(err.Error())
-		}
+		client, _ := platformK8s.InitKubernetesClient()
 
 		doAll, _ := cmd.Flags().GetBool("all")
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
