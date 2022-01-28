@@ -7,13 +7,11 @@ import (
 
 	"github.com/dolittle/platform-api/pkg/git"
 	"github.com/dolittle/platform-api/pkg/platform"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 var buildApplicationInfoCMD = &cobra.Command{
@@ -42,26 +40,12 @@ var buildApplicationInfoCMD = &cobra.Command{
 		)
 
 		ctx := context.TODO()
-		kubeconfig := viper.GetString("tools.server.kubeConfig")
+		k8sClient, _ := platformK8s.InitKubernetesClient()
 
-		if kubeconfig == "incluster" {
-			kubeconfig = ""
-		}
-		// TODO hoist localhost into viper
-		config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-		if err != nil {
-			panic(err.Error())
-		}
-
-		// create the clientset
-		client, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			panic(err.Error())
-		}
 		// TODO if the namespace had a label or annotation...
 		// TODO Currently cheap to look up all
 		logContext.Info("Starting to extract applications from the cluster")
-		applications := extractApplications(ctx, client)
+		applications := extractApplications(ctx, k8sClient)
 
 		filteredApplications := filterApplications(gitRepo, applications, platformEnvironment)
 

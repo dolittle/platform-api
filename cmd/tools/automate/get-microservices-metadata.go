@@ -6,12 +6,10 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"k8s.io/client-go/kubernetes"
 
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/platform/automate"
-	"k8s.io/client-go/tools/clientcmd"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 )
 
 var getMicroservicesMetaDataCMD = &cobra.Command{
@@ -36,23 +34,9 @@ Outputs:
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := context.TODO()
-		kubeconfig := viper.GetString("tools.server.kubeConfig")
+		k8sClient, _ := platformK8s.InitKubernetesClient()
 
-		if kubeconfig == "incluster" {
-			kubeconfig = ""
-		}
-
-		config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-		if err != nil {
-			panic(err.Error())
-		}
-
-		client, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			panic(err.Error())
-		}
-
-		microservices, err := automate.GetAllCustomerMicroservices(ctx, client)
+		microservices, err := automate.GetAllCustomerMicroservices(ctx, k8sClient)
 		if err != nil {
 			panic(err.Error())
 		}

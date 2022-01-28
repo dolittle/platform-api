@@ -8,14 +8,13 @@ import (
 
 	configK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/dolittle/platform-api/pkg/platform/automate"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 var addPlatformConfigCMD = &cobra.Command{
@@ -55,21 +54,7 @@ Add platform.json to one or all dolittle configmaps & Runtime containers volumeM
 		logger := logrus.StandardLogger()
 
 		ctx := context.TODO()
-		kubeconfig := viper.GetString("tools.server.kubeConfig")
-
-		if kubeconfig == "incluster" {
-			kubeconfig = ""
-		}
-
-		config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-		if err != nil {
-			panic(err.Error())
-		}
-
-		client, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			panic(err.Error())
-		}
+		k8sClient, _ := platformK8s.InitKubernetesClient()
 
 		doAll, _ := cmd.Flags().GetBool("all")
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
@@ -82,7 +67,7 @@ Add platform.json to one or all dolittle configmaps & Runtime containers volumeM
 		})
 
 		if doAll {
-			microservices, err := automate.GetAllCustomerMicroservices(ctx, client)
+			microservices, err := automate.GetAllCustomerMicroservices(ctx, k8sClient)
 			if err != nil {
 				logContext.Fatal(err.Error())
 			}
@@ -94,7 +79,7 @@ Add platform.json to one or all dolittle configmaps & Runtime containers volumeM
 					"microservice": microservice.Name,
 					"application":  microservice.Application.Name,
 				})
-				addPlatformDataToMicroservice(ctx, client, logContext, microservice.Application.ID, microservice.Environment, microservice.ID, dryRun)
+				addPlatformDataToMicroservice(ctx, k8sClient, logContext, microservice.Application.ID, microservice.Environment, microservice.ID, dryRun)
 			}
 
 			return
@@ -126,7 +111,7 @@ Add platform.json to one or all dolittle configmaps & Runtime containers volumeM
 				applicationID = microserviceMetadata.ApplicationID
 				environment = microserviceMetadata.Environment
 				microserviceID = microserviceMetadata.MicroserviceID
-				addPlatformDataToMicroservice(ctx, client, logContext, applicationID, environment, microserviceID, dryRun)
+				addPlatformDataToMicroservice(ctx, k8sClient, logContext, applicationID, environment, microserviceID, dryRun)
 			}
 
 			if scanner.Err() != nil {
@@ -137,7 +122,7 @@ Add platform.json to one or all dolittle configmaps & Runtime containers volumeM
 		}
 
 		applicationID, environment, microserviceID = getMetadataViaFlags(cmd)
-		addPlatformDataToMicroservice(ctx, client, logContext, applicationID, environment, microserviceID, dryRun)
+		addPlatformDataToMicroservice(ctx, k8sClient, logContext, applicationID, environment, microserviceID, dryRun)
 	},
 }
 

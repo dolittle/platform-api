@@ -6,12 +6,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"k8s.io/client-go/kubernetes"
-
-	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/dolittle/platform-api/pkg/platform/automate"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 )
 
 var pullMicroserviceDeploymentCMD = &cobra.Command{
@@ -33,23 +30,9 @@ var pullMicroserviceDeploymentCMD = &cobra.Command{
 
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
 		ctx := context.TODO()
-		kubeconfig := viper.GetString("tools.server.kubeConfig")
+		k8sClient, _ := platformK8s.InitKubernetesClient()
 
-		if kubeconfig == "incluster" {
-			kubeconfig = ""
-		}
-
-		config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-		if err != nil {
-			panic(err.Error())
-		}
-
-		client, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			panic(err.Error())
-		}
-
-		namespaces := automate.GetNamespaces(ctx, client)
+		namespaces := automate.GetNamespaces(ctx, k8sClient)
 		for _, namespace := range namespaces {
 			if !automate.IsApplicationNamespace(namespace) {
 				continue
@@ -61,7 +44,7 @@ var pullMicroserviceDeploymentCMD = &cobra.Command{
 				"application": application,
 			})
 
-			deployments, err := automate.GetDeployments(ctx, client, namespace.GetName())
+			deployments, err := automate.GetDeployments(ctx, k8sClient, namespace.GetName())
 			if err != nil {
 				logContext.Fatal("Failed to get deployments")
 			}
