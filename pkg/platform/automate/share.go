@@ -193,7 +193,7 @@ func GetDolittleConfigMap(ctx context.Context, client kubernetes.Interface, appl
 
 		return &configMap, nil
 	}
-	return result, errors.New("not.found")
+	return result, platform.ErrNotFound
 }
 
 func GetDeployments(ctx context.Context, client kubernetes.Interface, namespace string) ([]appsv1.Deployment, error) {
@@ -236,7 +236,7 @@ func GetDeployment(ctx context.Context, client kubernetes.Interface, application
 		return deployment, nil
 	}
 
-	return appsv1.Deployment{}, errors.New("not-found")
+	return appsv1.Deployment{}, platform.ErrNotFound
 }
 
 // GetContainerIndex get's the index of the container within the deployment with the given name
