@@ -1,3 +1,10 @@
+# [2.5.3] - 2022-1-28 [PR: #81](https://github.com/dolittle/platform-api/pull/81)
+## Summary
+
+Reducing the amount of place we copy the same code to get the client for kubernetes.
+Now we can use `k8sClient, k8sConfig := platformK8s.InitKubernetesClient()`
+
+
 # [2.5.2] - 2022-1-28 [PR: #80](https://github.com/dolittle/platform-api/pull/80)
 ## Summary
 
