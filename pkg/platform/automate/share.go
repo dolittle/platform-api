@@ -193,7 +193,7 @@ func GetDolittleConfigMap(ctx context.Context, client kubernetes.Interface, appl
 
 		return &configMap, nil
 	}
-	return result, errors.New("not.found")
+	return result, platform.ErrNotFound
 }
 
 func GetDeployments(ctx context.Context, client kubernetes.Interface, namespace string) ([]appsv1.Deployment, error) {
@@ -236,7 +236,7 @@ func GetDeployment(ctx context.Context, client kubernetes.Interface, application
 		return deployment, nil
 	}
 
-	return appsv1.Deployment{}, errors.New("not-found")
+	return appsv1.Deployment{}, platform.ErrNotFound
 }
 
 // GetContainerIndex get's the index of the container within the deployment with the given name
@@ -374,7 +374,7 @@ func AddDataToConfigMap(ctx context.Context, client kubernetes.Interface, logCon
 		bytes := SerializeRuntimeObject(&configMap)
 
 		logContext = logContext.WithField("data", string(bytes))
-		logContext.Info("--dry-run enabled, skipping update")
+		logContext.Info("--dry-run enabled, skipping the update")
 		return nil
 	}
 
@@ -408,6 +408,7 @@ func AddVolumeMountToContainer(ctx context.Context,
 		"function":        "AddVolumeMountToRuntimeContainer",
 		"mount_path":      volumeMount.MountPath,
 		"sub_path":        volumeMount.SubPath,
+		"volumeMount":     volumeMount.Name,
 	})
 
 	container := deployment.Spec.Template.Spec.Containers[containerIndex]
@@ -422,6 +423,16 @@ func AddVolumeMountToContainer(ctx context.Context,
 	if hasPlatformMount {
 		logContext.Infof("Container already had a volumemount on subpath %s", volumeMount.SubPath)
 		return nil
+	}
+
+	hasVolume := false
+	for _, volume := range deployment.Spec.Template.Spec.Volumes {
+		if volume.Name == volumeMount.Name {
+			hasVolume = true
+		}
+	}
+	if !hasVolume {
+		logContext.Fatal("Deployment didn't have a volume to match the volumeMounts name")
 	}
 
 	container.VolumeMounts = append(container.VolumeMounts, volumeMount)

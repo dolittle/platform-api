@@ -7,6 +7,7 @@ import (
 	"os"
 
 	configK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
+	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -88,8 +89,10 @@ Add platform.json to one or all dolittle configmaps & Runtime containers volumeM
 
 			for _, microservice := range microservices {
 				logContext = logContext.WithFields(logrus.Fields{
-					"customer":    microservice.Tenant.Name,
-					"customer_id": microservice.Tenant.ID,
+					"customer":     microservice.Tenant.Name,
+					"customer_id":  microservice.Tenant.ID,
+					"microservice": microservice.Name,
+					"application":  microservice.Application.Name,
 				})
 				addPlatformDataToMicroservice(ctx, client, logContext, microservice.Application.ID, microservice.Environment, microservice.ID, dryRun)
 			}
@@ -110,8 +113,10 @@ Add platform.json to one or all dolittle configmaps & Runtime containers volumeM
 
 				microserviceMetadata, err := automate.ParseMicroserviceMetadata(metadataJSON)
 				logContext = logContext.WithFields(logrus.Fields{
-					"customer":    microserviceMetadata.CustomerName,
-					"customer_id": microserviceMetadata.CustomerID,
+					"customer":          microserviceMetadata.CustomerName,
+					"customer_id":       microserviceMetadata.CustomerID,
+					"microservice_name": microserviceMetadata.MicroserviceName,
+					"application":       microserviceMetadata.ApplicationName,
 				})
 
 				if err != nil {
@@ -145,15 +150,27 @@ func addPlatformDataToMicroservice(ctx context.Context, client kubernetes.Interf
 
 	configMap, err := automate.GetDolittleConfigMap(ctx, client, applicationID, environment, microserviceID)
 	if err != nil {
-		// TODO this might be to strict, perhaps we have a flag to let them skip?
+		if err != platform.ErrNotFound {
+			logContext.WithFields(logrus.Fields{
+				"error": err,
+			}).Fatal("Failed to get dolittle configmap")
+		}
+
 		logContext.WithFields(logrus.Fields{
 			"error": err,
-		}).Fatal("Failed to get configmap")
+		}).Info("No configmap found")
+		return
 	}
 
+	// here we can add the missing names if it wasn't already added, like when figuring out from CLI flags
+	logContext = logContext.WithFields(logrus.Fields{
+		"microservice": configMap.Labels["microservice"],
+		"application":  configMap.Labels["application"],
+	})
+
 	microservice := automate.ConvertObjectMetaToMicroservice(configMap.GetObjectMeta())
-	platform := configK8s.NewMicroserviceConfigMapPlatformData(microservice)
-	platformJSON, _ := json.MarshalIndent(platform, "", "  ")
+	platformData := configK8s.NewMicroserviceConfigMapPlatformData(microservice)
+	platformJSON, _ := json.MarshalIndent(platformData, "", "  ")
 
 	err = automate.AddDataToConfigMap(ctx, client, logContext, "platform.json", platformJSON, *configMap, dryRun)
 	if err != nil {
@@ -164,11 +181,22 @@ func addPlatformDataToMicroservice(ctx context.Context, client kubernetes.Interf
 
 	deployment, err := automate.GetDeployment(ctx, client, applicationID, environment, microserviceID)
 	if err != nil {
+		if err != platform.ErrNotFound {
+			logContext.WithFields(logrus.Fields{
+				"error": err,
+			}).Fatal("Failed to get deployment")
+		}
+
 		logContext.WithFields(logrus.Fields{
 			"error": err,
-		}).Fatal("Failed to get runtime deployment")
+		}).Info("No deployment found")
+		return
 	}
 	runtimeContainerIndex := automate.GetContainerIndex(deployment, "runtime")
+	if runtimeContainerIndex == -1 {
+		logContext.Error("deployment didn't have a runtime container")
+		return
+	}
 
 	platformMount := corev1.VolumeMount{
 		Name:      "dolittle-config",
