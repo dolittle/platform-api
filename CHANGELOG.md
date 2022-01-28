@@ -1,3 +1,13 @@
+# [2.5.2] - 2022-1-28 [PR: #80](https://github.com/dolittle/platform-api/pull/80)
+## Summary
+
+Fixes the `add-platform-config` command to skip deployments that don't have a Runtime container.
+
+Also skips if the microservice doesn't have a *-dolittle configmap.
+
+Also checks first if the deployment the volumeMount would be added to has a corresponding volume specified, otherwise the deployment would fail to start. In testing with dry-run I didn't see that logmessage pop up but it should still be handled just to be sure.
+
+
 # [2.5.1] - 2022-1-27 [PR: #79](https://github.com/dolittle/platform-api/pull/79)
 ## Summary
 
