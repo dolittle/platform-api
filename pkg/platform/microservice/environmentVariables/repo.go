@@ -31,8 +31,7 @@ func NewEnvironmentVariablesK8sRepo(k8sDolittleRepo platform.K8sRepo, k8sClient 
 
 func (r k8sRepo) GetEnvironmentVariables(applicationID string, environment string, microserviceID string) ([]platform.StudioEnvironmentVariable, error) {
 	data := make([]platform.StudioEnvironmentVariable, 0)
-	// TODO this should use environment in GetMicroserviceName
-	name, err := r.k8sDolittleRepo.GetMicroserviceName(applicationID, microserviceID)
+	name, err := r.k8sDolittleRepo.GetMicroserviceName(applicationID, environment, microserviceID)
 	if err != nil {
 		return data, errors.New("unable to find microservice")
 	}
@@ -100,7 +99,7 @@ func (r k8sRepo) UpdateEnvironmentVariables(applicationID string, environment st
 	}
 
 	// Get name of microservice
-	name, err := r.k8sDolittleRepo.GetMicroserviceName(applicationID, microserviceID)
+	name, err := r.k8sDolittleRepo.GetMicroserviceName(applicationID, environment, microserviceID)
 	if err != nil {
 		return errors.New("unable to find microservice")
 	}

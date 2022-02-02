@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"strings"
 
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/utils"
@@ -30,7 +29,8 @@ func (s *service) GetEnvironmentVariables(w http.ResponseWriter, r *http.Request
 	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
 	microserviceID := vars["microserviceID"]
-	environment := strings.ToLower(vars["environment"])
+	// TODO lowercase this, would make our lives so much easier
+	environment := vars["environment"]
 
 	userID := r.Header.Get("User-ID")
 	customerID := r.Header.Get("Tenant-ID")
@@ -60,7 +60,7 @@ func (s *service) UpdateEnvironmentVariables(w http.ResponseWriter, r *http.Requ
 
 	applicationID := vars["applicationID"]
 	microserviceID := vars["microserviceID"]
-	environment := strings.ToLower(vars["environment"])
+	environment := vars["environment"]
 
 	userID := r.Header.Get("User-ID")
 	customerID := r.Header.Get("Tenant-ID")
