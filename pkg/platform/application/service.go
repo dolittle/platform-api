@@ -12,16 +12,18 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	"github.com/dolittle/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
-func NewService(subscriptionID string, externalClusterHost string, gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo) service {
+func NewService(subscriptionID string, externalClusterHost string, gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, logContext logrus.FieldLogger) service {
 	return service{
 		subscriptionID:      subscriptionID,
 		externalClusterHost: externalClusterHost,
 		gitRepo:             gitRepo,
 		k8sDolittleRepo:     k8sDolittleRepo,
+		logContext:          logContext,
 	}
 }
 
@@ -306,31 +308,32 @@ func (s *service) GetApplications(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *service) GetPersonalisedInfo(w http.ResponseWriter, r *http.Request) {
-	tenantID := r.Header.Get("Tenant-ID")
+	logContext := s.logContext.WithFields(logrus.Fields{
+		"method": "GetPersonalisedInfo",
+	})
+	customerID := r.Header.Get("Tenant-ID")
 	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
 
-	terraformCustomer, err := s.gitRepo.GetTerraformTenant(tenantID)
-	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	terraformApplication, err := s.gitRepo.GetTerraformApplication(tenantID, applicationID)
+	studioInfo, err := storage.GetStudioInfo(s.gitRepo, customerID, applicationID, logContext)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	clusterEndpoint := s.externalClusterHost
-	utils.RespondWithJSON(w, http.StatusOK, map[string]interface{}{
-		"customer":       terraformCustomer,
-		"application":    terraformApplication,
-		"subscriptionId": s.subscriptionID,
-		"applicationId":  applicationID,
-		"endpoints": map[string]string{
-			"cluster":           clusterEndpoint,
-			"containerRegistry": fmt.Sprintf("%s.azurecr.io", terraformCustomer.ContainerRegistryName),
+	// TODO https://app.asana.com/0/1201325052247030/1201756581211961/f
+	resourceGroup := "Infrastructure-Essential"
+	clusterName := "Cluster-Production-Three"
+	utils.RespondWithJSON(w, http.StatusOK, platform.HttpResponsePersonalisedInfo{
+		ResourceGroup:         resourceGroup,
+		ClusterName:           clusterName,
+		SubscriptionID:        s.subscriptionID,
+		ApplicationID:         applicationID,
+		ContainerRegistryName: studioInfo.TerraformCustomer.ContainerRegistryName,
+		Endpoints: platform.HttpResponsePersonalisedInfoEndpoints{
+			Cluster:           clusterEndpoint,
+			ContainerRegistry: fmt.Sprintf("%s.azurecr.io", studioInfo.TerraformCustomer.ContainerRegistryName),
 		},
 	})
 }

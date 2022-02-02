@@ -1,7 +1,13 @@
 package platform
 
 import (
+	"errors"
+
 	networkingv1 "k8s.io/api/networking/v1"
+)
+
+var (
+	ErrStudioInfoMissing = errors.New("studio info is missing, reach out to the platform team")
 )
 
 type Microservice interface {
@@ -16,6 +22,20 @@ type MicroserviceBase struct {
 
 func (m MicroserviceBase) GetBase() MicroserviceBase {
 	return m
+}
+
+type HttpResponsePersonalisedInfo struct {
+	ResourceGroup         string                                `json:"resourceGroup"`
+	ClusterName           string                                `json:"clusterName"`
+	SubscriptionID        string                                `json:"subscriptionId"`
+	ApplicationID         string                                `json:"applicationId"`
+	ContainerRegistryName string                                `json:"containerRegistryName"`
+	Endpoints             HttpResponsePersonalisedInfoEndpoints `json:"endpoints"`
+}
+
+type HttpResponsePersonalisedInfoEndpoints struct {
+	Cluster           string `json:"cluster"`
+	ContainerRegistry string `json:"containerRegistry"`
 }
 
 type HttpInputApplication struct {
@@ -318,6 +338,7 @@ type HttpInputPurchaseOrderExtra struct {
 }
 
 type TerraformApplication struct {
+	// TODO change from this and use CustomerID
 	Customer      TerraformCustomer `json:"customer"`
 	GroupID       string            `json:"group_id"`
 	GUID          string            `json:"guid"` // This is applicationID

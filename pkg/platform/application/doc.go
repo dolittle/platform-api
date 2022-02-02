@@ -3,6 +3,7 @@ package application
 import (
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
+	"github.com/sirupsen/logrus"
 )
 
 type service struct {
@@ -11,4 +12,5 @@ type service struct {
 	externalClusterHost string
 	gitRepo             storage.Repo
 	k8sDolittleRepo     platform.K8sRepo
+	logContext          logrus.FieldLogger
 }
