@@ -19,6 +19,7 @@ Tools to help create files needed for studio from kubernetes and / or terraform`
 }
 
 func init() {
+	RootCmd.AddCommand(getCustomersCMD)
 	RootCmd.AddCommand(createServiceAccountCMD)
 	RootCmd.AddCommand(buildStudioInfoCMD)
 	RootCmd.AddCommand(buildTerraformInfoCMD)

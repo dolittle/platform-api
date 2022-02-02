@@ -5,30 +5,34 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 )
 
-type Tenant struct {
+type ShortInfo struct {
 	Name string `json:"name"`
 	ID   string `json:"id"`
 }
 
-type Application struct {
-	Name string `json:"name"`
-	ID   string `json:"id"`
-}
+type Tenant ShortInfo
+type Application ShortInfo
 
+//type CustomerTenantIngressInfo struct {
+//	CustomerTenantID string
+//	Host             string
+//	DomainPrefix     string
+//	SecretName       string
+//}
+
+// TODO remove
 type Ingress struct {
 	Host       string `json:"host"`
 	SecretName string `json:"secret_name"`
 }
 
 type Microservice struct {
-	ID          string      `json:"id"`
-	Name        string      `json:"name"`
-	Tenant      Tenant      `json:"tenant"`
-	Application Application `json:"application"`
-	Environment string      `json:"environment"`
-	// Linked to TenantsCustomer (look at ingress.go for now)
-	ResourceID string                    `json:"resource_id"`
-	Kind       platform.MicroserviceKind `json:"kind"`
+	ID          string                    `json:"id"`
+	Name        string                    `json:"name"`
+	Tenant      Tenant                    `json:"tenant"`
+	Application Application               `json:"application"`
+	Environment string                    `json:"environment"`
+	Kind        platform.MicroserviceKind `json:"kind"`
 }
 
 type SimpleIngressRule struct {

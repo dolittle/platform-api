@@ -1,4 +1,4 @@
-package tenant_test
+package k8s_test
 
 import (
 	"testing"
@@ -9,5 +9,5 @@ import (
 
 func TestSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Platform/Tenant Suite")
+	RunSpecs(t, "Platform/Microservice/k8s Suite")
 }

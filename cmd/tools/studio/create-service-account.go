@@ -5,20 +5,20 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dolittle/platform-api/pkg/platform"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// TODO should we deprecate this? or make it reusable in terms of add the "name" and it will hook up the developer rbac
 var createServiceAccountCMD = &cobra.Command{
 	Use:   "create-service-account",
 	Short: "Create a k8s devops service account for an application",
 	Long: `
 	Attempts to create a "devops" serviceaccount for the application and adds it to the already existing "developer" rolebinding.
 
-	go run main.go toolds studio create-service-account --all
+	go run main.go tools studio create-service-account --all
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
@@ -27,9 +27,9 @@ var createServiceAccountCMD = &cobra.Command{
 		logContext := logrus.StandardLogger()
 
 		ctx := context.TODO()
-		k8sClient, k8sConfig := platformK8s.InitKubernetesClient()
 
-		k8sRepo := platform.NewK8sRepo(k8sClient, k8sConfig)
+		k8sClient, k8sConfig := platformK8s.InitKubernetesClient()
+		k8sRepo := platformK8s.NewK8sRepo(k8sClient, k8sConfig, logContext.WithField("context", "k8s-repo"))
 
 		createAll, _ := cmd.Flags().GetBool("all")
 		if createAll && len(args) > 0 {
@@ -38,20 +38,24 @@ var createServiceAccountCMD = &cobra.Command{
 
 		addedAccounts := 0
 
+		serviceAccount := "devops"
+		roleBinding := "devops"
+
 		if createAll {
 			logContext.Info("Adding a devops service account for all applications")
 			applications := extractApplications(ctx, k8sClient)
 
 			for _, application := range applications {
-				err := addServiceAccount(logContext, k8sRepo, application.TenantID, application.TenantName, application.ID, application.Name)
+				err := k8sRepo.AddServiceAccount(serviceAccount, roleBinding, application.TenantID, application.TenantName, application.ID, application.Name)
 				if err != nil {
-					if err != platform.ErrAlreadyExists {
+					if err != platformK8s.ErrAlreadyExists {
 						panic(err.Error())
 					}
 					logContext.Infof("Application '%s' already had the service account or rolebinding, skipping", application.ID)
 					// the account already existed or it already had a rolebinding so don't increment
 					continue
 				}
+				logContext.Infof("Added a service account for application %s", application.ID)
 				addedAccounts++
 			}
 			logContext.Infof("Added %v service accounts", addedAccounts)
@@ -63,7 +67,7 @@ var createServiceAccountCMD = &cobra.Command{
 			applicationID := args[0]
 
 			namespace := fmt.Sprintf("application-%s", applicationID)
-			k8sNamespace, err := k8sClient.CoreV1().Namespaces().Get(ctx, namespace, v1.GetOptions{})
+			k8sNamespace, err := k8sClient.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
 			if err != nil {
 				logContext.Fatalf("Couldn't find the specified namespace: %s", namespace)
 			}
@@ -71,9 +75,11 @@ var createServiceAccountCMD = &cobra.Command{
 			customerID := k8sNamespace.Annotations["dolittle.io/tenant-id"]
 			customerName := k8sNamespace.Labels["tenant"]
 			applicationName := k8sNamespace.Labels["application"]
-			err = addServiceAccount(logContext, k8sRepo, customerID, customerName, applicationID, applicationName)
+
+			err = k8sRepo.AddServiceAccount(serviceAccount, roleBinding, customerID, customerName, applicationID, applicationName)
+
 			if err != nil {
-				if err != platform.ErrAlreadyExists {
+				if err != platformK8s.ErrAlreadyExists {
 					panic(err.Error())
 				}
 				logContext.Infof("Application '%s' already had the service account or rolebinding, skipping", applicationID)
@@ -81,65 +87,6 @@ var createServiceAccountCMD = &cobra.Command{
 		}
 		logContext.Info("Finished!")
 	},
-}
-
-func addServiceAccount(logger logrus.FieldLogger, k8sRepo platform.K8sRepo, customerID string, customerName string, applicationID string, applicationName string) error {
-	serviceAccount := "devops"
-	roleBinding := "devops"
-	logContext := logger.WithFields(logrus.Fields{
-		"customerID":     customerID,
-		"applicationID":  applicationID,
-		"serviceAccount": serviceAccount,
-		"roleBinding":    roleBinding,
-		"function":       "createServiceAccount",
-	})
-
-	_, err := k8sRepo.CreateServiceAccount(logContext,
-		customerID,
-		customerName,
-		applicationID,
-		applicationName,
-		serviceAccount,
-	)
-
-	if err != nil {
-		if err != platform.ErrAlreadyExists {
-			logContext.WithFields(logrus.Fields{
-				"error": err,
-			}).Error("failed to create the devops serviceaccount")
-		}
-		return err
-	}
-
-	_, err = k8sRepo.CreateRoleBinding(
-		logContext,
-		customerID,
-		customerName,
-		applicationID,
-		applicationName,
-		roleBinding,
-		"developer",
-	)
-	if err != nil && err != platform.ErrAlreadyExists {
-		logContext.WithFields(logrus.Fields{
-			"error": err,
-		}).Error("failed to create the rolebinding")
-		return err
-	}
-
-	_, err = k8sRepo.AddServiceAccountToRoleBinding(logContext, applicationID, roleBinding, serviceAccount)
-	if err != nil {
-		if err != platform.ErrAlreadyExists {
-			logContext.WithFields(logrus.Fields{
-				"error": err,
-			}).Error("failed to add the service account to the rolebinding")
-		}
-		return err
-	}
-
-	logContext.Infof("Added a service account for application %s", applicationID)
-
-	return nil
 }
 
 func init() {

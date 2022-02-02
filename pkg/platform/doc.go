@@ -6,6 +6,11 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 )
 
+const (
+	TodoCustomersTenantID        string = "17426336-fb8e-4425-8ab7-07d488367be9"
+	DevelopmentCustomersTenantID string = "445f8ea8-1a6f-40d7-b2fc-796dba92dc44"
+)
+
 var (
 	ErrStudioInfoMissing = errors.New("studio info is missing, reach out to the platform team")
 )
@@ -39,28 +44,43 @@ type HttpResponsePersonalisedInfoEndpoints struct {
 }
 
 type HttpInputApplication struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	TenantID string `json:"tenantId"`
+	ID           string   `json:"id"`
+	Name         string   `json:"name"`
+	TenantID     string   `json:"tenantId"`
+	Environments []string `json:"environments"`
 }
 
 type TenantId string
 
+// TODO this object, might be replaced with data from https://github.com/dolittle/platform-api/pull/65
+
+// To replace with storage.JSONEnvironmentIngress2
+// TODO we do not need to expose this, look at MicroserviceInfo.IngressURLS|MicroserviceInfo.IngressPaths
 type EnvironmentIngress struct {
 	Host         string `json:"host"`
 	DomainPrefix string `json:"domainPrefix"`
-	SecretName   string `json:"secretName"`
+	SecretName   string `json:"secretName"` // TODO what do we use this for? I think it can be removed
 }
 
+// TODO Delete
 type EnvironmentIngresses map[TenantId]EnvironmentIngress
 
 type HttpInputEnvironment struct {
-	AutomationEnabled bool                 `json:"automationEnabled"`
+	AutomationEnabled bool                 `json:"automationEnabled"` // Keep
 	Name              string               `json:"name"`
 	TenantID          string               `json:"tenantId"`
 	ApplicationID     string               `json:"applicationId"`
 	Tenants           []TenantId           `json:"tenants"`
 	Ingresses         EnvironmentIngresses `json:"ingresses"`
+}
+
+type HttpResponseApplicationEnvironment struct {
+	AutomationEnabled bool `json:"automationEnabled"` // Keep
+	//Name              string               `json:"name"`
+	//TenantID          string               `json:"tenantId"`
+	//ApplicationID     string               `json:"applicationId"`
+	//Tenants           []TenantId           `json:"tenants"`
+	//Ingresses         EnvironmentIngresses `json:"ingresses"`
 }
 
 type HttpResponseApplication struct {
@@ -119,9 +139,10 @@ type Tenant struct {
 }
 
 type Ingress struct {
-	Host        string `json:"host"`
-	Environment string `json:"environment"`
-	Path        string `json:"path"`
+	Host             string `json:"host"`
+	Environment      string `json:"environment"`
+	Path             string `json:"path"`
+	CustomerTenantID string `json:"customerTenantID"`
 }
 
 type Application struct {
@@ -140,12 +161,6 @@ type ShortInfoWithEnvironment struct {
 	Name        string `json:"name"`
 	Environment string `json:"environment"`
 	ID          string `json:"id"`
-}
-
-type GitRepo interface {
-	Write(tenantID string, applicationID string, data []byte) error
-	Read(tenantID string, applicationID string) ([]byte, error)
-	GetAll(tenantID string) ([]Application, error)
 }
 
 type MicroserviceKind string
@@ -173,11 +188,10 @@ type HttpInputDolittle struct {
 }
 
 type HttpInputSimpleIngress struct {
-	Host             string `json:"host"`
-	SecretNamePrefix string `json:"secretNamePrefix"` // Not happy with this part
-	DomainPrefix     string `json:"domainPrefix"`     // Not happy with this part
-	Path             string `json:"path"`
-	Pathtype         string `json:"pathType"`
+	Host         string `json:"host"`
+	DomainPrefix string `json:"domainPrefix"` // Not happy with this part
+	Path         string `json:"path"`
+	Pathtype     string `json:"pathType"`
 }
 
 type HttpInputSimpleInfo struct {
@@ -415,7 +429,6 @@ type HttpResponseEnvironmentVariables struct {
 	Environment    string                      `json:"environment"`
 	Data           []StudioEnvironmentVariable `json:"data"`
 }
-
 type MicroserviceMetadataShortInfo struct {
 	CustomerID       string `json:"customerId"`
 	CustomerName     string `json:"customerName"`
@@ -424,4 +437,37 @@ type MicroserviceMetadataShortInfo struct {
 	Environment      string `json:"environment"`
 	MicroserviceID   string `json:"microserviceId"`
 	MicroserviceName string `json:"microserviceName"`
+}
+
+type RuntimeTenantsIDS map[string]interface{}
+
+type CustomerTenantInfo struct {
+	Alias            string                           `json:"alias"`
+	Environment      string                           `json:"environment"`
+	CustomerTenantID string                           `json:"customerTenantId"`
+	Ingress          CustomerTenantIngress            `json:"ingress"`
+	MicroservicesRel []CustomerTenantMicroserviceRel  `json:"microservicesRel"`
+	RuntimeInfo      CustomerTenantRuntimeStorageInfo `json:"runtime"`
+}
+
+type CustomerTenantRuntimeStorageInfo struct {
+	DatabasePrefix string `json:"databasePrefix"`
+}
+
+type CustomerTenantIngress struct {
+	Host         string `json:"host"`
+	DomainPrefix string `json:"domainPrefix"`
+	SecretName   string `json:"secretName"`
+}
+
+type CustomerTenantMicroserviceRel struct {
+	MicroserviceID string `json:"microserviceID"`
+	// ffb20e4f_a74fed4a
+	// (microserviceID first block + customerTenantID first block)
+	Hash string `json:"hash"`
+}
+
+type Customer struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }

@@ -1,0 +1,21 @@
+
+# docker build --build-arg BASE_IMAGE=dolittle-dev/platform-api:latest -f Dockerfile.operations -t platform-operations:latest .
+ARG TERRAFORM_VERSION=1.1.0
+ARG BASE_IMAGE=dolittle/platform-api:latest
+# Build on top of the platform-api, to use the binary
+FROM ${BASE_IMAGE}
+
+ARG TERRAFORM_VERSION
+ENV LC_ALL=en_US.UTF-8
+ENV LC_LANG=en_US.UTF-8
+ENV LC_LANGUAGE=en_US.UTF-8
+
+RUN wget https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
+RUN unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip && rm terraform_${TERRAFORM_VERSION}_linux_amd64.zip
+RUN mv terraform /usr/bin/terraform
+
+RUN apk update && \
+    apk add --no-cache git && \
+    apk add --no-cache openssh
+
+CMD ["/bin/sh"]

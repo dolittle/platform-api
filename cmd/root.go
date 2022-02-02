@@ -24,4 +24,7 @@ func init() {
 	rootCmd.AddCommand(microservice.RootCmd)
 	rootCmd.AddCommand(rawdatalog.RootCmd)
 	rootCmd.AddCommand(tools.RootCmd)
+
+	viper.SetDefault("tools.jobs.image.operations", "dolittle/platform-operations:application-namespace")
+	viper.BindEnv("tools.jobs.image.operations", "OPERATIONS_IMAGE")
 }

@@ -31,6 +31,7 @@ func filterCustomers(repo storage.Repo, customers []string, platformEnvironment 
 	return filtered
 }
 
+// TODO use storage.ConvertFromPlatformHttpResponseApplication(application)
 func filterApplications(repo storage.Repo, applications []platform.HttpResponseApplication, platformEnvironment string) []platform.HttpResponseApplication {
 	filtered := make([]platform.HttpResponseApplication, 0)
 	for _, application := range applications {
@@ -47,6 +48,7 @@ func filterApplications(repo storage.Repo, applications []platform.HttpResponseA
 }
 
 func extractApplications(ctx context.Context, client kubernetes.Interface) []platform.HttpResponseApplication {
+	// TODO use this to storage.ConvertFromPlatformHttpResponseApplication(application)
 	applications := make([]platform.HttpResponseApplication, 0)
 
 	for _, namespace := range automate.GetNamespaces(ctx, client) {
@@ -59,6 +61,8 @@ func extractApplications(ctx context.Context, client kubernetes.Interface) []pla
 }
 
 func getApplicationFromK8s(ctx context.Context, client kubernetes.Interface, namespace corev1.Namespace) platform.HttpResponseApplication {
+	// Borrow from storage.ConvertFromPlatformHttpResponseApplication(application)
+	//
 	application := platform.HttpResponseApplication{
 		ID:         namespace.Annotations["dolittle.io/application-id"],
 		Name:       namespace.Labels["application"],

@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/dolittle/platform-api/pkg/platform"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/dolittle/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
@@ -13,11 +14,11 @@ import (
 
 type service struct {
 	environmentVariablesRepo EnvironmentVariablesRepo
-	k8sDolittleRepo          platform.K8sRepo
+	k8sDolittleRepo          platformK8s.K8sRepo
 	logContext               logrus.FieldLogger
 }
 
-func NewService(environmentVariablesRepo EnvironmentVariablesRepo, k8sDolittleRepo platform.K8sRepo, logContext logrus.FieldLogger) service {
+func NewService(environmentVariablesRepo EnvironmentVariablesRepo, k8sDolittleRepo platformK8s.K8sRepo, logContext logrus.FieldLogger) service {
 	return service{
 		environmentVariablesRepo: environmentVariablesRepo,
 		k8sDolittleRepo:          k8sDolittleRepo,

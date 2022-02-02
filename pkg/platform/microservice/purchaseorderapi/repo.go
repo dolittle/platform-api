@@ -28,7 +28,7 @@ func NewRepo(k8sResource K8sResource, k8sResourceSpecFactory K8sResourceSpecFact
 }
 
 // Create creates a new PurchaseOrderAPI microservice
-func (r *repo) Create(namespace string, customer k8s.Tenant, application k8s.Application, tenant platform.TenantId, input platform.HttpInputPurchaseOrderInfo) error {
+func (r *repo) Create(namespace string, customer k8s.Tenant, application k8s.Application, customerTenants []platform.CustomerTenantInfo, input platform.HttpInputPurchaseOrderInfo) error {
 	// TODO not sure where this comes from really, assume dynamic
 
 	environment := input.Environment
@@ -43,20 +43,20 @@ func (r *repo) Create(namespace string, customer k8s.Tenant, application k8s.App
 		Tenant:      customer,
 		Application: application,
 		Environment: environment,
-		ResourceID:  string(tenant),
 		Kind:        platform.MicroserviceKindPurchaseOrderAPI,
 	}
 
 	ctx := context.TODO()
 
-	if err := r.k8sResource.Create(namespace, headImage, runtimeImage, microservice, tenant, input.Extra, ctx); err != nil {
+	if err := r.k8sResource.Create(ctx, namespace, headImage, runtimeImage, microservice, customerTenants, input.Extra); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (r *repo) Exists(namespace string, customer k8s.Tenant, application k8s.Application, tenant platform.TenantId, input platform.HttpInputPurchaseOrderInfo) (bool, error) {
+// TODO customerTenants is not in use, but we need it due to how we get the deployment name
+func (r *repo) Exists(namespace string, customer k8s.Tenant, application k8s.Application, customerTenants []platform.CustomerTenantInfo, input platform.HttpInputPurchaseOrderInfo) (bool, error) {
 	environment := input.Environment
 	microserviceID := input.Dolittle.MicroserviceID
 	microserviceName := input.Name
@@ -69,13 +69,12 @@ func (r *repo) Exists(namespace string, customer k8s.Tenant, application k8s.App
 		Tenant:      customer,
 		Application: application,
 		Environment: environment,
-		ResourceID:  microserviceK8s.TodoCustomersTenantID,
 		Kind:        platform.MicroserviceKindPurchaseOrderAPI,
 	}
 
 	ctx := context.TODO()
 
-	resources := r.k8sResourceSpecFactory.CreateAll(headImage, runtimeImage, microservice, tenant, input.Extra)
+	resources := r.k8sResourceSpecFactory.CreateAll(headImage, runtimeImage, microservice, customerTenants, input.Extra)
 	exists, err := microserviceK8s.K8sHasDeploymentWithName(r.k8sClient, ctx, namespace, resources.Deployment.Name)
 	if err != nil {
 		return false, fmt.Errorf("Failed to get purchase order api deployment: %v", err)
@@ -108,5 +107,5 @@ func (r *repo) EnvironmentHasPurchaseOrderAPI(namespace string, input platform.H
 // Delete stops the running purchase order api and deletes the kubernetes resources.
 func (r *repo) Delete(applicationID, environment, microserviceID string) error {
 	ctx := context.TODO()
-	return r.k8sResource.Delete(applicationID, environment, microserviceID, ctx)
+	return r.k8sResource.Delete(ctx, applicationID, environment, microserviceID)
 }

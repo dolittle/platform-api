@@ -9,8 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
+
 	configK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
-	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -193,7 +194,7 @@ func GetDolittleConfigMap(ctx context.Context, client kubernetes.Interface, appl
 
 		return &configMap, nil
 	}
-	return result, platform.ErrNotFound
+	return result, platformK8s.ErrNotFound
 }
 
 func GetDeployments(ctx context.Context, client kubernetes.Interface, namespace string) ([]appsv1.Deployment, error) {
@@ -236,7 +237,7 @@ func GetDeployment(ctx context.Context, client kubernetes.Interface, application
 		return deployment, nil
 	}
 
-	return appsv1.Deployment{}, platform.ErrNotFound
+	return appsv1.Deployment{}, platformK8s.ErrNotFound
 }
 
 // GetContainerIndex get's the index of the container within the deployment with the given name
@@ -266,7 +267,7 @@ func ConvertObjectMetaToMicroservice(objectMeta metav1.Object) configK8s.Microse
 
 	environment := labels["environment"]
 
-	kind := platform.GetMicroserviceKindFromAnnotations(annotations)
+	kind := platformK8s.GetMicroserviceKindFromAnnotations(annotations)
 
 	return configK8s.Microservice{
 		ID:          microserviceID,
@@ -274,7 +275,6 @@ func ConvertObjectMetaToMicroservice(objectMeta metav1.Object) configK8s.Microse
 		Tenant:      customerTenant,
 		Application: k8sApplication,
 		Environment: environment,
-		ResourceID:  "",
 		Kind:        kind,
 	}
 }

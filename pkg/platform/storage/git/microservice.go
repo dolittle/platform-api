@@ -13,7 +13,7 @@ import (
 )
 
 func (s *GitStorage) GetMicroserviceDirectory(tenantID string, applicationID string, environment string) string {
-	return filepath.Join(s.Directory, tenantID, applicationID, strings.ToLower(environment))
+	return filepath.Join(s.GetRoot(), tenantID, applicationID, strings.ToLower(environment))
 }
 
 func (s *GitStorage) DeleteMicroservice(tenantID string, applicationID string, environment string, microserviceID string) error {

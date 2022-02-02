@@ -131,7 +131,9 @@ func NewDeployment(microservice Microservice, headImage string, runtimeImage str
 				},
 				Spec: apiv1.PodSpec{
 					ImagePullSecrets: []apiv1.LocalObjectReference{
-						{"acr"},
+						{
+							Name: "acr",
+						},
 					},
 					Containers: containers,
 					Volumes: []apiv1.Volume{

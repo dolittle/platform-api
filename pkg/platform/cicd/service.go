@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/dolittle/platform-api/pkg/platform"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/dolittle/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
@@ -12,10 +12,10 @@ import (
 
 type service struct {
 	logContext      logrus.FieldLogger
-	k8sDolittleRepo platform.K8sRepo
+	k8sDolittleRepo platformK8s.K8sRepo
 }
 
-func NewService(logContext logrus.FieldLogger, k8sDolittleRepo platform.K8sRepo) *service {
+func NewService(logContext logrus.FieldLogger, k8sDolittleRepo platformK8s.K8sRepo) *service {
 	s := &service{
 		logContext:      logContext,
 		k8sDolittleRepo: k8sDolittleRepo,
@@ -55,7 +55,7 @@ func (s *service) getServiceAccountCredentials(w http.ResponseWriter, r *http.Re
 
 	serviceAccount, err := s.k8sDolittleRepo.GetServiceAccount(logContext, applicationID, serviceAccountName)
 	if err != nil {
-		if err == platform.ErrNotFound {
+		if err == platformK8s.ErrNotFound {
 			utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Service account %s not found in application %s", serviceAccountName, applicationID))
 			return
 		}
@@ -96,7 +96,7 @@ func (s *service) GetContainerRegistryCredentials(w http.ResponseWriter, r *http
 	secretName := "acr"
 	secret, err := s.k8sDolittleRepo.GetSecret(logContext, applicationID, secretName)
 	if err != nil {
-		if err == platform.ErrNotFound {
+		if err == platformK8s.ErrNotFound {
 			utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Secret %s not found in application %s", secretName, applicationID))
 			return
 		}

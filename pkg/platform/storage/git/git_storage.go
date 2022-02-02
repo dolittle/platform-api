@@ -9,6 +9,7 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
+	"github.com/dolittle/platform-api/pkg/platform"
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -27,6 +28,9 @@ type GitStorageConfig struct {
 	PlatformEnvironment string
 }
 
+type GitSync interface {
+	Pull() error
+}
 type GitStorage struct {
 	logContext logrus.FieldLogger
 	Repo       *git.Repository
@@ -163,6 +167,8 @@ func (s *GitStorage) CommitPathAndPush(path string, msg string) error {
 	}
 
 	// don't push if using a local repo
+	// TODO this needs to be documented :P
+	// Why do we have dryRun and DirectoryOnly? hmm
 	if s.config.DirectoryOnly {
 		return nil
 	}
@@ -220,22 +226,18 @@ func (s *GitStorage) Pull() error {
 	return nil
 }
 
-// IsAutomationEnabled checks if the given customers applications environments automation is explicitly disabled
-// in the studio config
-func (s *GitStorage) IsAutomationEnabled(tenantID string, applicationID string, environment string) bool {
+func (s *GitStorage) IsAutomationEnabledWithStudioConfig(studioConfig platform.StudioConfig, applicationID string, environment string) bool {
 	environment = strings.ToLower(environment)
-	studioConfig, err := s.GetStudioConfig(tenantID)
-	if err != nil {
-		s.logContext.WithFields(logrus.Fields{
-			"method":        "IsAutomationEnabled",
-			"error":         err,
-			"tenantID":      tenantID,
-			"applicationID": applicationID,
-			"environment":   environment,
-		}).Warning("Error while getting studio config, assuming automation not enabled")
+	// If any of the entries == * disable all
+	key := "*"
+	if funk.ContainsString(studioConfig.DisabledEnvironments, key) {
 		return false
 	}
 
-	key := fmt.Sprintf("%s/%s", applicationID, environment)
+	key = fmt.Sprintf("%s/%s", applicationID, environment)
 	return !funk.ContainsString(studioConfig.DisabledEnvironments, key)
+}
+
+func (s *GitStorage) GetRoot() string {
+	return filepath.Join(s.Directory, s.config.PlatformEnvironment)
 }

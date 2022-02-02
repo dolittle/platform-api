@@ -9,19 +9,19 @@ import (
 
 	"github.com/dolittle/platform-api/pkg/git"
 	"github.com/dolittle/platform-api/pkg/middleware"
-	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/platform/application"
 	"github.com/dolittle/platform-api/pkg/platform/backup"
 	"github.com/dolittle/platform-api/pkg/platform/businessmoment"
 	"github.com/dolittle/platform-api/pkg/platform/cicd"
+	"github.com/dolittle/platform-api/pkg/platform/customer"
 	"github.com/dolittle/platform-api/pkg/platform/insights"
+	"github.com/dolittle/platform-api/pkg/platform/job"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/microservice"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/environmentVariables"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/purchaseorderapi"
 
-	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
-	"github.com/dolittle/platform-api/pkg/platform/tenant"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/rs/cors"
@@ -43,6 +43,7 @@ var serverCMD = &cobra.Command{
 
 		logContext := logrus.StandardLogger()
 		platformEnvironment := viper.GetString("tools.server.platformEnvironment")
+		platformOperationsImage := viper.GetString("tools.jobs.image.operations")
 		gitRepoConfig := git.InitGit(logContext, platformEnvironment)
 
 		// fix: https://github.com/spf13/viper/issues/798
@@ -61,6 +62,7 @@ var serverCMD = &cobra.Command{
 		sharedSecret := viper.GetString("tools.server.secret")
 		subscriptionID := viper.GetString("tools.server.azure.subscriptionId")
 
+		isProduction := viper.GetBool("tools.server.isProduction")
 		// Hide secret
 		serverSettings := viper.Get("tools.server").(map[string]interface{})
 		serverSettings["secret"] = fmt.Sprintf("%s***", sharedSecret[:3])
@@ -70,14 +72,21 @@ var serverCMD = &cobra.Command{
 
 		router := mux.NewRouter()
 
-		k8sRepo := platform.NewK8sRepo(k8sClient, k8sConfig)
+		k8sRepo := platformK8s.NewK8sRepo(k8sClient, k8sConfig, logContext.WithField("context", "k8s-repo"))
 
 		gitRepo := gitStorage.NewGitStorage(
 			logrus.WithField("context", "git-repo"),
 			gitRepoConfig,
 		)
 
+		go func() {
+			// gitRepo Pull is not a interface method, perhaps we need an update method, which is storage specific... hmm
+			// Or use it directly as *GitStorage hmm
+			job.NewListenForJobs(k8sClient, gitRepo, logContext)
+		}()
+
 		microserviceService := microservice.NewService(
+			platformEnvironment,
 			gitRepo,
 			k8sRepo,
 			k8sClient,
@@ -97,11 +106,21 @@ var serverCMD = &cobra.Command{
 		applicationService := application.NewService(
 			subscriptionID,
 			externalClusterHost,
+			k8sClient,
 			gitRepo,
 			k8sRepo,
+			platformOperationsImage,
+			platformEnvironment,
+			isProduction,
 			logrus.WithField("context", "application-service"),
 		)
-		tenantService := tenant.NewService()
+
+		customerService := customer.NewService(
+			k8sClient,
+			gitRepo,
+			platformOperationsImage,
+			platformEnvironment,
+		)
 		businessMomentsService := businessmoment.NewService(
 			logrus.WithField("context", "business-moments-service"),
 			gitRepo,
@@ -120,6 +139,7 @@ var serverCMD = &cobra.Command{
 			k8sClient,
 		)
 		purchaseorderapiService := purchaseorderapi.NewService(
+			platformEnvironment,
 			gitRepo,
 			k8sRepo,
 			k8sClient,
@@ -167,27 +187,34 @@ var serverCMD = &cobra.Command{
 			"/application",
 			stdChainWithJSON.ThenFunc(applicationService.Create),
 		).Methods(http.MethodPost, http.MethodOptions)
-		router.Handle(
-			"/tenant",
-			stdChainWithJSON.ThenFunc(tenantService.Create),
-		).Methods(http.MethodPost, http.MethodOptions)
-		router.Handle(
-			"/environment",
-			stdChainWithJSON.ThenFunc(applicationService.SaveEnvironment),
-		).Methods(http.MethodPost, http.MethodOptions)
 
 		router.Handle(
-			"/application/{applicationID}/environment",
-			stdChainWithJSON.ThenFunc(applicationService.SaveEnvironment),
+			"/customers",
+			stdChainWithJSON.ThenFunc(customerService.GetAll),
+		).Methods(http.MethodGet, http.MethodOptions)
+
+		router.Handle(
+			"/customer",
+			stdChainWithJSON.ThenFunc(customerService.Create),
 		).Methods(http.MethodPost, http.MethodOptions)
+
 		router.Handle(
 			"/application/{applicationID}/microservices",
 			stdChainWithJSON.ThenFunc(microserviceService.GetByApplicationID),
 		).Methods(http.MethodGet, http.MethodOptions)
 		router.Handle(
+			"/application/{applicationID}/check/isonline",
+			stdChainWithJSON.ThenFunc(applicationService.IsOnline),
+		).Methods(http.MethodGet, http.MethodOptions)
+
+		// TODO fix
+		// TODO is this in use?
+		router.Handle(
 			"/application/{applicationID}",
 			stdChainWithJSON.ThenFunc(applicationService.GetByID),
 		).Methods(http.MethodGet, http.MethodOptions)
+
+		// TODO need to fix
 		router.Handle(
 			"/applications",
 			stdChainWithJSON.ThenFunc(applicationService.GetApplications),
@@ -339,11 +366,13 @@ func init() {
 
 	viper.SetDefault("tools.server.secret", "change")
 	viper.SetDefault("tools.server.listenOn", "localhost:8080")
+	viper.SetDefault("tools.server.isProduction", true)
 	viper.SetDefault("tools.server.azure.subscriptionId", "")
 	viper.SetDefault("tools.server.kubernetes.externalClusterHost", defaultExternalClusterHost)
 
 	viper.BindEnv("tools.server.secret", "HEADER_SECRET")
 	viper.BindEnv("tools.server.listenOn", "LISTEN_ON")
+	viper.BindEnv("tools.server.isProduction", "IS_PRODUCTION")
 	viper.BindEnv("tools.server.azure.subscriptionId", "AZURE_SUBSCRIPTION_ID")
 	viper.BindEnv("tools.server.kubernetes.externalClusterHost", "AZURE_EXTERNAL_CLUSTER_HOST")
 }

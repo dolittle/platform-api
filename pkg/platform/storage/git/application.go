@@ -15,10 +15,29 @@ import (
 )
 
 func (s *GitStorage) GetApplicationDirectory(tenantID string, applicationID string) string {
-	return filepath.Join(s.Directory, s.config.PlatformEnvironment, tenantID, applicationID)
+	return filepath.Join(s.GetRoot(), tenantID, applicationID)
+}
+
+func (s *GitStorage) GetApplications(customerID string) ([]platform.HttpResponseApplication, error) {
+	stored, err := s.GetApplications2(customerID)
+
+	if err != nil {
+		return make([]platform.HttpResponseApplication, 0), err
+	}
+
+	applications := funk.Map(stored, func(application storage.JSONApplication2) platform.HttpResponseApplication {
+		return storage.ConvertFromJSONApplication2(application)
+	}).([]platform.HttpResponseApplication)
+
+	return applications, nil
 }
 
 func (s *GitStorage) SaveApplication(application platform.HttpResponseApplication) error {
+	mapped := storage.ConvertFromPlatformHttpResponseApplication(application)
+	return s.SaveApplication2(mapped)
+}
+
+func (s *GitStorage) SaveApplication2(application storage.JSONApplication2) error {
 	applicationID := application.ID
 	tenantID := application.TenantID
 	logContext := s.logContext.WithFields(logrus.Fields{
@@ -41,6 +60,7 @@ func (s *GitStorage) SaveApplication(application platform.HttpResponseApplicatio
 		}).Error("writeApplication")
 		return err
 	}
+
 	// Need to remove the prefix
 	path := strings.TrimPrefix(filename, s.config.RepoRoot+string(os.PathSeparator))
 	err = s.CommitPathAndPush(path, fmt.Sprintf("upsert application %s", applicationID))
@@ -54,13 +74,16 @@ func (s *GitStorage) SaveApplication(application platform.HttpResponseApplicatio
 	return nil
 }
 
-func (s *GitStorage) GetApplication(tenantID string, applicationID string) (platform.HttpResponseApplication, error) {
+func (s *GitStorage) GetApplication2(tenantID string, applicationID string) (storage.JSONApplication2, error) {
 	dir := s.GetApplicationDirectory(tenantID, applicationID)
 	filename := filepath.Join(dir, "application.json")
 	b, err := ioutil.ReadFile(filename)
 
-	var application platform.HttpResponseApplication
+	var application storage.JSONApplication2
 	if err != nil {
+		if strings.Contains(err.Error(), "no such file or directory") {
+			return application, storage.ErrNotFound
+		}
 		return application, err
 	}
 
@@ -68,24 +91,19 @@ func (s *GitStorage) GetApplication(tenantID string, applicationID string) (plat
 	if err != nil {
 		return application, err
 	}
-
-	application.Environments = funk.Map(application.Environments, func(e platform.HttpInputEnvironment) platform.HttpInputEnvironment {
-		e.AutomationEnabled = s.IsAutomationEnabled(tenantID, e.ApplicationID, e.Name)
-		return e
-	}).([]platform.HttpInputEnvironment)
 	return application, nil
 }
 
-func (s *GitStorage) GetApplications(customerID string) ([]platform.HttpResponseApplication, error) {
+func (s *GitStorage) GetApplications2(customerID string) ([]storage.JSONApplication2, error) {
 	applicationIDs, err := s.discoverCustomerApplicationIds(customerID)
-	applications := make([]platform.HttpResponseApplication, 0)
+	applications := make([]storage.JSONApplication2, 0)
 
 	if err != nil {
 		return applications, err
 	}
 
 	for _, applicationID := range applicationIDs {
-		application, err := s.GetApplication(customerID, applicationID)
+		application, err := s.GetApplication2(customerID, applicationID)
 		if err != nil {
 			s.logContext.WithFields(logrus.Fields{
 				"customer":    customerID,
@@ -129,34 +147,18 @@ func (s *GitStorage) discoverCustomerApplicationIds(customerID string) ([]string
 	return applicationIDs, err
 }
 
-func (s *GitStorage) writeApplication(application platform.HttpResponseApplication) (string, error) {
+func (s *GitStorage) writeApplication(application storage.JSONApplication2) (string, error) {
+	customerID := application.TenantID
 	applicationID := application.ID
-	tenantID := application.TenantID
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"method":        "writeApplication",
-		"customer":      tenantID,
-		"applicationID": applicationID,
+		"customer":      application.TenantID,
+		"applicationID": application.ID,
 	})
 
-	environments := funk.Map(application.Environments, func(e platform.HttpInputEnvironment) storage.JSONEnvironment {
-		return storage.JSONEnvironment{
-			Name:          e.Name,
-			TenantID:      e.TenantID,
-			ApplicationID: e.ApplicationID,
-			Tenants:       e.Tenants,
-			Ingresses:     e.Ingresses,
-		}
-	}).([]storage.JSONEnvironment)
-	jsonApplication := storage.JSONApplication{
-		ID:           application.ID,
-		Name:         application.Name,
-		TenantID:     application.TenantID,
-		TenantName:   application.TenantName,
-		Environments: environments,
-	}
-	data, _ := json.MarshalIndent(jsonApplication, "", " ")
+	data, _ := json.MarshalIndent(application, "", " ")
 
-	dir := s.GetApplicationDirectory(tenantID, applicationID)
+	dir := s.GetApplicationDirectory(customerID, applicationID)
 	err := os.MkdirAll(dir, 0755)
 	if err != nil {
 		return "", err

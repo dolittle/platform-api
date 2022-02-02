@@ -22,9 +22,10 @@ var _ = Describe("For repo", func() {
 		namespace           string
 		name                string
 		environment         string
-		tenant              platform.TenantId
+		customerTenantID    string
 		createInput         platform.HttpInputPurchaseOrderInfo
 		existingDeployments []runtime.Object
+		customerTenants     []platform.CustomerTenantInfo
 
 		result bool
 		err    error
@@ -42,7 +43,18 @@ var _ = Describe("For repo", func() {
 		namespace = fmt.Sprintf("application-%s", application.ID)
 		name = "some-name"
 		environment = "some-environment"
-		tenant = "04b557ed-eb92-476a-b9ef-6c99c1ff9f86"
+		customerTenantID = "04b557ed-eb92-476a-b9ef-6c99c1ff9f86"
+		customerTenants = []platform.CustomerTenantInfo{
+			{
+				CustomerTenantID: customerTenantID,
+				Ingress: platform.CustomerTenantIngress{
+					Host:         "fake-prefix.fake-host",
+					DomainPrefix: "fake-prefix",
+					SecretName:   "fake-prefix",
+				},
+			},
+		}
+
 		createInput = newPurchaseOrderAPICreateInput(customer, application, environment, name)
 		existingDeployments = nil
 	})
@@ -55,7 +67,7 @@ var _ = Describe("For repo", func() {
 
 	Describe("when checking if purchase order api exists", func() {
 		JustBeforeEach(func() {
-			result, err = repo.Exists(namespace, customer, application, tenant, createInput)
+			result, err = repo.Exists(namespace, customer, application, customerTenants, createInput)
 		})
 
 		Describe("and there is another purchase order api with the same name", func() {
@@ -988,6 +1000,5 @@ func newDeploymentFrom(customer k8s.Tenant, application k8s.Application, environ
 		Application: application,
 		Environment: environment,
 		Kind:        kind,
-		ResourceID:  "aa1d2c76-e7d0-414a-ae7a-aca399251ffc",
 	}, "head-image:shouldnt-matter", "runtime-image:shouldnt-matter")
 }

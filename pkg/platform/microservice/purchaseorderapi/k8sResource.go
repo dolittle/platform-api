@@ -28,10 +28,10 @@ func NewK8sResource(k8sClient kubernetes.Interface, specFactory K8sResourceSpecF
 }
 
 // Create creates a new PurchaseOrderAPI microservice, and a RawDataLog and WebhookListener if they don't exist.
-func (r *k8sResource) Create(namespace, headImage, runtimeImage string, k8sMicroservice k8s.Microservice, tenant platform.TenantId, extra platform.HttpInputPurchaseOrderExtra, ctx context.Context) error {
+func (r *k8sResource) Create(ctx context.Context, namespace, headImage, runtimeImage string, k8sMicroservice k8s.Microservice, customerTenants []platform.CustomerTenantInfo, extra platform.HttpInputPurchaseOrderExtra) error {
 	opts := metaV1.CreateOptions{}
 
-	resources := r.specFactory.CreateAll(headImage, runtimeImage, k8sMicroservice, tenant, extra)
+	resources := r.specFactory.CreateAll(headImage, runtimeImage, k8sMicroservice, customerTenants, extra)
 
 	// ConfigMaps
 	_, err := r.k8sClient.CoreV1().ConfigMaps(namespace).Create(ctx, resources.MicroserviceConfigMap, opts)
@@ -63,7 +63,7 @@ func (r *k8sResource) Create(namespace, headImage, runtimeImage string, k8sMicro
 }
 
 // Delete stops the running purchase order api and deletes the kubernetes resources.
-func (r *k8sResource) Delete(applicationID, environment, microserviceID string, ctx context.Context) error {
+func (r *k8sResource) Delete(ctx context.Context, applicationID, environment, microserviceID string) error {
 	deployment, err := r.getAndStopDeployment(ctx, applicationID, environment, microserviceID)
 	if err != nil {
 		return err

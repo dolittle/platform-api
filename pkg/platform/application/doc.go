@@ -1,16 +1,22 @@
 package application
 
 import (
-	"github.com/dolittle/platform-api/pkg/platform"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
+	"github.com/dolittle/platform-api/pkg/platform/microservice/simple"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	"github.com/sirupsen/logrus"
+	"k8s.io/client-go/kubernetes"
 )
 
 type service struct {
-	subscriptionID string
-	// externalClusterHost used to signify the full url to the apiserver outside of the cluster
-	externalClusterHost string
-	gitRepo             storage.Repo
-	k8sDolittleRepo     platform.K8sRepo
-	logContext          logrus.FieldLogger
+	subscriptionID          string
+	externalClusterHost     string
+	simpleRepo              simple.Repo
+	gitRepo                 storage.Repo
+	k8sDolittleRepo         platformK8s.K8sRepo
+	k8sClient               kubernetes.Interface
+	platformOperationsImage string
+	platformEnvironment     string
+	isProduction            bool
+	logContext              logrus.FieldLogger
 }

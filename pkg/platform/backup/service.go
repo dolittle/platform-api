@@ -11,6 +11,7 @@ import (
 
 	azureHelpers "github.com/dolittle/platform-api/pkg/azure"
 	"github.com/dolittle/platform-api/pkg/platform"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	"github.com/dolittle/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
@@ -20,7 +21,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func NewService(logContext logrus.FieldLogger, gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClient kubernetes.Interface) service {
+func NewService(logContext logrus.FieldLogger, gitRepo storage.Repo, k8sDolittleRepo platformK8s.K8sRepo, k8sClient kubernetes.Interface) service {
 	return service{
 		logContext:      logContext,
 		gitRepo:         gitRepo,
@@ -44,17 +45,17 @@ func (s *service) GetLatestByApplication(w http.ResponseWriter, r *http.Request)
 		"environment":   environment,
 	})
 
-	applicationInfo, err := s.gitRepo.GetApplication(tenantID, applicationID)
+	applicationInfo, err := s.gitRepo.GetApplication2(tenantID, applicationID)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
-			"where": "s.gitRepo.GetApplication(tenantID, applicationID)",
+			"where": "s.gitRepo.GetApplication2(tenantID, applicationID)",
 		}).Error("lookup error")
 		utils.RespondWithError(w, http.StatusBadRequest, "Application already exists")
 		return
 	}
 
-	exists := environmentExists(applicationInfo.Environments, environment)
+	exists := storage.EnvironmentExists(applicationInfo.Environments, environment)
 
 	if !exists {
 		utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Environment %s does not exist", environment))
@@ -125,17 +126,17 @@ func (s *service) CreateLink(w http.ResponseWriter, r *http.Request) {
 		"environment":   input.Environment,
 	})
 
-	applicationInfo, err := s.gitRepo.GetApplication(tenantID, input.ApplicationID)
+	applicationInfo, err := s.gitRepo.GetApplication2(tenantID, input.ApplicationID)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
-			"where": "s.gitRepo.GetApplication(tenantID, applicationID)",
+			"where": "s.gitRepo.GetApplication2(tenantID, applicationID)",
 		}).Error("lookup error")
 		utils.RespondWithError(w, http.StatusBadRequest, "Application already exists")
 		return
 	}
 
-	exists := environmentExists(applicationInfo.Environments, input.Environment)
+	exists := storage.EnvironmentExists(applicationInfo.Environments, input.Environment)
 
 	if !exists {
 		utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Environment %s does not exist", input.Environment))
@@ -201,6 +202,7 @@ func (s *service) CreateLink(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// TODO reuse this function
 func environmentExists(environments []platform.HttpInputEnvironment, environment string) bool {
 	return funk.Contains(environments, func(item platform.HttpInputEnvironment) bool {
 		return item.Name == environment

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
+	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/spf13/cobra"
 	networkingv1 "k8s.io/api/networking/v1"
 )
@@ -29,6 +30,16 @@ TODO:
 		// TODO how do you get a name for ingress?
 		// Possible input
 		customersTenantID := "17426336-fb8e-4425-8ab7-07d488367be9"
+		customerTenants := []platform.CustomerTenantInfo{
+			{
+				CustomerTenantID: customersTenantID,
+				Ingress: platform.CustomerTenantIngress{
+					Host:         "freshteapot-taco.dolittle.cloud",
+					SecretName:   "freshteapot-taco-certificate",
+					DomainPrefix: "freshteapot-taco",
+				},
+			},
+		}
 		headImage := "453e04a74f9d42f2b36cd51fa2c83fa3.azurecr.io/taco/order:1.0.6"
 		runtimeImage := "dolittle/runtime:5.3.3"
 		microservice := k8s.Microservice{
@@ -43,7 +54,6 @@ TODO:
 				Name: "Taco",
 			},
 			Environment: "Dev",
-			ResourceID:  customersTenantID,
 		}
 
 		host := "freshteapot-taco.dolittle.cloud"
@@ -59,15 +69,18 @@ TODO:
 			},
 		}
 
+		platformEnvironment := "dev"
+
 		// Dolittle micoservice
-		microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, customersTenantID)
+		microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, customerTenants)
 		deployment := k8s.NewDeployment(microservice, headImage, runtimeImage)
 		service := k8s.NewService(microservice)
-		ingress := k8s.NewIngress(microservice)
+		ingress := k8s.NewMicroserviceIngressWithEmptyRules(platformEnvironment, microservice)
 		configEnvVariables := k8s.NewEnvVariablesConfigmap(microservice)
 		configFiles := k8s.NewConfigFilesConfigmap(microservice)
 		configSecrets := k8s.NewEnvVariablesSecret(microservice)
 
+		ingress = k8s.AddCustomerTenantIDToIngress(customersTenantID, ingress)
 		ingress.Spec.TLS = k8s.AddIngressTLS([]string{host}, secretName)
 		ingress.Spec.Rules = append(ingress.Spec.Rules, k8s.AddIngressRule(host, ingressRules))
 

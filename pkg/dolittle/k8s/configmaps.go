@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/dolittle/platform-api/pkg/platform"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -65,6 +66,7 @@ type AppsettingsLogging struct {
 	Console       AppsettingsConsole  `json:"Console"`
 }
 
+// TODO Many of these are microservice specific, should we move them so they make sense?
 func NewConfigFilesConfigmap(microservice Microservice) *corev1.ConfigMap {
 	name := fmt.Sprintf("%s-%s-config-files",
 		microservice.Environment,
@@ -115,17 +117,38 @@ func NewEnvVariablesConfigmap(microservice Microservice) *corev1.ConfigMap {
 	}
 }
 
-func NewMicroserviceResources(microservice Microservice, customersTenantID string) MicroserviceResources {
+func ResourcePrefix(microserviceID string, customerTenantID string) string {
+	return strings.ToLower(
+		fmt.Sprintf("%s_%s",
+			//microservice.Application.Name, // TODO do we need this, as we are already shared by mongo being in this namespace
+			//microservice.Environment, // TODO this is not needed
+			microserviceID[0:7],
+			customerTenantID[0:7],
+		))
+}
+
+func NewMicroserviceResources(microservice Microservice, customerTenants []platform.CustomerTenantInfo) MicroserviceResources {
+
 	environment := strings.ToLower(microservice.Environment)
 	mongoDNS := fmt.Sprintf("%s-mongo.application-%s.svc.cluster.local", environment, microservice.Application.ID)
-	databasePrefix := strings.ToLower(
-		fmt.Sprintf("%s_%s_%s",
-			microservice.Application.Name,
-			microservice.Environment,
-			microservice.Name,
-		))
-	return MicroserviceResources{
-		customersTenantID: MicroserviceResource{
+
+	resources := MicroserviceResources{}
+
+	for _, customerTenant := range customerTenants {
+		customerTenantID := customerTenant.CustomerTenantID
+		// Uses order database_XXX
+		// Uses order eventstore_XXX
+		// ./Source/V3/Kubernetes/Customers/Wilhelmsen-Ships-Service/LMP/Test/LMP/microservice.yml
+		// TODO we are missing tenantName here if we are to use customerTenantID
+		// TODO because the database is shared, we have to be more unique
+		// hash  of (customerTenantID + microserviceID)
+		// hash  of (customerTenantID + microserviceName)
+
+		// microserviceID first block + customerTenantID first block
+		// ffb20e4f_a74fed4a_readmodels
+		databasePrefix := ResourcePrefix(microservice.ID, customerTenant.CustomerTenantID)
+
+		dolittleResource := MicroserviceResource{
 			Readmodels: MicroserviceResourceReadmodels{
 				Host:     fmt.Sprintf("mongodb://%s-mongo.application-%s.svc.cluster.local:27017", environment, microservice.Application.ID),
 				Database: fmt.Sprintf("%s_readmodels", databasePrefix),
@@ -149,8 +172,11 @@ func NewMicroserviceResources(microservice Microservice, customersTenantID strin
 				},
 				Database: fmt.Sprintf("%s_embeddings", databasePrefix),
 			},
-		},
+		}
+		resources[customerTenantID] = dolittleResource
 	}
+
+	return resources
 }
 
 func NewMicroserviceConfigMapPlatformData(microservice Microservice) MicroservicePlatform {
@@ -165,7 +191,7 @@ func NewMicroserviceConfigMapPlatformData(microservice Microservice) Microservic
 	}
 }
 
-func NewMicroserviceConfigmap(microservice Microservice, customersTenantID string) *corev1.ConfigMap {
+func NewMicroserviceConfigmap(microservice Microservice, customersTenants []platform.CustomerTenantInfo) *corev1.ConfigMap {
 	name := fmt.Sprintf("%s-%s-dolittle",
 		microservice.Environment,
 		microservice.Name,
@@ -176,7 +202,7 @@ func NewMicroserviceConfigmap(microservice Microservice, customersTenantID strin
 
 	name = strings.ToLower(name)
 
-	resources := NewMicroserviceResources(microservice, customersTenantID)
+	resources := NewMicroserviceResources(microservice, customersTenants)
 
 	endpoints := MicroserviceEndpoints{
 		Public: MicroserviceEndpointPort{

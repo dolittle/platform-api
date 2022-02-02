@@ -9,29 +9,31 @@ import (
 
 	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/parser"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/purchaseorderapi"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/rawdatalog"
+	k8sSimple "github.com/dolittle/platform-api/pkg/platform/microservice/simple/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	"github.com/dolittle/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
-	authV1 "k8s.io/api/authorization/v1"
+	authv1 "k8s.io/api/authorization/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/yaml"
 )
 
-func NewService(gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClient kubernetes.Interface, logContext logrus.FieldLogger) service {
+func NewService(platformEnvironment string, gitRepo storage.Repo, k8sDolittleRepo platformK8s.K8sRepo, k8sClient kubernetes.Interface, logContext logrus.FieldLogger) service {
 	parser := parser.NewJsonParser()
-	rawDataLogRepo := rawdatalog.NewRawDataLogIngestorRepo(k8sDolittleRepo, k8sClient, gitRepo, logContext)
+	rawDataLogRepo := rawdatalog.NewRawDataLogIngestorRepo(platformEnvironment, k8sDolittleRepo, k8sClient, gitRepo, logContext)
 	specFactory := purchaseorderapi.NewK8sResourceSpecFactory()
 	k8sResources := purchaseorderapi.NewK8sResource(k8sClient, specFactory)
 
 	return service{
 		gitRepo:                    gitRepo,
-		simpleRepo:                 NewSimpleRepo(k8sClient),
+		simpleRepo:                 k8sSimple.NewSimpleRepo(platformEnvironment, k8sClient, k8sDolittleRepo),
 		businessMomentsAdaptorRepo: NewBusinessMomentsAdaptorRepo(k8sClient),
 		rawDataLogIngestorRepo:     rawDataLogRepo,
 		k8sDolittleRepo:            k8sDolittleRepo,
@@ -47,54 +49,64 @@ func NewService(gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClien
 }
 
 // TODO https://dolittle.freshdesk.com/a/tickets/1352 how to add multiple entries to ingress
-func (s *service) Create(responseWriter http.ResponseWriter, request *http.Request) {
-	disabled := true
-	if disabled {
-		utils.RespondWithError(responseWriter, http.StatusUnprocessableEntity, "Creation of microservice currently disabled")
-		return
-	}
-
+func (s *service) Create(w http.ResponseWriter, request *http.Request) {
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"method": "Create",
 	})
+	// Parse JSON
 	requestBytes, microserviceBase, err := s.readMicroserviceBase(request, logContext)
 	if err != nil {
-		utils.RespondWithError(responseWriter, http.StatusBadRequest, fmt.Errorf("Invalid request payload: %w", err).Error())
+		utils.RespondWithError(w, http.StatusBadRequest, fmt.Errorf("Invalid request payload: %w", err).Error())
 		return
 	}
 	defer request.Body.Close()
 
+	// Confirm customer exists
+	customerID := request.Header.Get("Tenant-ID")
 	applicationID := microserviceBase.Dolittle.ApplicationID
-	environment := microserviceBase.Environment
-
-	applicationInfo, err := s.k8sDolittleRepo.GetApplication(applicationID)
+	studioInfo, err := storage.GetStudioInfo(s.gitRepo, customerID, applicationID, logContext)
 	if err != nil {
-		if !k8serrors.IsNotFound(err) {
-			fmt.Println(err)
-			utils.RespondWithError(responseWriter, http.StatusInternalServerError, "Something went wrong")
-			return
-		}
-
-		utils.RespondWithJSON(responseWriter, http.StatusNotFound, map[string]string{
-			"error": fmt.Sprintf("Application %s not found", applicationID),
-		})
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	customer := k8s.Tenant{
-		ID:   applicationInfo.Tenant.ID,
-		Name: applicationInfo.Tenant.Name,
+		ID:   studioInfo.TerraformCustomer.GUID,
+		Name: studioInfo.TerraformCustomer.Name,
 	}
 
+	// Confirm application exists
+	storedApplication, err := s.gitRepo.GetApplication2(customer.ID, applicationID)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, "Not able to find application in the storage")
+		return
+	}
+
+	// TODO Confirm the application exists
+	// storedApplication.Status.State == storage.BuildStatusStateFinishedSuccess
+	// - is it in terraform?
+	// - is it being made
+
+	// Confirm user has access to this application + customer
 	userID := request.Header.Get("User-ID")
-	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(responseWriter, customer.ID, applicationID, userID)
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customer.ID, applicationID, userID)
 	if !allowed {
 		return
 	}
 
-	if !s.gitRepo.IsAutomationEnabled(customer.ID, applicationID, environment) {
+	environment := microserviceBase.Environment
+	exists := storage.EnvironmentExists(storedApplication.Environments, environment)
+
+	if !exists {
+		utils.RespondWithError(w, http.StatusBadRequest, "Unable to add a microservice to an environment that does not exist")
+		return
+	}
+
+	// TODO is this legacy?
+	// Check if automation enabled
+	if !s.gitRepo.IsAutomationEnabledWithStudioConfig(studioInfo.StudioConfig, applicationID, environment) {
 		utils.RespondWithError(
-			responseWriter,
+			w,
 			http.StatusBadRequest,
 			fmt.Sprintf(
 				"Customer %s with application %s in environment %s does not allow changes via Studio",
@@ -106,38 +118,64 @@ func (s *service) Create(responseWriter http.ResponseWriter, request *http.Reque
 		return
 	}
 
+	customerTenants := make([]platform.CustomerTenantInfo, 0)
+	for _, envInfo := range storedApplication.Environments {
+		if envInfo.Name != environment {
+			continue
+		}
+
+		customerTenants = envInfo.CustomerTenants
+		break
+	}
+
+	// TODO add paths
+	// Refactor this
+	// TODO do we need to confirm the application is in the name space?
+	// Should this really come from the cluster?
+	applicationInfo, err := s.k8sDolittleRepo.GetApplication(applicationID)
+	if err != nil {
+		if !k8serrors.IsNotFound(err) {
+			fmt.Println(err)
+			utils.RespondWithError(w, http.StatusInternalServerError, "Something went wrong")
+			return
+		}
+
+		utils.RespondWithJSON(w, http.StatusNotFound, map[string]string{
+			"error": fmt.Sprintf("Application %s not found", applicationID),
+		})
+		return
+	}
+
+	// TODO check path
 	switch microserviceBase.Kind {
 	case platform.MicroserviceKindSimple:
-		s.handleSimpleMicroservice(responseWriter, request, requestBytes, applicationInfo)
-	case platform.MicroserviceKindBusinessMomentsAdaptor:
-		s.handleBusinessMomentsAdaptor(responseWriter, request, requestBytes, applicationInfo)
-	case platform.MicroserviceKindRawDataLogIngestor:
-		s.handleRawDataLogIngestor(responseWriter, request, requestBytes, applicationInfo)
-	case platform.MicroserviceKindPurchaseOrderAPI:
-		purchaseOrderAPI, err := s.purchaseOrderHandler.Create(requestBytes, applicationInfo)
-		if err != nil {
-			utils.RespondWithError(responseWriter, err.StatusCode, err.Error())
-			break
-		}
-		utils.RespondWithJSON(responseWriter, http.StatusAccepted, purchaseOrderAPI)
+		s.handleSimpleMicroservice(w, request, requestBytes, applicationInfo, customerTenants)
+	// TODO let us get simple to work and we can come back to these others.
+	//case platform.MicroserviceKindBusinessMomentsAdaptor:
+	//	s.handleBusinessMomentsAdaptor(w, request, requestBytes, applicationInfo, customerTenants)
+	//case platform.MicroserviceKindRawDataLogIngestor:
+	//	s.handleRawDataLogIngestor(w, request, requestBytes, applicationInfo)
+	//case platform.MicroserviceKindPurchaseOrderAPI:
+	//	purchaseOrderAPI, err := s.purchaseOrderHandler.Create(requestBytes, applicationInfo)
+	//	if err != nil {
+	//		utils.RespondWithError(w, err.StatusCode, err.Error())
+	//		break
+	//	}
+	//	utils.RespondWithJSON(w, http.StatusAccepted, purchaseOrderAPI)
 	default:
-		utils.RespondWithError(responseWriter, http.StatusBadRequest, fmt.Sprintf("Kind %s is not supported", microserviceBase.Kind))
+		utils.RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("Kind %s is not supported", microserviceBase.Kind))
 	}
 }
 
-func (s *service) Update(responseWriter http.ResponseWriter, request *http.Request) {
-	disabled := true
-	if disabled {
-		utils.RespondWithError(responseWriter, http.StatusUnprocessableEntity, "Update of microservice currently disabled")
-		return
-	}
+func (s *service) Update(w http.ResponseWriter, request *http.Request) {
+	customerID := request.Header.Get("Tenant-ID")
 
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"method": "Update",
 	})
 	requestBytes, microserviceBase, err := s.readMicroserviceBase(request, logContext)
 	if err != nil {
-		utils.RespondWithError(responseWriter, http.StatusBadRequest, fmt.Errorf("Invalid request payload: %w", err).Error())
+		utils.RespondWithError(w, http.StatusBadRequest, fmt.Errorf("Invalid request payload: %w", err).Error())
 		return
 	}
 	defer request.Body.Close()
@@ -145,34 +183,40 @@ func (s *service) Update(responseWriter http.ResponseWriter, request *http.Reque
 	applicationID := microserviceBase.Dolittle.ApplicationID
 	environment := microserviceBase.Environment
 
+	studioInfo, err := storage.GetStudioInfo(s.gitRepo, customerID, applicationID, logContext)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	applicationInfo, err := s.k8sDolittleRepo.GetApplication(applicationID)
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
 			fmt.Println(err)
-			utils.RespondWithError(responseWriter, http.StatusInternalServerError, "Something went wrong")
+			utils.RespondWithError(w, http.StatusInternalServerError, "Something went wrong")
 			return
 		}
 
-		utils.RespondWithJSON(responseWriter, http.StatusNotFound, map[string]string{
+		utils.RespondWithJSON(w, http.StatusNotFound, map[string]string{
 			"error": fmt.Sprintf("Application %s not found", applicationID),
 		})
 		return
 	}
 
 	customer := k8s.Tenant{
-		ID:   applicationInfo.Tenant.ID,
-		Name: applicationInfo.Tenant.Name,
+		ID:   studioInfo.TerraformCustomer.GUID,
+		Name: studioInfo.TerraformCustomer.Name,
 	}
 
 	userID := request.Header.Get("User-ID")
-	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(responseWriter, customer.ID, applicationID, userID)
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customer.ID, applicationID, userID)
 	if !allowed {
 		return
 	}
 
-	if !s.gitRepo.IsAutomationEnabled(customer.ID, applicationID, environment) {
+	if !s.gitRepo.IsAutomationEnabledWithStudioConfig(studioInfo.StudioConfig, applicationID, environment) {
 		utils.RespondWithError(
-			responseWriter,
+			w,
 			http.StatusBadRequest,
 			fmt.Sprintf(
 				"Customer %s with application %s in environment %s does not allow changes via Studio",
@@ -189,11 +233,11 @@ func (s *service) Update(responseWriter http.ResponseWriter, request *http.Reque
 		// TODO handle other updation operations too
 		purchaseOrderAPI, err := s.purchaseOrderHandler.UpdateWebhooks(requestBytes, applicationInfo)
 		if err != nil {
-			utils.RespondWithError(responseWriter, err.StatusCode, err.Error())
+			utils.RespondWithError(w, err.StatusCode, err.Error())
 		}
-		utils.RespondWithJSON(responseWriter, http.StatusOK, purchaseOrderAPI)
+		utils.RespondWithJSON(w, http.StatusOK, purchaseOrderAPI)
 	default:
-		utils.RespondWithError(responseWriter, http.StatusBadRequest, fmt.Sprintf("Kind %s is not supported", microserviceBase.Kind))
+		utils.RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("Kind %s is not supported", microserviceBase.Kind))
 	}
 }
 
@@ -279,27 +323,32 @@ func (s *service) GetByApplicationID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
-	disabled := true
-	if disabled {
-		utils.RespondWithError(w, http.StatusUnprocessableEntity, "Deletion of microservice currently disabled")
-		return
-	}
-
+	logContext := s.logContext.WithFields(logrus.Fields{
+		"method": "Delete",
+	})
 	vars := mux.Vars(r)
 	// I feel we shouldn't need namespace
 	applicationID := vars["applicationID"]
+	// TODO Can we rely on this? or does it have to be exact?
 	environment := strings.ToLower(vars["environment"])
 	microserviceID := vars["microserviceID"]
 	namespace := fmt.Sprintf("application-%s", applicationID)
 
 	userID := r.Header.Get("User-ID")
 	customerID := r.Header.Get("Tenant-ID")
+
+	studioInfo, err := storage.GetStudioInfo(s.gitRepo, customerID, applicationID, logContext)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
 	if !allowed {
 		return
 	}
 
-	if !s.gitRepo.IsAutomationEnabled(customerID, applicationID, environment) {
+	if !s.gitRepo.IsAutomationEnabledWithStudioConfig(studioInfo.StudioConfig, applicationID, environment) {
 		utils.RespondWithError(
 			w,
 			http.StatusBadRequest,
@@ -330,6 +379,7 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 			case platform.MicroserviceKindBusinessMomentsAdaptor:
 				err = s.businessMomentsAdaptorRepo.Delete(applicationID, environment, microserviceID)
 			case platform.MicroserviceKindRawDataLogIngestor:
+				// TODO add environment
 				err = s.rawDataLogIngestorRepo.Delete(namespace, microserviceID)
 			case platform.MicroserviceKindPurchaseOrderAPI:
 				err = s.purchaseOrderHandler.Delete(applicationID, environment, microserviceID)
@@ -576,7 +626,7 @@ func (s *service) GetSecret(w http.ResponseWriter, r *http.Request) {
 
 	secret, err := s.k8sDolittleRepo.GetSecret(logContext, applicationID, secretName)
 	if err != nil {
-		if err == platform.ErrNotFound {
+		if err == platformK8s.ErrNotFound {
 			utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Secret %s not found in application %s", secretName, applicationID))
 			return
 		}
@@ -647,7 +697,7 @@ func (s *service) CanI(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	attribute := authV1.ResourceAttributes{
+	attribute := authv1.ResourceAttributes{
 		Namespace: fmt.Sprintf("application-%s", input.ApplicationID),
 		Verb:      "list",
 		Resource:  "pods",

@@ -22,18 +22,20 @@ var _ = Describe("For k8sResourceSpecFactory", func() {
 
 	Describe("when creating all resources", func() {
 		var (
-			headImage       string
-			runtimeImage    string
-			k8sMicroservice k8s.Microservice
-			result          K8sResources
-			rawDataLogName  string
-			tenant          platform.TenantId
+			headImage        string
+			runtimeImage     string
+			k8sMicroservice  k8s.Microservice
+			result           K8sResources
+			rawDataLogName   string
+			customerTenantID string
+			customerTenants  []platform.CustomerTenantInfo
 		)
 
 		BeforeEach(func() {
 			headImage = "some-head-image"
 			runtimeImage = "some-runtime-image"
 			k8sMicroservice = k8s.Microservice{
+				ID:          "98e31294-98b8-4dba-88d8-916e3851f018",
 				Environment: "Prod",
 				Name:        "ramanujan",
 				Application: k8s.Application{
@@ -41,9 +43,21 @@ var _ = Describe("For k8sResourceSpecFactory", func() {
 					ID:   "12345-789",
 				},
 			}
-			tenant = "fd93dfc9-8c44-4db7-844f-c0fde955792a"
+			customerTenantID = "fd93dfc9-8c44-4db7-844f-c0fde955792a"
 			rawDataLogName = "raw-data-log-123"
-			result = factory.CreateAll(headImage, runtimeImage, k8sMicroservice, tenant, platform.HttpInputPurchaseOrderExtra{
+
+			customerTenants = []platform.CustomerTenantInfo{
+				{
+					CustomerTenantID: customerTenantID,
+					Ingress: platform.CustomerTenantIngress{
+						Host:         "fake-prefix.fake-host",
+						DomainPrefix: "fake-prefix",
+						SecretName:   "fake-prefix",
+					},
+				},
+			}
+
+			result = factory.CreateAll(headImage, runtimeImage, k8sMicroservice, customerTenants, platform.HttpInputPurchaseOrderExtra{
 				RawDataLogName: rawDataLogName,
 			})
 		})
@@ -60,13 +74,14 @@ var _ = Describe("For k8sResourceSpecFactory", func() {
 			Expect(result.ConfigEnvVariables.Data["DATABASE_READMODELS_URL"]).To(Equal("mongodb://prod-mongo.application-12345-789.svc.cluster.local:27017"))
 		})
 		It("should set the correct DATABASE_READMODELS_NAME", func() {
-			Expect(result.ConfigEnvVariables.Data["DATABASE_READMODELS_NAME"]).To(Equal("einstein_prod_ramanujan_readmodels"))
+			Expect(result.ConfigEnvVariables.Data["DATABASE_READMODELS_NAME"]).To(Equal("98e3129_fd93dfc_readmodels"))
 		})
 		It("should set NODE_ENV to 'production'", func() {
 			Expect(result.ConfigEnvVariables.Data["NODE_ENV"]).To(Equal("production"))
 		})
+
 		It("should set TENANT to the todo-customer-tenant-id", func() {
-			Expect(result.ConfigEnvVariables.Data["TENANT"]).To(BeEquivalentTo(tenant))
+			Expect(result.ConfigEnvVariables.Data["TENANT"]).To(BeEquivalentTo(customerTenants[0].CustomerTenantID))
 		})
 		It("should set SERVER_PORT to '8080'", func() {
 			Expect(result.ConfigEnvVariables.Data["SERVER_PORT"]).To(Equal("80"))
