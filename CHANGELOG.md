@@ -1,3 +1,9 @@
+# [2.6.0] - 2022-2-2 [PR: #82](https://github.com/dolittle/platform-api/pull/82)
+## Summary
+
+Including the environment name in the lookup for microservice name
+
+
 # [2.5.3] - 2022-1-28 [PR: #81](https://github.com/dolittle/platform-api/pull/81)
 ## Summary
 
