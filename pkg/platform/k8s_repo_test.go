@@ -6,10 +6,12 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	appsv1 "k8s.io/api/apps/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/testing"
@@ -227,5 +229,88 @@ var _ = Describe("k8s repo test", func() {
 			})
 		})
 
+	})
+
+	When("Getting the microservice name", func() {
+		var (
+			applicationID  string
+			environment    string
+			microserviceID string
+			want           error
+			clientSet      *fake.Clientset
+			config         *rest.Config
+			k8sRepo        platform.K8sRepo
+		)
+
+		BeforeEach(func() {
+			applicationID = "fake-application-123"
+			environment = "Dev"
+			microserviceID = "fake-microservice-123"
+			want = errors.New("fail")
+			clientSet = &fake.Clientset{}
+			config = &rest.Config{}
+			k8sRepo = platform.NewK8sRepo(clientSet, config)
+
+		})
+
+		It("Failed to talk to kubernetes", func() {
+			clientSet.AddReactor("list", "deployments", func(action testing.Action) (handled bool, ret runtime.Object, err error) {
+				return true, &appsv1.DeploymentList{}, want
+			})
+			_, err := k8sRepo.GetMicroserviceName(applicationID, environment, microserviceID)
+			Expect(err).To(Equal(want))
+		})
+		It("Not Found", func() {
+			clientSet.AddReactor("list", "deployments", func(action testing.Action) (handled bool, ret runtime.Object, err error) {
+				filters := action.(testing.ListActionImpl).ListRestrictions
+				Expect(filters.Labels.Matches(labels.Set{"environment": environment, "microservice": string(selection.Exists)})).To(BeTrue())
+
+				data := &appsv1.DeploymentList{
+					Items: []appsv1.Deployment{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "ignore-1",
+								Labels: map[string]string{
+									"environment": environment,
+								},
+							},
+						},
+					},
+				}
+				return true, data, nil
+			})
+
+			_, err := k8sRepo.GetMicroserviceName(applicationID, environment, microserviceID)
+			Expect(err).To(Equal(platform.ErrNotFound))
+		})
+
+		It("Found", func() {
+			clientSet.AddReactor("list", "deployments", func(action testing.Action) (handled bool, ret runtime.Object, err error) {
+				filters := action.(testing.ListActionImpl).ListRestrictions
+				Expect(filters.Labels.Matches(labels.Set{"environment": environment, "microservice": string(selection.Exists)})).To(BeTrue())
+
+				data := &appsv1.DeploymentList{
+					Items: []appsv1.Deployment{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "hello-world",
+								Labels: map[string]string{
+									"environment":  environment,
+									"microservice": "hello-world",
+								},
+								Annotations: map[string]string{
+									"dolittle.io/microservice-id": microserviceID,
+								},
+							},
+						},
+					},
+				}
+				return true, data, nil
+			})
+
+			name, err := k8sRepo.GetMicroserviceName(applicationID, environment, microserviceID)
+			Expect(err).To(BeNil())
+			Expect(name).To(Equal("hello-world"))
+		})
 	})
 })

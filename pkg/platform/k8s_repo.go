@@ -14,7 +14,6 @@ import (
 	"github.com/dolittle/platform-api/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
-	v1 "k8s.io/api/apps/v1"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -217,37 +216,24 @@ func (r *K8sRepo) GetMicroservices(applicationID string) ([]MicroserviceInfo, er
 	return response, err
 }
 
-// TODO Can I add environment here GetMicroserviceName
-func (r *K8sRepo) GetMicroserviceName(applicationID string, microserviceID string) (string, error) {
+func (r *K8sRepo) GetMicroserviceName(applicationID string, environment string, microserviceID string) (string, error) {
 	client := r.k8sClient
 	ctx := context.TODO()
 	namespace := fmt.Sprintf("application-%s", applicationID)
-	deployments, err := client.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{})
+	deployments, err := client.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("environment=%s,microservice", environment),
+	})
+
 	if err != nil {
 		return "", err
 	}
 
-	found := false
-	var foundDeployment v1.Deployment
-
 	for _, deployment := range deployments.Items {
-		_, ok := deployment.ObjectMeta.Labels["microservice"]
-		if !ok {
-			continue
-		}
-
 		if deployment.ObjectMeta.Annotations["dolittle.io/microservice-id"] == microserviceID {
-			found = true
-			foundDeployment = deployment
-			break
+			return deployment.Name, nil
 		}
 	}
-
-	if !found {
-		return "", errors.New("not-found")
-	}
-
-	return foundDeployment.Name, err
+	return "", ErrNotFound
 }
 
 func (r *K8sRepo) GetPodStatus(applicationID string, environment string, microserviceID string) (PodData, error) {
