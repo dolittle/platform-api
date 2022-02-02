@@ -99,6 +99,7 @@ var serverCMD = &cobra.Command{
 			externalClusterHost,
 			gitRepo,
 			k8sRepo,
+			logrus.WithField("context", "application-service"),
 		)
 		tenantService := tenant.NewService()
 		businessMomentsService := businessmoment.NewService(
