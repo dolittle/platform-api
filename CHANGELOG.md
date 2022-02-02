@@ -1,3 +1,10 @@
+# [2.7.0] - 2022-2-2 [PR: #83](https://github.com/dolittle/platform-api/pull/83)
+## Summary
+
+- Reducing the amount of information used for the personalised-info, to that which is currently used in Studio.
+- `GetStudioInfo` function to reduce the boiler plate of getting requried info per request.
+
+
 # [2.6.0] - 2022-2-2 [PR: #82](https://github.com/dolittle/platform-api/pull/82)
 ## Summary
 
