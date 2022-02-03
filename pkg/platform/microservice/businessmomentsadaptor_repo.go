@@ -16,6 +16,7 @@ import (
 	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/platform/automate"
+	"github.com/dolittle/platform-api/pkg/platform/customertenant"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/businessmomentsadaptor"
 	microserviceK8s "github.com/dolittle/platform-api/pkg/platform/microservice/k8s"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -56,16 +57,6 @@ func (r businessMomentsAdaptorRepo) Create(namespace string, tenant dolittleK8s.
 		Kind:        r.kind,
 	}
 
-	ingressServiceName := strings.ToLower(fmt.Sprintf("%s-%s", microservice.Environment, microservice.Name))
-	ingressRules := []dolittleK8s.SimpleIngressRule{
-		{
-			Path:            input.Extra.Ingress.Path,
-			PathType:        networkingv1.PathType(input.Extra.Ingress.Pathtype),
-			ServiceName:     ingressServiceName,
-			ServicePortName: "http",
-		},
-	}
-
 	microserviceConfigmap := dolittleK8s.NewMicroserviceConfigmap(microservice, customerTenants)
 	deployment := dolittleK8s.NewDeployment(microservice, headImage, runtimeImage)
 	service := dolittleK8s.NewService(microservice)
@@ -76,19 +67,16 @@ func (r businessMomentsAdaptorRepo) Create(namespace string, tenant dolittleK8s.
 	configSecrets := dolittleK8s.NewEnvVariablesSecret(microservice)
 	configBusinessMoments := businessmomentsadaptor.NewBusinessMomentsConfigmap(microservice)
 
-	ingresses := make([]*networkingv1.Ingress, 0)
-	for _, customerTenant := range customerTenants {
-
-		ingress := dolittleK8s.NewMicroserviceIngressWithEmptyRules(r.platformEnvironment, microservice)
-		// TODO should customerTenant.CustomerTenantID[0:7] be a hash?
-		newName := fmt.Sprintf("%s-%s", ingress.ObjectMeta.Name, customerTenant.CustomerTenantID[0:7])
-		ingress.ObjectMeta.Name = newName
-		ingress = dolittleK8s.AddCustomerTenantIDToIngress(customerTenant.CustomerTenantID, ingress)
-		ingress.Spec.TLS = dolittleK8s.AddIngressTLS([]string{customerTenant.Ingress.Host}, customerTenant.Ingress.SecretName)
-		ingress.Spec.Rules = append(ingress.Spec.Rules, dolittleK8s.AddIngressRule(customerTenant.Ingress.Host, ingressRules))
-
-		ingresses = append(ingresses, ingress)
+	ingressServiceName := strings.ToLower(fmt.Sprintf("%s-%s", microservice.Environment, microservice.Name))
+	ingressRules := []dolittleK8s.SimpleIngressRule{
+		{
+			Path:            input.Extra.Ingress.Path,
+			PathType:        networkingv1.PathType(input.Extra.Ingress.Pathtype),
+			ServiceName:     ingressServiceName,
+			ServicePortName: "http",
+		},
 	}
+	ingresses := customertenant.CreateIngresses(r.platformEnvironment, customerTenants, microservice, ingressRules)
 
 	token := ""
 

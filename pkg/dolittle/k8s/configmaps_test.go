@@ -20,22 +20,27 @@ var _ = Describe("Configmaps", func() {
 			customerTenantID string
 			customerTenants  []platform.CustomerTenantInfo
 			resource         *corev1.ConfigMap
+			microserviceID   string
 		)
 
 		BeforeEach(func() {
 			customerTenantID = "fake-customer-tenant-id-123"
+			microserviceID = "c974b165-38d7-4745-9c62-f78fa615682a"
 			customerTenants = []platform.CustomerTenantInfo{
 				{
 					CustomerTenantID: customerTenantID,
-					Ingress: platform.CustomerTenantIngress{
-						Host:         "fake-prefix.fake-host",
-						DomainPrefix: "fake-prefix",
-						SecretName:   "fake-prefix",
+					Ingresses: []platform.CustomerTenantIngress{
+						{
+							MicroserviceID: microserviceID,
+							Host:           "fake-prefix.fake-host",
+							DomainPrefix:   "fake-prefix",
+							SecretName:     "fake-prefix",
+						},
 					},
 				},
 			}
 			microservice = Microservice{
-				ID:          "c974b165-38d7-4745-9c62-f78fa615682a",
+				ID:          microserviceID,
 				Name:        "LeliaKim",
 				Environment: "AndreJensen",
 				Tenant: Tenant{

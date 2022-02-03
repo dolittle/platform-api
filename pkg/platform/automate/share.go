@@ -152,6 +152,22 @@ func SerializeRuntimeObject(runtimeObject runtime.Object) []byte {
 	return buf.Bytes()
 }
 
+func GetCustomerTenantsConfigMaps(ctx context.Context, client kubernetes.Interface, namespace string) ([]corev1.ConfigMap, error) {
+	results := make([]corev1.ConfigMap, 0)
+	configmaps, err := client.CoreV1().ConfigMaps(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return results, err
+	}
+
+	for _, configMap := range configmaps.Items {
+		if !strings.HasSuffix(configMap.GetName(), "-tenants") {
+			continue
+		}
+		results = append(results, configMap)
+	}
+	return results, nil
+}
+
 func GetDolittleConfigMaps(ctx context.Context, client kubernetes.Interface, namespace string) ([]corev1.ConfigMap, error) {
 	results := make([]corev1.ConfigMap, 0)
 	configmaps, err := client.CoreV1().ConfigMaps(namespace).List(ctx, metav1.ListOptions{})
@@ -198,16 +214,16 @@ func GetDolittleConfigMap(ctx context.Context, client kubernetes.Interface, appl
 }
 
 func GetDeployments(ctx context.Context, client kubernetes.Interface, namespace string) ([]appsv1.Deployment, error) {
-	deployments, err := client.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{})
+	deployments, err := client.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: "microservice",
+	})
+
 	if err != nil {
 		return nil, err
 	}
 
 	var microserviceDeployments []appsv1.Deployment
 	for _, deployment := range deployments.Items {
-		if _, ok := deployment.Labels["microservice"]; !ok {
-			continue
-		}
 		if _, ok := deployment.Annotations["dolittle.io/microservice-id"]; !ok {
 			continue
 		}

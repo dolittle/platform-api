@@ -10,12 +10,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func NewDevelopmentCustomerTenantInfo(environment string, indexID int, microserviceID string) platform.CustomerTenantInfo {
-	return NewCustomerTenantInfo(environment, indexID, microserviceID, platform.DevelopmentCustomersTenantID)
+func NewDevelopmentCustomerTenantInfo(environment string, microserviceID string) platform.CustomerTenantInfo {
+	return NewCustomerTenantInfo(environment, microserviceID, platform.DevelopmentCustomersTenantID)
 }
 
-// TODO remove indexID, we are not using it
-func NewCustomerTenantInfo(environment string, indexID int, microserviceID string, customerTenantID string) platform.CustomerTenantInfo {
+func NewCustomerTenantInfo(environment string, microserviceID string, customerTenantID string) platform.CustomerTenantInfo {
 	// TODO how do we make sure the host is not already in use
 	// Do we look it up in the cluster (source of truth)
 	// Do we rely on the data in git?
@@ -23,20 +22,22 @@ func NewCustomerTenantInfo(environment string, indexID int, microserviceID strin
 	return platform.CustomerTenantInfo{
 		Environment:      environment,
 		CustomerTenantID: customerTenantID,
-		Ingress:          NewCustomerTenantIngress(),
+		Ingresses: []platform.CustomerTenantIngress{
+			NewCustomerTenantIngress(microserviceID),
+		},
 		MicroservicesRel: []platform.CustomerTenantMicroserviceRel{
 			{
 				MicroserviceID: microserviceID,
 				Hash:           ResourcePrefix(microserviceID, customerTenantID),
 			},
 		},
-		RuntimeInfo: platform.CustomerTenantRuntimeStorageInfo{
-			DatabasePrefix: ResourcePrefix(microserviceID, customerTenantID),
-		},
+		//RuntimeInfo: platform.CustomerTenantRuntimeStorageInfo{
+		//	DatabasePrefix: ResourcePrefix(microserviceID, customerTenantID),
+		//},
 	}
 }
 
-func NewCustomerTenantIngress() platform.CustomerTenantIngress {
+func NewCustomerTenantIngress(microserviceID string) platform.CustomerTenantIngress {
 	domainPrefix := namesgenerator.GetRandomName(-1)
 	domainPrefix = strings.ReplaceAll(domainPrefix, "_", "-")
 
@@ -44,9 +45,10 @@ func NewCustomerTenantIngress() platform.CustomerTenantIngress {
 	secretName := fmt.Sprintf("%s-certificate", domainPrefix)
 
 	return platform.CustomerTenantIngress{
-		Host:         host,
-		DomainPrefix: domainPrefix,
-		SecretName:   secretName,
+		MicroserviceID: microserviceID,
+		Host:           host,
+		DomainPrefix:   domainPrefix,
+		SecretName:     secretName,
 	}
 }
 

@@ -96,7 +96,7 @@ var _ = Describe("Repo", func() {
 					Tenants:       make([]string, 0),
 					Ingresses:     make([]storage.JSONEnvironmentIngress2, 0),
 					CustomerTenants: []platform.CustomerTenantInfo{
-						dolittleK8s.NewDevelopmentCustomerTenantInfo(environment, 0, welcomeMicroserviceID),
+						dolittleK8s.NewDevelopmentCustomerTenantInfo(environment, welcomeMicroserviceID),
 					},
 					WelcomeMicroserviceID: welcomeMicroserviceID,
 				},

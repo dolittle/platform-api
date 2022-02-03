@@ -5,8 +5,10 @@ import (
 	"log"
 
 	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
+	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
 
+	"github.com/dolittle/platform-api/pkg/platform/customertenant"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
@@ -454,16 +456,6 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 		Kind:        kind,
 	}
 
-	ingressServiceName := strings.ToLower(fmt.Sprintf("%s-%s", microservice.Environment, microservice.Name))
-	ingressRules := []k8s.SimpleIngressRule{
-		{
-			Path:            input.Extra.Ingress.Path,
-			PathType:        networkingv1.PathType(input.Extra.Ingress.Pathtype),
-			ServiceName:     ingressServiceName,
-			ServicePortName: "http",
-		},
-	}
-
 	// TODO I don't understand why we are creating microserviceconfigmap, yet.
 	// TODO update should not allow changes to:
 	// - name
@@ -474,20 +466,26 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, []platform.CustomerTenantInfo{customerTenant})
 	deployment := k8s.NewDeployment(microservice, headImage, runtimeImage)
 	service := k8s.NewService(microservice)
-	ingress := k8s.NewMicroserviceIngressWithEmptyRules(platformEnvironment, microservice)
+
 	networkPolicy := k8s.NewNetworkPolicy(microservice)
 	configEnvVariables := k8s.NewEnvVariablesConfigmap(microservice)
 	configFiles := k8s.NewConfigFilesConfigmap(microservice)
 	configSecrets := k8s.NewEnvVariablesSecret(microservice)
 	// TODO add rawDataLog Configmap
 	//configBusinessMoments := businessmomentsadaptor.NewBusinessMomentsConfigmap(microservice)
-	ingress = k8s.AddCustomerTenantIDToIngress(customerTenant.CustomerTenantID, ingress)
 
-	newName := fmt.Sprintf("%s-%s", ingress.ObjectMeta.Name, customerTenant.CustomerTenantID[0:7])
-	ingress.ObjectMeta.Name = newName
-	ingress.Spec.TLS = k8s.AddIngressTLS([]string{customerTenant.Ingress.Host}, customerTenant.Ingress.SecretName)
-	ingress.Spec.Rules = append(ingress.Spec.Rules, k8s.AddIngressRule(customerTenant.Ingress.Host, ingressRules))
-
+	// TODO this needs coming back to when / if we want to bring rawdatalog back online
+	ingressServiceName := strings.ToLower(fmt.Sprintf("%s-%s", microservice.Environment, microservice.Name))
+	ingressRules := []dolittleK8s.SimpleIngressRule{
+		{
+			Path:            input.Extra.Ingress.Path,
+			PathType:        networkingv1.PathType(input.Extra.Ingress.Pathtype),
+			ServiceName:     ingressServiceName,
+			ServicePortName: "http",
+		},
+	}
+	ingresses := customertenant.CreateIngresses(platformEnvironment, []platform.CustomerTenantInfo{customerTenant}, microservice, ingressRules)
+	ingress := ingresses[0]
 	// Could use config-files
 
 	webhookPrefix := strings.ToLower(input.Extra.Ingress.Path)
@@ -683,8 +681,10 @@ func (r RawDataLogIngestorRepo) getCustomerTenantForHost(customer k8s.Tenant, ap
 	}
 
 	for _, customerTenant := range env.CustomerTenants {
-		if strings.EqualFold(customerTenant.Ingress.Host, host) {
-			return customerTenant, nil
+		for _, ingressConfig := range customerTenant.Ingresses {
+			if strings.EqualFold(ingressConfig.Host, host) {
+				return customerTenant, nil
+			}
 		}
 	}
 

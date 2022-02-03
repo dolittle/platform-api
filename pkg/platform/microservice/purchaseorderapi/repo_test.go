@@ -47,10 +47,13 @@ var _ = Describe("For repo", func() {
 		customerTenants = []platform.CustomerTenantInfo{
 			{
 				CustomerTenantID: customerTenantID,
-				Ingress: platform.CustomerTenantIngress{
-					Host:         "fake-prefix.fake-host",
-					DomainPrefix: "fake-prefix",
-					SecretName:   "fake-prefix",
+				Ingresses: []platform.CustomerTenantIngress{
+					{
+						MicroserviceID: "fake-microservice-id",
+						Host:           "fake-prefix.fake-host",
+						DomainPrefix:   "fake-prefix",
+						SecretName:     "fake-prefix",
+					},
 				},
 			},
 		}

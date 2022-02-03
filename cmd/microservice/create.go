@@ -29,14 +29,18 @@ TODO:
 	Run: func(cmd *cobra.Command, args []string) {
 		// TODO how do you get a name for ingress?
 		// Possible input
+		microserviceID := "9f6a613f-d969-4938-a1ac-5b7df199bc40"
 		customersTenantID := "17426336-fb8e-4425-8ab7-07d488367be9"
 		customerTenants := []platform.CustomerTenantInfo{
 			{
 				CustomerTenantID: customersTenantID,
-				Ingress: platform.CustomerTenantIngress{
-					Host:         "freshteapot-taco.dolittle.cloud",
-					SecretName:   "freshteapot-taco-certificate",
-					DomainPrefix: "freshteapot-taco",
+				Ingresses: []platform.CustomerTenantIngress{
+					{
+						MicroserviceID: microserviceID,
+						Host:           "freshteapot-taco.dolittle.cloud",
+						SecretName:     "freshteapot-taco-certificate",
+						DomainPrefix:   "freshteapot-taco",
+					},
 				},
 			},
 		}

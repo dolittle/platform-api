@@ -49,10 +49,13 @@ var _ = Describe("For k8sResourceSpecFactory", func() {
 			customerTenants = []platform.CustomerTenantInfo{
 				{
 					CustomerTenantID: customerTenantID,
-					Ingress: platform.CustomerTenantIngress{
-						Host:         "fake-prefix.fake-host",
-						DomainPrefix: "fake-prefix",
-						SecretName:   "fake-prefix",
+					Ingresses: []platform.CustomerTenantIngress{
+						{
+							MicroserviceID: k8sMicroservice.ID,
+							Host:           "fake-prefix.fake-host",
+							DomainPrefix:   "fake-prefix",
+							SecretName:     "fake-prefix",
+						},
 					},
 				},
 			}

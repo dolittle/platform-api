@@ -67,19 +67,19 @@ func NewResources(
 
 	ingresses := make([]*networkingv1.Ingress, 0)
 	for _, customerTenant := range customerTenants {
-		// TODO needs a name / currently using indexID
-		ingress := k8s.NewMicroserviceIngressWithEmptyRules(platformEnvironment, microservice)
-		// TODO This could be the customerTenantID
-		// TODO this could be hashed {env}-{hash}
+		// TODO we could have a listener that updates the git repo with the latest paths, for each customerTenant
+		// But then we should write that as SimpleRules?
+		for _, ingressConfig := range customerTenant.Ingresses {
+			ingress := k8s.NewMicroserviceIngressWithEmptyRules(platformEnvironment, microservice)
+			newName := fmt.Sprintf("%s-%s", ingress.ObjectMeta.Name, customerTenant.CustomerTenantID[0:7])
+			ingress.ObjectMeta.Name = newName
+			ingress = k8s.AddCustomerTenantIDToIngress(customerTenant.CustomerTenantID, ingress)
+			ingress.Spec.TLS = k8s.AddIngressTLS([]string{ingressConfig.Host}, ingressConfig.SecretName)
+			ingress.Spec.Rules = append(ingress.Spec.Rules, k8s.AddIngressRule(ingressConfig.Host, ingressRules))
 
-		newName := fmt.Sprintf("%s-%s", ingress.ObjectMeta.Name, customerTenant.CustomerTenantID[0:7])
+			ingresses = append(ingresses, ingress)
+		}
 
-		ingress.ObjectMeta.Name = newName
-		ingress = k8s.AddCustomerTenantIDToIngress(customerTenant.CustomerTenantID, ingress)
-		ingress.Spec.TLS = k8s.AddIngressTLS([]string{customerTenant.Ingress.Host}, customerTenant.Ingress.SecretName)
-		ingress.Spec.Rules = append(ingress.Spec.Rules, k8s.AddIngressRule(customerTenant.Ingress.Host, ingressRules))
-
-		ingresses = append(ingresses, ingress)
 	}
 
 	return MicroserviceResources{

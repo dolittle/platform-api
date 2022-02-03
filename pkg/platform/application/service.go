@@ -126,7 +126,7 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 	for _, environment := range environments {
 		// TODO this could development microserviceID const (ask @joel)
 		welcomeMicroserviceID := uuid.New().String()
-		customerTenant := dolittleK8s.NewDevelopmentCustomerTenantInfo(environment, 0, welcomeMicroserviceID)
+		customerTenant := dolittleK8s.NewDevelopmentCustomerTenantInfo(environment, welcomeMicroserviceID)
 		environmentInfo := storage.JSONEnvironment2{
 			Name:          environment,
 			TenantID:      tenant.ID,

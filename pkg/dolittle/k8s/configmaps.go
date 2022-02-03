@@ -11,8 +11,17 @@ import (
 )
 
 type emptyObject struct{}
+
 type MicroserviceResources map[string]MicroserviceResource
 
+// MicroserviceResource
+/*
+Today we have custom variables for the respective  databases
+Going forward we are looking to use a key based on the microserviceID and the customerTenantID
+At the moment we do not need to know the individual information as we can consume the data as
+one whole object.
+The main reason for the new approach is to create a repeatable approach with a very low level of collision for the prefix
+*/
 type MicroserviceResource struct {
 	Readmodels  MicroserviceResourceReadmodels `json:"readModels"`
 	Eventstore  MicroserviceResourceStore      `json:"eventStore"`
@@ -22,7 +31,7 @@ type MicroserviceResource struct {
 type MicroserviceResourceReadmodels struct {
 	Host     string `json:"host"`
 	Database string `json:"database"`
-	Usessl   bool   `json:"useSSL"`
+	Usessl   bool   `json:"useSSL"` // TODO this should be UseSSL
 }
 type MicroserviceResourceStore struct {
 	Servers  []string `json:"servers"`
@@ -127,6 +136,8 @@ func ResourcePrefix(microserviceID string, customerTenantID string) string {
 		))
 }
 
+// NewMicroserviceResources
+// Build the microservice resource creating custmoer tenants specific blocks
 func NewMicroserviceResources(microservice Microservice, customerTenants []platform.CustomerTenantInfo) MicroserviceResources {
 
 	environment := strings.ToLower(microservice.Environment)

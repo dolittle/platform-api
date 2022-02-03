@@ -7,11 +7,14 @@ import (
 
 	"github.com/dolittle/platform-api/pkg/git"
 	"github.com/dolittle/platform-api/pkg/platform"
+	"github.com/dolittle/platform-api/pkg/platform/automate"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
+	"github.com/dolittle/platform-api/pkg/platform/manual"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"k8s.io/client-go/kubernetes"
 )
 
 var buildApplicationInfoCMD = &cobra.Command{
@@ -24,7 +27,7 @@ var buildApplicationInfoCMD = &cobra.Command{
 	GIT_REPO_DRY_RUN=true \
 	GIT_REPO_DIRECTORY="/tmp/dolittle-local-dev" \
 	GIT_REPO_DIRECTORY_ONLY=true \
-	go run main.go microservice build-application-info
+	go run main.go tools studio build-application-info
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
@@ -40,8 +43,16 @@ var buildApplicationInfoCMD = &cobra.Command{
 		)
 
 		ctx := context.TODO()
-		k8sClient, _ := platformK8s.InitKubernetesClient()
+		k8sClient, k8sConfig := platformK8s.InitKubernetesClient()
 
+		k8sRepo := platformK8s.NewK8sRepo(k8sClient, k8sConfig, logContext.WithField("context", "k8s-repo"))
+
+		manualRepo := manual.NewManualHelper(k8sClient, k8sRepo, logContext.WithField("context", "manual-repo"))
+
+		namespace := args[0]
+		manualRepo.GatherOne(namespace)
+		return
+		fmt.Println(manualRepo)
 		// TODO if the namespace had a label or annotation...
 		// TODO Currently cheap to look up all
 		logContext.Info("Starting to extract applications from the cluster")
@@ -53,6 +64,24 @@ var buildApplicationInfoCMD = &cobra.Command{
 		SaveApplications(gitRepo, filteredApplications, logContext)
 		logContext.Info("Done!")
 	},
+}
+
+func extractApplications2(ctx context.Context, client kubernetes.Interface, k8sRepo platformK8s.K8sRepo) []storage.JSONApplication2 {
+	// TODO use this to storage.ConvertFromPlatformHttpResponseApplication(application)
+	applications := make([]storage.JSONApplication2, 0)
+
+	for _, namespace := range automate.GetNamespaces(ctx, client) {
+		if !automate.IsApplicationNamespace(namespace) {
+			continue
+			//applications = append(applications, getApplicationFromK8s(ctx, client, namespace))
+		}
+
+		//Get customerTenants
+
+		// Get Environments
+	}
+
+	return applications
 }
 
 // SaveApplications saves the Applications into applications.json and also creates a default studio.json if

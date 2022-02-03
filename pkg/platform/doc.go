@@ -442,29 +442,37 @@ type MicroserviceMetadataShortInfo struct {
 type RuntimeTenantsIDS map[string]interface{}
 
 type CustomerTenantInfo struct {
-	Alias            string                           `json:"alias"`
-	Environment      string                           `json:"environment"`
-	CustomerTenantID string                           `json:"customerTenantId"`
-	Ingress          CustomerTenantIngress            `json:"ingress"`
-	MicroservicesRel []CustomerTenantMicroserviceRel  `json:"microservicesRel"`
-	RuntimeInfo      CustomerTenantRuntimeStorageInfo `json:"runtime"`
+	Alias            string                          `json:"alias"`
+	Environment      string                          `json:"environment"`
+	CustomerTenantID string                          `json:"customerTenantId"`
+	Ingresses        []CustomerTenantIngress         `json:"ingress"`
+	MicroservicesRel []CustomerTenantMicroserviceRel `json:"microservicesRel"`
+	//RuntimeInfo      CustomerTenantRuntimeStorageInfo `json:"runtime"`
 }
 
+// TODO remove
+// TODO should this be in the relationship?
+// TODO Right now, we don't use this at all.
 type CustomerTenantRuntimeStorageInfo struct {
 	DatabasePrefix string `json:"databasePrefix"`
+	// TODO we could add extra info here ie get the actual value from readModesl and eventStore etc
+	// Currently tempted not too
 }
 
 type CustomerTenantIngress struct {
-	Host         string `json:"host"`
-	DomainPrefix string `json:"domainPrefix"`
-	SecretName   string `json:"secretName"`
+	MicroserviceID string `json:"microserviceId"`
+	Host           string `json:"host"`
+	DomainPrefix   string `json:"domainPrefix"`
+	SecretName     string `json:"secretName"`
+	Path           string `json:"path,omitempty"`
 }
 
 type CustomerTenantMicroserviceRel struct {
-	MicroserviceID string `json:"microserviceID"`
+	MicroserviceID string `json:"microserviceId"`
 	// ffb20e4f_a74fed4a
 	// (microserviceID first block + customerTenantID first block)
 	Hash string `json:"hash"`
+	// We could have a legacy option here to include the current data, but why?
 }
 
 type Customer struct {
