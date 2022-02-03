@@ -658,6 +658,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 	return nil
 }
 
+// TODO Maybbe we remove this
 func (r RawDataLogIngestorRepo) getCustomerTenantForHost(customer k8s.Tenant, application k8s.Application, environment string, host string) (platform.CustomerTenantInfo, error) {
 	app, err := r.gitRepo.GetApplication2(customer.ID, application.ID)
 	if err != nil {
@@ -670,7 +671,7 @@ func (r RawDataLogIngestorRepo) getCustomerTenantForHost(customer k8s.Tenant, ap
 	}
 
 	for _, customerTenant := range env.CustomerTenants {
-		for _, ingressConfig := range customerTenant.Ingresses {
+		for _, ingressConfig := range customerTenant.Hosts {
 			if strings.EqualFold(ingressConfig.Host, host) {
 				return customerTenant, nil
 			}

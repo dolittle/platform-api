@@ -119,12 +119,10 @@ var _ = Describe("Repo", func() {
 								CustomerTenants: []platform.CustomerTenantInfo{
 									{
 										CustomerTenantID: "f4679b71-1215-4a60-8483-53b0d5f2bb47",
-										Ingresses: []platform.CustomerTenantIngress{
+										Hosts: []platform.CustomerTenantHost{
 											{
-												MicroserviceID: "",
-												Host:           "",
-												DomainPrefix:   "",
-												SecretName:     "",
+												Host:       "",
+												SecretName: "",
 											},
 										},
 									},
@@ -156,21 +154,19 @@ var _ = Describe("Repo", func() {
 									{
 										//CustomerTenantID: "80d6e5b5-2047-4e0b-81d7-9be3748a41aa",
 										CustomerTenantID: "3d0dcaf6-bbd1-4d84-b119-186472d65ea6",
-										Ingresses: []platform.CustomerTenantIngress{
+										Hosts: []platform.CustomerTenantHost{
 											{
-												Host:         "some-other.domain.name",
-												DomainPrefix: "some-other",
-												SecretName:   "some-other-certificate",
+												Host:       "some-other.domain.name",
+												SecretName: "some-other-certificate",
 											},
 										},
 									},
 									{
 										CustomerTenantID: "c7e1d7f1-450b-4122-a08c-6d0f37051318",
-										Ingresses: []platform.CustomerTenantIngress{
+										Hosts: []platform.CustomerTenantHost{
 											{
-												Host:         "some-last.domain.name",
-												DomainPrefix: "some-last",
-												SecretName:   "some-last-certificate",
+												Host:       "some-last.domain.name",
+												SecretName: "some-last-certificate",
 											},
 										},
 									},
@@ -219,11 +215,10 @@ var _ = Describe("Repo", func() {
 								CustomerTenants: []platform.CustomerTenantInfo{
 									{
 										CustomerTenantID: customerTenantID,
-										Ingresses: []platform.CustomerTenantIngress{
+										Hosts: []platform.CustomerTenantHost{
 											{
-												Host:         "some-fancy.domain.name",
-												DomainPrefix: "some-fancy",
-												SecretName:   "some-fancy-certificate",
+												Host:       "some-fancy.domain.name",
+												SecretName: "some-fancy-certificate",
 											},
 										},
 									},

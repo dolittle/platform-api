@@ -433,13 +433,19 @@ type MicroserviceMetadataShortInfo struct {
 
 type RuntimeTenantsIDS map[string]interface{}
 
+// CustomerTenantInfo
+// Today this is specific for high level customer tenant info,
+// This does not contain all the low level data across all our customers,
+// We rely on code for that, at the moment
 type CustomerTenantInfo struct {
-	Alias            string                          `json:"alias"`
-	Environment      string                          `json:"environment"`
-	CustomerTenantID string                          `json:"customerTenantId"`
-	Hosts            []CustomerTenantHost            `json:"hosts"`
+	Alias            string               `json:"alias"`
+	Environment      string               `json:"environment"`
+	CustomerTenantID string               `json:"customerTenantId"`
+	Hosts            []CustomerTenantHost `json:"hosts"`
+	// TODO remove in favour of Hosts?
 	Ingresses        []CustomerTenantIngress         `json:"ingresses"`
 	MicroservicesRel []CustomerTenantMicroserviceRel `json:"microservicesRel"`
+	// TODO remove as its not useful yet
 	//RuntimeInfo      CustomerTenantRuntimeStorageInfo `json:"runtime"`
 }
 
