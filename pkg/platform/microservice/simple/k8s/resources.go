@@ -1,14 +1,11 @@
 package k8s
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
+	"github.com/dolittle/platform-api/pkg/platform/customertenant"
 	microserviceK8s "github.com/dolittle/platform-api/pkg/platform/microservice/k8s"
 
-	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 )
 
@@ -49,38 +46,11 @@ func NewResources(
 	configFiles := k8s.NewConfigFilesConfigmap(microservice)
 	secretEnvVariables := k8s.NewEnvVariablesSecret(microservice)
 
-	// TODO This is wrong
-	// Should return policyRules for use with "developer"
-	//role, roleBinding := microserviceK8s.NewMicroserviceRbac(microservice.Name, microservice.ID, string(microservice.Kind), tenant, application, environment, subjects)
-	policyRules := microserviceK8s.NewMicroservicePolicyRoles(microservice.Name, environment)
+	// Return policyRules for use with "developer"
+	policyRules := microserviceK8s.NewMicroservicePolicyRules(microservice.Name, environment)
 
 	// Ingress section
-	ingressServiceName := strings.ToLower(fmt.Sprintf("%s-%s", microservice.Environment, microservice.Name))
-	ingressRules := []k8s.SimpleIngressRule{
-		{
-			Path:            input.Extra.Ingress.Path,
-			PathType:        networkingv1.PathType(input.Extra.Ingress.Pathtype),
-			ServiceName:     ingressServiceName,
-			ServicePortName: "http",
-		},
-	}
-
-	ingresses := make([]*networkingv1.Ingress, 0)
-	for _, customerTenant := range customerTenants {
-		// TODO we could have a listener that updates the git repo with the latest paths, for each customerTenant
-		// But then we should write that as SimpleRules?
-		for _, ingressConfig := range customerTenant.Ingresses {
-			ingress := k8s.NewMicroserviceIngressWithEmptyRules(platformEnvironment, microservice)
-			newName := fmt.Sprintf("%s-%s", ingress.ObjectMeta.Name, customerTenant.CustomerTenantID[0:7])
-			ingress.ObjectMeta.Name = newName
-			ingress = k8s.AddCustomerTenantIDToIngress(customerTenant.CustomerTenantID, ingress)
-			ingress.Spec.TLS = k8s.AddIngressTLS([]string{ingressConfig.Host}, ingressConfig.SecretName)
-			ingress.Spec.Rules = append(ingress.Spec.Rules, k8s.AddIngressRule(ingressConfig.Host, ingressRules))
-
-			ingresses = append(ingresses, ingress)
-		}
-
-	}
+	ingresses := customertenant.CreateIngresses(platformEnvironment, customerTenants, microservice, service.Name, input.Extra.Ingress)
 
 	return MicroserviceResources{
 		Service:                    service,

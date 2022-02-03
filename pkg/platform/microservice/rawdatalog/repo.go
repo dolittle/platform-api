@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
-	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
 
 	"github.com/dolittle/platform-api/pkg/platform/customertenant"
@@ -21,7 +20,6 @@ import (
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8slabels "k8s.io/apimachinery/pkg/labels"
@@ -475,16 +473,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 	//configBusinessMoments := businessmomentsadaptor.NewBusinessMomentsConfigmap(microservice)
 
 	// TODO this needs coming back to when / if we want to bring rawdatalog back online
-	ingressServiceName := strings.ToLower(fmt.Sprintf("%s-%s", microservice.Environment, microservice.Name))
-	ingressRules := []dolittleK8s.SimpleIngressRule{
-		{
-			Path:            input.Extra.Ingress.Path,
-			PathType:        networkingv1.PathType(input.Extra.Ingress.Pathtype),
-			ServiceName:     ingressServiceName,
-			ServicePortName: "http",
-		},
-	}
-	ingresses := customertenant.CreateIngresses(platformEnvironment, []platform.CustomerTenantInfo{customerTenant}, microservice, ingressRules)
+	ingresses := customertenant.CreateIngresses(platformEnvironment, []platform.CustomerTenantInfo{customerTenant}, microservice, service.Name, input.Extra.Ingress)
 	ingress := ingresses[0]
 	// Could use config-files
 

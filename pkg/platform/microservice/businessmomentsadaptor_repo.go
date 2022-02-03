@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 
 	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
@@ -19,7 +18,6 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform/customertenant"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/businessmomentsadaptor"
 	microserviceK8s "github.com/dolittle/platform-api/pkg/platform/microservice/k8s"
-	networkingv1 "k8s.io/api/networking/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -67,16 +65,7 @@ func (r businessMomentsAdaptorRepo) Create(namespace string, tenant dolittleK8s.
 	configSecrets := dolittleK8s.NewEnvVariablesSecret(microservice)
 	configBusinessMoments := businessmomentsadaptor.NewBusinessMomentsConfigmap(microservice)
 
-	ingressServiceName := strings.ToLower(fmt.Sprintf("%s-%s", microservice.Environment, microservice.Name))
-	ingressRules := []dolittleK8s.SimpleIngressRule{
-		{
-			Path:            input.Extra.Ingress.Path,
-			PathType:        networkingv1.PathType(input.Extra.Ingress.Pathtype),
-			ServiceName:     ingressServiceName,
-			ServicePortName: "http",
-		},
-	}
-	ingresses := customertenant.CreateIngresses(r.platformEnvironment, customerTenants, microservice, ingressRules)
+	ingresses := customertenant.CreateIngresses(r.platformEnvironment, customerTenants, microservice, service.Name, input.Extra.Ingress)
 
 	token := ""
 

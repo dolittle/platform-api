@@ -40,7 +40,7 @@ func NewMicroserviceRbac(microserviceName string, microserviceID string, microse
 
 	prefix := strings.ToLower(fmt.Sprintf("%s-%s", environment, microserviceName))
 	name := strings.ToLower(fmt.Sprintf("developer-%s", prefix))
-	rules := NewMicroservicePolicyRoles(microserviceName, environment)
+	rules := NewMicroservicePolicyRules(microserviceName, environment)
 	role = &rbacv1.Role{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Role",
@@ -76,7 +76,7 @@ func NewMicroserviceRbac(microserviceName string, microserviceID string, microse
 	return role, roleBinding
 }
 
-func NewMicroservicePolicyRoles(microserviceName string, environment string) []rbacv1.PolicyRule {
+func NewMicroservicePolicyRules(microserviceName string, environment string) []rbacv1.PolicyRule {
 	prefix := strings.ToLower(fmt.Sprintf("%s-%s", environment, microserviceName))
 
 	configMaps := []string{

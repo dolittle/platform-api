@@ -15,6 +15,7 @@ import (
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -317,6 +318,17 @@ func GetAllCustomerMicroservices(ctx context.Context, client kubernetes.Interfac
 	return microservices, nil
 }
 
+func GetNamespacesWithApplication(ctx context.Context, client kubernetes.Interface) []corev1.Namespace {
+	namespacesList, err := client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{
+		LabelSelector: "tenant,application",
+	})
+
+	if err != nil {
+		panic(err.Error())
+	}
+	return namespacesList.Items
+}
+
 func GetNamespaces(ctx context.Context, client kubernetes.Interface) []corev1.Namespace {
 	namespacesList, err := client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -469,4 +481,13 @@ func AddVolumeMountToContainer(ctx context.Context,
 	}
 
 	return nil
+}
+
+func GetIngresses(ctx context.Context, client kubernetes.Interface, namespace string) ([]networkingv1.Ingress, error) {
+	ingressList, err := client.NetworkingV1().Ingresses(namespace).List(ctx, metav1.ListOptions{})
+
+	if err != nil {
+		return []networkingv1.Ingress{}, err
+	}
+	return ingressList.Items, nil
 }

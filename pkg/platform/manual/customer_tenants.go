@@ -27,17 +27,31 @@ func (r Repo) GetIngressesByEnvironment(namespace string, environment string) (*
 }
 
 func (r Repo) GetIngressessByCustomerTenantID(ingresses *networkingv1.IngressList, customerTenantID string) ([]networkingv1.Ingress, error) {
-	found := funk.Filter(ingresses.Items, func(ingress networkingv1.Ingress) bool {
+	filtered := funk.Filter(ingresses.Items, func(ingress networkingv1.Ingress) bool {
 		tenantHeaderAnnotation := ingress.GetObjectMeta().GetAnnotations()["nginx.ingress.kubernetes.io/configuration-snippet"]
 		proxyHeaderTenantID := platformK8s.GetCustomerTenantIDFromNginxConfigurationSnippet(tenantHeaderAnnotation)
 		return proxyHeaderTenantID == customerTenantID
 	}).([]networkingv1.Ingress)
 
-	if len(found) == 0 {
+	uniq := make([]networkingv1.Ingress, 0)
+	for _, ingress := range filtered {
+		match := funk.Contains(uniq, func(current networkingv1.Ingress) bool {
+			hostA := current.Spec.TLS[0].Hosts[0]
+			hostB := ingress.Spec.TLS[0].Hosts[0]
+			return hostA == hostB
+		})
+
+		if match {
+			continue
+		}
+		uniq = append(uniq, ingress)
+	}
+
+	if len(uniq) == 0 {
 		return []networkingv1.Ingress{}, errors.New("not-found")
 	}
 
-	return found, nil
+	return uniq, nil
 }
 
 func (r Repo) GetCustomerTenantIngresses(ingresses *networkingv1.IngressList, customerTenantID string, logContext logrus.FieldLogger) []platform.CustomerTenantIngress {

@@ -77,7 +77,7 @@ var _ = Describe("Repo", func() {
 					Kind: platform.MicroserviceKindRawDataLogIngestor,
 				},
 				Extra: platform.HttpInputRawDataLogIngestorExtra{
-					Ingress: platform.HttpInputRawDataLogIngestorIngress{
+					Ingress: platform.HttpInputSimpleIngress{
 						Host:     "some-fancy.domain.name",
 						Path:     "/api/not-webhooks-just-to-be-sure",
 						Pathtype: "SpecialTypeNotActuallySupported",

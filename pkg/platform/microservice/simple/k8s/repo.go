@@ -125,7 +125,7 @@ func (r k8sRepo) Delete(applicationID, environment, microserviceID string) error
 	// TODO can i get the name? it should be the deployment name
 	// Label Environment micoservice
 	microserviceName := deployment.Labels["Microservice"]
-	policyRules := microserviceK8s.NewMicroservicePolicyRoles(microserviceName, environment)
+	policyRules := microserviceK8s.NewMicroservicePolicyRules(microserviceName, environment)
 
 	if err = microserviceK8s.K8sStopDeployment(r.k8sClient, ctx, namespace, &deployment); err != nil {
 		return err

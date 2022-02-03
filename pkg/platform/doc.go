@@ -188,10 +188,9 @@ type HttpInputDolittle struct {
 }
 
 type HttpInputSimpleIngress struct {
-	Host         string `json:"host"`
-	DomainPrefix string `json:"domainPrefix"` // Not happy with this part
-	Path         string `json:"path"`
-	Pathtype     string `json:"pathType"`
+	Host     string `json:"host"`
+	Path     string `json:"path"`
+	Pathtype string `json:"pathType"`
 }
 
 type HttpInputSimpleInfo struct {
@@ -244,19 +243,12 @@ type HttpInputRawDataLogIngestorInfo struct {
 }
 
 type HttpInputRawDataLogIngestorExtra struct {
-	Headimage                 string                             `json:"headImage"`
-	Runtimeimage              string                             `json:"runtimeImage"`
-	Ingress                   HttpInputRawDataLogIngestorIngress `json:"ingress"`
-	Webhooks                  []RawDataLogIngestorWebhookConfig  `json:"webhooks"`
-	WebhookStatsAuthorization string                             `json:"webhookStatsAuthorization"`
-	WriteTo                   string                             `json:"writeTo"`
-}
-
-type HttpInputRawDataLogIngestorIngress struct {
-	Host         string `json:"host"`
-	DomainPrefix string `json:"domainPrefix"`
-	Path         string `json:"path"`
-	Pathtype     string `json:"pathType"`
+	Headimage                 string                            `json:"headImage"`
+	Runtimeimage              string                            `json:"runtimeImage"`
+	Ingress                   HttpInputSimpleIngress            `json:"ingress"`
+	Webhooks                  []RawDataLogIngestorWebhookConfig `json:"webhooks"`
+	WebhookStatsAuthorization string                            `json:"webhookStatsAuthorization"`
+	WriteTo                   string                            `json:"writeTo"`
 }
 
 type RawDataLogIngestorWebhookConfig struct {
@@ -344,11 +336,11 @@ type HttpInputPurchaseOrderInfo struct {
 }
 
 type HttpInputPurchaseOrderExtra struct {
-	Headimage      string                             `json:"headImage"`
-	Runtimeimage   string                             `json:"runtimeImage"`
-	Ingress        HttpInputRawDataLogIngestorIngress `json:"ingress"`
-	Webhooks       []RawDataLogIngestorWebhookConfig  `json:"webhooks"`
-	RawDataLogName string                             `json:"rawDataLogName"`
+	Headimage      string                            `json:"headImage"`
+	Runtimeimage   string                            `json:"runtimeImage"`
+	Ingress        HttpInputSimpleIngress            `json:"ingress"`
+	Webhooks       []RawDataLogIngestorWebhookConfig `json:"webhooks"`
+	RawDataLogName string                            `json:"rawDataLogName"`
 }
 
 type TerraformApplication struct {
@@ -445,7 +437,8 @@ type CustomerTenantInfo struct {
 	Alias            string                          `json:"alias"`
 	Environment      string                          `json:"environment"`
 	CustomerTenantID string                          `json:"customerTenantId"`
-	Ingresses        []CustomerTenantIngress         `json:"ingress"`
+	Hosts            []CustomerTenantHost            `json:"hosts"`
+	Ingresses        []CustomerTenantIngress         `json:"ingresses"`
 	MicroservicesRel []CustomerTenantMicroserviceRel `json:"microservicesRel"`
 	//RuntimeInfo      CustomerTenantRuntimeStorageInfo `json:"runtime"`
 }
@@ -457,6 +450,19 @@ type CustomerTenantRuntimeStorageInfo struct {
 	DatabasePrefix string `json:"databasePrefix"`
 	// TODO we could add extra info here ie get the actual value from readModesl and eventStore etc
 	// Currently tempted not too
+}
+
+const (
+	HostNotInSystem = "na"
+	HostLookUp      = ""
+)
+
+type CustomerTenantHost struct {
+	Host string `json:"host"`
+	// If empty get it from the cluster?
+	// If not in the cluster make
+	// na = not in the cluster
+	SecretName string `json:"secretName"`
 }
 
 type CustomerTenantIngress struct {
