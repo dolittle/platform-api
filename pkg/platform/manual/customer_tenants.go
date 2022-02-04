@@ -122,7 +122,7 @@ func (r Repo) GetCustomerTenants(ctx context.Context, namespace string) []platfo
 
 		customerTenantIDS := r.GetCustomerTenantIDSByEnvironment(namespace, environment)
 
-		ingresses, err := r.k8sRepoV2.GetIngressesByEnvironmentWithMicoservices(namespace, environment)
+		ingresses, err := r.k8sRepoV2.GetIngressesByEnvironmentWithMicoservice(namespace, environment)
 		if err != nil {
 			panic(err)
 		}

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/dolittle/platform-api/pkg/k8s"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 
 	configK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
@@ -295,15 +296,17 @@ func ConvertObjectMetaToMicroservice(objectMeta metav1.Object) configK8s.Microse
 	}
 }
 
-func GetAllCustomerMicroservices(ctx context.Context, client kubernetes.Interface) ([]configK8s.Microservice, error) {
+func GetAllCustomerMicroservices(repo k8s.Repo) ([]configK8s.Microservice, error) {
 	microservices := make([]configK8s.Microservice, 0)
 	deployments := make([]appsv1.Deployment, 0)
-	namespaces := GetNamespaces(ctx, client)
+	namespaces, _ := repo.GetNamespacesWithApplication()
 	for _, namespace := range namespaces {
+		// TODO Do we need this extra check?
+		// TODO should we move it to the above?
 		if !IsApplicationNamespace(namespace) {
 			continue
 		}
-		specific, err := GetDeployments(ctx, client, namespace.Name)
+		specific, err := repo.GetDeploymentsWithMicroservice(namespace.Name)
 		if err != nil {
 			return microservices, err
 		}
@@ -315,14 +318,6 @@ func GetAllCustomerMicroservices(ctx context.Context, client kubernetes.Interfac
 		microservices = append(microservices, microservice)
 	}
 	return microservices, nil
-}
-
-func GetNamespaces(ctx context.Context, client kubernetes.Interface) []corev1.Namespace {
-	namespacesList, err := client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
-	if err != nil {
-		panic(err.Error())
-	}
-	return namespacesList.Items
 }
 
 func IsApplicationNamespace(namespace corev1.Namespace) bool {

@@ -594,7 +594,7 @@ func (r *K8sRepo) GetIngressURLsWithCustomerTenantID(applicationID string, envir
 	namespace := GetApplicationNamespace(applicationID)
 	urls := make([]platform.IngressURLWithCustomerTenantID, 0)
 
-	ingresses, err := r.k8sRepoV2.GetIngressesByEnvironmentWithMicoservices(namespace, environment)
+	ingresses, err := r.k8sRepoV2.GetIngressesByEnvironmentWithMicoservice(namespace, environment)
 
 	if err != nil {
 		return urls, err
@@ -630,7 +630,7 @@ func (r *K8sRepo) GetIngressHTTPIngressPath(applicationID string, environment st
 	namespace := GetApplicationNamespace(applicationID)
 	items := make([]networkingv1.HTTPIngressPath, 0)
 
-	ingresses, err := r.k8sRepoV2.GetIngressesByEnvironmentWithMicoservices(namespace, environment)
+	ingresses, err := r.k8sRepoV2.GetIngressesByEnvironmentWithMicoservice(namespace, environment)
 
 	if err != nil {
 		return items, err
