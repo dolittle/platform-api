@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/dolittle/platform-api/pkg/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/automate"
-	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -14,14 +14,18 @@ import (
 
 type Repo struct {
 	client     kubernetes.Interface
-	k8sRepo    platformK8s.K8sRepo
+	k8sRepoV2  k8s.Repo
 	logContext logrus.FieldLogger
 }
 
-func NewManualHelper(client kubernetes.Interface, k8sRepo platformK8s.K8sRepo, logContext logrus.FieldLogger) Repo {
+func NewManualHelper(
+	client kubernetes.Interface,
+	k8sRepoV2 k8s.Repo,
+	logContext logrus.FieldLogger,
+) Repo {
 	return Repo{
 		client:     client,
-		k8sRepo:    k8sRepo,
+		k8sRepoV2:  k8sRepoV2,
 		logContext: logContext,
 	}
 }

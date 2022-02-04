@@ -34,12 +34,10 @@ TODO:
 		customerTenants := []platform.CustomerTenantInfo{
 			{
 				CustomerTenantID: customersTenantID,
-				Ingresses: []platform.CustomerTenantIngress{
+				Hosts: []platform.CustomerTenantHost{
 					{
-						MicroserviceID: microserviceID,
-						Host:           "freshteapot-taco.dolittle.cloud",
-						SecretName:     "freshteapot-taco-certificate",
-						DomainPrefix:   "freshteapot-taco",
+						Host:       "freshteapot-taco.dolittle.cloud",
+						SecretName: "freshteapot-taco-certificate",
 					},
 				},
 			},
@@ -47,7 +45,7 @@ TODO:
 		headImage := "453e04a74f9d42f2b36cd51fa2c83fa3.azurecr.io/taco/order:1.0.6"
 		runtimeImage := "dolittle/runtime:5.3.3"
 		microservice := k8s.Microservice{
-			ID:   "9f6a613f-d969-4938-a1ac-5b7df199bc40",
+			ID:   microserviceID,
 			Name: "Order2",
 			Tenant: k8s.Tenant{
 				ID:   "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3",

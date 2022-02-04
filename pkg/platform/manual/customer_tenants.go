@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 
 	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
@@ -14,20 +13,10 @@ import (
 	"github.com/thoas/go-funk"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (r Repo) GetIngressesByEnvironment(namespace string, environment string) (*networkingv1.IngressList, error) {
-	ctx := context.TODO()
-	opts := metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("tenant,environment=%s,microservice", environment),
-	}
-
-	return r.client.NetworkingV1().Ingresses(namespace).List(ctx, opts)
-}
-
-func (r Repo) GetIngressessByCustomerTenantID(ingresses *networkingv1.IngressList, customerTenantID string) ([]networkingv1.Ingress, error) {
-	filtered := funk.Filter(ingresses.Items, func(ingress networkingv1.Ingress) bool {
+func (r Repo) GetIngressessByCustomerTenantID(ingresses []networkingv1.Ingress, customerTenantID string) ([]networkingv1.Ingress, error) {
+	filtered := funk.Filter(ingresses, func(ingress networkingv1.Ingress) bool {
 		tenantHeaderAnnotation := ingress.GetObjectMeta().GetAnnotations()["nginx.ingress.kubernetes.io/configuration-snippet"]
 		proxyHeaderTenantID := platformK8s.GetCustomerTenantIDFromNginxConfigurationSnippet(tenantHeaderAnnotation)
 		return proxyHeaderTenantID == customerTenantID
@@ -54,38 +43,27 @@ func (r Repo) GetIngressessByCustomerTenantID(ingresses *networkingv1.IngressLis
 	return uniq, nil
 }
 
-func (r Repo) GetCustomerTenantIngresses(ingresses *networkingv1.IngressList, customerTenantID string, logContext logrus.FieldLogger) []platform.CustomerTenantIngress {
+func (r Repo) GetCustomerTenantHosts(ingresses []networkingv1.Ingress, customerTenantID string, logContext logrus.FieldLogger) []platform.CustomerTenantHost {
 	filtered, err := r.GetIngressessByCustomerTenantID(ingresses, customerTenantID)
 
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
 		}).Error("Failed to find one ingress")
-		return []platform.CustomerTenantIngress{}
+		return []platform.CustomerTenantHost{}
 	}
 
-	items := make([]platform.CustomerTenantIngress, 0)
+	items := make([]platform.CustomerTenantHost, 0)
 	for _, ingress := range filtered {
-		microserviceID := ingress.Annotations["dolittle.io/microservice-id"]
-
 		host := ingress.Spec.TLS[0].Hosts[0]
 		secretName := ingress.Spec.TLS[0].SecretName
-		domainPrefix := "na"
 
-		for _, rule := range ingress.Spec.Rules {
-			for _, ingressPath := range rule.HTTP.Paths {
-				item := platform.CustomerTenantIngress{
-					MicroserviceID: microserviceID,
-					Host:           host,
-					SecretName:     secretName,
-					DomainPrefix:   domainPrefix,
-					Path:           ingressPath.Path,
-				}
-				items = append(items, item)
-			}
+		item := platform.CustomerTenantHost{
+			Host:       host,
+			SecretName: secretName,
 		}
+		items = append(items, item)
 	}
-
 	return items
 }
 
@@ -144,7 +122,7 @@ func (r Repo) GetCustomerTenants(ctx context.Context, namespace string) []platfo
 
 		customerTenantIDS := r.GetCustomerTenantIDSByEnvironment(namespace, environment)
 
-		ingresses, err := r.GetIngressesByEnvironment(namespace, environment)
+		ingresses, err := r.k8sRepoV2.GetIngressesByEnvironmentWithMicoservices(namespace, environment)
 		if err != nil {
 			panic(err)
 		}
@@ -163,12 +141,11 @@ func (r Repo) GetCustomerTenants(ctx context.Context, namespace string) []platfo
 			item := platform.CustomerTenantInfo{
 				Environment:      environment,
 				CustomerTenantID: customerTenantID,
-				Ingresses:        []platform.CustomerTenantIngress{},
-				MicroservicesRel: []platform.CustomerTenantMicroserviceRel{},
-				//RuntimeInfo:      platform.CustomerTenantRuntimeStorageInfo{},
+				Hosts:            make([]platform.CustomerTenantHost, 0),
+				MicroservicesRel: make([]platform.CustomerTenantMicroserviceRel, 0),
 			}
 
-			item.Ingresses = r.GetCustomerTenantIngresses(ingresses, customerTenantID, logContext)
+			item.Hosts = r.GetCustomerTenantHosts(ingresses, customerTenantID, logContext)
 			item.MicroservicesRel = r.GetCustomerTenantMicroserviceRelationships(filteredDolittleConfigMaps, customerTenantID, logContext)
 			items = append(items, item)
 		}

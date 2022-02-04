@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/dolittle/platform-api/pkg/git"
+	"github.com/dolittle/platform-api/pkg/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/platform/automate"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
@@ -43,11 +44,11 @@ var buildApplicationInfoCMD = &cobra.Command{
 		)
 
 		ctx := context.TODO()
-		k8sClient, k8sConfig := platformK8s.InitKubernetesClient()
+		k8sClient, _ := platformK8s.InitKubernetesClient()
 
-		k8sRepo := platformK8s.NewK8sRepo(k8sClient, k8sConfig, logContext.WithField("context", "k8s-repo"))
-
-		manualRepo := manual.NewManualHelper(k8sClient, k8sRepo, logContext.WithField("context", "manual-repo"))
+		//k8sRepo := platformK8s.NewK8sRepo(k8sClient, k8sConfig, logContext.WithField("context", "k8s-repo"))
+		k8sRepoV2 := k8s.NewRepo(k8sClient, logContext.WithField("context", "k8s-repo-v2"))
+		manualRepo := manual.NewManualHelper(k8sClient, k8sRepoV2, logContext.WithField("context", "manual-repo"))
 
 		namespace := args[0]
 		manualRepo.GatherOne(namespace)

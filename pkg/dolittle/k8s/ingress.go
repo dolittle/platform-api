@@ -25,18 +25,12 @@ func NewCustomerTenantInfo(environment string, microserviceID string, customerTe
 		Hosts: []platform.CustomerTenantHost{
 			NewCustomerTenantHost(microserviceID),
 		},
-		Ingresses: []platform.CustomerTenantIngress{
-			NewCustomerTenantIngress(microserviceID),
-		},
 		MicroservicesRel: []platform.CustomerTenantMicroserviceRel{
 			{
 				MicroserviceID: microserviceID,
 				Hash:           ResourcePrefix(microserviceID, customerTenantID),
 			},
 		},
-		//RuntimeInfo: platform.CustomerTenantRuntimeStorageInfo{
-		//	DatabasePrefix: ResourcePrefix(microserviceID, customerTenantID),
-		//},
 	}
 }
 
@@ -49,22 +43,6 @@ func NewCustomerTenantHost(microserviceID string) platform.CustomerTenantHost {
 	return platform.CustomerTenantHost{
 		Host:       host,
 		SecretName: secretName,
-	}
-}
-
-// TODO REMOVE
-func NewCustomerTenantIngress(microserviceID string) platform.CustomerTenantIngress {
-	domainPrefix := namesgenerator.GetRandomName(-1)
-	domainPrefix = strings.ReplaceAll(domainPrefix, "_", "-")
-
-	host := fmt.Sprintf("%s.dolittle.cloud", domainPrefix)
-	secretName := fmt.Sprintf("%s-certificate", domainPrefix)
-
-	return platform.CustomerTenantIngress{
-		MicroserviceID: microserviceID,
-		Host:           host,
-		DomainPrefix:   domainPrefix,
-		SecretName:     secretName,
 	}
 }
 

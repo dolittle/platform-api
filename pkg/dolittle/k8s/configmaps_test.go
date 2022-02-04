@@ -29,12 +29,10 @@ var _ = Describe("Configmaps", func() {
 			customerTenants = []platform.CustomerTenantInfo{
 				{
 					CustomerTenantID: customerTenantID,
-					Ingresses: []platform.CustomerTenantIngress{
+					Hosts: []platform.CustomerTenantHost{
 						{
-							MicroserviceID: microserviceID,
-							Host:           "fake-prefix.fake-host",
-							DomainPrefix:   "fake-prefix",
-							SecretName:     "fake-prefix",
+							Host:       "fake-prefix.fake-host",
+							SecretName: "fake-prefix",
 						},
 					},
 				},

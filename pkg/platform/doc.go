@@ -442,20 +442,8 @@ type CustomerTenantInfo struct {
 	Environment      string               `json:"environment"`
 	CustomerTenantID string               `json:"customerTenantId"`
 	Hosts            []CustomerTenantHost `json:"hosts"`
-	// TODO remove in favour of Hosts?
-	Ingresses        []CustomerTenantIngress         `json:"ingresses"`
-	MicroservicesRel []CustomerTenantMicroserviceRel `json:"microservicesRel"`
-	// TODO remove as its not useful yet
-	//RuntimeInfo      CustomerTenantRuntimeStorageInfo `json:"runtime"`
-}
 
-// TODO remove
-// TODO should this be in the relationship?
-// TODO Right now, we don't use this at all.
-type CustomerTenantRuntimeStorageInfo struct {
-	DatabasePrefix string `json:"databasePrefix"`
-	// TODO we could add extra info here ie get the actual value from readModesl and eventStore etc
-	// Currently tempted not too
+	MicroservicesRel []CustomerTenantMicroserviceRel `json:"microservicesRel"`
 }
 
 const (
