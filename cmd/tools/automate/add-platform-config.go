@@ -7,7 +7,7 @@ import (
 	"os"
 
 	configK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
-	"github.com/dolittle/platform-api/pkg/platform"
+	"github.com/dolittle/platform-api/pkg/k8s"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -55,6 +55,7 @@ Add platform.json to one or all dolittle configmaps & Runtime containers volumeM
 
 		ctx := context.TODO()
 		k8sClient, _ := platformK8s.InitKubernetesClient()
+		k8sRepoV2 := k8s.NewRepo(k8sClient, logger.WithField("context", "k8s-repo-v2"))
 
 		doAll, _ := cmd.Flags().GetBool("all")
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
@@ -67,7 +68,7 @@ Add platform.json to one or all dolittle configmaps & Runtime containers volumeM
 		})
 
 		if doAll {
-			microservices, err := automate.GetAllCustomerMicroservices(ctx, k8sClient)
+			microservices, err := automate.GetAllCustomerMicroservices(k8sRepoV2)
 			if err != nil {
 				logContext.Fatal(err.Error())
 			}
@@ -135,7 +136,7 @@ func addPlatformDataToMicroservice(ctx context.Context, client kubernetes.Interf
 
 	configMap, err := automate.GetDolittleConfigMap(ctx, client, applicationID, environment, microserviceID)
 	if err != nil {
-		if err != platform.ErrNotFound {
+		if err != platformK8s.ErrNotFound {
 			logContext.WithFields(logrus.Fields{
 				"error": err,
 			}).Fatal("Failed to get dolittle configmap")
@@ -166,7 +167,7 @@ func addPlatformDataToMicroservice(ctx context.Context, client kubernetes.Interf
 
 	deployment, err := automate.GetDeployment(ctx, client, applicationID, environment, microserviceID)
 	if err != nil {
-		if err != platform.ErrNotFound {
+		if err != platformK8s.ErrNotFound {
 			logContext.WithFields(logrus.Fields{
 				"error": err,
 			}).Fatal("Failed to get deployment")
