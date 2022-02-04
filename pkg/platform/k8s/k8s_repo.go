@@ -47,23 +47,6 @@ func NewK8sRepo(k8sClient kubernetes.Interface, config *rest.Config, logContext 
 	}
 }
 
-func (r *K8sRepo) GetIngress(applicationID string) (string, error) {
-	ctx := context.TODO()
-	opts := metav1.ListOptions{
-		LabelSelector: "",
-	}
-
-	namespace := GetApplicationNamespace(applicationID)
-	ingresses, _ := r.k8sClient.NetworkingV1().Ingresses(namespace).List(ctx, opts)
-	for _, ingress := range ingresses.Items {
-		if len(ingress.Spec.Rules) > 0 {
-			return ingress.Spec.Rules[0].Host, nil
-		}
-	}
-
-	return "", errors.New("")
-}
-
 func (r *K8sRepo) GetApplication(applicationID string) (platform.Application, error) {
 	client := r.k8sClient
 	ctx := context.TODO()
