@@ -80,8 +80,6 @@ var serverCMD = &cobra.Command{
 		)
 
 		go func() {
-			// gitRepo Pull is not a interface method, perhaps we need an update method, which is storage specific... hmm
-			// Or use it directly as *GitStorage hmm
 			job.NewListenForJobs(k8sClient, gitRepo, logContext)
 		}()
 
