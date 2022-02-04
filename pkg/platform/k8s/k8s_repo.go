@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dolittle/platform-api/pkg/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/utils"
 	"github.com/sirupsen/logrus"
@@ -35,12 +36,14 @@ type K8sRepo struct {
 	baseConfig *rest.Config
 	k8sClient  kubernetes.Interface
 	logContext logrus.FieldLogger
+	k8sRepoV2  k8s.Repo
 	// DO we add logcontext?
 }
 
 func NewK8sRepo(k8sClient kubernetes.Interface, config *rest.Config, logContext logrus.FieldLogger) K8sRepo {
-
+	k8sRepoV2 := k8s.NewRepo(k8sClient, logContext.WithField("context", "k8s-repo-v2"))
 	return K8sRepo{
+		k8sRepoV2:  k8sRepoV2,
 		baseConfig: config,
 		k8sClient:  k8sClient,
 		logContext: logContext,
@@ -69,12 +72,12 @@ func (r *K8sRepo) GetApplication(applicationID string) (platform.Application, er
 		},
 	}
 
-	ingresses, err := r.k8sClient.NetworkingV1().Ingresses(namespace).List(ctx, metav1.ListOptions{})
+	ingresses, err := r.k8sRepoV2.GetIngresses(namespace)
 	if err != nil {
 		return platform.Application{}, err
 	}
 
-	for _, ingress := range ingresses.Items {
+	for _, ingress := range ingresses {
 		if len(ingress.Spec.TLS) > 0 {
 
 			labelMap := ingress.GetObjectMeta().GetLabels()
@@ -588,20 +591,16 @@ func (r *K8sRepo) GetRestConfig() *rest.Config {
 }
 
 func (r *K8sRepo) GetIngressURLsWithCustomerTenantID(applicationID string, environment string, microserviceID string) ([]platform.IngressURLWithCustomerTenantID, error) {
-	client := r.k8sClient
-	ctx := context.TODO()
 	namespace := GetApplicationNamespace(applicationID)
 	urls := make([]platform.IngressURLWithCustomerTenantID, 0)
 
-	ingresses, err := client.NetworkingV1().Ingresses(namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("environment=%s", environment),
-	})
+	ingresses, err := r.k8sRepoV2.GetIngressesByEnvironmentWithMicoservices(namespace, environment)
 
 	if err != nil {
 		return urls, err
 	}
 
-	for _, ingress := range ingresses.Items {
+	for _, ingress := range ingresses {
 		annotationsMap := ingress.GetAnnotations()
 		if annotationsMap["dolittle.io/microservice-id"] != microserviceID {
 			continue
@@ -628,20 +627,16 @@ func (r *K8sRepo) GetIngressURLsWithCustomerTenantID(applicationID string, envir
 
 // GetIngressHTTPIngressPath Return unique Ingress Paths
 func (r *K8sRepo) GetIngressHTTPIngressPath(applicationID string, environment string, microserviceID string) ([]networkingv1.HTTPIngressPath, error) {
-	client := r.k8sClient
-	ctx := context.TODO()
 	namespace := GetApplicationNamespace(applicationID)
 	items := make([]networkingv1.HTTPIngressPath, 0)
 
-	ingresses, err := client.NetworkingV1().Ingresses(namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("environment=%s", environment),
-	})
+	ingresses, err := r.k8sRepoV2.GetIngressesByEnvironmentWithMicoservices(namespace, environment)
 
 	if err != nil {
 		return items, err
 	}
 
-	for _, ingress := range ingresses.Items {
+	for _, ingress := range ingresses {
 		annotationsMap := ingress.GetAnnotations()
 		if annotationsMap["dolittle.io/microservice-id"] != microserviceID {
 			continue
