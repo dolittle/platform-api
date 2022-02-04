@@ -111,7 +111,7 @@ var _ = Describe("Repo", func() {
 					On("GetApplication", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
 					Return(storage.JSONApplication{
 
-						Environments: []storage.JSONEnvironment2{
+						Environments: []storage.JSONEnvironment{
 							{
 								Name: "LoisMay",
 								CustomerTenants: []platform.CustomerTenantInfo{
@@ -143,7 +143,7 @@ var _ = Describe("Repo", func() {
 				gitRepo.
 					On("GetApplication", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
 					Return(storage.JSONApplication{
-						Environments: []storage.JSONEnvironment2{
+						Environments: []storage.JSONEnvironment{
 							{
 								Name: "LoisMay",
 								CustomerTenants: []platform.CustomerTenantInfo{
@@ -198,7 +198,7 @@ var _ = Describe("Repo", func() {
 				gitRepo.
 					On("GetApplication", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
 					Return(storage.JSONApplication{
-						Environments: []storage.JSONEnvironment2{
+						Environments: []storage.JSONEnvironment{
 							{
 								Name: "LoisMay",
 								CustomerTenants: []platform.CustomerTenantInfo{

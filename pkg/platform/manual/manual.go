@@ -36,7 +36,7 @@ func NewManualHelper(
 
 func (r Repo) GatherOne(platformEnvironment string, namespace string) (storage.JSONApplication, error) {
 	application := storage.JSONApplication{
-		Environments: make([]storage.JSONEnvironment2, 0),
+		Environments: make([]storage.JSONEnvironment, 0),
 	}
 	ctx := context.TODO()
 	client := r.client
@@ -58,7 +58,7 @@ func (r Repo) GatherOne(platformEnvironment string, namespace string) (storage.J
 	environmentNames := r.GetEnvironmentNames(ctx, namespace)
 
 	for _, environmentName := range environmentNames {
-		environment := storage.JSONEnvironment2{
+		environment := storage.JSONEnvironment{
 			Name: environmentName,
 			CustomerTenants: funk.Filter(customerTenants, func(customerTenant platform.CustomerTenantInfo) bool {
 				return customerTenant.Environment == environmentName

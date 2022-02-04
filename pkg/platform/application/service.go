@@ -114,7 +114,7 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		Name:         input.Name,
 		TenantID:     tenant.ID,
 		TenantName:   tenant.Name,
-		Environments: make([]storage.JSONEnvironment2, 0),
+		Environments: make([]storage.JSONEnvironment, 0),
 		Status: storage.JSONBuildStatus{
 			State:     storage.BuildStatusStateWaiting,
 			StartedAt: time.Now().UTC().Format(time.RFC3339),
@@ -127,7 +127,7 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		// TODO this could development microserviceID const (ask @joel)
 		welcomeMicroserviceID := uuid.New().String()
 		customerTenant := dolittleK8s.NewDevelopmentCustomerTenantInfo(environment, welcomeMicroserviceID)
-		environmentInfo := storage.JSONEnvironment2{
+		environmentInfo := storage.JSONEnvironment{
 			Name: environment,
 			CustomerTenants: []platform.CustomerTenantInfo{
 				customerTenant,
@@ -255,7 +255,7 @@ func (s *service) GetByID(w http.ResponseWriter, r *http.Request) {
 		ID:         application.ID,
 		TenantID:   studioInfo.TerraformCustomer.GUID,
 		TenantName: studioInfo.TerraformCustomer.Name,
-		Environments: funk.Map(application.Environments, func(environment storage.JSONEnvironment2) HttpResponseEnvironment {
+		Environments: funk.Map(application.Environments, func(environment storage.JSONEnvironment) HttpResponseEnvironment {
 			return HttpResponseEnvironment{
 				AutomationEnabled: s.gitRepo.IsAutomationEnabledWithStudioConfig(studioInfo.StudioConfig, applicationID, environment.Name),
 			}

@@ -71,11 +71,11 @@ type JSONBuildStatus struct {
 }
 
 type JSONApplication struct {
-	ID           string             `json:"id"`
-	Name         string             `json:"name"`
-	TenantID     string             `json:"tenantId"`
-	TenantName   string             `json:"tenantName"`
-	Environments []JSONEnvironment2 `json:"environments"`
+	ID           string            `json:"id"`
+	Name         string            `json:"name"`
+	TenantID     string            `json:"tenantId"`
+	TenantName   string            `json:"tenantName"`
+	Environments []JSONEnvironment `json:"environments"`
 	// TODO do we fire an event around?
 	// TODO do we update rest?
 	// TODO do we update the repo and signal platform-api to refresh?
@@ -88,8 +88,7 @@ type JSONApplicationJobState struct {
 	ID    int `json:"id"`
 }
 
-// JSONEnvironment represents the "environments" property in application.json file
-type JSONEnvironment2 struct {
+type JSONEnvironment struct {
 	Name                  string                        `json:"name"`
 	CustomerTenants       []platform.CustomerTenantInfo `json:"customerTenants"`
 	WelcomeMicroserviceID string                        `json:"welcomeMicroserviceID"`

@@ -88,7 +88,7 @@ var _ = Describe("Repo", func() {
 			Name:       terraformApplication.Name,
 			TenantID:   terraformCustomer.GUID,
 			TenantName: terraformCustomer.Name,
-			Environments: []storage.JSONEnvironment2{
+			Environments: []storage.JSONEnvironment{
 				{
 					Name: environment,
 					CustomerTenants: []platform.CustomerTenantInfo{
