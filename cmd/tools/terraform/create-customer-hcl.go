@@ -2,13 +2,10 @@ package terraform
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -33,13 +30,6 @@ var createCustomerHclCMD = &cobra.Command{
 
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
-		logrus.SetFormatter(&logrus.JSONFormatter{})
-		logrus.SetOutput(os.Stdout)
-
-		logger := logrus.StandardLogger()
-
-		dryRun, _ := cmd.Flags().GetBool("dry-run")
-
 		name, _ := cmd.Flags().GetString("name")
 		if name == "" {
 			fmt.Println("A customer name is required")
@@ -54,19 +44,6 @@ var createCustomerHclCMD = &cobra.Command{
 		source, _ := cmd.Flags().GetString("source")
 		platformEnvironment, _ := cmd.Flags().GetString("platform-environment")
 
-		rootFolder := ""
-		if !dryRun {
-			if len(args) == 0 {
-				logger.Error("Specify the rootFolder to write to")
-				return
-			}
-			rootFolder = args[0]
-		}
-
-		// TODO changing from name to UUID
-		// Lowercase and replace spaces
-		//suffix := strings.ToLower(name)
-		//suffix = strings.ReplaceAll(suffix, " ", "_")
 		tfName := fmt.Sprintf("customer_%s", customerID)
 
 		customer := tfCustomer{
@@ -80,33 +57,11 @@ var createCustomerHclCMD = &cobra.Command{
 		f := hclwrite.NewEmptyFile()
 		generateTerraformForCustomer(f.Body(), customer)
 
-		if dryRun {
-			fmt.Printf("%s", f.Bytes())
-			return
-		}
-
-		suffix := fmt.Sprintf("%s.tf", tfName)
-		err := writeToTerraform(rootFolder, suffix, f.Bytes())
-		if err != nil {
-			logger.WithFields(logrus.Fields{
-				"error": err,
-			}).Error("Failed to write to terraform")
-			return
-		}
-
-		fmt.Printf(`
-cd %s
-terraform init
-terraform plan -target="module.%s"
-`,
-			getTerraformDirectory(rootFolder),
-			tfName,
-		)
+		fmt.Printf("%s", f.Bytes())
 	},
 }
 
 func generateTerraformForCustomer(root *hclwrite.Body, customer tfCustomer) {
-	// TODO moving to uuid at the end
 	// TODO need to migrate? or do we?
 	/*
 		module "customer_test_marka" {
@@ -151,29 +106,4 @@ func init() {
 	createCustomerHclCMD.Flags().String("platform-environment", "dev", "Platform environment (dev or prod), not linked to application environment")
 	createCustomerHclCMD.Flags().String("source", "./modules/dolittle-customer-with-resources", "Override with specific source of the module")
 	createCustomerHclCMD.Flags().Bool("dry-run", false, "Will not write to disk")
-
-}
-
-func writeToTerraform(rootFolder string, suffix string, data []byte) error {
-
-	// TODO Do we want structure in terraform?
-	tfDirectory := getTerraformDirectory(rootFolder)
-
-	file, err := os.Create(filepath.Join(tfDirectory, suffix))
-	if err != nil {
-		return err
-	}
-
-	defer file.Close()
-
-	_, err = file.Write(data)
-	return err
-}
-func getTerraformDirectory(rootFolder string) string {
-
-	return filepath.Join(rootFolder,
-		"Source",
-		"V3",
-		"Azure",
-	)
 }

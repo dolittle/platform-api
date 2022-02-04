@@ -90,7 +90,6 @@ func CreateCustomerResource(platformImage string, platformEnvironment string, cu
 --platform-environment="%s" \
 --name="%s" \
 --id="%s" \
---dry-run=true \
 > /pod-data/git/Source/V3/Azure/%s.tf;
 `,
 								platformEnvironment,
