@@ -49,8 +49,6 @@ var createCustomerApplicationHclCMD = &cobra.Command{
 		moduleName := fmt.Sprintf("%s_%s", customer, applicationID)
 
 		customerApplication := tfCustomerApplication{
-			// TODO how to make sure name is good (assumed?)
-			// Perhaps we do not need to care
 			Name:           applicationName,
 			Source:         source,
 			CustomerModule: customer,
