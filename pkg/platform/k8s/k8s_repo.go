@@ -666,6 +666,18 @@ func GetApplicationNamespace(id string) string {
 	return fmt.Sprintf("application-%s", id)
 }
 
+// TODO which is better?
+//var tenantFromIngressAnnotationExtractor = regexp.MustCompile(`proxy_set_header\s+Tenant-ID\s+"([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})"`)
+//
+//func tryGetTenantFromIngress(ingress netv1.Ingress) (bool, platform.TenantId) {
+//	tenantHeaderAnnotation := ingress.GetObjectMeta().GetAnnotations()["nginx.ingress.kubernetes.io/configuration-snippet"]
+//	tenantID := tenantFromIngressAnnotationExtractor.FindStringSubmatch(tenantHeaderAnnotation)
+//	if tenantID == nil {
+//		return false, ""
+//	}
+//	return true, platform.TenantId(tenantID[1])
+//}
+// This input can have multiple lines
 func GetCustomerTenantIDFromNginxConfigurationSnippet(input string) string {
 	r, _ := regexp.Compile(`proxy_set_header Tenant-ID "(\S+)"`)
 	matches := r.FindStringSubmatch(input)

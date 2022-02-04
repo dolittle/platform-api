@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/dolittle/platform-api/pkg/k8s"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -30,6 +31,7 @@ var createServiceAccountCMD = &cobra.Command{
 
 		k8sClient, k8sConfig := platformK8s.InitKubernetesClient()
 		k8sRepo := platformK8s.NewK8sRepo(k8sClient, k8sConfig, logContext.WithField("context", "k8s-repo"))
+		k8sRepoV2 := k8s.NewRepo(k8sClient, logContext.WithField("context", "k8s-repo-v2"))
 
 		createAll, _ := cmd.Flags().GetBool("all")
 		if createAll && len(args) > 0 {
@@ -43,21 +45,30 @@ var createServiceAccountCMD = &cobra.Command{
 
 		if createAll {
 			logContext.Info("Adding a devops service account for all applications")
-			applications := extractApplications(ctx, k8sClient)
+			namespaces, err := k8sRepoV2.GetNamespacesWithApplication()
+			if err != nil {
+				panic(err.Error())
+			}
 
-			for _, application := range applications {
-				err := k8sRepo.AddServiceAccount(serviceAccount, roleBinding, application.TenantID, application.TenantName, application.ID, application.Name)
+			for _, namespace := range namespaces {
+				customerID := namespace.Annotations["dolittle.io/tenant-id"]
+				customerName := namespace.Labels["tenant"]
+				applicationID := namespace.Annotations["dolittle.io/application-id"]
+				applicationName := namespace.Labels["application"]
+
+				err := k8sRepo.AddServiceAccount(serviceAccount, roleBinding, customerID, customerName, applicationID, applicationName)
 				if err != nil {
 					if err != platformK8s.ErrAlreadyExists {
 						panic(err.Error())
 					}
-					logContext.Infof("Application '%s' already had the service account or rolebinding, skipping", application.ID)
+					logContext.Infof("Application '%s' already had the service account or rolebinding, skipping", applicationID)
 					// the account already existed or it already had a rolebinding so don't increment
 					continue
 				}
-				logContext.Infof("Added a service account for application %s", application.ID)
+				logContext.Infof("Added a service account for application %s", applicationID)
 				addedAccounts++
 			}
+
 			logContext.Infof("Added %v service accounts", addedAccounts)
 		} else {
 			if len(args) < 1 {

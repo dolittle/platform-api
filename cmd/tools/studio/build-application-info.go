@@ -12,7 +12,6 @@ import (
 	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var buildApplicationInfoCMD = &cobra.Command{
@@ -34,10 +33,11 @@ var buildApplicationInfoCMD = &cobra.Command{
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
 		namespace := args[0]
 		logContext := logger.WithFields(logrus.Fields{
+			"cmd":       "build-application-info",
 			"namespace": namespace,
 		})
 
-		platformEnvironment := viper.GetString("tools.server.platformEnvironment")
+		platformEnvironment, _ := cmd.Flags().GetString("platform-environment")
 		gitRepoConfig := git.InitGit(logContext, platformEnvironment)
 
 		storageRepo := gitStorage.NewGitStorage(
@@ -125,5 +125,6 @@ var buildApplicationInfoCMD = &cobra.Command{
 }
 
 func init() {
+	buildApplicationInfoCMD.Flags().String("platform-environment", "dev", "Platform environment (dev or prod), not linked to application environment")
 	buildApplicationInfoCMD.Flags().Bool("dry-run", true, "Will not write to disk")
 }
