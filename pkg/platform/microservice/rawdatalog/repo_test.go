@@ -93,7 +93,7 @@ var _ = Describe("Repo", func() {
 		Context("for an application that does not exist", func() {
 			BeforeEach(func() {
 				gitRepo.
-					On("GetApplication2", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
+					On("GetApplication", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
 					Return(storage.JSONApplication2{}, errors.New("could not find application"))
 			})
 
@@ -108,7 +108,7 @@ var _ = Describe("Repo", func() {
 		Context("for an application that does not have any ingresses", func() {
 			BeforeEach(func() {
 				gitRepo.
-					On("GetApplication2", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
+					On("GetApplication", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
 					Return(storage.JSONApplication2{
 
 						Environments: []storage.JSONEnvironment2{
@@ -141,7 +141,7 @@ var _ = Describe("Repo", func() {
 		Context("for an application that has ingresses for other hostnames than specified", func() {
 			BeforeEach(func() {
 				gitRepo.
-					On("GetApplication2", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
+					On("GetApplication", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
 					Return(storage.JSONApplication2{
 						Environments: []storage.JSONEnvironment2{
 							{
@@ -196,7 +196,7 @@ var _ = Describe("Repo", func() {
 			BeforeEach(func() {
 				customerTenantID = "f4679b71-1215-4a60-8483-53b0d5f2bb47"
 				gitRepo.
-					On("GetApplication2", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
+					On("GetApplication", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
 					Return(storage.JSONApplication2{
 						Environments: []storage.JSONEnvironment2{
 							{

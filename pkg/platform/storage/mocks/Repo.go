@@ -55,8 +55,8 @@ func (_m *Repo) DeleteMicroservice(tenantID string, applicationID string, enviro
 	return r0
 }
 
-// GetApplication2 provides a mock function with given fields: tenantID, applicationID
-func (_m *Repo) GetApplication2(tenantID string, applicationID string) (storage.JSONApplication2, error) {
+// GetApplication provides a mock function with given fields: tenantID, applicationID
+func (_m *Repo) GetApplication(tenantID string, applicationID string) (storage.JSONApplication2, error) {
 	ret := _m.Called(tenantID, applicationID)
 
 	var r0 storage.JSONApplication2

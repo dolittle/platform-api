@@ -76,7 +76,7 @@ func (s *service) Create(w http.ResponseWriter, request *http.Request) {
 	}
 
 	// Confirm application exists
-	storedApplication, err := s.gitRepo.GetApplication2(customer.ID, applicationID)
+	storedApplication, err := s.gitRepo.GetApplication(customer.ID, applicationID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusBadRequest, "Not able to find application in the storage")
 		return

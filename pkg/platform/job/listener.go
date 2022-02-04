@@ -97,7 +97,7 @@ func (c *PodLoggingController) podUpdate(old, new interface{}) {
 
 		//// TODO this is not needed
 		//// TODO update state in the application
-		//entry, err := c.repo.GetApplication2(customerID, applicationID)
+		//entry, err := c.repo.GetApplication(customerID, applicationID)
 		//if err != nil {
 		//	c.logContext.WithFields(logrus.Fields{
 		//		"error":   err,

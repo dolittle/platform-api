@@ -87,7 +87,7 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	current, err := s.gitRepo.GetApplication2(customerID, input.ID)
+	current, err := s.gitRepo.GetApplication(customerID, input.ID)
 	if err != nil {
 		if err != storage.ErrNotFound {
 			logContext.WithFields(logrus.Fields{
@@ -204,7 +204,7 @@ func (s *service) GetLiveApplications(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, liveApplication := range liveApplications {
-		application, err := s.gitRepo.GetApplication2(tenantID, liveApplication.ID)
+		application, err := s.gitRepo.GetApplication(tenantID, liveApplication.ID)
 		if err != nil {
 			// TODO change
 			utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -237,7 +237,7 @@ func (s *service) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	application, err := s.gitRepo.GetApplication2(customerID, applicationID)
+	application, err := s.gitRepo.GetApplication(customerID, applicationID)
 	if err != nil {
 		// TODO check if not found
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -300,11 +300,11 @@ func (s *service) GetApplications(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, storedApplication := range storedApplications {
-		application, err := s.gitRepo.GetApplication2(customerID, storedApplication.ID)
+		application, err := s.gitRepo.GetApplication(customerID, storedApplication.ID)
 		if err != nil {
 			s.logContext.WithFields(logrus.Fields{
 				"error":          err,
-				"method":         "s.gitRepo.GetApplication2",
+				"method":         "s.gitRepo.GetApplication",
 				"customer_id":    customerID,
 				"application_id": storedApplication.ID,
 			}).Error("Broken state")
@@ -359,7 +359,7 @@ func (s *service) IsOnline(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
 
-	application, err := s.gitRepo.GetApplication2(customerID, applicationID)
+	application, err := s.gitRepo.GetApplication(customerID, applicationID)
 	if err != nil {
 		if err == storage.ErrNotFound {
 			utils.RespondWithError(w, http.StatusNotFound, "Application id does not exist in our platform")

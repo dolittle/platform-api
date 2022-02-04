@@ -26,7 +26,7 @@ type RepoMicroservice interface {
 }
 
 type RepoApplication interface {
-	GetApplication2(tenantID string, applicationID string) (JSONApplication2, error)
+	GetApplication(tenantID string, applicationID string) (JSONApplication2, error)
 	SaveApplication2(application JSONApplication2) error
 	GetApplications(tenantID string) ([]JSONApplication2, error)
 	SaveApplication(application platform.HttpResponseApplication) error

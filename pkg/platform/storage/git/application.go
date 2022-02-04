@@ -57,7 +57,7 @@ func (s *GitStorage) SaveApplication2(application storage.JSONApplication2) erro
 	return nil
 }
 
-func (s *GitStorage) GetApplication2(tenantID string, applicationID string) (storage.JSONApplication2, error) {
+func (s *GitStorage) GetApplication(tenantID string, applicationID string) (storage.JSONApplication2, error) {
 	dir := s.GetApplicationDirectory(tenantID, applicationID)
 	filename := filepath.Join(dir, "application.json")
 	b, err := ioutil.ReadFile(filename)
@@ -86,7 +86,7 @@ func (s *GitStorage) GetApplications(customerID string) ([]storage.JSONApplicati
 	}
 
 	for _, applicationID := range applicationIDs {
-		application, err := s.GetApplication2(customerID, applicationID)
+		application, err := s.GetApplication(customerID, applicationID)
 		if err != nil {
 			s.logContext.WithFields(logrus.Fields{
 				"customer":    customerID,

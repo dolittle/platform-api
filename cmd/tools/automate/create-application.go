@@ -110,7 +110,7 @@ In kubernetes, create application
 			panic(err.Error())
 		}
 
-		application, err := gitRepo.GetApplication2(customerID, terraformApplication.ApplicationID)
+		application, err := gitRepo.GetApplication(customerID, terraformApplication.ApplicationID)
 		if err != nil {
 			panic(err.Error())
 		}
