@@ -6,6 +6,7 @@ import (
 
 	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	"github.com/sirupsen/logrus"
@@ -28,12 +29,12 @@ import (
 
 type RawDataLogIngestorRepo struct {
 	k8sClient       kubernetes.Interface
-	k8sDolittleRepo platform.K8sRepo
+	k8sDolittleRepo platformK8s.K8sRepo
 	gitRepo         storage.Repo
 	logContext      logrus.FieldLogger
 }
 
-func NewRawDataLogIngestorRepo(k8sDolittleRepo platform.K8sRepo, k8sClient kubernetes.Interface, gitRepo storage.Repo, logContext logrus.FieldLogger) RawDataLogIngestorRepo {
+func NewRawDataLogIngestorRepo(k8sDolittleRepo platformK8s.K8sRepo, k8sClient kubernetes.Interface, gitRepo storage.Repo, logContext logrus.FieldLogger) RawDataLogIngestorRepo {
 	return RawDataLogIngestorRepo{
 		k8sClient:       k8sClient,
 		k8sDolittleRepo: k8sDolittleRepo,

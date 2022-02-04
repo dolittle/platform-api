@@ -1,4 +1,4 @@
-package platform
+package k8s
 
 import (
 	"bytes"
@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/dolittle/platform-api/pkg/k8s"
+	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -64,23 +65,23 @@ func (r *K8sRepo) GetIngress(applicationID string) (string, error) {
 	return "", errors.New("")
 }
 
-func (r *K8sRepo) GetApplication(applicationID string) (Application, error) {
+func (r *K8sRepo) GetApplication(applicationID string) (platform.Application, error) {
 	client := r.k8sClient
 	ctx := context.TODO()
 	namespace := fmt.Sprintf("application-%s", applicationID)
 	ns, err := client.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
 
 	if err != nil {
-		return Application{}, err
+		return platform.Application{}, err
 	}
 
 	annotationsMap := ns.GetObjectMeta().GetAnnotations()
 	labelMap := ns.GetObjectMeta().GetLabels()
 
-	application := Application{
+	application := platform.Application{
 		Name: labelMap["application"],
 		ID:   annotationsMap["dolittle.io/application-id"],
-		Tenant: Tenant{
+		Tenant: platform.Tenant{
 			Name: labelMap["tenant"],
 			ID:   annotationsMap["dolittle.io/tenant-id"],
 		},
@@ -88,7 +89,7 @@ func (r *K8sRepo) GetApplication(applicationID string) (Application, error) {
 
 	ingresses, err := r.k8sClient.NetworkingV1().Ingresses(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return Application{}, err
+		return platform.Application{}, err
 	}
 
 	for _, ingress := range ingresses.Items {
@@ -122,7 +123,7 @@ func (r *K8sRepo) GetApplication(applicationID string) (Application, error) {
 					// TODO could link microservice to backend via service name
 					//fmt.Println(rule.Host, rulePath.Path, *rulePath.PathType)
 
-					applicationIngress := Ingress{
+					applicationIngress := platform.Ingress{
 						Host:        rule.Host,
 						Environment: labelMap["environment"],
 						Path:        rulePath.Path,
@@ -139,12 +140,12 @@ func (r *K8sRepo) GetApplication(applicationID string) (Application, error) {
 	return application, nil
 }
 
-func (r *K8sRepo) GetApplications(tenantID string) ([]ShortInfo, error) {
+func (r *K8sRepo) GetApplications(tenantID string) ([]platform.ShortInfo, error) {
 	client := r.k8sClient
 	ctx := context.TODO()
 	items, err := client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 
-	response := make([]ShortInfo, 0)
+	response := make([]platform.ShortInfo, 0)
 	if err != nil {
 		return response, err
 	}
@@ -157,7 +158,7 @@ func (r *K8sRepo) GetApplications(tenantID string) ([]ShortInfo, error) {
 			continue
 		}
 
-		response = append(response, ShortInfo{
+		response = append(response, platform.ShortInfo{
 			Name: labelMap["application"],
 			ID:   annotationsMap["dolittle.io/application-id"],
 		})
@@ -166,13 +167,13 @@ func (r *K8sRepo) GetApplications(tenantID string) ([]ShortInfo, error) {
 	return response, nil
 }
 
-func (r *K8sRepo) GetMicroservices(applicationID string) ([]MicroserviceInfo, error) {
+func (r *K8sRepo) GetMicroservices(applicationID string) ([]platform.MicroserviceInfo, error) {
 	client := r.k8sClient
 	ctx := context.TODO()
 	namespace := fmt.Sprintf("application-%s", applicationID)
 	deployments, err := client.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{})
 
-	response := make([]MicroserviceInfo, len(deployments.Items))
+	response := make([]platform.MicroserviceInfo, len(deployments.Items))
 	if err != nil {
 		return response, err
 	}
@@ -186,12 +187,12 @@ func (r *K8sRepo) GetMicroservices(applicationID string) ([]MicroserviceInfo, er
 			continue
 		}
 
-		images := funk.Map(deployment.Spec.Template.Spec.Containers, func(container corev1.Container) ImageInfo {
-			return ImageInfo{
+		images := funk.Map(deployment.Spec.Template.Spec.Containers, func(container corev1.Container) platform.ImageInfo {
+			return platform.ImageInfo{
 				Name:  container.Name,
 				Image: container.Image,
 			}
-		}).([]ImageInfo)
+		}).([]platform.ImageInfo)
 
 		kind := GetMicroserviceKindFromAnnotations(annotationsMap)
 
@@ -207,7 +208,7 @@ func (r *K8sRepo) GetMicroservices(applicationID string) ([]MicroserviceInfo, er
 			return response, err
 		}
 
-		response[deploymentIndex] = MicroserviceInfo{
+		response[deploymentIndex] = platform.MicroserviceInfo{
 			Name:         labelMap["microservice"],
 			ID:           microserviceID,
 			Environment:  environment,
@@ -241,19 +242,19 @@ func (r *K8sRepo) GetMicroserviceName(applicationID string, environment string, 
 	return "", ErrNotFound
 }
 
-func (r *K8sRepo) GetPodStatus(applicationID string, environment string, microserviceID string) (PodData, error) {
+func (r *K8sRepo) GetPodStatus(applicationID string, environment string, microserviceID string) (platform.PodData, error) {
 	client := r.k8sClient
 	ctx := context.TODO()
 	namespace := fmt.Sprintf("application-%s", applicationID)
 	pods, err := client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 
-	response := PodData{
+	response := platform.PodData{
 		Namespace: namespace,
-		Microservice: ShortInfo{
+		Microservice: platform.ShortInfo{
 			Name: "",
 			ID:   microserviceID,
 		},
-		Pods: []PodInfo{},
+		Pods: []platform.PodInfo{},
 	}
 
 	if err != nil {
@@ -281,7 +282,7 @@ func (r *K8sRepo) GetPodStatus(applicationID string, environment string, microse
 			started = pod.Status.StartTime.String()
 		}
 
-		containers := funk.Map(pod.Status.ContainerStatuses, func(container corev1.ContainerStatus) ContainerStatusInfo {
+		containers := funk.Map(pod.Status.ContainerStatuses, func(container corev1.ContainerStatus) platform.ContainerStatusInfo {
 			// Not sure about this logic, I almost want to drop to the cli :P
 			// Much work to do here, to figure out the combinations we actually want to support, this will not be good enough
 			state := "waiting"
@@ -294,7 +295,7 @@ func (r *K8sRepo) GetPodStatus(applicationID string, environment string, microse
 				state = "running"
 			}
 
-			return ContainerStatusInfo{
+			return platform.ContainerStatusInfo{
 				Name:     container.Name,
 				Image:    container.Image,
 				Restarts: container.RestartCount,
@@ -302,9 +303,9 @@ func (r *K8sRepo) GetPodStatus(applicationID string, environment string, microse
 				Age:      age.String(),
 				State:    state,
 			}
-		}).([]ContainerStatusInfo)
+		}).([]platform.ContainerStatusInfo)
 
-		response.Pods = append(response.Pods, PodInfo{
+		response.Pods = append(response.Pods, platform.PodInfo{
 			Phase:      string(pod.Status.Phase),
 			Name:       pod.Name,
 			Containers: containers,
@@ -458,6 +459,28 @@ func (r *K8sRepo) GetServiceAccount(logContext logrus.FieldLogger, applicationID
 		return serviceAccount, ErrNotFound
 	}
 	return serviceAccount, nil
+}
+
+func (r *K8sRepo) CreateServiceAccountFromResource(logContext logrus.FieldLogger, resource *corev1.ServiceAccount) (*corev1.ServiceAccount, error) {
+	client := r.k8sClient
+	ctx := context.TODO()
+	namespace := resource.Namespace
+	newAccount, err := client.CoreV1().ServiceAccounts(namespace).Create(ctx, resource, metav1.CreateOptions{})
+	if err != nil {
+		if !k8serrors.IsAlreadyExists(err) {
+			logContext.WithFields(logrus.Fields{
+				"error": err,
+			}).Error("issue talking to cluster")
+			return newAccount, err
+		}
+
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Debug("service account already exists")
+
+		return newAccount, ErrAlreadyExists
+	}
+	return newAccount, nil
 }
 
 func (r *K8sRepo) CreateServiceAccount(logger logrus.FieldLogger, customerID string, customerName string, applicationID string, applicationName string, serviceAccountName string) (*corev1.ServiceAccount, error) {
@@ -652,11 +675,11 @@ func (r *K8sRepo) createAnnotationsAndLabels(customerID, customerName, applicati
 	return annotations, labels
 }
 
-func (r *K8sRepo) GetIngressURLsWithCustomerTenantID(applicationID string, environment string, microserviceID string) ([]IngressURLWithCustomerTenantID, error) {
+func (r *K8sRepo) GetIngressURLsWithCustomerTenantID(applicationID string, environment string, microserviceID string) ([]platform.IngressURLWithCustomerTenantID, error) {
 	client := r.k8sClient
 	ctx := context.TODO()
 	namespace := fmt.Sprintf("application-%s", applicationID)
-	urls := make([]IngressURLWithCustomerTenantID, 0)
+	urls := make([]platform.IngressURLWithCustomerTenantID, 0)
 
 	ingresses, err := client.NetworkingV1().Ingresses(namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: fmt.Sprintf("environment=%s", environment),
@@ -680,7 +703,7 @@ func (r *K8sRepo) GetIngressURLsWithCustomerTenantID(applicationID string, envir
 		for _, rule := range ingress.Spec.Rules {
 			for _, rulePath := range rule.HTTP.Paths {
 				url := fmt.Sprintf("https://%s%s", rule.Host, rulePath.Path)
-				urls = append(urls, IngressURLWithCustomerTenantID{
+				urls = append(urls, platform.IngressURLWithCustomerTenantID{
 					URL:              url,
 					CustomerTenantID: customerTenantID,
 				})
@@ -730,6 +753,10 @@ func (r *K8sRepo) GetIngressHTTPIngressPath(applicationID string, environment st
 	}
 
 	return items, nil
+}
+
+func GetApplicationNamespace(id string) string {
+	return fmt.Sprintf("application-%s", id)
 }
 
 func GetCustomerTenantIDFromNginxConfigurationSnippet(input string) string {
@@ -808,10 +835,31 @@ func GetMicroserviceEnvironmentVariableSecretName(name string) string {
 	)
 }
 
-func GetMicroserviceKindFromAnnotations(annotations map[string]string) (kind MicroserviceKind) {
-	kind = MicroserviceKindUnknown
+func GetMicroserviceKindFromAnnotations(annotations map[string]string) (kind platform.MicroserviceKind) {
+	kind = platform.MicroserviceKindUnknown
 	if kindString, ok := annotations["dolittle.io/microservice-kind"]; ok {
-		kind = MicroserviceKind(kindString)
+		kind = platform.MicroserviceKind(kindString)
 	}
 	return
+}
+
+func (r *K8sRepo) CreateRoleBindingFromResource(logContext logrus.FieldLogger, resource *rbacv1.RoleBinding) (*rbacv1.RoleBinding, error) {
+	client := r.k8sClient
+	ctx := context.TODO()
+	namespace := resource.Namespace
+	createdRoleBinding, err := client.RbacV1().RoleBindings(namespace).Create(ctx, resource, metav1.CreateOptions{})
+	if err != nil {
+		if !k8serrors.IsAlreadyExists(err) {
+			logContext.WithFields(logrus.Fields{
+				"error": err,
+			}).Error("issue talking to cluster")
+			return createdRoleBinding, err
+		}
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Debug("RoleBinding already exists")
+		return createdRoleBinding, ErrAlreadyExists
+	}
+
+	return createdRoleBinding, nil
 }

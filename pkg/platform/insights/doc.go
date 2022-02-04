@@ -1,12 +1,12 @@
 package insights
 
 import (
-	"github.com/dolittle/platform-api/pkg/platform"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/sirupsen/logrus"
 )
 
 type service struct {
 	logContext      logrus.FieldLogger
-	k8sDolittleRepo platform.K8sRepo
+	k8sDolittleRepo platformK8s.K8sRepo
 	lokiHost        string
 }

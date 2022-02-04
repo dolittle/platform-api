@@ -9,7 +9,6 @@ import (
 
 	"github.com/dolittle/platform-api/pkg/git"
 	"github.com/dolittle/platform-api/pkg/middleware"
-	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/platform/application"
 	"github.com/dolittle/platform-api/pkg/platform/backup"
 	"github.com/dolittle/platform-api/pkg/platform/businessmoment"
@@ -70,7 +69,7 @@ var serverCMD = &cobra.Command{
 
 		router := mux.NewRouter()
 
-		k8sRepo := platform.NewK8sRepo(k8sClient, k8sConfig)
+		k8sRepo := platformK8s.NewK8sRepo(k8sClient, k8sConfig, logContext.WithField("context", "k8s-repo"))
 
 		gitRepo := gitStorage.NewGitStorage(
 			logrus.WithField("context", "git-repo"),

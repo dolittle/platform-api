@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/dolittle/platform-api/pkg/platform"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/parser"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/rawdatalog"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
@@ -16,11 +16,11 @@ import (
 
 type service struct {
 	handler         *Handler
-	k8sDolittleRepo platform.K8sRepo
+	k8sDolittleRepo platformK8s.K8sRepo
 	logger          logrus.FieldLogger
 }
 
-func NewService(gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClient kubernetes.Interface, logContext logrus.FieldLogger) service {
+func NewService(gitRepo storage.Repo, k8sDolittleRepo platformK8s.K8sRepo, k8sClient kubernetes.Interface, logContext logrus.FieldLogger) service {
 	rawDataLogRepo := rawdatalog.NewRawDataLogIngestorRepo(k8sDolittleRepo, k8sClient, gitRepo, logContext)
 	specFactory := NewK8sResourceSpecFactory()
 	k8sResources := NewK8sResource(k8sClient, specFactory)

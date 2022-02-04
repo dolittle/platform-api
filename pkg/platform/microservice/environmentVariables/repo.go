@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/dolittle/platform-api/pkg/platform"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"k8s.io/client-go/kubernetes"
@@ -16,12 +17,12 @@ type EnvironmentVariablesRepo interface {
 }
 
 type k8sRepo struct {
-	k8sDolittleRepo platform.K8sRepo
+	k8sDolittleRepo platformK8s.K8sRepo
 	k8sClient       kubernetes.Interface
 	logContext      logrus.FieldLogger
 }
 
-func NewEnvironmentVariablesK8sRepo(k8sDolittleRepo platform.K8sRepo, k8sClient kubernetes.Interface, logContext logrus.FieldLogger) k8sRepo {
+func NewEnvironmentVariablesK8sRepo(k8sDolittleRepo platformK8s.K8sRepo, k8sClient kubernetes.Interface, logContext logrus.FieldLogger) k8sRepo {
 	return k8sRepo{
 		k8sDolittleRepo: k8sDolittleRepo,
 		k8sClient:       k8sClient,
@@ -36,14 +37,14 @@ func (r k8sRepo) GetEnvironmentVariables(applicationID string, environment strin
 		return data, errors.New("unable to find microservice")
 	}
 
-	configmapName := platform.GetMicroserviceEnvironmentVariableConfigmapName(name)
+	configmapName := platformK8s.GetMicroserviceEnvironmentVariableConfigmapName(name)
 
 	configMap, err := r.k8sDolittleRepo.GetConfigMap(applicationID, configmapName)
 	if err != nil {
 		return data, errors.New("unable to load data from configmap")
 	}
 
-	secretName := platform.GetMicroserviceEnvironmentVariableSecretName(name)
+	secretName := platformK8s.GetMicroserviceEnvironmentVariableSecretName(name)
 
 	secret, err := r.k8sDolittleRepo.GetSecret(r.logContext, applicationID, secretName)
 	if err != nil {
@@ -104,13 +105,13 @@ func (r k8sRepo) UpdateEnvironmentVariables(applicationID string, environment st
 		return errors.New("unable to find microservice")
 	}
 
-	configmapName := platform.GetMicroserviceEnvironmentVariableConfigmapName(name)
+	configmapName := platformK8s.GetMicroserviceEnvironmentVariableConfigmapName(name)
 	configMap, err := r.k8sDolittleRepo.GetConfigMap(applicationID, configmapName)
 	if err != nil {
 		return errors.New("unable to load data from configmap")
 	}
 
-	secretName := platform.GetMicroserviceEnvironmentVariableSecretName(name)
+	secretName := platformK8s.GetMicroserviceEnvironmentVariableSecretName(name)
 	secret, err := r.k8sDolittleRepo.GetSecret(r.logContext, applicationID, secretName)
 	if err != nil {
 		return errors.New("unable to load data from configmap")

@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/dolittle/platform-api/pkg/k8s"
-	"github.com/dolittle/platform-api/pkg/platform"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -31,7 +30,7 @@ var createServiceAccountCMD = &cobra.Command{
 		ctx := context.TODO()
 
 		k8sClient, k8sConfig := platformK8s.InitKubernetesClient()
-		k8sRepo := platform.NewK8sRepo(k8sClient, k8sConfig, logContext.WithField("context", "k8s-repo"))
+		k8sRepo := platformK8s.NewK8sRepo(k8sClient, k8sConfig, logContext.WithField("context", "k8s-repo"))
 		k8sRepoV2 := k8s.NewRepo(k8sClient, logContext.WithField("context", "k8s-repo-v2"))
 
 		createAll, _ := cmd.Flags().GetBool("all")

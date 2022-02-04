@@ -1,9 +1,9 @@
-package platform_test
+package k8s_test
 
 import (
 	"errors"
 
-	"github.com/dolittle/platform-api/pkg/platform"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -25,14 +25,14 @@ var _ = Describe("k8s repo test", func() {
 			It("Not found", func() {
 				sample := `nothing`
 				expect := ""
-				customerTenantID := platform.GetCustomerTenantIDFromNginxConfigurationSnippet(sample)
+				customerTenantID := platformK8s.GetCustomerTenantIDFromNginxConfigurationSnippet(sample)
 				Expect(customerTenantID).To(Equal(expect))
 
 			})
 			It("Found", func() {
 				sample := `proxy_set_header Tenant-ID "61838650-f8b7-412f-8e46-dc6165fc3dc4";`
 				expect := "61838650-f8b7-412f-8e46-dc6165fc3dc4"
-				customerTenantID := platform.GetCustomerTenantIDFromNginxConfigurationSnippet(sample)
+				customerTenantID := platformK8s.GetCustomerTenantIDFromNginxConfigurationSnippet(sample)
 				Expect(customerTenantID).To(Equal(expect))
 			})
 		})
@@ -45,7 +45,7 @@ var _ = Describe("k8s repo test", func() {
 				want           error
 				clientSet      *fake.Clientset
 				config         *rest.Config
-				k8sRepo        platform.K8sRepo
+				k8sRepo        platformK8s.K8sRepo
 				logger         *logrus.Logger
 			)
 
@@ -57,7 +57,7 @@ var _ = Describe("k8s repo test", func() {
 				clientSet = &fake.Clientset{}
 				config = &rest.Config{}
 				logger, _ = logrusTest.NewNullLogger()
-				k8sRepo = platform.NewK8sRepo(clientSet, config, logger.WithField("context", "k8s-repo"))
+				k8sRepo = platformK8s.NewK8sRepo(clientSet, config, logger.WithField("context", "k8s-repo"))
 
 			})
 
@@ -243,7 +243,7 @@ var _ = Describe("k8s repo test", func() {
 			want           error
 			clientSet      *fake.Clientset
 			config         *rest.Config
-			k8sRepo        platform.K8sRepo
+			k8sRepo        platformK8s.K8sRepo
 			logger         *logrus.Logger
 		)
 
@@ -255,7 +255,7 @@ var _ = Describe("k8s repo test", func() {
 			clientSet = &fake.Clientset{}
 			config = &rest.Config{}
 			logger, _ = logrusTest.NewNullLogger()
-			k8sRepo = platform.NewK8sRepo(clientSet, config, logger.WithField("context", "k8s-repo"))
+			k8sRepo = platformK8s.NewK8sRepo(clientSet, config, logger.WithField("context", "k8s-repo"))
 		})
 
 		It("Failed to talk to kubernetes", func() {
@@ -286,7 +286,7 @@ var _ = Describe("k8s repo test", func() {
 			})
 
 			_, err := k8sRepo.GetMicroserviceName(applicationID, environment, microserviceID)
-			Expect(err).To(Equal(platform.ErrNotFound))
+			Expect(err).To(Equal(platformK8s.ErrNotFound))
 		})
 
 		It("Found", func() {

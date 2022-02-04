@@ -10,10 +10,9 @@ import (
 	"strings"
 
 	"github.com/dolittle/platform-api/pkg/k8s"
-	"github.com/dolittle/platform-api/pkg/platform"
-	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 
 	configK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -212,7 +211,7 @@ func GetDolittleConfigMap(ctx context.Context, client kubernetes.Interface, appl
 
 		return &configMap, nil
 	}
-	return result, platform.ErrNotFound
+	return result, platformK8s.ErrNotFound
 }
 
 func GetDeployments(ctx context.Context, client kubernetes.Interface, namespace string) ([]appsv1.Deployment, error) {
@@ -255,7 +254,7 @@ func GetDeployment(ctx context.Context, client kubernetes.Interface, application
 		return deployment, nil
 	}
 
-	return appsv1.Deployment{}, platform.ErrNotFound
+	return appsv1.Deployment{}, platformK8s.ErrNotFound
 }
 
 // GetContainerIndex get's the index of the container within the deployment with the given name

@@ -9,6 +9,7 @@ import (
 
 	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/parser"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/purchaseorderapi"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/rawdatalog"
@@ -23,7 +24,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-func NewService(gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClient kubernetes.Interface, logContext logrus.FieldLogger) service {
+func NewService(gitRepo storage.Repo, k8sDolittleRepo platformK8s.K8sRepo, k8sClient kubernetes.Interface, logContext logrus.FieldLogger) service {
 	parser := parser.NewJsonParser()
 	rawDataLogRepo := rawdatalog.NewRawDataLogIngestorRepo(k8sDolittleRepo, k8sClient, gitRepo, logContext)
 	specFactory := purchaseorderapi.NewK8sResourceSpecFactory()
@@ -576,7 +577,7 @@ func (s *service) GetSecret(w http.ResponseWriter, r *http.Request) {
 
 	secret, err := s.k8sDolittleRepo.GetSecret(logContext, applicationID, secretName)
 	if err != nil {
-		if err == platform.ErrNotFound {
+		if err == platformK8s.ErrNotFound {
 			utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Secret %s not found in application %s", secretName, applicationID))
 			return
 		}

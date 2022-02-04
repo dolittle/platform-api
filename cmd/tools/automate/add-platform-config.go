@@ -8,7 +8,6 @@ import (
 
 	configK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle/platform-api/pkg/k8s"
-	"github.com/dolittle/platform-api/pkg/platform"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -137,7 +136,7 @@ func addPlatformDataToMicroservice(ctx context.Context, client kubernetes.Interf
 
 	configMap, err := automate.GetDolittleConfigMap(ctx, client, applicationID, environment, microserviceID)
 	if err != nil {
-		if err != platform.ErrNotFound {
+		if err != platformK8s.ErrNotFound {
 			logContext.WithFields(logrus.Fields{
 				"error": err,
 			}).Fatal("Failed to get dolittle configmap")
@@ -168,7 +167,7 @@ func addPlatformDataToMicroservice(ctx context.Context, client kubernetes.Interf
 
 	deployment, err := automate.GetDeployment(ctx, client, applicationID, environment, microserviceID)
 	if err != nil {
-		if err != platform.ErrNotFound {
+		if err != platformK8s.ErrNotFound {
 			logContext.WithFields(logrus.Fields{
 				"error": err,
 			}).Fatal("Failed to get deployment")

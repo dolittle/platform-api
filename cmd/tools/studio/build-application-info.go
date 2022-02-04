@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/dolittle/platform-api/pkg/git"
+	"github.com/dolittle/platform-api/pkg/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
@@ -41,11 +42,12 @@ var buildApplicationInfoCMD = &cobra.Command{
 
 		ctx := context.TODO()
 		k8sClient, _ := platformK8s.InitKubernetesClient()
+		k8sRepoV2 := k8s.NewRepo(k8sClient, logContext.WithField("context", "k8s-repo-v2"))
 
 		// TODO if the namespace had a label or annotation...
 		// TODO Currently cheap to look up all
 		logContext.Info("Starting to extract applications from the cluster")
-		applications := extractApplications(ctx, k8sClient)
+		applications := extractApplications(k8sRepoV2, ctx, k8sClient)
 
 		filteredApplications := filterApplications(gitRepo, applications, platformEnvironment)
 

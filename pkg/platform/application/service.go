@@ -9,6 +9,7 @@ import (
 
 	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	"github.com/dolittle/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
@@ -17,7 +18,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
-func NewService(subscriptionID string, externalClusterHost string, gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, logContext logrus.FieldLogger) service {
+func NewService(subscriptionID string, externalClusterHost string, gitRepo storage.Repo, k8sDolittleRepo platformK8s.K8sRepo, logContext logrus.FieldLogger) service {
 	return service{
 		subscriptionID:      subscriptionID,
 		externalClusterHost: externalClusterHost,

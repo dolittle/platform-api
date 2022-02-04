@@ -18,6 +18,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/testing"
 
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	. "github.com/dolittle/platform-api/pkg/platform/microservice/rawdatalog"
 	mocks "github.com/dolittle/platform-api/pkg/platform/storage/mocks"
 )
@@ -26,7 +27,7 @@ var _ = Describe("Repo", func() {
 	var (
 		clientSet      *fake.Clientset
 		config         *rest.Config
-		k8sRepo        platform.K8sRepo
+		k8sRepo        platformK8s.K8sRepo
 		gitRepo        *mocks.Repo
 		logger         *logrus.Logger
 		rawDataLogRepo RawDataLogIngestorRepo
@@ -35,9 +36,9 @@ var _ = Describe("Repo", func() {
 	BeforeEach(func() {
 		clientSet = fake.NewSimpleClientset()
 		config = &rest.Config{}
-		k8sRepo = platform.NewK8sRepo(clientSet, config)
-		gitRepo = new(mocks.Repo)
 		logger, _ = logrusTest.NewNullLogger()
+		k8sRepo = platformK8s.NewK8sRepo(clientSet, config, logger.WithField("context", "k8s-repo"))
+		gitRepo = new(mocks.Repo)
 		rawDataLogRepo = NewRawDataLogIngestorRepo(k8sRepo, clientSet, gitRepo, logger)
 	})
 

@@ -11,6 +11,7 @@ import (
 
 	azureHelpers "github.com/dolittle/platform-api/pkg/azure"
 	"github.com/dolittle/platform-api/pkg/platform"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	"github.com/dolittle/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
@@ -20,7 +21,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func NewService(logContext logrus.FieldLogger, gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClient kubernetes.Interface) service {
+func NewService(logContext logrus.FieldLogger, gitRepo storage.Repo, k8sDolittleRepo platformK8s.K8sRepo, k8sClient kubernetes.Interface) service {
 	return service{
 		logContext:      logContext,
 		gitRepo:         gitRepo,
