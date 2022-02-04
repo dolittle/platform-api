@@ -205,18 +205,16 @@ var serverCMD = &cobra.Command{
 			stdChainWithJSON.ThenFunc(applicationService.IsOnline),
 		).Methods(http.MethodGet, http.MethodOptions)
 
-		// TODO fix
-		// TODO is this in use?
 		router.Handle(
 			"/application/{applicationID}",
 			stdChainWithJSON.ThenFunc(applicationService.GetByID),
 		).Methods(http.MethodGet, http.MethodOptions)
 
-		// TODO need to fix
 		router.Handle(
 			"/applications",
 			stdChainWithJSON.ThenFunc(applicationService.GetApplications),
 		).Methods(http.MethodGet, http.MethodOptions)
+
 		router.Handle(
 			"/application/{applicationID}/personalised-application-info",
 			stdChainWithJSON.ThenFunc(applicationService.GetPersonalisedInfo),
@@ -231,11 +229,11 @@ var serverCMD = &cobra.Command{
 			stdChainWithJSON.ThenFunc(microserviceService.Delete),
 		).Methods(http.MethodDelete, http.MethodOptions)
 
-		// TODO this endpoint is not in use
 		router.Handle(
 			"/live/applications",
 			stdChainWithJSON.ThenFunc(applicationService.GetLiveApplications),
 		).Methods(http.MethodGet, http.MethodOptions)
+
 		router.Handle(
 			"/live/application/{applicationID}/microservices",
 			stdChainWithJSON.ThenFunc(microserviceService.GetLiveByApplicationID),

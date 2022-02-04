@@ -85,7 +85,9 @@ type HttpResponseApplication struct {
 }
 
 type HttpResponseApplications struct {
-	ID           string                     `json:"id"`
+	// Customer ID
+	ID string `json:"id"`
+	// Customer Name
 	Name         string                     `json:"name"`
 	Applications []ShortInfoWithEnvironment `json:"applications"`
 }

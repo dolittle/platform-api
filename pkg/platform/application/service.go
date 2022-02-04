@@ -250,14 +250,6 @@ func (s *service) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO how to bring automationEnabled flag?
-	//response := storage.ConvertFromJSONApplication2(application)
-	//response.Environments = funk.Map(response.Environments, func(e platform.HttpInputEnvironment) platform.HttpInputEnvironment {
-	//	e.AutomationEnabled = s.gitRepo.IsAutomationEnabledWithStudioConfig(studioInfo.StudioConfig, e.ApplicationID, e.Name)
-	//	return e
-	//}).([]platform.HttpInputEnvironment)
-	//
-	//response.Microservices = microservices
 	response := HttpResponseApplication{
 		Name:       application.Name,
 		ID:         application.ID,
@@ -274,34 +266,49 @@ func (s *service) GetByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *service) GetApplications(w http.ResponseWriter, r *http.Request) {
-	tenantID := r.Header.Get("Tenant-ID")
+	customerID := r.Header.Get("Tenant-ID")
 
-	tenantInfo, err := s.gitRepo.GetTerraformTenant(tenantID)
+	tenantInfo, err := s.gitRepo.GetTerraformTenant(customerID)
 	if err != nil {
-		// TODO handle not found
+		s.logContext.WithFields(logrus.Fields{
+			"error":       err,
+			"method":      "s.gitRepo.GetTerraformTenant",
+			"customer_id": customerID,
+		}).Error("Broken state")
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	storedApplications, err := s.gitRepo.GetApplications(tenantID)
+	storedApplications, err := s.gitRepo.GetApplications(customerID)
 	if err != nil {
-		// TODO check if not found
+		if err != storage.ErrNotFound {
+			utils.RespondWithError(w, http.StatusNotFound, "No applications")
+		}
+		s.logContext.WithFields(logrus.Fields{
+			"error":       err,
+			"method":      "s.gitRepo.GetApplications",
+			"customer_id": customerID,
+		}).Error("Broken state")
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	response := platform.HttpResponseApplications{
-		ID:           tenantID,
+		ID:           customerID,
 		Name:         tenantInfo.Name,
 		Applications: make([]platform.ShortInfoWithEnvironment, 0),
 	}
 
 	for _, storedApplication := range storedApplications {
-		application, err := s.gitRepo.GetApplication2(tenantID, storedApplication.ID)
+		application, err := s.gitRepo.GetApplication2(customerID, storedApplication.ID)
 		if err != nil {
-			// TODO change
-			utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-			return
+			s.logContext.WithFields(logrus.Fields{
+				"error":          err,
+				"method":         "s.gitRepo.GetApplication2",
+				"customer_id":    customerID,
+				"application_id": storedApplication.ID,
+			}).Error("Broken state")
+			continue
 		}
 
 		for _, environmentInfo := range application.Environments {
