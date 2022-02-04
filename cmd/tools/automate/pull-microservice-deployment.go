@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
+	"github.com/dolittle/platform-api/pkg/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/automate"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 )
@@ -32,7 +33,9 @@ var pullMicroserviceDeploymentCMD = &cobra.Command{
 		ctx := context.TODO()
 		k8sClient, _ := platformK8s.InitKubernetesClient()
 
-		namespaces := automate.GetNamespaces(ctx, k8sClient)
+		k8sRepoV2 := k8s.NewRepo(k8sClient, logger.WithField("context", "k8s-repo-v2"))
+
+		namespaces, _ := k8sRepoV2.GetNamespacesWithApplication()
 		for _, namespace := range namespaces {
 			if !automate.IsApplicationNamespace(namespace) {
 				continue

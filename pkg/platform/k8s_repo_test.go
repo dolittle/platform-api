@@ -6,6 +6,8 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
+	logrusTest "github.com/sirupsen/logrus/hooks/test"
 	appsv1 "k8s.io/api/apps/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,6 +46,7 @@ var _ = Describe("k8s repo test", func() {
 				clientSet      *fake.Clientset
 				config         *rest.Config
 				k8sRepo        platform.K8sRepo
+				logger         *logrus.Logger
 			)
 
 			BeforeEach(func() {
@@ -53,7 +56,8 @@ var _ = Describe("k8s repo test", func() {
 				want = errors.New("fail")
 				clientSet = &fake.Clientset{}
 				config = &rest.Config{}
-				k8sRepo = platform.NewK8sRepo(clientSet, config)
+				logger, _ = logrusTest.NewNullLogger()
+				k8sRepo = platform.NewK8sRepo(clientSet, config, logger.WithField("context", "k8s-repo"))
 
 			})
 
@@ -204,7 +208,7 @@ var _ = Describe("k8s repo test", func() {
 												IngressRuleValue: networkingv1.IngressRuleValue{
 													HTTP: &networkingv1.HTTPIngressRuleValue{
 														Paths: []networkingv1.HTTPIngressPath{
-															networkingv1.HTTPIngressPath{
+															{
 																Path:     "/",
 																PathType: &pathType,
 																Backend:  networkingv1.IngressBackend{},
@@ -240,6 +244,7 @@ var _ = Describe("k8s repo test", func() {
 			clientSet      *fake.Clientset
 			config         *rest.Config
 			k8sRepo        platform.K8sRepo
+			logger         *logrus.Logger
 		)
 
 		BeforeEach(func() {
@@ -249,8 +254,8 @@ var _ = Describe("k8s repo test", func() {
 			want = errors.New("fail")
 			clientSet = &fake.Clientset{}
 			config = &rest.Config{}
-			k8sRepo = platform.NewK8sRepo(clientSet, config)
-
+			logger, _ = logrusTest.NewNullLogger()
+			k8sRepo = platform.NewK8sRepo(clientSet, config, logger.WithField("context", "k8s-repo"))
 		})
 
 		It("Failed to talk to kubernetes", func() {

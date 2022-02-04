@@ -1,12 +1,14 @@
 package automate
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
+	"github.com/dolittle/platform-api/pkg/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/platform/automate"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
@@ -33,10 +35,15 @@ Outputs:
 	}
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
-		ctx := context.TODO()
-		k8sClient, _ := platformK8s.InitKubernetesClient()
+		logrus.SetFormatter(&logrus.JSONFormatter{})
+		logrus.SetOutput(os.Stdout)
 
-		microservices, err := automate.GetAllCustomerMicroservices(ctx, k8sClient)
+		logger := logrus.StandardLogger()
+
+		k8sClient, _ := platformK8s.InitKubernetesClient()
+		k8sRepoV2 := k8s.NewRepo(k8sClient, logger.WithField("context", "k8s-repo-v2"))
+
+		microservices, err := automate.GetAllCustomerMicroservices(k8sRepoV2)
 		if err != nil {
 			panic(err.Error())
 		}

@@ -9,8 +9,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	configK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
+	"github.com/dolittle/platform-api/pkg/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
+
+	configK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -151,6 +154,22 @@ func SerializeRuntimeObject(runtimeObject runtime.Object) []byte {
 	return buf.Bytes()
 }
 
+func GetCustomerTenantsConfigMaps(ctx context.Context, client kubernetes.Interface, namespace string) ([]corev1.ConfigMap, error) {
+	results := make([]corev1.ConfigMap, 0)
+	configmaps, err := client.CoreV1().ConfigMaps(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return results, err
+	}
+
+	for _, configMap := range configmaps.Items {
+		if !strings.HasSuffix(configMap.GetName(), "-tenants") {
+			continue
+		}
+		results = append(results, configMap)
+	}
+	return results, nil
+}
+
 func GetDolittleConfigMaps(ctx context.Context, client kubernetes.Interface, namespace string) ([]corev1.ConfigMap, error) {
 	results := make([]corev1.ConfigMap, 0)
 	configmaps, err := client.CoreV1().ConfigMaps(namespace).List(ctx, metav1.ListOptions{})
@@ -197,16 +216,16 @@ func GetDolittleConfigMap(ctx context.Context, client kubernetes.Interface, appl
 }
 
 func GetDeployments(ctx context.Context, client kubernetes.Interface, namespace string) ([]appsv1.Deployment, error) {
-	deployments, err := client.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{})
+	deployments, err := client.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: "microservice",
+	})
+
 	if err != nil {
 		return nil, err
 	}
 
 	var microserviceDeployments []appsv1.Deployment
 	for _, deployment := range deployments.Items {
-		if _, ok := deployment.Labels["microservice"]; !ok {
-			continue
-		}
 		if _, ok := deployment.Annotations["dolittle.io/microservice-id"]; !ok {
 			continue
 		}
@@ -266,7 +285,7 @@ func ConvertObjectMetaToMicroservice(objectMeta metav1.Object) configK8s.Microse
 
 	environment := labels["environment"]
 
-	kind := platform.GetMicroserviceKindFromAnnotations(annotations)
+	kind := platformK8s.GetMicroserviceKindFromAnnotations(annotations)
 
 	return configK8s.Microservice{
 		ID:          microserviceID,
@@ -274,20 +293,21 @@ func ConvertObjectMetaToMicroservice(objectMeta metav1.Object) configK8s.Microse
 		Tenant:      customerTenant,
 		Application: k8sApplication,
 		Environment: environment,
-		ResourceID:  "",
 		Kind:        kind,
 	}
 }
 
-func GetAllCustomerMicroservices(ctx context.Context, client kubernetes.Interface) ([]configK8s.Microservice, error) {
+func GetAllCustomerMicroservices(repo k8s.Repo) ([]configK8s.Microservice, error) {
 	microservices := make([]configK8s.Microservice, 0)
 	deployments := make([]appsv1.Deployment, 0)
-	namespaces := GetNamespaces(ctx, client)
+	namespaces, _ := repo.GetNamespacesWithApplication()
 	for _, namespace := range namespaces {
+		// TODO Do we need this extra check?
+		// TODO should we move it to the above?
 		if !IsApplicationNamespace(namespace) {
 			continue
 		}
-		specific, err := GetDeployments(ctx, client, namespace.Name)
+		specific, err := repo.GetDeploymentsWithMicroservice(namespace.Name)
 		if err != nil {
 			return microservices, err
 		}
@@ -299,14 +319,6 @@ func GetAllCustomerMicroservices(ctx context.Context, client kubernetes.Interfac
 		microservices = append(microservices, microservice)
 	}
 	return microservices, nil
-}
-
-func GetNamespaces(ctx context.Context, client kubernetes.Interface) []corev1.Namespace {
-	namespacesList, err := client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
-	if err != nil {
-		panic(err.Error())
-	}
-	return namespacesList.Items
 }
 
 func IsApplicationNamespace(namespace corev1.Namespace) bool {

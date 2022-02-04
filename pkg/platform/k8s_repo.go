@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dolittle/platform-api/pkg/k8s"
 	"github.com/dolittle/platform-api/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -32,13 +33,17 @@ var (
 type K8sRepo struct {
 	baseConfig *rest.Config
 	k8sClient  kubernetes.Interface
+	logContext logrus.FieldLogger
+	k8sRepoV2  k8s.Repo
 }
 
-func NewK8sRepo(k8sClient kubernetes.Interface, config *rest.Config) K8sRepo {
-
+func NewK8sRepo(k8sClient kubernetes.Interface, config *rest.Config, logContext logrus.FieldLogger) K8sRepo {
+	k8sRepoV2 := k8s.NewRepo(k8sClient, logContext.WithField("context", "k8s-repo-v2"))
 	return K8sRepo{
+		k8sRepoV2:  k8sRepoV2,
 		baseConfig: config,
 		k8sClient:  k8sClient,
+		logContext: logContext,
 	}
 }
 
