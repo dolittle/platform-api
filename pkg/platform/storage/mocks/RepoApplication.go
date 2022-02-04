@@ -3,7 +3,6 @@
 package mocks
 
 import (
-	platform "github.com/dolittle/platform-api/pkg/platform"
 	storage "github.com/dolittle/platform-api/pkg/platform/storage"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -58,21 +57,7 @@ func (_m *RepoApplication) GetApplications(tenantID string) ([]storage.JSONAppli
 }
 
 // SaveApplication provides a mock function with given fields: application
-func (_m *RepoApplication) SaveApplication(application platform.HttpResponseApplication) error {
-	ret := _m.Called(application)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(platform.HttpResponseApplication) error); ok {
-		r0 = rf(application)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// SaveApplication2 provides a mock function with given fields: application
-func (_m *RepoApplication) SaveApplication2(application storage.JSONApplication) error {
+func (_m *RepoApplication) SaveApplication(application storage.JSONApplication) error {
 	ret := _m.Called(application)
 
 	var r0 error

@@ -109,7 +109,7 @@ func (c *PodLoggingController) podUpdate(old, new interface{}) {
 		//entry.Status.State = storage.BuildStatusStateFinishedSuccess
 		//entry.Status.FinishedAt = time.Now().UTC().Format(time.RFC3339)
 		//
-		//err = c.repo.SaveApplication2(entry)
+		//err = c.repo.SaveApplication(entry)
 		//if err != nil {
 		//	c.logContext.WithFields(logrus.Fields{
 		//		"error":   err,

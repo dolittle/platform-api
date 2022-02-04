@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	"github.com/sirupsen/logrus"
 )
@@ -17,12 +16,7 @@ func (s *GitStorage) GetApplicationDirectory(tenantID string, applicationID stri
 	return filepath.Join(s.GetRoot(), tenantID, applicationID)
 }
 
-func (s *GitStorage) SaveApplication(application platform.HttpResponseApplication) error {
-	mapped := storage.ConvertFromPlatformHttpResponseApplication(application)
-	return s.SaveApplication2(mapped)
-}
-
-func (s *GitStorage) SaveApplication2(application storage.JSONApplication) error {
+func (s *GitStorage) SaveApplication(application storage.JSONApplication) error {
 	applicationID := application.ID
 	tenantID := application.TenantID
 	logContext := s.logContext.WithFields(logrus.Fields{

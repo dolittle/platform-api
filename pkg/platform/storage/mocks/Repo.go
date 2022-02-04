@@ -244,21 +244,7 @@ func (_m *Repo) IsAutomationEnabledWithStudioConfig(studioConfig platform.Studio
 }
 
 // SaveApplication provides a mock function with given fields: application
-func (_m *Repo) SaveApplication(application platform.HttpResponseApplication) error {
-	ret := _m.Called(application)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(platform.HttpResponseApplication) error); ok {
-		r0 = rf(application)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// SaveApplication2 provides a mock function with given fields: application
-func (_m *Repo) SaveApplication2(application storage.JSONApplication) error {
+func (_m *Repo) SaveApplication(application storage.JSONApplication) error {
 	ret := _m.Called(application)
 
 	var r0 error

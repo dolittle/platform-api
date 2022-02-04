@@ -144,7 +144,7 @@ In kubernetes, create application
 		application.Status.State = storage.BuildStatusStateFinishedSuccess
 		application.Status.FinishedAt = time.Now().UTC().Format(time.RFC3339)
 
-		err = gitRepo.SaveApplication2(application)
+		err = gitRepo.SaveApplication(application)
 		if err != nil {
 			// TODO failed to update state
 			panic(err.Error())

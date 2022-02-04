@@ -114,7 +114,7 @@ var buildApplicationInfoCMD = &cobra.Command{
 			return
 		}
 
-		err = storageRepo.SaveApplication2(application)
+		err = storageRepo.SaveApplication(application)
 		if err != nil {
 			logContext.WithFields(logrus.Fields{
 				"error":     err,

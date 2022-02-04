@@ -138,7 +138,7 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO change this to use the storage
-	err = s.gitRepo.SaveApplication2(application)
+	err = s.gitRepo.SaveApplication(application)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to write to storage")
 		return
