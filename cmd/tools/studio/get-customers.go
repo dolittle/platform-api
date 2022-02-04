@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// TODO should we deprecate this? or make it reusable in terms of add the "name" and it will hook up the developer rbac
 var getCustomersCMD = &cobra.Command{
 	Use:   "get-customers",
 	Short: "Get customer info from studio storage",
