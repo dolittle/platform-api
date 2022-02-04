@@ -75,7 +75,11 @@ var _ = Describe("k8s repo test", func() {
 			It("When List is empty", func() {
 				clientSet.AddReactor("list", "ingresses", func(action testing.Action) (handled bool, ret runtime.Object, err error) {
 					filters := action.(testing.ListActionImpl).ListRestrictions
-					Expect(filters.Labels.Matches(labels.Set{"environment": environment})).To(BeTrue())
+					Expect(filters.Labels.Matches(labels.Set{
+						"tenant":       string(selection.Exists),
+						"environment":  environment,
+						"microservice": string(selection.Exists),
+					})).To(BeTrue())
 
 					data := &networkingv1.IngressList{}
 					return true, data, nil
@@ -89,7 +93,11 @@ var _ = Describe("k8s repo test", func() {
 			It("When List has no ingresses linked to this microservice", func() {
 				clientSet.AddReactor("list", "ingresses", func(action testing.Action) (handled bool, ret runtime.Object, err error) {
 					filters := action.(testing.ListActionImpl).ListRestrictions
-					Expect(filters.Labels.Matches(labels.Set{"environment": environment})).To(BeTrue())
+					Expect(filters.Labels.Matches(labels.Set{
+						"tenant":       string(selection.Exists),
+						"environment":  environment,
+						"microservice": string(selection.Exists),
+					})).To(BeTrue())
 					className := "nginx"
 
 					data := &networkingv1.IngressList{
@@ -98,7 +106,9 @@ var _ = Describe("k8s repo test", func() {
 								ObjectMeta: metav1.ObjectMeta{
 									Name: "ignore-1",
 									Labels: map[string]string{
-										"environment": environment,
+										"tenant":       "fake-tenant",
+										"environment":  environment,
+										"microservice": "fake-microservice",
 									},
 								},
 								Spec: networkingv1.IngressSpec{
@@ -120,7 +130,12 @@ var _ = Describe("k8s repo test", func() {
 				It("Only 1", func() {
 					clientSet.AddReactor("list", "ingresses", func(action testing.Action) (handled bool, ret runtime.Object, err error) {
 						filters := action.(testing.ListActionImpl).ListRestrictions
-						Expect(filters.Labels.Matches(labels.Set{"environment": environment})).To(BeTrue())
+
+						Expect(filters.Labels.Matches(labels.Set{
+							"tenant":       string(selection.Exists),
+							"environment":  environment,
+							"microservice": string(selection.Exists),
+						})).To(BeTrue())
 						className := "nginx"
 
 						pathType := networkingv1.PathTypePrefix
@@ -130,7 +145,9 @@ var _ = Describe("k8s repo test", func() {
 									ObjectMeta: metav1.ObjectMeta{
 										Name: "ignore-1",
 										Labels: map[string]string{
-											"environment": environment,
+											"tenant":       "fake-tenant",
+											"environment":  environment,
+											"microservice": "fake-microservice",
 										},
 										Annotations: map[string]string{
 											"dolittle.io/microservice-id": microserviceID,
@@ -171,7 +188,11 @@ var _ = Describe("k8s repo test", func() {
 
 					clientSet.AddReactor("list", "ingresses", func(action testing.Action) (handled bool, ret runtime.Object, err error) {
 						filters := action.(testing.ListActionImpl).ListRestrictions
-						Expect(filters.Labels.Matches(labels.Set{"environment": environment})).To(BeTrue())
+						Expect(filters.Labels.Matches(labels.Set{
+							"tenant":       string(selection.Exists),
+							"environment":  environment,
+							"microservice": string(selection.Exists),
+						})).To(BeTrue())
 						className := "nginx"
 
 						pathType := networkingv1.PathTypePrefix
@@ -181,7 +202,9 @@ var _ = Describe("k8s repo test", func() {
 									ObjectMeta: metav1.ObjectMeta{
 										Name: "ignore-1",
 										Labels: map[string]string{
-											"environment": environment,
+											"tenant":       "fake-tenant",
+											"environment":  environment,
+											"microservice": "fake-microservice",
 										},
 										Annotations: map[string]string{
 											"dolittle.io/microservice-id": microserviceID,

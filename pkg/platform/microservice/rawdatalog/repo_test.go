@@ -37,11 +37,11 @@ var _ = Describe("Repo", func() {
 	)
 
 	BeforeEach(func() {
+		logger, _ = logrusTest.NewNullLogger()
 		clientSet = fake.NewSimpleClientset()
 		config = &rest.Config{}
 		k8sRepo = platformK8s.NewK8sRepo(clientSet, config, logger)
 		gitRepo = new(mocks.Repo)
-		logger, _ = logrusTest.NewNullLogger()
 		platformEnvironment = "dev"
 		rawDataLogRepo = NewRawDataLogIngestorRepo(platformEnvironment, k8sRepo, clientSet, gitRepo, logger)
 	})
