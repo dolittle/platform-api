@@ -46,7 +46,7 @@ var _ = Describe("Repo", func() {
 
 		terraformCustomer     platform.TerraformCustomer
 		terraformApplication  platform.TerraformApplication
-		application           storage.JSONApplication2
+		application           storage.JSONApplication
 		welcomeMicroserviceID string
 		environment           string
 	)
@@ -83,7 +83,7 @@ var _ = Describe("Repo", func() {
 		logContext := logger
 		welcomeMicroserviceID = "fake-microservice-id"
 		environment = "Dev"
-		application = storage.JSONApplication2{
+		application = storage.JSONApplication{
 			ID:         terraformApplication.ApplicationID,
 			Name:       terraformApplication.Name,
 			TenantID:   terraformCustomer.GUID,

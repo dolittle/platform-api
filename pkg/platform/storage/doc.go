@@ -6,16 +6,13 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform"
 )
 
-// TODO need a better name
-// Interface for writing data for the automation part of the platform
-
 type RepoCustomer interface {
 	GetCustomers() ([]platform.Customer, error)
 	SaveCustomer(customer JSONCustomer) error
 }
 type RepoCustomerTenants interface {
-	GetCustomerTenants(application JSONApplication2) []platform.CustomerTenantInfo
-	GetCustomerTenantsByEnvironment(application JSONApplication2, environment string) []platform.CustomerTenantInfo
+	GetCustomerTenants(application JSONApplication) []platform.CustomerTenantInfo
+	GetCustomerTenantsByEnvironment(application JSONApplication, environment string) []platform.CustomerTenantInfo
 }
 
 type RepoMicroservice interface {
@@ -26,9 +23,9 @@ type RepoMicroservice interface {
 }
 
 type RepoApplication interface {
-	GetApplication(tenantID string, applicationID string) (JSONApplication2, error)
-	SaveApplication2(application JSONApplication2) error
-	GetApplications(tenantID string) ([]JSONApplication2, error)
+	GetApplication(tenantID string, applicationID string) (JSONApplication, error)
+	SaveApplication2(application JSONApplication) error
+	GetApplications(tenantID string) ([]JSONApplication, error)
 	SaveApplication(application platform.HttpResponseApplication) error
 }
 
@@ -73,24 +70,8 @@ type JSONBuildStatus struct {
 	StartedAt  string `json:"startedAt"`
 	FinishedAt string `json:"finishedAt"`
 }
+
 type JSONApplication struct {
-	ID           string            `json:"id"`
-	Name         string            `json:"name"`
-	TenantID     string            `json:"tenantId"`
-	TenantName   string            `json:"tenantName"`
-	Environments []JSONEnvironment `json:"environments"`
-}
-
-// JSONEnvironment represents the "environments" property in application.json file
-type JSONEnvironment struct {
-	Name          string                        `json:"name"`
-	TenantID      string                        `json:"tenantId"`
-	ApplicationID string                        `json:"applicationId"`
-	Tenants       []platform.TenantId           `json:"tenants"`
-	Ingresses     platform.EnvironmentIngresses `json:"ingresses"`
-}
-
-type JSONApplication2 struct {
 	ID           string             `json:"id"`
 	Name         string             `json:"name"`
 	TenantID     string             `json:"tenantId"`

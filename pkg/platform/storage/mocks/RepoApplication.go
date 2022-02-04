@@ -14,14 +14,14 @@ type RepoApplication struct {
 }
 
 // GetApplication provides a mock function with given fields: tenantID, applicationID
-func (_m *RepoApplication) GetApplication(tenantID string, applicationID string) (storage.JSONApplication2, error) {
+func (_m *RepoApplication) GetApplication(tenantID string, applicationID string) (storage.JSONApplication, error) {
 	ret := _m.Called(tenantID, applicationID)
 
-	var r0 storage.JSONApplication2
-	if rf, ok := ret.Get(0).(func(string, string) storage.JSONApplication2); ok {
+	var r0 storage.JSONApplication
+	if rf, ok := ret.Get(0).(func(string, string) storage.JSONApplication); ok {
 		r0 = rf(tenantID, applicationID)
 	} else {
-		r0 = ret.Get(0).(storage.JSONApplication2)
+		r0 = ret.Get(0).(storage.JSONApplication)
 	}
 
 	var r1 error
@@ -35,15 +35,15 @@ func (_m *RepoApplication) GetApplication(tenantID string, applicationID string)
 }
 
 // GetApplications provides a mock function with given fields: tenantID
-func (_m *RepoApplication) GetApplications(tenantID string) ([]storage.JSONApplication2, error) {
+func (_m *RepoApplication) GetApplications(tenantID string) ([]storage.JSONApplication, error) {
 	ret := _m.Called(tenantID)
 
-	var r0 []storage.JSONApplication2
-	if rf, ok := ret.Get(0).(func(string) []storage.JSONApplication2); ok {
+	var r0 []storage.JSONApplication
+	if rf, ok := ret.Get(0).(func(string) []storage.JSONApplication); ok {
 		r0 = rf(tenantID)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]storage.JSONApplication2)
+			r0 = ret.Get(0).([]storage.JSONApplication)
 		}
 	}
 
@@ -72,11 +72,11 @@ func (_m *RepoApplication) SaveApplication(application platform.HttpResponseAppl
 }
 
 // SaveApplication2 provides a mock function with given fields: application
-func (_m *RepoApplication) SaveApplication2(application storage.JSONApplication2) error {
+func (_m *RepoApplication) SaveApplication2(application storage.JSONApplication) error {
 	ret := _m.Called(application)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(storage.JSONApplication2) error); ok {
+	if rf, ok := ret.Get(0).(func(storage.JSONApplication) error); ok {
 		r0 = rf(application)
 	} else {
 		r0 = ret.Error(0)

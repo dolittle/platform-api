@@ -109,7 +109,7 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 	// TODO this will overwrite
 	// TODO massage the data https://app.asana.com/0/0/1201457681486811/f (sanatise the labels)
 
-	application := storage.JSONApplication2{
+	application := storage.JSONApplication{
 		ID:           input.ID,
 		Name:         input.Name,
 		TenantID:     tenant.ID,

@@ -22,7 +22,7 @@ func (s *GitStorage) SaveApplication(application platform.HttpResponseApplicatio
 	return s.SaveApplication2(mapped)
 }
 
-func (s *GitStorage) SaveApplication2(application storage.JSONApplication2) error {
+func (s *GitStorage) SaveApplication2(application storage.JSONApplication) error {
 	applicationID := application.ID
 	tenantID := application.TenantID
 	logContext := s.logContext.WithFields(logrus.Fields{
@@ -57,12 +57,12 @@ func (s *GitStorage) SaveApplication2(application storage.JSONApplication2) erro
 	return nil
 }
 
-func (s *GitStorage) GetApplication(tenantID string, applicationID string) (storage.JSONApplication2, error) {
+func (s *GitStorage) GetApplication(tenantID string, applicationID string) (storage.JSONApplication, error) {
 	dir := s.GetApplicationDirectory(tenantID, applicationID)
 	filename := filepath.Join(dir, "application.json")
 	b, err := ioutil.ReadFile(filename)
 
-	var application storage.JSONApplication2
+	var application storage.JSONApplication
 	if err != nil {
 		if strings.Contains(err.Error(), "no such file or directory") {
 			return application, storage.ErrNotFound
@@ -77,9 +77,9 @@ func (s *GitStorage) GetApplication(tenantID string, applicationID string) (stor
 	return application, nil
 }
 
-func (s *GitStorage) GetApplications(customerID string) ([]storage.JSONApplication2, error) {
+func (s *GitStorage) GetApplications(customerID string) ([]storage.JSONApplication, error) {
 	applicationIDs, err := s.discoverCustomerApplicationIds(customerID)
-	applications := make([]storage.JSONApplication2, 0)
+	applications := make([]storage.JSONApplication, 0)
 
 	if err != nil {
 		return applications, err
@@ -130,7 +130,7 @@ func (s *GitStorage) discoverCustomerApplicationIds(customerID string) ([]string
 	return applicationIDs, err
 }
 
-func (s *GitStorage) writeApplication(application storage.JSONApplication2) (string, error) {
+func (s *GitStorage) writeApplication(application storage.JSONApplication) (string, error) {
 	customerID := application.TenantID
 	applicationID := application.ID
 	logContext := s.logContext.WithFields(logrus.Fields{

@@ -5,7 +5,7 @@ import (
 )
 
 // TODO rename once happy
-func ConvertFromJSONApplication2(input JSONApplication2) platform.HttpResponseApplication {
+func ConvertFromJSONApplication(input JSONApplication) platform.HttpResponseApplication {
 	return platform.HttpResponseApplication{}
 	//output := platform.HttpResponseApplication{
 	//	ID:         input.ID,
@@ -52,10 +52,10 @@ func ConvertFromJSONApplication2(input JSONApplication2) platform.HttpResponseAp
 	//return output
 }
 
-func ConvertFromPlatformHttpResponseApplication(input platform.HttpResponseApplication) JSONApplication2 {
-	return JSONApplication2{}
+func ConvertFromPlatformHttpResponseApplication(input platform.HttpResponseApplication) JSONApplication {
+	return JSONApplication{}
 	//
-	//output := JSONApplication2{
+	//output := JSONApplication{
 	//	ID:         input.ID,
 	//	Name:       input.Name,
 	//	TenantID:   input.TenantID,

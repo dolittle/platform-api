@@ -681,7 +681,7 @@ func (r RawDataLogIngestorRepo) getCustomerTenantForHost(customer k8s.Tenant, ap
 	return platform.CustomerTenantInfo{}, fmt.Errorf("no ingress with host %s found in environment %s in application %s", host, environment, application.ID)
 }
 
-func (r RawDataLogIngestorRepo) getEnvironmentFromApplication(application storage.JSONApplication2, environment string) (storage.JSONEnvironment2, error) {
+func (r RawDataLogIngestorRepo) getEnvironmentFromApplication(application storage.JSONApplication, environment string) (storage.JSONEnvironment2, error) {
 	for _, env := range application.Environments {
 		if strings.EqualFold(env.Name, environment) {
 			return env, nil

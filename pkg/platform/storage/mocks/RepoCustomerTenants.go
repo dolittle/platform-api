@@ -14,11 +14,11 @@ type RepoCustomerTenants struct {
 }
 
 // GetCustomerTenants provides a mock function with given fields: application
-func (_m *RepoCustomerTenants) GetCustomerTenants(application storage.JSONApplication2) []platform.CustomerTenantInfo {
+func (_m *RepoCustomerTenants) GetCustomerTenants(application storage.JSONApplication) []platform.CustomerTenantInfo {
 	ret := _m.Called(application)
 
 	var r0 []platform.CustomerTenantInfo
-	if rf, ok := ret.Get(0).(func(storage.JSONApplication2) []platform.CustomerTenantInfo); ok {
+	if rf, ok := ret.Get(0).(func(storage.JSONApplication) []platform.CustomerTenantInfo); ok {
 		r0 = rf(application)
 	} else {
 		if ret.Get(0) != nil {
@@ -30,11 +30,11 @@ func (_m *RepoCustomerTenants) GetCustomerTenants(application storage.JSONApplic
 }
 
 // GetCustomerTenantsByEnvironment provides a mock function with given fields: application, environment
-func (_m *RepoCustomerTenants) GetCustomerTenantsByEnvironment(application storage.JSONApplication2, environment string) []platform.CustomerTenantInfo {
+func (_m *RepoCustomerTenants) GetCustomerTenantsByEnvironment(application storage.JSONApplication, environment string) []platform.CustomerTenantInfo {
 	ret := _m.Called(application, environment)
 
 	var r0 []platform.CustomerTenantInfo
-	if rf, ok := ret.Get(0).(func(storage.JSONApplication2, string) []platform.CustomerTenantInfo); ok {
+	if rf, ok := ret.Get(0).(func(storage.JSONApplication, string) []platform.CustomerTenantInfo); ok {
 		r0 = rf(application, environment)
 	} else {
 		if ret.Get(0) != nil {

@@ -24,7 +24,7 @@ func CreateApplicationAndEnvironmentAndWelcomeMicroservice(
 	storageRepo storage.RepoMicroservice,
 	simplRepo simple.Repo,
 	k8sDolittleRepo platformK8s.K8sRepo,
-	application storage.JSONApplication2,
+	application storage.JSONApplication,
 	terraformCustomer platform.TerraformCustomer,
 	terraformApplication platform.TerraformApplication,
 	isProduction bool,

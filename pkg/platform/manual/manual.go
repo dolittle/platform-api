@@ -34,8 +34,8 @@ func NewManualHelper(
 	}
 }
 
-func (r Repo) GatherOne(platformEnvironment string, namespace string) (storage.JSONApplication2, error) {
-	application := storage.JSONApplication2{
+func (r Repo) GatherOne(platformEnvironment string, namespace string) (storage.JSONApplication, error) {
+	application := storage.JSONApplication{
 		Environments: make([]storage.JSONEnvironment2, 0),
 	}
 	ctx := context.TODO()
@@ -44,7 +44,7 @@ func (r Repo) GatherOne(platformEnvironment string, namespace string) (storage.J
 	namespaceResource, err := client.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
 
 	if err != nil {
-		return storage.JSONApplication2{}, err
+		return storage.JSONApplication{}, err
 	}
 	// Confirm it has applicaiton terraform
 	application.ID = namespaceResource.Annotations["dolittle.io/application-id"]
