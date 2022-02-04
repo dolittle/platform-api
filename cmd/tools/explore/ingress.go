@@ -1,7 +1,6 @@
 package explore
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -10,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/dolittle/platform-api/pkg/k8s"
-	"github.com/dolittle/platform-api/pkg/platform/automate"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 )
 
@@ -27,12 +25,16 @@ var ingressCMD = &cobra.Command{
 		logContext := logrus.StandardLogger()
 		logContext.Info("Hello")
 
-		ctx := context.TODO()
 		k8sClient, _ := platformK8s.InitKubernetesClient()
 
 		k8sRepoV2 := k8s.NewRepo(k8sClient, logContext.WithField("context", "k8s-repo-v2"))
 
-		namespaces := automate.GetNamespacesWithApplication(ctx, k8sClient)
+		namespaces, err := k8sRepoV2.GetNamespacesWithApplication()
+		if err != nil {
+			logContext.WithFields(logrus.Fields{
+				"error": err,
+			}).Fatal("Getting namespaces")
+		}
 
 		for _, namespace := range namespaces {
 

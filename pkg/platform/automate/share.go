@@ -317,17 +317,6 @@ func GetAllCustomerMicroservices(ctx context.Context, client kubernetes.Interfac
 	return microservices, nil
 }
 
-func GetNamespacesWithApplication(ctx context.Context, client kubernetes.Interface) []corev1.Namespace {
-	namespacesList, err := client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{
-		LabelSelector: "tenant,application",
-	})
-
-	if err != nil {
-		panic(err.Error())
-	}
-	return namespacesList.Items
-}
-
 func GetNamespaces(ctx context.Context, client kubernetes.Interface) []corev1.Namespace {
 	namespacesList, err := client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
