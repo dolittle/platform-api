@@ -60,7 +60,7 @@ func (s *GitStorage) SaveMicroservice(tenantID string, applicationID string, env
 		"environment":    environment,
 		"microserviceID": microserviceID,
 	})
-	storageBytes, _ := json.MarshalIndent(data, "", "  ")
+
 	if err := s.Pull(); err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
@@ -69,13 +69,8 @@ func (s *GitStorage) SaveMicroservice(tenantID string, applicationID string, env
 	}
 
 	dir := s.GetMicroserviceDirectory(tenantID, applicationID, environment)
-	err := os.MkdirAll(dir, 0755)
-	if err != nil {
-		return err
-	}
-
 	filename := filepath.Join(dir, fmt.Sprintf("ms_%s.json", microserviceID))
-	err = ioutil.WriteFile(filename, storageBytes, 0644)
+	err := s.writeToDisk(filename, data)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"filename": filename,

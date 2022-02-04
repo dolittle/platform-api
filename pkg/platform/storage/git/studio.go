@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 
 	"github.com/dolittle/platform-api/pkg/platform"
@@ -52,20 +51,15 @@ func (s *GitStorage) writeStudioConfig(tenantID string, config platform.StudioCo
 	})
 
 	dir := s.GetTenantDirectory(tenantID)
-	err := os.MkdirAll(dir, 0755)
-	if err != nil {
-		return "", err
-	}
-
 	filename := filepath.Join(dir, "studio.json")
-	data, _ := json.MarshalIndent(config, "", "  ")
-	if err := ioutil.WriteFile(filename, data, 0644); err != nil {
+	err := s.writeToDisk(filename, config)
+	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error":    err,
 			"filename": filename,
 		}).Error("Failed to write to 'studio.json")
-		return filename, err
 	}
+
 	return filename, nil
 }
 

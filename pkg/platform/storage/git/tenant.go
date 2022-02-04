@@ -77,13 +77,8 @@ func (s *GitStorage) SaveCustomer(customer storage.JSONCustomer) error {
 	}
 
 	dir := s.GetTenantDirectory(customerID)
-	err := os.MkdirAll(dir, 0755)
-	if err != nil {
-		return err
-	}
-
 	filename := filepath.Join(dir, "customer.json")
-	err = s.writeToDisk(filename, customer)
+	err := s.writeToDisk(filename, customer)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,

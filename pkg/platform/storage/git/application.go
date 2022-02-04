@@ -154,19 +154,13 @@ func (s *GitStorage) writeApplication(application storage.JSONApplication2) (str
 		"applicationID": application.ID,
 	})
 
-	data, _ := json.MarshalIndent(application, "", " ")
-
 	dir := s.GetApplicationDirectory(customerID, applicationID)
-	err := os.MkdirAll(dir, 0755)
-	if err != nil {
-		return "", err
-	}
-
 	filename := filepath.Join(dir, "application.json")
-	err = ioutil.WriteFile(filename, data, 0644)
+	err := s.writeToDisk(filename, application)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
-			"error": err,
+			"filename": filename,
+			"error":    err,
 		}).Error("Failed to write 'application.json'")
 		return filename, err
 	}
