@@ -128,11 +128,7 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		welcomeMicroserviceID := uuid.New().String()
 		customerTenant := dolittleK8s.NewDevelopmentCustomerTenantInfo(environment, welcomeMicroserviceID)
 		environmentInfo := storage.JSONEnvironment2{
-			Name:          environment,
-			TenantID:      tenant.ID,
-			ApplicationID: application.ID,
-			Tenants:       make([]string, 0),
-			Ingresses:     make([]storage.JSONEnvironmentIngress2, 0),
+			Name: environment,
 			CustomerTenants: []platform.CustomerTenantInfo{
 				customerTenant,
 			},
@@ -254,13 +250,26 @@ func (s *service) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := storage.ConvertFromJSONApplication2(application)
-	response.Environments = funk.Map(response.Environments, func(e platform.HttpInputEnvironment) platform.HttpInputEnvironment {
-		e.AutomationEnabled = s.gitRepo.IsAutomationEnabledWithStudioConfig(studioInfo.StudioConfig, e.ApplicationID, e.Name)
-		return e
-	}).([]platform.HttpInputEnvironment)
-
-	response.Microservices = microservices
+	// TODO how to bring automationEnabled flag?
+	//response := storage.ConvertFromJSONApplication2(application)
+	//response.Environments = funk.Map(response.Environments, func(e platform.HttpInputEnvironment) platform.HttpInputEnvironment {
+	//	e.AutomationEnabled = s.gitRepo.IsAutomationEnabledWithStudioConfig(studioInfo.StudioConfig, e.ApplicationID, e.Name)
+	//	return e
+	//}).([]platform.HttpInputEnvironment)
+	//
+	//response.Microservices = microservices
+	response := HttpResponseApplication{
+		Name:       application.Name,
+		ID:         application.ID,
+		TenantID:   studioInfo.TerraformCustomer.GUID,
+		TenantName: studioInfo.TerraformCustomer.Name,
+		Environments: funk.Map(application.Environments, func(environment storage.JSONEnvironment2) HttpResponseEnvironment {
+			return HttpResponseEnvironment{
+				AutomationEnabled: s.gitRepo.IsAutomationEnabledWithStudioConfig(studioInfo.StudioConfig, applicationID, environment.Name),
+			}
+		}).([]HttpResponseEnvironment),
+		Microservices: microservices,
+	}
 	utils.RespondWithJSON(w, http.StatusOK, response)
 }
 

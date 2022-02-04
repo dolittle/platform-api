@@ -2,58 +2,85 @@ package manual
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 
 	"github.com/dolittle/platform-api/pkg/k8s"
+	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/platform/automate"
+	"github.com/dolittle/platform-api/pkg/platform/storage"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
 type Repo struct {
-	client     kubernetes.Interface
-	k8sRepoV2  k8s.Repo
-	logContext logrus.FieldLogger
+	client      kubernetes.Interface
+	k8sRepoV2   k8s.Repo
+	storageRepo storage.Repo
+	logContext  logrus.FieldLogger
 }
 
 func NewManualHelper(
 	client kubernetes.Interface,
 	k8sRepoV2 k8s.Repo,
+	storageRepo storage.Repo,
 	logContext logrus.FieldLogger,
 ) Repo {
 	return Repo{
-		client:     client,
-		k8sRepoV2:  k8sRepoV2,
-		logContext: logContext,
+		client:      client,
+		k8sRepoV2:   k8sRepoV2,
+		storageRepo: storageRepo,
+		logContext:  logContext,
 	}
 }
 
-func (r Repo) GatherOne(namespace string) {
-	//application := storage.JSONApplication2{}
+func (r Repo) GatherOne(platformEnvironment string, namespace string) (storage.JSONApplication2, error) {
+	application := storage.JSONApplication2{
+		Environments: make([]storage.JSONEnvironment2, 0),
+	}
 	ctx := context.TODO()
 	client := r.client
 
 	namespaceResource, err := client.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
 
 	if err != nil {
-		panic(err)
+		return storage.JSONApplication2{}, err
 	}
-
-	if !automate.IsApplicationNamespace(*namespaceResource) {
-		r.logContext.WithFields(logrus.Fields{
-			"namespace": namespace,
-		}).Info("Namespace not dolittle application")
-		return
-	}
+	// Confirm it has applicaiton terraform
+	application.ID = namespaceResource.Annotations["dolittle.io/application-id"]
+	application.Name = namespaceResource.Labels["application"]
+	application.TenantID = namespaceResource.Annotations["dolittle.io/tenant-id"]
+	application.TenantName = namespaceResource.Labels["tenant"]
 
 	//Get customerTenants
 	// TODO write this to storage?
-	items := r.GetCustomerTenants(ctx, namespace)
-	// Get Environments
+	customerTenants := r.GetCustomerTenants(ctx, namespace)
+	environmentNames := r.GetEnvironmentNames(ctx, namespace)
 
-	b, _ := json.Marshal(items)
-	fmt.Println(string(b))
-	//fmt.Println(applications)
+	for _, environmentName := range environmentNames {
+		environment := storage.JSONEnvironment2{
+			Name: environmentName,
+			CustomerTenants: funk.Filter(customerTenants, func(customerTenant platform.CustomerTenantInfo) bool {
+				return customerTenant.Environment == environmentName
+			}).([]platform.CustomerTenantInfo),
+			WelcomeMicroserviceID: "",
+		}
+		application.Environments = append(application.Environments, environment)
+	}
+
+	return application, nil
+}
+
+func (r Repo) GetEnvironmentNames(ctx context.Context, namespace string) []string {
+	client := r.client
+	customerTenantsConfigMaps, err := automate.GetCustomerTenantsConfigMaps(ctx, client, namespace)
+	if err != nil {
+		panic(err)
+	}
+
+	environments := make([]string, 0)
+	for _, configMap := range customerTenantsConfigMaps {
+		environments = append(environments, configMap.Labels["environment"])
+	}
+	return environments
 }

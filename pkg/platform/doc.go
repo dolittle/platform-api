@@ -74,15 +74,7 @@ type HttpInputEnvironment struct {
 	Ingresses         EnvironmentIngresses `json:"ingresses"`
 }
 
-type HttpResponseApplicationEnvironment struct {
-	AutomationEnabled bool `json:"automationEnabled"` // Keep
-	//Name              string               `json:"name"`
-	//TenantID          string               `json:"tenantId"`
-	//ApplicationID     string               `json:"applicationId"`
-	//Tenants           []TenantId           `json:"tenants"`
-	//Ingresses         EnvironmentIngresses `json:"ingresses"`
-}
-
+// To remove
 type HttpResponseApplication struct {
 	ID            string                 `json:"id"`
 	Name          string                 `json:"name"`

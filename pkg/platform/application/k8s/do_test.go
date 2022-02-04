@@ -90,11 +90,7 @@ var _ = Describe("Repo", func() {
 			TenantName: terraformCustomer.Name,
 			Environments: []storage.JSONEnvironment2{
 				{
-					Name:          environment,
-					TenantID:      terraformCustomer.GUID,
-					ApplicationID: terraformApplication.ApplicationID,
-					Tenants:       make([]string, 0),
-					Ingresses:     make([]storage.JSONEnvironmentIngress2, 0),
+					Name: environment,
 					CustomerTenants: []platform.CustomerTenantInfo{
 						dolittleK8s.NewDevelopmentCustomerTenantInfo(environment, welcomeMicroserviceID),
 					},

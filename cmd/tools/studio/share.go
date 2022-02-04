@@ -32,20 +32,20 @@ func filterCustomers(repo storage.Repo, customers []string, platformEnvironment 
 }
 
 // TODO use storage.ConvertFromPlatformHttpResponseApplication(application)
-func filterApplications(repo storage.Repo, applications []platform.HttpResponseApplication, platformEnvironment string) []platform.HttpResponseApplication {
-	filtered := make([]platform.HttpResponseApplication, 0)
-	for _, application := range applications {
-		customer, err := repo.GetTerraformTenant(application.TenantID)
-		if err != nil {
-			continue
-		}
-		if customer.PlatformEnvironment != platformEnvironment {
-			continue
-		}
-		filtered = append(filtered, application)
-	}
-	return filtered
-}
+//func filterApplications(repo storage.Repo, applications []platform.HttpResponseApplication, platformEnvironment string) []platform.HttpResponseApplication {
+//	filtered := make([]platform.HttpResponseApplication, 0)
+//	for _, application := range applications {
+//		customer, err := repo.GetTerraformTenant(application.TenantID)
+//		if err != nil {
+//			continue
+//		}
+//		if customer.PlatformEnvironment != platformEnvironment {
+//			continue
+//		}
+//		filtered = append(filtered, application)
+//	}
+//	return filtered
+//}
 
 func extractApplications(ctx context.Context, client kubernetes.Interface) []platform.HttpResponseApplication {
 	// TODO use this to storage.ConvertFromPlatformHttpResponseApplication(application)

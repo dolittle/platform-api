@@ -77,30 +77,7 @@ func (_m *Repo) GetApplication2(tenantID string, applicationID string) (storage.
 }
 
 // GetApplications provides a mock function with given fields: tenantID
-func (_m *Repo) GetApplications(tenantID string) ([]platform.HttpResponseApplication, error) {
-	ret := _m.Called(tenantID)
-
-	var r0 []platform.HttpResponseApplication
-	if rf, ok := ret.Get(0).(func(string) []platform.HttpResponseApplication); ok {
-		r0 = rf(tenantID)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]platform.HttpResponseApplication)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(tenantID)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetApplications2 provides a mock function with given fields: tenantID
-func (_m *Repo) GetApplications2(tenantID string) ([]storage.JSONApplication2, error) {
+func (_m *Repo) GetApplications(tenantID string) ([]storage.JSONApplication2, error) {
 	ret := _m.Called(tenantID)
 
 	var r0 []storage.JSONApplication2

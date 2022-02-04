@@ -25,21 +25,22 @@ type RepoMicroservice interface {
 	GetMicroservices(tenantID string, applicationID string) ([]platform.HttpMicroserviceBase, error)
 }
 
+type RepoApplication interface {
+	GetApplication2(tenantID string, applicationID string) (JSONApplication2, error)
+	SaveApplication2(application JSONApplication2) error
+	GetApplications(tenantID string) ([]JSONApplication2, error)
+	SaveApplication(application platform.HttpResponseApplication) error
+}
+
 type Repo interface {
 	RepoMicroservice
+	RepoApplication
 
 	SaveTerraformApplication(application platform.TerraformApplication) error
 	GetTerraformApplication(tenantID string, applicationID string) (platform.TerraformApplication, error)
 
 	SaveTerraformTenant(tenant platform.TerraformCustomer) error
 	GetTerraformTenant(tenantID string) (platform.TerraformCustomer, error)
-
-	GetApplication2(tenantID string, applicationID string) (JSONApplication2, error)
-	SaveApplication2(application JSONApplication2) error
-	GetApplications2(tenantID string) ([]JSONApplication2, error)
-
-	SaveApplication(application platform.HttpResponseApplication) error
-	GetApplications(tenantID string) ([]platform.HttpResponseApplication, error)
 
 	SaveStudioConfig(tenantID string, config platform.StudioConfig) error
 	GetStudioConfig(tenantID string) (platform.StudioConfig, error)
@@ -109,23 +110,9 @@ type JSONApplicationJobState struct {
 
 // JSONEnvironment represents the "environments" property in application.json file
 type JSONEnvironment2 struct {
-	Name          string   `json:"name"`
-	TenantID      string   `json:"tenantId"`      // delete
-	ApplicationID string   `json:"applicationId"` // delete
-	Tenants       []string `json:"tenants"`       // delete
-	// TODO this might need tweaking
-	Ingresses             []JSONEnvironmentIngress2     `json:"ingresses"` // delete
+	Name                  string                        `json:"name"`
 	CustomerTenants       []platform.CustomerTenantInfo `json:"customerTenants"`
 	WelcomeMicroserviceID string                        `json:"welcomeMicroserviceID"`
-}
-
-type JSONEnvironmentIngress2 struct {
-	Host        string `json:"host"`
-	Environment string `json:"environment"`
-	//Path             string `json:"path",omitempty`
-	CustomerTenantID string `json:"customerTenantID"`
-	DomainPrefix     string `json:"domainPrefix"`
-	SecretName       string `json:"secretName"`
 }
 
 type JSONCustomer struct {

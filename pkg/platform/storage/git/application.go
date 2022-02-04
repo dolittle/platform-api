@@ -11,25 +11,10 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 )
 
 func (s *GitStorage) GetApplicationDirectory(tenantID string, applicationID string) string {
 	return filepath.Join(s.GetRoot(), tenantID, applicationID)
-}
-
-func (s *GitStorage) GetApplications(customerID string) ([]platform.HttpResponseApplication, error) {
-	stored, err := s.GetApplications2(customerID)
-
-	if err != nil {
-		return make([]platform.HttpResponseApplication, 0), err
-	}
-
-	applications := funk.Map(stored, func(application storage.JSONApplication2) platform.HttpResponseApplication {
-		return storage.ConvertFromJSONApplication2(application)
-	}).([]platform.HttpResponseApplication)
-
-	return applications, nil
 }
 
 func (s *GitStorage) SaveApplication(application platform.HttpResponseApplication) error {
@@ -92,7 +77,7 @@ func (s *GitStorage) GetApplication2(tenantID string, applicationID string) (sto
 	return application, nil
 }
 
-func (s *GitStorage) GetApplications2(customerID string) ([]storage.JSONApplication2, error) {
+func (s *GitStorage) GetApplications(customerID string) ([]storage.JSONApplication2, error) {
 	applicationIDs, err := s.discoverCustomerApplicationIds(customerID)
 	applications := make([]storage.JSONApplication2, 0)
 
