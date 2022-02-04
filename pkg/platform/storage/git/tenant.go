@@ -91,16 +91,10 @@ func (s *GitStorage) SaveCustomer(customer storage.JSONCustomer) error {
 		return err
 	}
 
-	// Need to remove the prefix
-	// TODO this breaks if you include the trailing character :(
-	// TODO make a function to handle this everywhere
-	path := strings.TrimPrefix(filename, s.config.RepoRoot+string(os.PathSeparator))
-
-	err = s.CommitPathAndPush(path, fmt.Sprintf("upsert customer %s", customerID))
+	err = s.CommitPathAndPush(filename, fmt.Sprintf("upsert customer %s", customerID))
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
-			"path":  path,
 		}).Error("CommitPathAndPush")
 		return err
 	}

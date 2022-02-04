@@ -61,9 +61,7 @@ func (s *GitStorage) SaveApplication2(application storage.JSONApplication2) erro
 		return err
 	}
 
-	// Need to remove the prefix
-	path := strings.TrimPrefix(filename, s.config.RepoRoot+string(os.PathSeparator))
-	err = s.CommitPathAndPush(path, fmt.Sprintf("upsert application %s", applicationID))
+	err = s.CommitPathAndPush(filename, fmt.Sprintf("upsert application %s", applicationID))
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,

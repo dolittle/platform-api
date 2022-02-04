@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/sirupsen/logrus"
@@ -35,9 +34,7 @@ func (s *GitStorage) SaveStudioConfig(tenantID string, config platform.StudioCon
 		return err
 	}
 
-	// Need to remove the prefix
-	path := strings.TrimPrefix(filename, s.config.RepoRoot+string(os.PathSeparator))
-	err = s.CommitPathAndPush(path, fmt.Sprintf("upsert studio config for customer %s", tenantID))
+	err = s.CommitPathAndPush(filename, fmt.Sprintf("upsert studio config for customer %s", tenantID))
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,

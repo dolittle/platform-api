@@ -44,6 +44,9 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *G
 
 	branch := plumbing.NewBranchReferenceName(gitConfig.Branch)
 
+	// We remove the trailing path separator
+	gitConfig.RepoRoot = strings.TrimSuffix(gitConfig.RepoRoot, string(os.PathSeparator))
+
 	platformApiDir := filepath.Join(gitConfig.RepoRoot, "Source", "V3", "platform-api")
 
 	s := &GitStorage{
@@ -116,6 +119,8 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *G
 
 // CommitPathAndPush adds the path to index, creates a commit, and pushes to the remote
 func (s *GitStorage) CommitPathAndPush(path string, msg string) error {
+	// I wonder if go-git has something built-in?
+	path = strings.TrimPrefix(path, s.config.RepoRoot+string(os.PathSeparator))
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"method": "CommitPathAndPush",
 		"msg":    msg,
