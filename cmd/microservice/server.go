@@ -233,6 +233,7 @@ var serverCMD = &cobra.Command{
 			stdChainWithJSON.ThenFunc(microserviceService.Delete),
 		).Methods(http.MethodDelete, http.MethodOptions)
 
+		// TODO this endpoint is not in use
 		router.Handle(
 			"/live/applications",
 			stdChainWithJSON.ThenFunc(applicationService.GetLiveApplications),
