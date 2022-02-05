@@ -31,7 +31,7 @@ type MicroserviceResource struct {
 type MicroserviceResourceReadmodels struct {
 	Host     string `json:"host"`
 	Database string `json:"database"`
-	Usessl   bool   `json:"useSSL"` // TODO this should be UseSSL
+	UseSSL   bool   `json:"useSSL"`
 }
 type MicroserviceResourceStore struct {
 	Servers  []string `json:"servers"`
@@ -152,7 +152,7 @@ func NewMicroserviceResources(microservice Microservice, customerTenants []platf
 			Readmodels: MicroserviceResourceReadmodels{
 				Host:     fmt.Sprintf("mongodb://%s-mongo.application-%s.svc.cluster.local:27017", environment, microservice.Application.ID),
 				Database: fmt.Sprintf("%s_readmodels", databasePrefix),
-				Usessl:   false,
+				UseSSL:   false,
 			},
 			Eventstore: MicroserviceResourceStore{
 				Servers: []string{
