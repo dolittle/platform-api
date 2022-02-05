@@ -46,6 +46,9 @@ func NewCustomerTenantHost(microserviceID string) platform.CustomerTenantHost {
 	}
 }
 
+// NewMicroserviceIngressWithEmptyRules
+// We use cert-manager and by default it is set to staging
+// If platformEnvironment == prod, we set to production
 func NewMicroserviceIngressWithEmptyRules(platformEnvironment string, microservice Microservice) *networkingv1.Ingress {
 	namespace := fmt.Sprintf("application-%s", microservice.Application.ID)
 	ingressName := fmt.Sprintf("%s-%s",
