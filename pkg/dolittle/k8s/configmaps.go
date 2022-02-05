@@ -75,7 +75,6 @@ type AppsettingsLogging struct {
 	Console       AppsettingsConsole  `json:"Console"`
 }
 
-// TODO Many of these are microservice specific, should we move them so they make sense?
 func NewConfigFilesConfigmap(microservice Microservice) *corev1.ConfigMap {
 	name := fmt.Sprintf("%s-%s-config-files",
 		microservice.Environment,
@@ -126,11 +125,11 @@ func NewEnvVariablesConfigmap(microservice Microservice) *corev1.ConfigMap {
 	}
 }
 
+// ResourcePrefix Create a uniq preifx
+// Linked to resources.json inside *-dolittle configmap
 func ResourcePrefix(microserviceID string, customerTenantID string) string {
 	return strings.ToLower(
 		fmt.Sprintf("%s_%s",
-			//microservice.Application.Name, // TODO do we need this, as we are already shared by mongo being in this namespace
-			//microservice.Environment, // TODO this is not needed
 			microserviceID[0:7],
 			customerTenantID[0:7],
 		))
@@ -147,16 +146,6 @@ func NewMicroserviceResources(microservice Microservice, customerTenants []platf
 
 	for _, customerTenant := range customerTenants {
 		customerTenantID := customerTenant.CustomerTenantID
-		// Uses order database_XXX
-		// Uses order eventstore_XXX
-		// ./Source/V3/Kubernetes/Customers/Wilhelmsen-Ships-Service/LMP/Test/LMP/microservice.yml
-		// TODO we are missing tenantName here if we are to use customerTenantID
-		// TODO because the database is shared, we have to be more unique
-		// hash  of (customerTenantID + microserviceID)
-		// hash  of (customerTenantID + microserviceName)
-
-		// microserviceID first block + customerTenantID first block
-		// ffb20e4f_a74fed4a_readmodels
 		databasePrefix := ResourcePrefix(microservice.ID, customerTenant.CustomerTenantID)
 
 		dolittleResource := MicroserviceResource{

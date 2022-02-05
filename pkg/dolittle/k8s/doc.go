@@ -13,19 +13,6 @@ type ShortInfo struct {
 type Tenant ShortInfo
 type Application ShortInfo
 
-//type CustomerTenantIngressInfo struct {
-//	CustomerTenantID string
-//	Host             string
-//	DomainPrefix     string
-//	SecretName       string
-//}
-
-// TODO remove
-type Ingress struct {
-	Host       string `json:"host"`
-	SecretName string `json:"secret_name"`
-}
-
 type Microservice struct {
 	ID          string                    `json:"id"`
 	Name        string                    `json:"name"`

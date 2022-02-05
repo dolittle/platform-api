@@ -23,15 +23,6 @@ type MicroserviceK8sInfo struct {
 	Namespace   string
 }
 
-func CreateTodoIngress() k8s.Ingress {
-	// TODO replace this with something from the cluster or something from git
-	domainPrefix := "freshteapot-taco"
-	return k8s.Ingress{
-		Host:       fmt.Sprintf("%s.dolittle.cloud", domainPrefix),
-		SecretName: fmt.Sprintf("%s-certificate", domainPrefix),
-	}
-}
-
 // K8sHasDeploymentWithName gets the microservice deployment that is has a specific name in the given namespace
 func K8sHasDeploymentWithName(client kubernetes.Interface, context context.Context, namespace, name string) (bool, error) {
 	deployments, err := client.AppsV1().Deployments(namespace).List(context, metav1.ListOptions{})
