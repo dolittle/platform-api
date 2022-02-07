@@ -111,20 +111,9 @@ func (r *K8sRepo) GetApplication(applicationID string) (platform.Application, er
 	return application, nil
 }
 
-// GetApplicationNamespaces
-// Return a list of namespaces that are "applications"
-func (r *K8sRepo) GetApplicationNamespaces() ([]corev1.Namespace, error) {
-	client := r.k8sClient
-	ctx := context.TODO()
-	items, err := client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{
-		LabelSelector: "tenant,application",
-	})
-	return items.Items, err
-}
-
 // GetApplications Return a list of applications based on customerID
 func (r *K8sRepo) GetApplications(customerID string) ([]platform.ShortInfo, error) {
-	items, err := r.GetApplicationNamespaces()
+	items, err := r.k8sRepoV2.GetNamespacesWithApplication()
 	response := make([]platform.ShortInfo, 0)
 	if err != nil {
 		return response, err
