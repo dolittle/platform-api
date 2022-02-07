@@ -69,8 +69,7 @@ func Do(client kubernetes.Interface, resources Resources, k8sRepo platformK8s.K8
 
 	// Environments
 	for _, environmentResource := range resources.Environments {
-		// TODO where do we add the customer tenant?
-		// tenants.json
+		// Add customer tenants tenants.json
 		_, err = client.CoreV1().ConfigMaps(namespace).Create(context.TODO(), environmentResource.Tenants, metav1.CreateOptions{})
 		if err != nil {
 			fmt.Println("err", err, environmentResource.Tenants.ObjectMeta.Name, namespace)
