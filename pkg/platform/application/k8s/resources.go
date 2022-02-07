@@ -88,9 +88,8 @@ type MongoResources struct {
 	Cronjob     *v1beta1.CronJob
 }
 type RbacResources struct {
-	RoleBinding    *rbacv1.RoleBinding
-	Role           *rbacv1.Role
-	ServiceAccount *corev1.ServiceAccount // I dont think we get this yet, @joel code is where to go
+	RoleBinding *rbacv1.RoleBinding
+	Role        *rbacv1.Role
 }
 
 type EnvironmentResources struct {
