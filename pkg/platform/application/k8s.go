@@ -14,11 +14,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func CreateDevelopmentBinding() error {
-	return nil
-}
-
-// TODO at some point, we might want to explode this into environments
 func CreateApplicationAndEnvironmentAndWelcomeMicroservice(
 	client kubernetes.Interface,
 	storageRepo storage.RepoMicroservice,
@@ -75,11 +70,7 @@ func CreateApplicationAndEnvironmentAndWelcomeMicroservice(
 	r.Acr = k8s.NewAcr(tenantInfo, applicationInfo, dockerconfigjson)
 	r.Storage = k8s.NewStorage(tenantInfo, applicationInfo, azureStorageAccountName, azureStorageAccountKey)
 
-	// to add to rbac
-	r.Rbac = k8s.NewDeveloperRole(tenantInfo, applicationInfo, azureGroupId)
-
-	// TODO Create service account for devops
-	// TODO Joel is on the case (figure out how to add it or call it after, as it we might want to decouple it from here)
+	r.DeveloperRbac = k8s.NewDeveloperRbac(tenantInfo, applicationInfo, azureGroupId)
 
 	// Create rbac
 	// Create environments

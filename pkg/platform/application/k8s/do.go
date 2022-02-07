@@ -35,16 +35,16 @@ func Do(client kubernetes.Interface, resources Resources, k8sRepo platformK8s.K8
 	}
 
 	// Application Rbac
-	_, err = client.RbacV1().Roles(namespace).Create(ctx, resources.Rbac.Role, metav1.CreateOptions{})
+	_, err = client.RbacV1().Roles(namespace).Create(ctx, resources.DeveloperRbac.Role, metav1.CreateOptions{})
 	if err != nil {
-		fmt.Println("err", err, resources.Rbac.Role.ObjectMeta.Name, namespace)
+		fmt.Println("err", err, resources.DeveloperRbac.Role.ObjectMeta.Name, namespace)
 		deleteNamespace(client, namespace)
 		return err
 	}
 
-	_, err = client.RbacV1().RoleBindings(namespace).Create(ctx, resources.Rbac.RoleBinding, metav1.CreateOptions{})
+	_, err = client.RbacV1().RoleBindings(namespace).Create(ctx, resources.DeveloperRbac.RoleBinding, metav1.CreateOptions{})
 	if err != nil {
-		fmt.Println("err", err, resources.Rbac.RoleBinding.ObjectMeta.Name, namespace)
+		fmt.Println("err", err, resources.DeveloperRbac.RoleBinding.ObjectMeta.Name, namespace)
 		deleteNamespace(client, namespace)
 		return err
 	}

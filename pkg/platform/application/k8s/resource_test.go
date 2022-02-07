@@ -80,7 +80,7 @@ var _ = Describe("Setting up an application", func() {
 		})
 
 		It("Confirm we add the azure ID as a subject of developer", func() {
-			rbacResources := k8s.NewDeveloperRole(customer, application, azureGroupId)
+			rbacResources := k8s.NewDeveloperRbac(customer, application, azureGroupId)
 
 			found := funk.Contains(rbacResources.RoleBinding.Subjects, func(subject rbacv1.Subject) bool {
 				want := rbacv1.Subject{
@@ -94,7 +94,7 @@ var _ = Describe("Setting up an application", func() {
 		})
 
 		It("Confirm we add the tenantGroup as a subject of developer", func() {
-			rbacResources := k8s.NewDeveloperRole(customer, application, azureGroupId)
+			rbacResources := k8s.NewDeveloperRbac(customer, application, azureGroupId)
 
 			found := funk.Contains(rbacResources.RoleBinding.Subjects, func(subject rbacv1.Subject) bool {
 				want := rbacv1.Subject{

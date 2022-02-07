@@ -65,7 +65,7 @@ type Resources struct {
 	Acr                            *corev1.Secret
 	Storage                        *corev1.Secret
 	Environments                   []EnvironmentResources
-	Rbac                           RbacResources
+	DeveloperRbac                  RbacResources
 	LocalDevRoleBindingToDeveloper *rbacv1.RoleBinding
 	ServiceAccounts                []ServiceAccount
 }
@@ -150,7 +150,7 @@ func NewMongoPortForwardPolicyRole(environment string) rbacv1.PolicyRule {
 	}
 }
 
-func NewDeveloperRole(tenant dolittleK8s.Tenant, application dolittleK8s.Application, azureGroupId string) RbacResources {
+func NewDeveloperRbac(tenant dolittleK8s.Tenant, application dolittleK8s.Application, azureGroupId string) RbacResources {
 	tenantGroup := platform.GetCustomerGroup(tenant.ID)
 	namespace := fmt.Sprintf("application-%s", application.ID)
 	labels := map[string]string{
