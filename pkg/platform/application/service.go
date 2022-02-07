@@ -58,12 +58,11 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tenant := dolittleK8s.Tenant{
+	customer := dolittleK8s.Tenant{
 		ID:   terraformCustomer.GUID,
 		Name: terraformCustomer.Name,
 	}
 
-	// TODO come in via http input
 	var input platform.HttpInputApplication
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -79,11 +78,6 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
-		return
-	}
-
-	if tenant.ID != input.TenantID {
-		utils.RespondWithError(w, http.StatusBadRequest, "Tenant ID did not match")
 		return
 	}
 
@@ -105,15 +99,14 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO Confirm at least 1 environment
-	// TODO we will need to revisit platform.HttpInputEnvironment
 	// TODO this will overwrite
 	// TODO massage the data https://app.asana.com/0/0/1201457681486811/f (sanatise the labels)
 
 	application := storage.JSONApplication{
 		ID:           input.ID,
 		Name:         input.Name,
-		TenantID:     tenant.ID,
-		TenantName:   tenant.Name,
+		TenantID:     customer.ID,
+		TenantName:   customer.Name,
 		Environments: make([]storage.JSONEnvironment, 0),
 		Status: storage.JSONBuildStatus{
 			State:     storage.BuildStatusStateWaiting,
@@ -199,7 +192,7 @@ func (s *service) GetLiveApplications(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Lookup environments
-	response := platform.HttpResponseApplications{
+	response := HttpResponseApplications{
 		ID:   tenantID,
 		Name: tenant.Name,
 	}
@@ -294,7 +287,7 @@ func (s *service) GetApplications(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := platform.HttpResponseApplications{
+	response := HttpResponseApplications{
 		ID:           customerID,
 		Name:         tenantInfo.Name,
 		Applications: make([]platform.ShortInfoWithEnvironment, 0),

@@ -16,7 +16,6 @@ import (
 	"github.com/dolittle/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -202,14 +201,6 @@ func (s *service) CreateLink(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// TODO reuse this function
-func environmentExists(environments []platform.HttpInputEnvironment, environment string) bool {
-	return funk.Contains(environments, func(item platform.HttpInputEnvironment) bool {
-		return item.Name == environment
-	})
-}
-
-// TODO maybe we should move this into the k8sRepo
 func getStorageAccountInfo(ctx context.Context, namespace string, client kubernetes.Interface) (AzureStorageInfo, error) {
 	secret, err := client.CoreV1().Secrets(namespace).Get(ctx, "storage-account-secret", metaV1.GetOptions{})
 	if err != nil {

@@ -35,3 +35,11 @@ type HttpResponseEnvironment struct {
 	AutomationEnabled bool   `json:"automationEnabled"`
 	Name              string `json:"name"`
 }
+
+type HttpResponseApplications struct {
+	// Customer ID
+	ID string `json:"id"`
+	// Customer Name
+	Name         string                              `json:"name"`
+	Applications []platform.ShortInfoWithEnvironment `json:"applications"`
+}

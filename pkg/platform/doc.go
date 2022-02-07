@@ -44,53 +44,13 @@ type HttpResponsePersonalisedInfoEndpoints struct {
 }
 
 type HttpInputApplication struct {
-	ID           string   `json:"id"`
-	Name         string   `json:"name"`
-	TenantID     string   `json:"tenantId"`
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	// TODO remove from studio
 	Environments []string `json:"environments"`
 }
 
 type TenantId string
-
-// TODO this object, might be replaced with data from https://github.com/dolittle/platform-api/pull/65
-
-// To replace with storage.JSONEnvironmentIngress2
-// TODO we do not need to expose this, look at MicroserviceInfo.IngressURLS|MicroserviceInfo.IngressPaths
-type EnvironmentIngress struct {
-	Host         string `json:"host"`
-	DomainPrefix string `json:"domainPrefix"`
-	SecretName   string `json:"secretName"` // TODO what do we use this for? I think it can be removed
-}
-
-// TODO Delete
-type EnvironmentIngresses map[TenantId]EnvironmentIngress
-
-type HttpInputEnvironment struct {
-	AutomationEnabled bool                 `json:"automationEnabled"` // Keep
-	Name              string               `json:"name"`
-	TenantID          string               `json:"tenantId"`
-	ApplicationID     string               `json:"applicationId"`
-	Tenants           []TenantId           `json:"tenants"`
-	Ingresses         EnvironmentIngresses `json:"ingresses"`
-}
-
-// To remove
-type HttpResponseApplication struct {
-	ID            string                 `json:"id"`
-	Name          string                 `json:"name"`
-	TenantID      string                 `json:"tenantId"`
-	TenantName    string                 `json:"tenantName"`
-	Environments  []HttpInputEnvironment `json:"environments"`
-	Microservices []HttpMicroserviceBase `json:"microservices,omitempty"`
-}
-
-type HttpResponseApplications struct {
-	// Customer ID
-	ID string `json:"id"`
-	// Customer Name
-	Name         string                     `json:"name"`
-	Applications []ShortInfoWithEnvironment `json:"applications"`
-}
 
 type ImageInfo struct {
 	Image string `json:"image"`
