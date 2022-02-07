@@ -6,8 +6,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-// TODO maybe use TF_IN_AUTOMATION https://learn.hashicorp.com/tutorials/terraform/automate-terraform
-
 func sshSetup() corev1.Container {
 	return corev1.Container{
 		Name:  "ssh-setup",
