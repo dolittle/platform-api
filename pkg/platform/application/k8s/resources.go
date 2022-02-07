@@ -438,7 +438,6 @@ func NewNetworkPolicy(environment string, tenant dolittleK8s.Tenant, application
 }
 
 // NewMongo create resource for mongo, including cronjob
-// TODO Cronjob does not work locally without access to azure file storage (Test-Marka might help)
 func NewMongo(environment string, tenant dolittleK8s.Tenant, application dolittleK8s.Application, settings MongoSettings) MongoResources {
 	name := fmt.Sprintf("%s-mongo", strings.ToLower(environment))
 	volumeMountName := fmt.Sprintf("%s-storage", name)
