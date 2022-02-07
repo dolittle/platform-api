@@ -192,7 +192,6 @@ func CreateApplicationResource(platformImage string, platformEnvironment string,
 								},
 							},
 						},
-						// TODO delete azure.json
 						gitUpdate(platformImage, "post-application-created", []string{
 							"sh",
 							"-c",
