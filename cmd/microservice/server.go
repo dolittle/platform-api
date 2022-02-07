@@ -364,7 +364,7 @@ func init() {
 
 	viper.SetDefault("tools.server.secret", "change")
 	viper.SetDefault("tools.server.listenOn", "localhost:8080")
-	viper.SetDefault("tools.server.isProduction", true)
+	viper.SetDefault("tools.server.isProduction", false)
 	viper.SetDefault("tools.server.azure.subscriptionId", "")
 	viper.SetDefault("tools.server.kubernetes.externalClusterHost", defaultExternalClusterHost)
 
