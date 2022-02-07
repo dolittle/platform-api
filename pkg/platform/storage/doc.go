@@ -76,16 +76,7 @@ type JSONApplication struct {
 	TenantID     string            `json:"tenantId"`
 	TenantName   string            `json:"tenantName"`
 	Environments []JSONEnvironment `json:"environments"`
-	// TODO do we fire an event around?
-	// TODO do we update rest?
-	// TODO do we update the repo and signal platform-api to refresh?
-	//JobState     JSONApplicationJobState `json:"jobState"`
-	Status JSONBuildStatus `json:"status"`
-}
-
-type JSONApplicationJobState struct {
-	State int `json:"state"`
-	ID    int `json:"id"`
+	Status       JSONBuildStatus   `json:"status"`
 }
 
 type JSONEnvironment struct {
