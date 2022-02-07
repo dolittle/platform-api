@@ -22,11 +22,17 @@ type service struct {
 	logContext              logrus.FieldLogger
 }
 
+type HttpInputApplication struct {
+	ID           string   `json:"id"`
+	Name         string   `json:"name"`
+	Environments []string `json:"environments"`
+}
+
 type HttpResponseApplication struct {
 	ID            string                          `json:"id"`
 	Name          string                          `json:"name"`
-	TenantID      string                          `json:"tenantId"`
-	TenantName    string                          `json:"tenantName"`
+	TenantID      string                          `json:"tenantId"`   // TODO why do we include this?
+	TenantName    string                          `json:"tenantName"` // TODO why do we include this?
 	Environments  []HttpResponseEnvironment       `json:"environments"`
 	Microservices []platform.HttpMicroserviceBase `json:"microservices,omitempty"`
 }

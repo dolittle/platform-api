@@ -43,13 +43,6 @@ type HttpResponsePersonalisedInfoEndpoints struct {
 	ContainerRegistry string `json:"containerRegistry"`
 }
 
-type HttpInputApplication struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	// TODO remove from studio
-	Environments []string `json:"environments"`
-}
-
 type TenantId string
 
 type ImageInfo struct {

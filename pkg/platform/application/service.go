@@ -63,7 +63,7 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		Name: terraformCustomer.Name,
 	}
 
-	var input platform.HttpInputApplication
+	var input HttpInputApplication
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
@@ -81,6 +81,13 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Confirm at least 1 environment
+	if len(input.Environments) == 0 {
+		utils.RespondWithError(w, http.StatusUnprocessableEntity, "You need at least one environment")
+		return
+	}
+
+	// Confirm application id not already in use for this customer
 	current, err := s.gitRepo.GetApplication(customerID, input.ID)
 	if err != nil {
 		if err != storage.ErrNotFound {
@@ -97,8 +104,8 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusBadRequest, "Application id already exists")
 		return
 	}
+	// TODO do we need to confirm applicationId is unique in the cluster?
 
-	// TODO Confirm at least 1 environment
 	// TODO this will overwrite
 	// TODO massage the data https://app.asana.com/0/0/1201457681486811/f (sanatise the labels)
 
@@ -130,19 +137,15 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		application.Environments = append(application.Environments, environmentInfo)
 	}
 
-	// TODO change this to use the storage
 	err = s.gitRepo.SaveApplication(application)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to write to storage")
 		return
 	}
 
-	platformOperationsImage := s.platformOperationsImage
-	platformEnvironment := s.platformEnvironment
-
 	resource := jobK8s.CreateApplicationResource(
-		platformOperationsImage,
-		platformEnvironment,
+		s.platformOperationsImage,
+		s.platformEnvironment,
 		s.isProduction,
 		customerID, dolittleK8s.ShortInfo{
 			ID:   application.ID,
