@@ -5,8 +5,6 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/platform/customertenant"
 	microserviceK8s "github.com/dolittle/platform-api/pkg/platform/microservice/k8s"
-
-	rbacv1 "k8s.io/api/rbac/v1"
 )
 
 // TODO Refactor to accept the customerTenantId https://github.com/dolittle/platform-api/pull/65
@@ -16,7 +14,6 @@ func NewResources(
 	tenant k8s.Tenant,
 	application k8s.Application,
 	customerTenants []platform.CustomerTenantInfo,
-	subjects []rbacv1.Subject, // TODO this might not be needed
 	input platform.HttpInputSimpleInfo,
 ) MicroserviceResources {
 	environment := input.Environment

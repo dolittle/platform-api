@@ -50,15 +50,13 @@ func NewSimpleRepo(k8sClient kubernetes.Interface, k8sDolittleRepo platformK8s.K
 }
 
 func (r k8sRepo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, customerTenants []platform.CustomerTenantInfo, input platform.HttpInputSimpleInfo) error {
-	// Can we use dryRun?
 	var err error
 
 	client := r.k8sClient
 	ctx := context.TODO()
 	applicationID := application.ID
 
-	// TODO we can remove subjects
-	resources := NewResources(r.isProduction, namespace, tenant, application, customerTenants, make([]rbacv1.Subject, 0), input)
+	resources := NewResources(r.isProduction, namespace, tenant, application, customerTenants, input)
 
 	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, resources.DolittleConfig, metav1.CreateOptions{})
 	if microserviceK8s.K8sHandleResourceCreationError(err, func() { microserviceK8s.K8sPrintAlreadyExists("microservice config map") }) != nil {
