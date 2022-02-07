@@ -140,21 +140,18 @@ func (r *K8sRepo) GetMicroservices(applicationID string) ([]platform.Microservic
 	client := r.k8sClient
 	ctx := context.TODO()
 	namespace := GetApplicationNamespace(applicationID)
-	deployments, err := client.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{})
+	deployments, err := client.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: "tenant,application,environment,microservice",
+	})
 
-	response := make([]platform.MicroserviceInfo, len(deployments.Items))
+	response := make([]platform.MicroserviceInfo, 0)
 	if err != nil {
 		return response, err
 	}
 
-	for deploymentIndex, deployment := range deployments.Items {
+	for _, deployment := range deployments.Items {
 		annotationsMap := deployment.GetObjectMeta().GetAnnotations()
 		labelMap := deployment.GetObjectMeta().GetLabels()
-
-		_, ok := labelMap["microservice"]
-		if !ok {
-			continue
-		}
 
 		images := funk.Map(deployment.Spec.Template.Spec.Containers, func(container corev1.Container) platform.ImageInfo {
 			return platform.ImageInfo{
@@ -177,7 +174,7 @@ func (r *K8sRepo) GetMicroservices(applicationID string) ([]platform.Microservic
 			return response, err
 		}
 
-		response[deploymentIndex] = platform.MicroserviceInfo{
+		response = append(response, platform.MicroserviceInfo{
 			Name:         labelMap["microservice"],
 			ID:           microserviceID,
 			Environment:  environment,
@@ -185,7 +182,7 @@ func (r *K8sRepo) GetMicroservices(applicationID string) ([]platform.Microservic
 			Kind:         string(kind),
 			IngressURLS:  ingressURLS,
 			IngressPaths: ingressHTTPIngressPath,
-		}
+		})
 	}
 
 	return response, err
