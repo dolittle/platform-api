@@ -174,20 +174,20 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *service) GetLiveApplications(w http.ResponseWriter, r *http.Request) {
-	tenantID := r.Header.Get("Tenant-ID")
-	tenantInfo, err := s.gitRepo.GetTerraformTenant(tenantID)
+	customerID := r.Header.Get("Tenant-ID")
+	tenantInfo, err := s.gitRepo.GetTerraformTenant(customerID)
 	if err != nil {
 		// TODO handle not found
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	tenant := dolittleK8s.Tenant{
+	customer := dolittleK8s.Tenant{
 		ID:   tenantInfo.GUID,
 		Name: tenantInfo.Name,
 	}
 
-	liveApplications, err := s.k8sDolittleRepo.GetApplications(tenantID)
+	liveApplications, err := s.k8sDolittleRepo.GetApplications(customerID)
 	if err != nil {
 		// TODO change
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -196,12 +196,12 @@ func (s *service) GetLiveApplications(w http.ResponseWriter, r *http.Request) {
 
 	// Lookup environments
 	response := HttpResponseApplications{
-		ID:   tenantID,
-		Name: tenant.Name,
+		ID:   customer.ID,
+		Name: customer.Name,
 	}
 
 	for _, liveApplication := range liveApplications {
-		application, err := s.gitRepo.GetApplication(tenantID, liveApplication.ID)
+		application, err := s.gitRepo.GetApplication(customerID, liveApplication.ID)
 		if err != nil {
 			// TODO change
 			utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
