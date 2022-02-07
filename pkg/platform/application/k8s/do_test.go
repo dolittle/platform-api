@@ -27,6 +27,7 @@ import (
 	platformApplication "github.com/dolittle/platform-api/pkg/platform/application"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	k8sSimple "github.com/dolittle/platform-api/pkg/platform/microservice/simple/k8s"
+	"github.com/dolittle/platform-api/pkg/platform/microservice/welcome"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 
 	mockStorage "github.com/dolittle/platform-api/pkg/platform/storage/mocks"
@@ -80,6 +81,7 @@ var _ = Describe("Repo", func() {
 			Name:          "test-application",
 		}
 		isProduction := false
+		welcomeImage := welcome.Image
 		logContext := logger
 		welcomeMicroserviceID = "fake-microservice-id"
 		environment = "Dev"
@@ -120,6 +122,7 @@ var _ = Describe("Repo", func() {
 			terraformCustomer,
 			terraformApplication,
 			isProduction,
+			welcomeImage,
 			logContext,
 		)
 

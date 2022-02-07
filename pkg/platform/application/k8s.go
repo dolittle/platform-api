@@ -23,14 +23,13 @@ func CreateApplicationAndEnvironmentAndWelcomeMicroservice(
 	terraformCustomer platform.TerraformCustomer,
 	terraformApplication platform.TerraformApplication,
 	isProduction bool,
+	welcomeImage string,
 	logContext logrus.FieldLogger,
 ) error {
 	dockerconfigjson := k8s.MakeCustomerAcrDockerConfig(terraformCustomer)
 	azureGroupId := terraformApplication.GroupID
 	azureStorageAccountName := terraformCustomer.AzureStorageAccountName
 	azureStorageAccountKey := terraformCustomer.AzureStorageAccountKey
-	// TODO this should be a config setting or a env variable
-	welcomeImage := "nginxdemos/hello:latest"
 
 	tenantInfo := dolittleK8s.Tenant{
 		Name: application.TenantName,

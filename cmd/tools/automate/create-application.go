@@ -14,6 +14,7 @@ import (
 	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
 
 	k8sSimple "github.com/dolittle/platform-api/pkg/platform/microservice/simple/k8s"
+	"github.com/dolittle/platform-api/pkg/platform/microservice/welcome"
 
 	"github.com/dolittle/platform-api/pkg/git"
 	platformApplication "github.com/dolittle/platform-api/pkg/platform/application"
@@ -122,6 +123,7 @@ In kubernetes, create application
 		// This is used to make local dev happy
 		// TODO FIX
 		isProduction := false
+		welcomeImage := welcome.Image
 		k8sDolittleRepo := platformK8s.NewK8sRepo(client, config, logContext.WithField("context", "k8s-repo"))
 		simpleRepo := k8sSimple.NewSimpleRepo(platformEnvironment, client, k8sDolittleRepo)
 		// TODO refactor when it works
@@ -134,6 +136,7 @@ In kubernetes, create application
 			terraformCustomer,
 			terraformApplication,
 			isProduction,
+			welcomeImage,
 			logContext,
 		)
 
