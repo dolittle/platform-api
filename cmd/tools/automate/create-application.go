@@ -39,6 +39,9 @@ In kubernetes, create application
 	--platform-environment=dev
 		This is linked to the data in terraform, to signify what type of customer this is
 
+	--is-production=true
+		Signal that we are in production mode
+
 	go run main.go tools automate create-application \
 	--with-environments \
 	--with-welcome-microservice \
