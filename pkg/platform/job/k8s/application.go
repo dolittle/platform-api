@@ -12,10 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func CreateApplicationResource(platformImage string, platformEnvironment string, customerID string, application dolittleK8s.ShortInfo) *batchv1.Job {
-	// TODO customer_test_marka is currently not in the studio json files
-	// TODO This works on the main branch for now.
-
+func CreateApplicationResource(platformImage string, platformEnvironment string, isProduction bool, customerID string, application dolittleK8s.ShortInfo) *batchv1.Job {
 	// TODO change to use the api namespace
 	namespace := "system-api"
 	gitUserName := "Chris"
@@ -169,11 +166,13 @@ func CreateApplicationResource(platformImage string, platformEnvironment string,
 --with-environments \
 --with-welcome-microservice \
 --customer-id="%s" \
---application-id="%s"
+--application-id="%s" \
+--is-production="%t"
 `,
 									platformEnvironment,
 									customerID,
 									applicationID,
+									isProduction,
 								),
 							},
 							VolumeMounts: []corev1.VolumeMount{

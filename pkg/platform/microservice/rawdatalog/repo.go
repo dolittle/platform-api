@@ -33,15 +33,18 @@ type RawDataLogIngestorRepo struct {
 	gitRepo             storage.Repo
 	logContext          logrus.FieldLogger
 	platformEnvironment string
+	isProduction        bool
 }
 
 func NewRawDataLogIngestorRepo(platformEnvironment string, k8sDolittleRepo platformK8s.K8sRepo, k8sClient kubernetes.Interface, gitRepo storage.Repo, logContext logrus.FieldLogger) RawDataLogIngestorRepo {
+	// TODO can I remove platformEnvironment
+	isProduction := false
 	return RawDataLogIngestorRepo{
-		k8sClient:           k8sClient,
-		k8sDolittleRepo:     k8sDolittleRepo,
-		gitRepo:             gitRepo,
-		platformEnvironment: platformEnvironment,
-		logContext:          logContext,
+		k8sClient:       k8sClient,
+		k8sDolittleRepo: k8sDolittleRepo,
+		gitRepo:         gitRepo,
+		isProduction:    isProduction,
+		logContext:      logContext,
 	}
 }
 
@@ -431,7 +434,7 @@ func (r RawDataLogIngestorRepo) doNats(namespace string, labels, annotations k8s
 // Creates the RawDataLog microservice in k8s
 // TODO this tenant is wrong
 func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant, application k8s.Application, customerTenant platform.CustomerTenantInfo, input platform.HttpInputRawDataLogIngestorInfo) error {
-	platformEnvironment := r.platformEnvironment
+	isProduction := r.isProduction
 	r.logContext.WithFields(logrus.Fields{
 		"namespace": namespace,
 		"method":    "RawDataLogIngestorRepo.doDolittle",
@@ -473,7 +476,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 	//configBusinessMoments := businessmomentsadaptor.NewBusinessMomentsConfigmap(microservice)
 
 	// TODO this needs coming back to when / if we want to bring rawdatalog back online
-	ingresses := customertenant.CreateIngresses(platformEnvironment, []platform.CustomerTenantInfo{customerTenant}, microservice, service.Name, input.Extra.Ingress)
+	ingresses := customertenant.CreateIngresses(isProduction, []platform.CustomerTenantInfo{customerTenant}, microservice, service.Name, input.Extra.Ingress)
 	ingress := ingresses[0]
 	// Could use config-files
 

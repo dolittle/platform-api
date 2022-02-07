@@ -11,7 +11,7 @@ import (
 
 // TODO Refactor to accept the customerTenantId https://github.com/dolittle/platform-api/pull/65
 func NewResources(
-	platformEnvironment string,
+	isProduction bool,
 	namespace string,
 	tenant k8s.Tenant,
 	application k8s.Application,
@@ -50,7 +50,7 @@ func NewResources(
 	policyRules := microserviceK8s.NewMicroservicePolicyRules(microservice.Name, environment)
 
 	// Ingress section
-	ingresses := customertenant.CreateIngresses(platformEnvironment, customerTenants, microservice, service.Name, input.Extra.Ingress)
+	ingresses := customertenant.CreateIngresses(isProduction, customerTenants, microservice, service.Name, input.Extra.Ingress)
 
 	return MicroserviceResources{
 		Service:                    service,

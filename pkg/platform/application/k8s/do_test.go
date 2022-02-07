@@ -102,7 +102,7 @@ var _ = Describe("Repo", func() {
 		}
 
 		k8sDolittleRepo := platformK8s.NewK8sRepo(clientSet, config, logContext.WithField("context", "k8s-repo"))
-		simpleRepo := k8sSimple.NewSimpleRepo(platformEnvironment, clientSet, k8sDolittleRepo)
+		simpleRepo := k8sSimple.NewSimpleRepo(clientSet, k8sDolittleRepo, isProduction)
 		// TODO refactor when it works
 
 		gitRepo.On(

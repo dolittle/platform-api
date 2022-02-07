@@ -34,18 +34,18 @@ type MicroserviceResources struct {
 }
 
 type k8sRepo struct {
-	k8sClient           kubernetes.Interface
-	k8sDolittleRepo     platformK8s.K8sRepo
-	kind                platform.MicroserviceKind
-	platformEnvironment string
+	k8sClient       kubernetes.Interface
+	k8sDolittleRepo platformK8s.K8sRepo
+	kind            platform.MicroserviceKind
+	isProduction    bool
 }
 
-func NewSimpleRepo(platformEnvironment string, k8sClient kubernetes.Interface, k8sDolittleRepo platformK8s.K8sRepo) simple.Repo {
+func NewSimpleRepo(k8sClient kubernetes.Interface, k8sDolittleRepo platformK8s.K8sRepo, isProduction bool) simple.Repo {
 	return k8sRepo{
-		k8sClient:           k8sClient,
-		k8sDolittleRepo:     k8sDolittleRepo,
-		kind:                platform.MicroserviceKindSimple,
-		platformEnvironment: platformEnvironment,
+		k8sClient:       k8sClient,
+		k8sDolittleRepo: k8sDolittleRepo,
+		kind:            platform.MicroserviceKindSimple,
+		isProduction:    isProduction,
 	}
 }
 
@@ -58,7 +58,7 @@ func (r k8sRepo) Create(namespace string, tenant k8s.Tenant, application k8s.App
 	applicationID := application.ID
 
 	// TODO we can remove subjects
-	resources := NewResources(r.platformEnvironment, namespace, tenant, application, customerTenants, make([]rbacv1.Subject, 0), input)
+	resources := NewResources(r.isProduction, namespace, tenant, application, customerTenants, make([]rbacv1.Subject, 0), input)
 
 	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, resources.DolittleConfig, metav1.CreateOptions{})
 	if microserviceK8s.K8sHandleResourceCreationError(err, func() { microserviceK8s.K8sPrintAlreadyExists("microservice config map") }) != nil {

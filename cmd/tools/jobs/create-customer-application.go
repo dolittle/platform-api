@@ -33,7 +33,7 @@ var createCustomerApplicationCMD = &cobra.Command{
 		// TODO we shouldn't need this, but to re-use the labels we do
 		// Get this from studio.json
 		platformEnvironment, _ := cmd.Flags().GetString("platform-environment")
-
+		isProduction, _ := cmd.Flags().GetBool("is-production")
 		applicationName, _ := cmd.Flags().GetString("application-name")
 		applicationID, _ := cmd.Flags().GetString("application-id")
 
@@ -58,7 +58,7 @@ var createCustomerApplicationCMD = &cobra.Command{
 			Name: applicationName,
 		}
 
-		resource := jobK8s.CreateApplicationResource(platformOperationsImage, platformEnvironment, customerID, application)
+		resource := jobK8s.CreateApplicationResource(platformOperationsImage, platformEnvironment, isProduction, customerID, application)
 
 		s := runtime.NewScheme()
 		serializer := k8sJson.NewSerializerWithOptions(
@@ -85,4 +85,5 @@ func init() {
 	createCustomerApplicationCMD.Flags().String("application-id", "", "Application ID to use")
 	createCustomerApplicationCMD.Flags().String("customer-id", "", "Customer ID")
 	createCustomerApplicationCMD.Flags().String("platform-environment", "dev", "Platform environment (dev or prod), not linked to application environment")
+	createCustomerApplicationCMD.Flags().Bool("is-production", false, "Signal this is in production mode")
 }

@@ -25,7 +25,14 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-func NewService(platformEnvironment string, gitRepo storage.Repo, k8sDolittleRepo platformK8s.K8sRepo, k8sClient kubernetes.Interface, logContext logrus.FieldLogger) service {
+func NewService(
+	platformEnvironment string,
+	isProduction bool,
+	gitRepo storage.Repo,
+	k8sDolittleRepo platformK8s.K8sRepo,
+	k8sClient kubernetes.Interface,
+	logContext logrus.FieldLogger,
+) service {
 	parser := parser.NewJsonParser()
 	rawDataLogRepo := rawdatalog.NewRawDataLogIngestorRepo(platformEnvironment, k8sDolittleRepo, k8sClient, gitRepo, logContext)
 	specFactory := purchaseorderapi.NewK8sResourceSpecFactory()
@@ -33,8 +40,8 @@ func NewService(platformEnvironment string, gitRepo storage.Repo, k8sDolittleRep
 
 	return service{
 		gitRepo:                    gitRepo,
-		simpleRepo:                 k8sSimple.NewSimpleRepo(platformEnvironment, k8sClient, k8sDolittleRepo),
-		businessMomentsAdaptorRepo: NewBusinessMomentsAdaptorRepo(k8sClient),
+		simpleRepo:                 k8sSimple.NewSimpleRepo(k8sClient, k8sDolittleRepo, isProduction),
+		businessMomentsAdaptorRepo: NewBusinessMomentsAdaptorRepo(k8sClient, isProduction),
 		rawDataLogIngestorRepo:     rawDataLogRepo,
 		k8sDolittleRepo:            k8sDolittleRepo,
 		parser:                     parser,

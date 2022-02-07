@@ -8,7 +8,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 )
 
-func CreateIngresses(platformEnvironment string, customerTenants []platform.CustomerTenantInfo, microservice dolittleK8s.Microservice, serviceName string, ingressInfo platform.HttpInputSimpleIngress) []*networkingv1.Ingress {
+func CreateIngresses(isProduction bool, customerTenants []platform.CustomerTenantInfo, microservice dolittleK8s.Microservice, serviceName string, ingressInfo platform.HttpInputSimpleIngress) []*networkingv1.Ingress {
 	rules := []dolittleK8s.SimpleIngressRule{
 		{
 			Path:            ingressInfo.Path,
@@ -23,7 +23,7 @@ func CreateIngresses(platformEnvironment string, customerTenants []platform.Cust
 		for _, config := range customerTenant.Hosts {
 			// At this point we are assumed secret name is correct
 			// TODO if we lifted this out, we wouldn't need microservice, need to get my head around all the use of *Ingress
-			ingress := dolittleK8s.NewMicroserviceIngressWithEmptyRules(platformEnvironment, microservice)
+			ingress := dolittleK8s.NewMicroserviceIngressWithEmptyRules(isProduction, microservice)
 			newName := fmt.Sprintf("%s-%s", ingress.ObjectMeta.Name, customerTenant.CustomerTenantID[0:7])
 			ingress.ObjectMeta.Name = newName
 			ingress = dolittleK8s.AddCustomerTenantIDToIngress(customerTenant.CustomerTenantID, ingress)

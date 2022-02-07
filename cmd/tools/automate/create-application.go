@@ -64,6 +64,7 @@ In kubernetes, create application
 		environment, _ := cmd.Flags().GetString("environment")
 		applicationID, _ := cmd.Flags().GetString("application-id")
 
+		isProduction, _ := cmd.Flags().GetBool("is-production")
 		withEnvironments, _ := cmd.Flags().GetBool("with-environments")
 
 		withWelcomeMicroservice, _ := cmd.Flags().GetBool("with-welcome-microservice")
@@ -116,17 +117,10 @@ In kubernetes, create application
 			panic(err.Error())
 		}
 
-		// How does it know what todo with the microservice?
-		// Look up the id from the customer Tenants in each environment?
-		// How do I give it the signal?
-
-		// This is used to make local dev happy
-		// TODO FIX
-		isProduction := false
 		welcomeImage := welcome.Image
 		k8sDolittleRepo := platformK8s.NewK8sRepo(client, config, logContext.WithField("context", "k8s-repo"))
-		simpleRepo := k8sSimple.NewSimpleRepo(platformEnvironment, client, k8sDolittleRepo)
-		// TODO refactor when it works
+		simpleRepo := k8sSimple.NewSimpleRepo(client, k8sDolittleRepo, isProduction)
+
 		err = platformApplication.CreateApplicationAndEnvironmentAndWelcomeMicroservice(
 			client,
 			gitRepo,
@@ -162,4 +156,5 @@ func init() {
 	createApplicationCMD.Flags().Bool("with-environments", false, "Setup environments")
 	createApplicationCMD.Flags().Bool("with-welcome-microservice", false, "Add welcome microservice to each environment")
 	createApplicationCMD.Flags().String("platform-environment", "dev", "Platform environment (dev or prod), not linked to application environment")
+	createApplicationCMD.Flags().Bool("is-production", false, "Signal this is in production mode")
 }

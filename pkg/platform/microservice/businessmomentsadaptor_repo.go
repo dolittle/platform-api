@@ -25,16 +25,16 @@ import (
 )
 
 type businessMomentsAdaptorRepo struct {
-	k8sClient           kubernetes.Interface
-	kind                platform.MicroserviceKind
-	platformEnvironment string
+	k8sClient    kubernetes.Interface
+	kind         platform.MicroserviceKind
+	isProduction bool
 }
 
-func NewBusinessMomentsAdaptorRepo(k8sClient kubernetes.Interface) businessMomentsAdaptorRepo {
+func NewBusinessMomentsAdaptorRepo(k8sClient kubernetes.Interface, isProduction bool) businessMomentsAdaptorRepo {
 	return businessMomentsAdaptorRepo{
-		k8sClient:           k8sClient,
-		kind:                platform.MicroserviceKindBusinessMomentsAdaptor,
-		platformEnvironment: "TODO",
+		k8sClient:    k8sClient,
+		kind:         platform.MicroserviceKindBusinessMomentsAdaptor,
+		isProduction: isProduction,
 	}
 }
 
@@ -65,7 +65,7 @@ func (r businessMomentsAdaptorRepo) Create(namespace string, tenant dolittleK8s.
 	configSecrets := dolittleK8s.NewEnvVariablesSecret(microservice)
 	configBusinessMoments := businessmomentsadaptor.NewBusinessMomentsConfigmap(microservice)
 
-	ingresses := customertenant.CreateIngresses(r.platformEnvironment, customerTenants, microservice, service.Name, input.Extra.Ingress)
+	ingresses := customertenant.CreateIngresses(r.isProduction, customerTenants, microservice, service.Name, input.Extra.Ingress)
 
 	token := ""
 

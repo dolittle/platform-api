@@ -35,11 +35,11 @@ func NewService(
 		subscriptionID:          subscriptionID,
 		externalClusterHost:     externalClusterHost,
 		gitRepo:                 gitRepo,
-		simpleRepo:              k8sSimple.NewSimpleRepo(platformEnvironment, k8sClient, k8sDolittleRepo),
+		simpleRepo:              k8sSimple.NewSimpleRepo(k8sClient, k8sDolittleRepo, isProduction),
 		k8sDolittleRepo:         k8sDolittleRepo,
 		k8sClient:               k8sClient,
 		platformOperationsImage: platformOperationsImage,
-		platformEnvironment:     platformEnvironment,
+		platformEnvironment:     platformEnvironment, // TODO do I need
 		isProduction:            isProduction,
 		logContext:              logContext,
 	}
@@ -150,6 +150,7 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 	resource := jobK8s.CreateApplicationResource(
 		platformOperationsImage,
 		platformEnvironment,
+		s.isProduction,
 		customerID, dolittleK8s.ShortInfo{
 			ID:   application.ID,
 			Name: application.Name,

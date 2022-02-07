@@ -45,8 +45,7 @@ func NewCustomerTenantHost(microserviceID string) platform.CustomerTenantHost {
 
 // NewMicroserviceIngressWithEmptyRules
 // We use cert-manager and by default it is set to staging
-// If platformEnvironment == prod, we set to production
-func NewMicroserviceIngressWithEmptyRules(platformEnvironment string, microservice Microservice) *networkingv1.Ingress {
+func NewMicroserviceIngressWithEmptyRules(isProduction bool, microservice Microservice) *networkingv1.Ingress {
 	namespace := fmt.Sprintf("application-%s", microservice.Application.ID)
 	ingressName := fmt.Sprintf("%s-%s",
 		microservice.Environment,
@@ -60,7 +59,7 @@ func NewMicroserviceIngressWithEmptyRules(platformEnvironment string, microservi
 
 	// TODO might not work locally, you wont get https
 	annotations["cert-manager.io/cluster-issuer"] = "letsencrypt-staging"
-	if platformEnvironment == "prod" {
+	if isProduction {
 		annotations["cert-manager.io/cluster-issuer"] = "letsencrypt-production"
 
 	}
