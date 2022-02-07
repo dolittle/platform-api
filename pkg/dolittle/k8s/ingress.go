@@ -15,10 +15,7 @@ func NewDevelopmentCustomerTenantInfo(environment string, microserviceID string)
 }
 
 func NewCustomerTenantInfo(environment string, microserviceID string, customerTenantID string) platform.CustomerTenantInfo {
-	// TODO how do we make sure the host is not already in use
-	// Do we look it up in the cluster (source of truth)
-	// Do we rely on the data in git?
-	// My gut says cluster
+	// TODO https://app.asana.com/0/1201325052247030/1201777908041868/f
 	return platform.CustomerTenantInfo{
 		Environment:      environment,
 		CustomerTenantID: customerTenantID,
