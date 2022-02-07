@@ -39,7 +39,7 @@ func NewService(
 		k8sDolittleRepo:         k8sDolittleRepo,
 		k8sClient:               k8sClient,
 		platformOperationsImage: platformOperationsImage,
-		platformEnvironment:     platformEnvironment, // TODO do I need
+		platformEnvironment:     platformEnvironment,
 		isProduction:            isProduction,
 		logContext:              logContext,
 	}
