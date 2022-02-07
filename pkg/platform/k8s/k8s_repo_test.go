@@ -3,6 +3,7 @@ package k8s_test
 import (
 	"errors"
 
+	"github.com/dolittle/platform-api/pkg/k8s"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -47,6 +48,7 @@ var _ = Describe("k8s repo test", func() {
 				clientSet      *fake.Clientset
 				config         *rest.Config
 				k8sRepo        platformK8s.K8sRepo
+				k8sRepoV2      k8s.Repo
 				logger         *logrus.Logger
 			)
 
@@ -59,7 +61,7 @@ var _ = Describe("k8s repo test", func() {
 				config = &rest.Config{}
 				logger, _ = logrusTest.NewNullLogger()
 				k8sRepo = platformK8s.NewK8sRepo(clientSet, config, logger.WithField("context", "k8s-repo"))
-
+				k8sRepoV2 = k8s.NewRepo(clientSet, logger.WithField("context", "k8s-repo-v2"))
 			})
 
 			It("Error getting list", func() {
@@ -68,7 +70,7 @@ var _ = Describe("k8s repo test", func() {
 					return true, data, want
 				})
 
-				_, err := k8sRepo.GetIngressHTTPIngressPath(applicationID, environment, microserviceID)
+				_, err := k8sRepoV2.GetIngressesByEnvironmentWithMicoservice(platformK8s.GetApplicationNamespace(applicationID), environment)
 				Expect(err).To(Equal(want))
 			})
 
@@ -77,6 +79,7 @@ var _ = Describe("k8s repo test", func() {
 					filters := action.(testing.ListActionImpl).ListRestrictions
 					Expect(filters.Labels.Matches(labels.Set{
 						"tenant":       string(selection.Exists),
+						"application":  "fake-application",
 						"environment":  environment,
 						"microservice": string(selection.Exists),
 					})).To(BeTrue())
@@ -85,7 +88,8 @@ var _ = Describe("k8s repo test", func() {
 					return true, data, nil
 				})
 
-				items, err := k8sRepo.GetIngressHTTPIngressPath(applicationID, environment, microserviceID)
+				ingresses, _ := k8sRepoV2.GetIngressesByEnvironmentWithMicoservice(platformK8s.GetApplicationNamespace(applicationID), environment)
+				items, err := k8sRepo.GetIngressHTTPIngressPath(ingresses, microserviceID)
 				Expect(err).To(BeNil())
 				Expect(len(items)).To(Equal(0))
 			})
@@ -107,6 +111,7 @@ var _ = Describe("k8s repo test", func() {
 									Name: "ignore-1",
 									Labels: map[string]string{
 										"tenant":       "fake-tenant",
+										"application":  "fake-application",
 										"environment":  environment,
 										"microservice": "fake-microservice",
 									},
@@ -121,7 +126,8 @@ var _ = Describe("k8s repo test", func() {
 					return true, data, nil
 				})
 
-				items, err := k8sRepo.GetIngressHTTPIngressPath(applicationID, environment, microserviceID)
+				ingresses, _ := k8sRepoV2.GetIngressesByEnvironmentWithMicoservice(platformK8s.GetApplicationNamespace(applicationID), environment)
+				items, err := k8sRepo.GetIngressHTTPIngressPath(ingresses, microserviceID)
 				Expect(err).To(BeNil())
 				Expect(len(items)).To(Equal(0))
 			})
@@ -146,6 +152,7 @@ var _ = Describe("k8s repo test", func() {
 										Name: "ignore-1",
 										Labels: map[string]string{
 											"tenant":       "fake-tenant",
+											"application":  "fake-application",
 											"environment":  environment,
 											"microservice": "fake-microservice",
 										},
@@ -178,7 +185,8 @@ var _ = Describe("k8s repo test", func() {
 						return true, data, nil
 					})
 
-					items, err := k8sRepo.GetIngressHTTPIngressPath(applicationID, environment, microserviceID)
+					ingresses, _ := k8sRepoV2.GetIngressesByEnvironmentWithMicoservice(platformK8s.GetApplicationNamespace(applicationID), environment)
+					items, err := k8sRepo.GetIngressHTTPIngressPath(ingresses, microserviceID)
 					Expect(err).To(BeNil())
 					Expect(len(items)).To(Equal(1))
 					Expect(items[0].Path).To(Equal("/"))
@@ -203,6 +211,7 @@ var _ = Describe("k8s repo test", func() {
 										Name: "ignore-1",
 										Labels: map[string]string{
 											"tenant":       "fake-tenant",
+											"application":  "fake-application",
 											"environment":  environment,
 											"microservice": "fake-microservice",
 										},
@@ -249,7 +258,8 @@ var _ = Describe("k8s repo test", func() {
 						return true, data, nil
 					})
 
-					items, err := k8sRepo.GetIngressHTTPIngressPath(applicationID, environment, microserviceID)
+					ingresses, _ := k8sRepoV2.GetIngressesByEnvironmentWithMicoservice(platformK8s.GetApplicationNamespace(applicationID), environment)
+					items, err := k8sRepo.GetIngressHTTPIngressPath(ingresses, microserviceID)
 					Expect(err).To(BeNil())
 					Expect(len(items)).To(Equal(1))
 					Expect(items[0].Path).To(Equal("/"))

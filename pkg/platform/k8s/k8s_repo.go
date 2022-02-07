@@ -16,6 +16,7 @@ import (
 	"github.com/dolittle/platform-api/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	appsv1 "k8s.io/api/apps/v1"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -149,6 +150,23 @@ func (r *K8sRepo) GetMicroservices(applicationID string) ([]platform.Microservic
 		return response, err
 	}
 
+	type ingressPerEnvironment = map[string][]networkingv1.Ingress
+
+	_ingressPerEnvironment := make(ingressPerEnvironment)
+
+	environments := funk.UniqString(funk.Map(deployments.Items, func(deployment appsv1.Deployment) string {
+		return deployment.Labels["environment"]
+	}).([]string))
+
+	for _, environment := range environments {
+		ingresses, err := r.k8sRepoV2.GetIngressesByEnvironmentWithMicoservice(namespace, environment)
+
+		if err != nil {
+			return response, err
+		}
+		_ingressPerEnvironment[environment] = ingresses
+	}
+
 	for _, deployment := range deployments.Items {
 		annotationsMap := deployment.GetObjectMeta().GetAnnotations()
 		labelMap := deployment.GetObjectMeta().GetLabels()
@@ -164,12 +182,12 @@ func (r *K8sRepo) GetMicroservices(applicationID string) ([]platform.Microservic
 
 		environment := labelMap["environment"]
 		microserviceID := annotationsMap["dolittle.io/microservice-id"]
-		ingressURLS, err := r.GetIngressURLsWithCustomerTenantID(applicationID, environment, microserviceID)
+		ingressURLS, err := r.GetIngressURLsWithCustomerTenantID(_ingressPerEnvironment[environment], microserviceID)
 		if err != nil {
 			return response, err
 		}
 
-		ingressHTTPIngressPath, err := r.GetIngressHTTPIngressPath(applicationID, environment, microserviceID)
+		ingressHTTPIngressPath, err := r.GetIngressHTTPIngressPath(_ingressPerEnvironment[environment], microserviceID)
 		if err != nil {
 			return response, err
 		}
@@ -576,15 +594,9 @@ func (r *K8sRepo) GetRestConfig() *rest.Config {
 	return rest.CopyConfig(r.baseConfig)
 }
 
-func (r *K8sRepo) GetIngressURLsWithCustomerTenantID(applicationID string, environment string, microserviceID string) ([]platform.IngressURLWithCustomerTenantID, error) {
-	namespace := GetApplicationNamespace(applicationID)
+func (r *K8sRepo) GetIngressURLsWithCustomerTenantID(ingresses []networkingv1.Ingress, microserviceID string) ([]platform.IngressURLWithCustomerTenantID, error) {
+
 	urls := make([]platform.IngressURLWithCustomerTenantID, 0)
-
-	ingresses, err := r.k8sRepoV2.GetIngressesByEnvironmentWithMicoservice(namespace, environment)
-
-	if err != nil {
-		return urls, err
-	}
 
 	for _, ingress := range ingresses {
 		annotationsMap := ingress.GetAnnotations()
@@ -612,15 +624,9 @@ func (r *K8sRepo) GetIngressURLsWithCustomerTenantID(applicationID string, envir
 }
 
 // GetIngressHTTPIngressPath Return unique Ingress Paths
-func (r *K8sRepo) GetIngressHTTPIngressPath(applicationID string, environment string, microserviceID string) ([]networkingv1.HTTPIngressPath, error) {
-	namespace := GetApplicationNamespace(applicationID)
+func (r *K8sRepo) GetIngressHTTPIngressPath(ingresses []networkingv1.Ingress, microserviceID string) ([]networkingv1.HTTPIngressPath, error) {
+
 	items := make([]networkingv1.HTTPIngressPath, 0)
-
-	ingresses, err := r.k8sRepoV2.GetIngressesByEnvironmentWithMicoservice(namespace, environment)
-
-	if err != nil {
-		return items, err
-	}
 
 	for _, ingress := range ingresses {
 		annotationsMap := ingress.GetAnnotations()
