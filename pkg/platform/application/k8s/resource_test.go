@@ -24,26 +24,36 @@ var _ = Describe("Setting up an application", func() {
 		environment = "TODO"
 		customer = dolittleK8s.Tenant{
 			ID:   "fake-customer-123",
-			Name: "TODO",
+			Name: "fake-customer",
 		}
 		application = dolittleK8s.Application{
 			ID:   "fake-application-123",
-			Name: "TODO",
+			Name: "fake-application",
 		}
 	})
 
 	When("Creating mongo resource", func() {
-		It("Include the application and environment in the name of the file saved", func() {
+		var (
+			resources k8s.MongoResources
+		)
+		BeforeEach(func() {
 			settings := k8s.MongoSettings{
 				ShareName:       "fake",
 				CronJobSchedule: "* * * * *",
 				VolumeSize:      "8Gi",
 			}
-			resource := k8s.NewMongo(environment, customer, application, settings)
-			Expect(resource.Service.Name).To(Equal("todo-mongo"))
+			resources = k8s.NewMongo(environment, customer, application, settings)
+		})
 
-			expect := `mongodump --host=todo-mongo.application-fake-application-123.svc.cluster.local:27017 --gzip --archive=/mnt/backup/$(APPLICATION)-$(ENVIRONMENT)-$(date +%Y-%m-%d_%H-%M-%S).gz.mongodump`
-			Expect(resource.Cronjob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Args[0]).To(Equal(expect))
+		It("Name", func() {
+			Expect(resources.Service.Name).To(Equal("todo-mongo"))
+			Expect(resources.StatefulSet.Name).To(Equal("todo-mongo"))
+			Expect(resources.Cronjob.Name).To(Equal("todo-mongo-backup"))
+		})
+
+		It("Include the application and environment in the name of the file saved", func() {
+			expect := `mongodump --host=todo-mongo.application-fake-application-123.svc.cluster.local:27017 --gzip --archive=/mnt/backup/fake-application-todo-$(date +%Y-%m-%d_%H-%M-%S).gz.mongodump`
+			Expect(resources.Cronjob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Args[0]).To(Equal(expect))
 		})
 	})
 	When("Creating the environment", func() {

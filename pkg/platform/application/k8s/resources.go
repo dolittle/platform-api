@@ -473,9 +473,15 @@ func NewMongo(environment string, tenant dolittleK8s.Tenant, application dolittl
 	failedLimit := int32(3)
 	activeDeadlineSeconds := int64(600)
 	mongoHost := fmt.Sprintf("%s.%s.svc.cluster.local:27017", name, namespace)
-	// TODO Should we hard code it, instead of using Env variables?
-	// TODO Should we make sure its lower case?
-	archive := "/mnt/backup/$(APPLICATION)-$(ENVIRONMENT)-$(date +%Y-%m-%d_%H-%M-%S).gz.mongodump"
+
+	archivePrefix := strings.ToLower(fmt.Sprintf(
+		"%s-%s",
+		platformK8s.ParseLabel(application.Name),
+		platformK8s.ParseLabel(environment),
+	))
+
+	archive := "/mnt/backup/" + archivePrefix + "-$(date +%Y-%m-%d_%H-%M-%S).gz.mongodump"
+
 	shareName := settings.ShareName
 
 	resource := MongoResources{
@@ -606,24 +612,7 @@ func NewMongo(environment string, tenant dolittleK8s.Tenant, application dolittl
 										Args: []string{
 											fmt.Sprintf(`mongodump --host=%s --gzip --archive=%s`, mongoHost, archive),
 										},
-										Env: []corev1.EnvVar{
-											{
-												Name: "APPLICATION",
-												ValueFrom: &corev1.EnvVarSource{
-													FieldRef: &corev1.ObjectFieldSelector{
-														FieldPath: "metadata.labels['application']",
-													},
-												},
-											},
-											{
-												Name: "ENVIRONMENT",
-												ValueFrom: &corev1.EnvVarSource{
-													FieldRef: &corev1.ObjectFieldSelector{
-														FieldPath: "metadata.labels['environment']",
-													},
-												},
-											},
-										},
+
 										VolumeMounts: []corev1.VolumeMount{
 											{
 												Name:      "backup-storage",
