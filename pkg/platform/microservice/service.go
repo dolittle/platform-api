@@ -108,7 +108,6 @@ func (s *service) Create(w http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	// TODO is this legacy?
 	// Check if automation enabled
 	if !s.gitRepo.IsAutomationEnabledWithStudioConfig(studioInfo.StudioConfig, applicationID, environment) {
 		utils.RespondWithError(
