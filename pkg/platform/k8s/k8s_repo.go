@@ -207,19 +207,14 @@ func (r *K8sRepo) GetMicroservices(applicationID string) ([]platform.Microservic
 }
 
 func (r *K8sRepo) GetMicroserviceName(applicationID string, environment string, microserviceID string) (string, error) {
-	client := r.k8sClient
-	ctx := context.TODO()
-
 	namespace := GetApplicationNamespace(applicationID)
-	deployments, err := client.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("environment=%s,microservice", environment),
-	})
+	deployments, err := r.k8sRepoV2.GetDeploymentsByEnvironmentWithMicroservice(namespace, environment)
 
 	if err != nil {
 		return "", err
 	}
 
-	for _, deployment := range deployments.Items {
+	for _, deployment := range deployments {
 		if deployment.ObjectMeta.Annotations["dolittle.io/microservice-id"] == microserviceID {
 			return deployment.Name, nil
 		}

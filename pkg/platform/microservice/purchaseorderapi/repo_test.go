@@ -3,11 +3,14 @@ package purchaseorderapi_test
 import (
 	"fmt"
 
-	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
+	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
+	"github.com/dolittle/platform-api/pkg/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
 	. "github.com/dolittle/platform-api/pkg/platform/microservice/purchaseorderapi"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
+	logrusTest "github.com/sirupsen/logrus/hooks/test"
 	v1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
@@ -15,10 +18,10 @@ import (
 
 var _ = Describe("For repo", func() {
 	var (
-		repo Repo
-
-		customer            k8s.Tenant
-		application         k8s.Application
+		repo                Repo
+		logger              *logrus.Logger
+		customer            dolittleK8s.Tenant
+		application         dolittleK8s.Application
 		namespace           string
 		name                string
 		environment         string
@@ -32,11 +35,12 @@ var _ = Describe("For repo", func() {
 	)
 
 	BeforeEach(func() {
-		customer = k8s.Tenant{
+		logger, _ = logrusTest.NewNullLogger()
+		customer = dolittleK8s.Tenant{
 			Name: "tenant-name",
 			ID:   "67dcf38f-16e4-4b57-bff5-707cff3233ec",
 		}
-		application = k8s.Application{
+		application = dolittleK8s.Application{
 			Name: "application-name",
 			ID:   "c1e08289-be4b-4557-9457-5de90e0ea54a",
 		}
@@ -63,7 +67,8 @@ var _ = Describe("For repo", func() {
 		client := fake.NewSimpleClientset(existingDeployments...)
 		k8sResourceSpecFactory := NewK8sResourceSpecFactory()
 		k8sResource := NewK8sResource(client, k8sResourceSpecFactory)
-		repo = NewRepo(k8sResource, k8sResourceSpecFactory, client)
+		k8sRepoV2 := k8s.NewRepo(client, logger.WithField("context", "k8s-repo-v2"))
+		repo = NewRepo(k8sResource, k8sResourceSpecFactory, client, k8sRepoV2)
 	})
 
 	Describe("when checking if purchase order api exists", func() {
@@ -117,7 +122,7 @@ var _ = Describe("For repo", func() {
 					existingDeployments = []runtime.Object{
 						newDeploymentFrom(
 							customer,
-							k8s.Application{
+							dolittleK8s.Application{
 								Name: "another-application",
 								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
 							},
@@ -140,7 +145,7 @@ var _ = Describe("For repo", func() {
 					existingDeployments = []runtime.Object{
 						newDeploymentFrom(
 							customer,
-							k8s.Application{
+							dolittleK8s.Application{
 								Name: "another-application",
 								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
 							},
@@ -205,7 +210,7 @@ var _ = Describe("For repo", func() {
 					existingDeployments = []runtime.Object{
 						newDeploymentFrom(
 							customer,
-							k8s.Application{
+							dolittleK8s.Application{
 								Name: "another-application",
 								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
 							},
@@ -228,7 +233,7 @@ var _ = Describe("For repo", func() {
 					existingDeployments = []runtime.Object{
 						newDeploymentFrom(
 							customer,
-							k8s.Application{
+							dolittleK8s.Application{
 								Name: "another-application",
 								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
 							},
@@ -293,7 +298,7 @@ var _ = Describe("For repo", func() {
 					existingDeployments = []runtime.Object{
 						newDeploymentFrom(
 							customer,
-							k8s.Application{
+							dolittleK8s.Application{
 								Name: "another-application",
 								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
 							},
@@ -316,7 +321,7 @@ var _ = Describe("For repo", func() {
 					existingDeployments = []runtime.Object{
 						newDeploymentFrom(
 							customer,
-							k8s.Application{
+							dolittleK8s.Application{
 								Name: "another-application",
 								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
 							},
@@ -381,7 +386,7 @@ var _ = Describe("For repo", func() {
 					existingDeployments = []runtime.Object{
 						newDeploymentFrom(
 							customer,
-							k8s.Application{
+							dolittleK8s.Application{
 								Name: "another-application",
 								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
 							},
@@ -404,7 +409,7 @@ var _ = Describe("For repo", func() {
 					existingDeployments = []runtime.Object{
 						newDeploymentFrom(
 							customer,
-							k8s.Application{
+							dolittleK8s.Application{
 								Name: "another-application",
 								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
 							},
@@ -569,7 +574,7 @@ var _ = Describe("For repo", func() {
 					existingDeployments = []runtime.Object{
 						newDeploymentFrom(
 							customer,
-							k8s.Application{
+							dolittleK8s.Application{
 								Name: "another-application",
 								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
 							},
@@ -592,7 +597,7 @@ var _ = Describe("For repo", func() {
 					existingDeployments = []runtime.Object{
 						newDeploymentFrom(
 							customer,
-							k8s.Application{
+							dolittleK8s.Application{
 								Name: "another-application",
 								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
 							},
@@ -657,7 +662,7 @@ var _ = Describe("For repo", func() {
 					existingDeployments = []runtime.Object{
 						newDeploymentFrom(
 							customer,
-							k8s.Application{
+							dolittleK8s.Application{
 								Name: "another-application",
 								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
 							},
@@ -680,7 +685,7 @@ var _ = Describe("For repo", func() {
 					existingDeployments = []runtime.Object{
 						newDeploymentFrom(
 							customer,
-							k8s.Application{
+							dolittleK8s.Application{
 								Name: "another-application",
 								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
 							},
@@ -745,7 +750,7 @@ var _ = Describe("For repo", func() {
 					existingDeployments = []runtime.Object{
 						newDeploymentFrom(
 							customer,
-							k8s.Application{
+							dolittleK8s.Application{
 								Name: "another-application",
 								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
 							},
@@ -768,7 +773,7 @@ var _ = Describe("For repo", func() {
 					existingDeployments = []runtime.Object{
 						newDeploymentFrom(
 							customer,
-							k8s.Application{
+							dolittleK8s.Application{
 								Name: "another-application",
 								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
 							},
@@ -833,7 +838,7 @@ var _ = Describe("For repo", func() {
 					existingDeployments = []runtime.Object{
 						newDeploymentFrom(
 							customer,
-							k8s.Application{
+							dolittleK8s.Application{
 								Name: "another-application",
 								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
 							},
@@ -856,7 +861,7 @@ var _ = Describe("For repo", func() {
 					existingDeployments = []runtime.Object{
 						newDeploymentFrom(
 							customer,
-							k8s.Application{
+							dolittleK8s.Application{
 								Name: "another-application",
 								ID:   "33607c42-e25b-4982-9a01-e89449db44b2",
 							},
@@ -972,7 +977,7 @@ var _ = Describe("For repo", func() {
 	})
 })
 
-func newPurchaseOrderAPICreateInput(customer k8s.Tenant, application k8s.Application, environment, name string) platform.HttpInputPurchaseOrderInfo {
+func newPurchaseOrderAPICreateInput(customer dolittleK8s.Tenant, application dolittleK8s.Application, environment, name string) platform.HttpInputPurchaseOrderInfo {
 	return platform.HttpInputPurchaseOrderInfo{
 		MicroserviceBase: platform.MicroserviceBase{
 			Dolittle: platform.HttpInputDolittle{
@@ -993,8 +998,8 @@ func newPurchaseOrderAPICreateInput(customer k8s.Tenant, application k8s.Applica
 	}
 }
 
-func newDeploymentFrom(customer k8s.Tenant, application k8s.Application, environment, name, id string, kind platform.MicroserviceKind) *v1.Deployment {
-	return k8s.NewDeployment(k8s.Microservice{
+func newDeploymentFrom(customer dolittleK8s.Tenant, application dolittleK8s.Application, environment, name, id string, kind platform.MicroserviceKind) *v1.Deployment {
+	return dolittleK8s.NewDeployment(dolittleK8s.Microservice{
 		ID:          id,
 		Name:        name,
 		Tenant:      customer,

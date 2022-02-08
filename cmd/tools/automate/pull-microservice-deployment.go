@@ -1,7 +1,6 @@
 package automate
 
 import (
-	"context"
 	"os"
 
 	"github.com/sirupsen/logrus"
@@ -30,7 +29,6 @@ var pullMicroserviceDeploymentCMD = &cobra.Command{
 		}
 
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
-		ctx := context.TODO()
 		k8sClient, _ := platformK8s.InitKubernetesClient()
 
 		k8sRepoV2 := k8s.NewRepo(k8sClient, logger.WithField("context", "k8s-repo-v2"))
@@ -47,7 +45,7 @@ var pullMicroserviceDeploymentCMD = &cobra.Command{
 				"application": application,
 			})
 
-			deployments, err := automate.GetDeployments(ctx, k8sClient, namespace.GetName())
+			deployments, err := k8sRepoV2.GetDeploymentsWithMicroservice(namespace.Name)
 			if err != nil {
 				logContext.Fatal("Failed to get deployments")
 			}

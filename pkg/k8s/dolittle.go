@@ -33,6 +33,7 @@ type RepoDeployment interface {
 	GetDeployments(namespace string) ([]appsv1.Deployment, error)
 	GetDeploymentsWithOptions(namespace string, opts metav1.ListOptions) ([]appsv1.Deployment, error)
 	GetDeploymentsWithMicroservice(namespace string) ([]appsv1.Deployment, error)
+	GetDeploymentsByEnvironmentWithMicroservice(namespace string, environment string) ([]appsv1.Deployment, error)
 }
 
 type Repo interface {
@@ -98,6 +99,16 @@ func (r repo) GetDeploymentsWithOptions(namespace string, opts metav1.ListOption
 func (r repo) GetDeploymentsWithMicroservice(namespace string) ([]appsv1.Deployment, error) {
 	opts := metav1.ListOptions{
 		LabelSelector: "tenant,application,environment,microservice",
+	}
+	// TODO we could do extra filtering in here to confirm things have correct annotations?
+	// Instead of in the code
+	// if !IsApplicationNamespace(namespace) {
+	return r.GetDeploymentsWithOptions(namespace, opts)
+}
+
+func (r repo) GetDeploymentsByEnvironmentWithMicroservice(namespace string, environment string) ([]appsv1.Deployment, error) {
+	opts := metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("tenant,application,environment=%s,microservice", environment),
 	}
 	// TODO we could do extra filtering in here to confirm things have correct annotations?
 	// Instead of in the code

@@ -302,7 +302,12 @@ var _ = Describe("k8s repo test", func() {
 		It("Not Found", func() {
 			clientSet.AddReactor("list", "deployments", func(action testing.Action) (handled bool, ret runtime.Object, err error) {
 				filters := action.(testing.ListActionImpl).ListRestrictions
-				Expect(filters.Labels.Matches(labels.Set{"environment": environment, "microservice": string(selection.Exists)})).To(BeTrue())
+				Expect(filters.Labels.Matches(labels.Set{
+					"tenant":       string(selection.Exists),
+					"application":  string(selection.Exists),
+					"environment":  environment,
+					"microservice": string(selection.Exists),
+				})).To(BeTrue())
 
 				data := &appsv1.DeploymentList{
 					Items: []appsv1.Deployment{
@@ -326,7 +331,12 @@ var _ = Describe("k8s repo test", func() {
 		It("Found", func() {
 			clientSet.AddReactor("list", "deployments", func(action testing.Action) (handled bool, ret runtime.Object, err error) {
 				filters := action.(testing.ListActionImpl).ListRestrictions
-				Expect(filters.Labels.Matches(labels.Set{"environment": environment, "microservice": string(selection.Exists)})).To(BeTrue())
+				Expect(filters.Labels.Matches(labels.Set{
+					"tenant":       string(selection.Exists),
+					"application":  string(selection.Exists),
+					"environment":  environment,
+					"microservice": string(selection.Exists),
+				})).To(BeTrue())
 
 				data := &appsv1.DeploymentList{
 					Items: []appsv1.Deployment{
@@ -334,6 +344,8 @@ var _ = Describe("k8s repo test", func() {
 							ObjectMeta: metav1.ObjectMeta{
 								Name: "hello-world",
 								Labels: map[string]string{
+									"tenant":       "fake-tenant",
+									"application":  "fake-application",
 									"environment":  environment,
 									"microservice": "hello-world",
 								},

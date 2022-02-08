@@ -7,7 +7,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
+	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
+	"github.com/dolittle/platform-api/pkg/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/parser"
@@ -36,6 +37,7 @@ func NewService(
 	rawDataLogRepo := rawdatalog.NewRawDataLogIngestorRepo(isProduction, k8sDolittleRepo, k8sClient, logContext)
 	specFactory := purchaseorderapi.NewK8sResourceSpecFactory()
 	k8sResources := purchaseorderapi.NewK8sResource(k8sClient, specFactory)
+	k8sRepoV2 := k8s.NewRepo(k8sClient, logContext.WithField("context", "k8s-repo-v2"))
 
 	return service{
 		gitRepo:                    gitRepo,
@@ -46,7 +48,7 @@ func NewService(
 		parser:                     parser,
 		purchaseOrderHandler: purchaseorderapi.NewHandler(
 			parser,
-			purchaseorderapi.NewRepo(k8sResources, specFactory, k8sClient),
+			purchaseorderapi.NewRepo(k8sResources, specFactory, k8sClient, k8sRepoV2),
 			gitRepo,
 			rawDataLogRepo,
 			logContext),
@@ -76,7 +78,7 @@ func (s *service) Create(w http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	customer := k8s.Tenant{
+	customer := dolittleK8s.Tenant{
 		ID:   studioInfo.TerraformCustomer.GUID,
 		Name: studioInfo.TerraformCustomer.Name,
 	}
@@ -182,7 +184,7 @@ func (s *service) Update(w http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	customer := k8s.Tenant{
+	customer := dolittleK8s.Tenant{
 		ID:   studioInfo.TerraformCustomer.GUID,
 		Name: studioInfo.TerraformCustomer.Name,
 	}
@@ -269,7 +271,7 @@ func (s *service) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tenant := k8s.Tenant{
+	tenant := dolittleK8s.Tenant{
 		ID:   tenantInfo.GUID,
 		Name: tenantInfo.Name,
 	}
@@ -305,7 +307,7 @@ func (s *service) GetByApplicationID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tenant := k8s.Tenant{
+	tenant := dolittleK8s.Tenant{
 		ID:   tenantInfo.GUID,
 		Name: tenantInfo.Name,
 	}
