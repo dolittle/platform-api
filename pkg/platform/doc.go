@@ -135,7 +135,7 @@ type HttpInputDolittle struct {
 }
 
 type HttpInputSimpleIngress struct {
-	Host     string `json:"host"`
+	Host     string `json:"host"` // TODO to be able to remove this we need to re work RawDataLogIngestorRepo to
 	Path     string `json:"path"`
 	Pathtype string `json:"pathType"`
 }

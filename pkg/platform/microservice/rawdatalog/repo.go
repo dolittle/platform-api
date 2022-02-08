@@ -167,6 +167,8 @@ func (r RawDataLogIngestorRepo) Create(namespace string, customer k8s.Tenant, ap
 	labels := k8s.GetLabels(microservice)
 	annotations := k8s.GetAnnotations(microservice)
 	// TODO I think we need to come back to this one too
+	// TODO ingress approach
+	// ingresses := customertenant.CreateIngresses(isProduction, customerTenants, microservice, service.Name, input.Extra.Ingress)
 	customerTenant, err := r.getCustomerTenantForHost(customer, application, input.Environment, input.Extra.Ingress.Host)
 	if err != nil {
 		logger.WithError(err).Error("Failed to map input ingress to stored ingress")

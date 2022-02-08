@@ -43,8 +43,6 @@ func (s *service) handleSimpleMicroservice(
 		return
 	}
 
-	// Add Ingress serviceName + customerTenantID + host + path
-
 	// TODO this could be an event
 	// TODO this should be decoupled
 	err = s.gitRepo.SaveMicroservice(
