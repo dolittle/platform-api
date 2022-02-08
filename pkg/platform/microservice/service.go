@@ -124,15 +124,7 @@ func (s *service) Create(w http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	customerTenants := make([]platform.CustomerTenantInfo, 0)
-	for _, envInfo := range storedApplication.Environments {
-		if envInfo.Name != environment {
-			continue
-		}
-
-		customerTenants = envInfo.CustomerTenants
-		break
-	}
+	customerTenants := storage.GetCustomerTenantsByEnvironment(storedApplication, environment)
 
 	applicationInfo, err := s.k8sDolittleRepo.GetApplication(applicationID)
 	if err != nil {
@@ -203,16 +195,7 @@ func (s *service) Update(w http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	// This might not be what we want, but today we don't offer update properly, so we shall come back to this
-	customerTenants := make([]platform.CustomerTenantInfo, 0)
-	for _, envInfo := range storedApplication.Environments {
-		if envInfo.Name != environment {
-			continue
-		}
-
-		customerTenants = envInfo.CustomerTenants
-		break
-	}
+	customerTenants := storage.GetCustomerTenantsByEnvironment(storedApplication, environment)
 
 	applicationInfo, err := s.k8sDolittleRepo.GetApplication(applicationID)
 	if err != nil {
