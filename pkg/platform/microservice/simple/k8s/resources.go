@@ -7,7 +7,6 @@ import (
 	microserviceK8s "github.com/dolittle/platform-api/pkg/platform/microservice/k8s"
 )
 
-// TODO Refactor to accept the customerTenantId https://github.com/dolittle/platform-api/pull/65
 func NewResources(
 	isProduction bool,
 	namespace string,
