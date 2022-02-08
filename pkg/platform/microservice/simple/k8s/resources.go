@@ -32,7 +32,6 @@ func NewResources(
 	}
 
 	// TODO if runtimeImage = none, do we need dolittleConfig? might not be any harm in keeping it around
-	// TODO if we do not need the runtime, do we need a customerTenantID? (simple answer is keep it)
 	dolittleConfig := k8s.NewMicroserviceConfigmap(microservice, customerTenants)
 	deployment := k8s.NewDeployment(microservice, headImage, runtimeImage)
 	service := k8s.NewService(microservice)
