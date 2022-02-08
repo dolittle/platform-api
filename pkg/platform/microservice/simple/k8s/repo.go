@@ -20,8 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
-// TODO this name is used in dolittle k8s to describe runtime specific details
-type MicroserviceResources struct {
+type SimpleMicroserviceResources struct {
 	Service                    *corev1.Service
 	Deployment                 *appsv1.Deployment
 	DolittleConfig             *corev1.ConfigMap

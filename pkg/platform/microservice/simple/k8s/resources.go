@@ -14,7 +14,7 @@ func NewResources(
 	application k8s.Application,
 	customerTenants []platform.CustomerTenantInfo,
 	input platform.HttpInputSimpleInfo,
-) MicroserviceResources {
+) SimpleMicroserviceResources {
 	environment := input.Environment
 
 	microserviceID := input.Dolittle.MicroserviceID
@@ -47,7 +47,7 @@ func NewResources(
 	// Ingress section
 	ingresses := customertenant.CreateIngresses(isProduction, customerTenants, microservice, service.Name, input.Extra.Ingress)
 
-	return MicroserviceResources{
+	return SimpleMicroserviceResources{
 		Service:                    service,
 		ConfigFiles:                configFiles,
 		ConfigEnvironmentVariables: configEnvVariables,
