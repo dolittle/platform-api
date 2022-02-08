@@ -84,7 +84,7 @@ func (s *Handler) Create(inputBytes []byte, applicationInfo platform.Application
 		return ms, newConflict(fmt.Errorf("a Purchase Order API Microservice with the same name already exists in kubernetes or git storage"))
 	}
 
-	if statusErr := s.ensureRawDataLogExists(msK8sInfo, ms, logger); statusErr != nil {
+	if statusErr := s.ensureRawDataLogExists(msK8sInfo, ms, customerTenants, logger); statusErr != nil {
 		return ms, statusErr
 	}
 
@@ -216,7 +216,7 @@ func (s *Handler) createPurchaseOrderAPI(msK8sInfo k8s.MicroserviceK8sInfo, ms p
 	return nil
 }
 
-func (s *Handler) ensureRawDataLogExists(msK8sInfo k8s.MicroserviceK8sInfo, ms platform.HttpInputPurchaseOrderInfo, logger *logrus.Entry) *Error {
+func (s *Handler) ensureRawDataLogExists(msK8sInfo k8s.MicroserviceK8sInfo, ms platform.HttpInputPurchaseOrderInfo, customerTenants []platform.CustomerTenantInfo, logger *logrus.Entry) *Error {
 	rawDataLogExists, microserviceID, err := s.rawdatalogRepo.Exists(msK8sInfo.Namespace, ms.Environment)
 	if err != nil {
 		logger.WithError(err).Error("Failed to check if Raw Data Log exists")
@@ -224,7 +224,7 @@ func (s *Handler) ensureRawDataLogExists(msK8sInfo k8s.MicroserviceK8sInfo, ms p
 	}
 	if !rawDataLogExists {
 		logger.Debug("Raw Data Log does not exist, creating a new one")
-		return s.createRawDataLog(msK8sInfo, ms, logger)
+		return s.createRawDataLog(msK8sInfo, ms, customerTenants, logger)
 	} else {
 		return s.updateRawDataLogWebhooks(msK8sInfo, ms.Extra.Webhooks, ms.Environment, microserviceID, logger)
 	}
@@ -248,10 +248,8 @@ func (s *Handler) updatePurchaseOrderAPIWebhooks(msK8sInfo k8s.MicroserviceK8sIn
 	return nil
 }
 
-func (s *Handler) createRawDataLog(msK8sInfo k8s.MicroserviceK8sInfo, ms platform.HttpInputPurchaseOrderInfo, logger *logrus.Entry) *Error {
+func (s *Handler) createRawDataLog(msK8sInfo k8s.MicroserviceK8sInfo, ms platform.HttpInputPurchaseOrderInfo, customerTenants []platform.CustomerTenantInfo, logger *logrus.Entry) *Error {
 	rawDataLogMicroservice := s.extractRawDataLogInfo(ms)
-	// TODO this is broken, come back to.
-	customerTenants := make([]platform.CustomerTenantInfo, 0)
 	if err := s.rawdatalogRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, customerTenants, rawDataLogMicroservice); err != nil {
 		logger.WithError(err).Error("Failed to create Raw Data Log")
 		return newInternalError(fmt.Errorf("failed to create Raw Data Log: %w", err))
