@@ -134,10 +134,6 @@ func (s *service) Create(w http.ResponseWriter, request *http.Request) {
 		break
 	}
 
-	// TODO add paths
-	// Refactor this
-	// TODO do we need to confirm the application is in the name space?
-	// Should this really come from the cluster?
 	applicationInfo, err := s.k8sDolittleRepo.GetApplication(applicationID)
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
