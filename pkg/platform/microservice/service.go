@@ -191,6 +191,29 @@ func (s *service) Update(w http.ResponseWriter, request *http.Request) {
 		return
 	}
 
+	customer := k8s.Tenant{
+		ID:   studioInfo.TerraformCustomer.GUID,
+		Name: studioInfo.TerraformCustomer.Name,
+	}
+
+	// Confirm application exists
+	storedApplication, err := s.gitRepo.GetApplication(customer.ID, applicationID)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, "Not able to find application in the storage")
+		return
+	}
+
+	// This might not be what we want, but today we don't offer update properly, so we shall come back to this
+	customerTenants := make([]platform.CustomerTenantInfo, 0)
+	for _, envInfo := range storedApplication.Environments {
+		if envInfo.Name != environment {
+			continue
+		}
+
+		customerTenants = envInfo.CustomerTenants
+		break
+	}
+
 	applicationInfo, err := s.k8sDolittleRepo.GetApplication(applicationID)
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
@@ -203,11 +226,6 @@ func (s *service) Update(w http.ResponseWriter, request *http.Request) {
 			"error": fmt.Sprintf("Application %s not found", applicationID),
 		})
 		return
-	}
-
-	customer := k8s.Tenant{
-		ID:   studioInfo.TerraformCustomer.GUID,
-		Name: studioInfo.TerraformCustomer.Name,
 	}
 
 	userID := request.Header.Get("User-ID")
@@ -230,8 +248,6 @@ func (s *service) Update(w http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	// TODO this should not be 0
-	customerTenants := make([]platform.CustomerTenantInfo, 0)
 	switch microserviceBase.Kind {
 	case platform.MicroserviceKindPurchaseOrderAPI:
 		// TODO handle other updation operations too
