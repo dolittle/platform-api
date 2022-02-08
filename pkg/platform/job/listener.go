@@ -33,7 +33,7 @@ func (c *PodLoggingController) Run(stopCh chan struct{}) error {
 	c.informerFactory.Start(stopCh)
 	// wait for the initial synchronization of the local cache.
 	if !cache.WaitForCacheSync(stopCh, c.podInformer.Informer().HasSynced) {
-		return fmt.Errorf("Failed to sync")
+		return fmt.Errorf("failed to sync")
 	}
 	return nil
 }

@@ -255,6 +255,7 @@ func (s *service) GetByID(w http.ResponseWriter, r *http.Request) {
 		Environments: funk.Map(application.Environments, func(environment storage.JSONEnvironment) HttpResponseEnvironment {
 			return HttpResponseEnvironment{
 				AutomationEnabled: s.gitRepo.IsAutomationEnabledWithStudioConfig(studioInfo.StudioConfig, applicationID, environment.Name),
+				Name:              environment.Name,
 			}
 		}).([]HttpResponseEnvironment),
 		Microservices: microservices,
