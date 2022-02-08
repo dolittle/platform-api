@@ -79,9 +79,8 @@ var serverCMD = &cobra.Command{
 			gitRepoConfig,
 		)
 
-		go func() {
-			job.NewListenForJobs(k8sClient, gitRepo, logContext)
-		}()
+		go job.NewCustomerJobListener(k8sClient, gitRepo, logContext)
+		go job.NewApplicationJobListener(k8sClient, gitRepo, logContext)
 
 		microserviceService := microservice.NewService(
 			isProduction,

@@ -5,6 +5,7 @@ package job
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
@@ -16,20 +17,14 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-// PodLoggingController logs the name and namespace of pods that are added,
-// deleted, or updated
-type PodLoggingController struct {
+type customerController struct {
 	informerFactory informers.SharedInformerFactory
 	podInformer     coreinformers.PodInformer
 	logContext      logrus.FieldLogger
 	gitSync         gitStorage.GitSync
 }
 
-// Run starts shared informers and waits for the shared informer cache to
-// synchronize.
-func (c *PodLoggingController) Run(stopCh chan struct{}) error {
-	// Starts all the shared informers that have been created by the factory so
-	// far.
+func (c *customerController) Run(stopCh chan struct{}) error {
 	c.informerFactory.Start(stopCh)
 	// wait for the initial synchronization of the local cache.
 	if !cache.WaitForCacheSync(stopCh, c.podInformer.Informer().HasSynced) {
@@ -38,7 +33,7 @@ func (c *PodLoggingController) Run(stopCh chan struct{}) error {
 	return nil
 }
 
-func (c *PodLoggingController) podAdd(obj interface{}) {
+func (c *customerController) podAdd(obj interface{}) {
 	pod := obj.(*corev1.Pod)
 	// I think I just watched this explode because startTime was absent
 	startTime := "n/a"
@@ -48,7 +43,7 @@ func (c *PodLoggingController) podAdd(obj interface{}) {
 	c.logContext.Infof("POD CREATED: %s/%s %s", pod.Namespace, pod.Name, startTime)
 }
 
-func (c *PodLoggingController) podUpdate(old, new interface{}) {
+func (c *customerController) podUpdate(old, new interface{}) {
 	oldPod := old.(*corev1.Pod)
 	newPod := new.(*corev1.Pod)
 	// TODO why didn't this log?
@@ -81,61 +76,34 @@ func (c *PodLoggingController) podUpdate(old, new interface{}) {
 		fmt.Println("")
 	}
 
-	// TODO might need logic to check initContainers is happy
-	// TODO when job is finished (I think it will land here)
 	if newPod.Status.Phase == "Succeeded" {
 		// trigger gitPull
 		err := c.gitSync.Pull()
 		if err != nil {
 			c.logContext.WithFields(logrus.Fields{
 				"error":   err,
-				"context": "application-created-update-repo",
+				"context": "customer-created-update-repo",
 			}).Fatal("Failed to update repo")
 		}
 
 		customerID := newPod.Annotations["dolittle.io/tenant-id"]
-		applicationID := newPod.Annotations["dolittle.io/application-id"]
-
-		//// TODO this is not needed
-		//// TODO update state in the application
-		//entry, err := c.repo.GetApplication(customerID, applicationID)
-		//if err != nil {
-		//	c.logContext.WithFields(logrus.Fields{
-		//		"error":   err,
-		//		"context": "application-get-from-storage",
-		//	}).Fatal("Failed to get data from storage")
-		//}
-		//
-		//// TODO this should be a function that the job calls
-		//entry.Status.State = storage.BuildStatusStateFinishedSuccess
-		//entry.Status.FinishedAt = time.Now().UTC().Format(time.RFC3339)
-		//
-		//err = c.repo.SaveApplication(entry)
-		//if err != nil {
-		//	c.logContext.WithFields(logrus.Fields{
-		//		"error":   err,
-		//		"context": "application-save-to-storage",
-		//	}).Fatal("Failed to save data to storage")
-		//}
 
 		c.logContext.WithFields(logrus.Fields{
-			"customer_id":    customerID,
-			"application_id": applicationID,
-			"context":        "application-created-update-repo",
+			"customer_id": customerID,
+			"context":     "customer-created-update-repo",
 		}).Info("Repo updated with changes after job successfully ran")
 	}
 }
 
-func (c *PodLoggingController) podDelete(obj interface{}) {
+func (c *customerController) podDelete(obj interface{}) {
 	pod := obj.(*corev1.Pod)
 	c.logContext.Infof("POD DELETED: %s/%s", pod.Namespace, pod.Name)
 }
 
-// NewPodLoggingController creates a PodLoggingController
-func NewPodLoggingController(informerFactory informers.SharedInformerFactory, gitSync gitStorage.GitSync, logContext logrus.FieldLogger) *PodLoggingController {
+func NewCustomerListenerController(informerFactory informers.SharedInformerFactory, gitSync gitStorage.GitSync, logContext logrus.FieldLogger) *customerController {
 	podInformer := informerFactory.Core().V1().Pods()
 
-	c := &PodLoggingController{
+	c := &customerController{
 		informerFactory: informerFactory,
 		podInformer:     podInformer,
 		logContext:      logContext,
@@ -143,10 +111,14 @@ func NewPodLoggingController(informerFactory informers.SharedInformerFactory, gi
 	}
 
 	// FilteringResourceEventHandler
-	a := cache.FilteringResourceEventHandler{
+	handler := cache.FilteringResourceEventHandler{
 		FilterFunc: func(obj interface{}) bool {
 			pod := obj.(*corev1.Pod)
 			if _, ok := pod.Labels["job-name"]; !ok {
+				return false
+			}
+
+			if !strings.HasPrefix(pod.Name, "create-customer-") {
 				return false
 			}
 
@@ -155,28 +127,21 @@ func NewPodLoggingController(informerFactory informers.SharedInformerFactory, gi
 				return false
 			}
 
-			if _, ok := pod.Annotations["dolittle.io/application-id"]; !ok {
-				return false
-			}
-
 			return true
 		},
 		Handler: cache.ResourceEventHandlerFuncs{
-			AddFunc: c.podAdd,
-			// Called on resource update and every resyncPeriod on existing resources.
+			AddFunc:    c.podAdd,
 			UpdateFunc: c.podUpdate,
-			// Called on resource deletion.
 			DeleteFunc: c.podDelete,
 		},
 	}
-	podInformer.Informer().AddEventHandler(a)
+	podInformer.Informer().AddEventHandler(handler)
 	return c
 }
 
-func NewListenForJobs(client kubernetes.Interface, gitSync gitStorage.GitSync, logContext logrus.FieldLogger) {
-	// TODO What does resync do?
+func NewCustomerJobListener(client kubernetes.Interface, gitSync gitStorage.GitSync, logContext logrus.FieldLogger) {
 	factory := informers.NewSharedInformerFactoryWithOptions(client, time.Hour*24, informers.WithNamespace("system-api"))
-	controller := NewPodLoggingController(factory, gitSync, logContext)
+	controller := NewCustomerListenerController(factory, gitSync, logContext)
 	stop := make(chan struct{})
 	defer close(stop)
 	err := controller.Run(stop)
