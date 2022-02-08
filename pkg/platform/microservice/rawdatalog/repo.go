@@ -105,7 +105,6 @@ func (r RawDataLogIngestorRepo) Update(namespace string, customer k8s.Tenant, ap
 	microserviceName := input.Name
 	kind := input.Kind
 
-	// TODO bring this into play with the ingress
 	microservice := k8s.Microservice{
 		ID:          microserviceID,
 		Name:        microserviceName,
