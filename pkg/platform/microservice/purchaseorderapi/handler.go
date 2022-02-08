@@ -52,7 +52,7 @@ func NewHandler(parser parser.Parser, repo Repo, gitRepo storage.Repo, rawDataLo
 }
 
 // Create creates a new PurchaseOrderAPI microservice and creates a RawDataLog microservice too if it didn't already exist
-func (s *Handler) Create(inputBytes []byte, applicationInfo platform.Application) (platform.HttpInputPurchaseOrderInfo, *Error) {
+func (s *Handler) Create(inputBytes []byte, applicationInfo platform.Application, customerTenants []platform.CustomerTenantInfo) (platform.HttpInputPurchaseOrderInfo, *Error) {
 	// Function assumes access check has taken place
 	var ms platform.HttpInputPurchaseOrderInfo
 	logger := s.logContext.WithFields(logrus.Fields{
@@ -72,9 +72,6 @@ func (s *Handler) Create(inputBytes []byte, applicationInfo platform.Application
 		"environment":   ms.Environment,
 	})
 	logger.Debug("Starting to create a PurchaseOrderAPI microservice")
-
-	// TODO get CustomerTenantInfo from application data
-	customerTenants := []platform.CustomerTenantInfo{}
 
 	exists, statusErr := s.purchaseOrderApiExists(msK8sInfo, ms, logger)
 	if statusErr != nil {

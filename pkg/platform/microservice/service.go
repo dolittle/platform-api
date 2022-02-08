@@ -158,7 +158,7 @@ func (s *service) Create(w http.ResponseWriter, request *http.Request) {
 	//case platform.MicroserviceKindRawDataLogIngestor:
 	//s.handleRawDataLogIngestor(w, request, requestBytes, applicationInfo, customerTenants)
 	//case platform.MicroserviceKindPurchaseOrderAPI:
-	//	purchaseOrderAPI, err := s.purchaseOrderHandler.Create(requestBytes, applicationInfo)
+	//	purchaseOrderAPI, err := s.purchaseOrderHandler.Create(requestBytes, applicationInfo, customerTenants)
 	//	if err != nil {
 	//		utils.RespondWithError(w, err.StatusCode, err.Error())
 	//		break
