@@ -92,7 +92,7 @@ func (s *Handler) Create(inputBytes []byte, applicationInfo platform.Application
 }
 
 // Update updates an existing PurchaseOrderAPI microservice and creates a RawDataLog microservice too if it didn't already exist
-func (s *Handler) UpdateWebhooks(inputBytes []byte, applicationInfo platform.Application) (platform.HttpInputPurchaseOrderInfo, *Error) {
+func (s *Handler) UpdateWebhooks(inputBytes []byte, applicationInfo platform.Application, customerTenants []platform.CustomerTenantInfo) (platform.HttpInputPurchaseOrderInfo, *Error) {
 	// Function assumes access check has taken place
 	var ms platform.HttpInputPurchaseOrderInfo
 	logger := s.logContext.WithFields(logrus.Fields{
@@ -123,7 +123,7 @@ func (s *Handler) UpdateWebhooks(inputBytes []byte, applicationInfo platform.App
 		return ms, newConflict(fmt.Errorf("a Purchase Order API Microservice does not exist in kubernetes or git storage"))
 	}
 
-	if statusErr := s.ensureRawDataLogExists(msK8sInfo, ms, logger); statusErr != nil {
+	if statusErr := s.ensureRawDataLogExists(msK8sInfo, ms, customerTenants, logger); statusErr != nil {
 		return ms, statusErr
 	}
 	return ms, s.updatePurchaseOrderAPIWebhooks(msK8sInfo, ms.Extra.Webhooks, ms.Environment, ms.Dolittle.MicroserviceID, logger)

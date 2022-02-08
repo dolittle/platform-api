@@ -230,10 +230,12 @@ func (s *service) Update(w http.ResponseWriter, request *http.Request) {
 		return
 	}
 
+	// TODO this should not be 0
+	customerTenants := make([]platform.CustomerTenantInfo, 0)
 	switch microserviceBase.Kind {
 	case platform.MicroserviceKindPurchaseOrderAPI:
 		// TODO handle other updation operations too
-		purchaseOrderAPI, err := s.purchaseOrderHandler.UpdateWebhooks(requestBytes, applicationInfo)
+		purchaseOrderAPI, err := s.purchaseOrderHandler.UpdateWebhooks(requestBytes, applicationInfo, customerTenants)
 		if err != nil {
 			utils.RespondWithError(w, err.StatusCode, err.Error())
 		}
