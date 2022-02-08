@@ -425,7 +425,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 		"namespace": namespace,
 		"method":    "RawDataLogIngestorRepo.doDolittle",
 	}).Debug("Starting to create RawDataLog microservice")
-	// TODO how to tidy up this to use ingressInfo
+
 	environment := input.Environment
 
 	microserviceID := input.Dolittle.MicroserviceID
