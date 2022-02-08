@@ -102,3 +102,7 @@ func (s *service) GetAll(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.RespondWithJSON(w, http.StatusOK, customers)
 }
+
+func (s *service) hasAccess(userID string) bool {
+	return false
+}
