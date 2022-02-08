@@ -26,7 +26,6 @@ import (
 )
 
 func NewService(
-	platformEnvironment string,
 	isProduction bool,
 	gitRepo storage.Repo,
 	k8sDolittleRepo platformK8s.K8sRepo,
@@ -34,7 +33,7 @@ func NewService(
 	logContext logrus.FieldLogger,
 ) service {
 	parser := parser.NewJsonParser()
-	rawDataLogRepo := rawdatalog.NewRawDataLogIngestorRepo(platformEnvironment, k8sDolittleRepo, k8sClient, gitRepo, logContext)
+	rawDataLogRepo := rawdatalog.NewRawDataLogIngestorRepo(isProduction, k8sDolittleRepo, k8sClient, logContext)
 	specFactory := purchaseorderapi.NewK8sResourceSpecFactory()
 	k8sResources := purchaseorderapi.NewK8sResource(k8sClient, specFactory)
 
@@ -161,7 +160,7 @@ func (s *service) Create(w http.ResponseWriter, request *http.Request) {
 	//case platform.MicroserviceKindBusinessMomentsAdaptor:
 	//	s.handleBusinessMomentsAdaptor(w, request, requestBytes, applicationInfo, customerTenants)
 	//case platform.MicroserviceKindRawDataLogIngestor:
-	//	s.handleRawDataLogIngestor(w, request, requestBytes, applicationInfo)
+	//s.handleRawDataLogIngestor(w, request, requestBytes, applicationInfo, customerTenants)
 	//case platform.MicroserviceKindPurchaseOrderAPI:
 	//	purchaseOrderAPI, err := s.purchaseOrderHandler.Create(requestBytes, applicationInfo)
 	//	if err != nil {

@@ -1,7 +1,6 @@
 package rawdatalog_test
 
 import (
-	"errors"
 	"fmt"
 
 	. "github.com/onsi/ginkgo"
@@ -21,19 +20,16 @@ import (
 
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	. "github.com/dolittle/platform-api/pkg/platform/microservice/rawdatalog"
-	"github.com/dolittle/platform-api/pkg/platform/storage"
-	mocks "github.com/dolittle/platform-api/pkg/platform/storage/mocks"
 )
 
 var _ = Describe("Repo", func() {
 	var (
-		clientSet           *fake.Clientset
-		config              *rest.Config
-		k8sRepo             platformK8s.K8sRepo
-		gitRepo             *mocks.Repo
-		logger              *logrus.Logger
-		rawDataLogRepo      RawDataLogIngestorRepo
-		platformEnvironment string
+		clientSet      *fake.Clientset
+		config         *rest.Config
+		k8sRepo        platformK8s.K8sRepo
+		logger         *logrus.Logger
+		rawDataLogRepo RawDataLogIngestorRepo
+		isProduction   bool
 	)
 
 	BeforeEach(func() {
@@ -41,9 +37,8 @@ var _ = Describe("Repo", func() {
 		clientSet = fake.NewSimpleClientset()
 		config = &rest.Config{}
 		k8sRepo = platformK8s.NewK8sRepo(clientSet, config, logger)
-		gitRepo = new(mocks.Repo)
-		platformEnvironment = "dev"
-		rawDataLogRepo = NewRawDataLogIngestorRepo(platformEnvironment, k8sRepo, clientSet, gitRepo, logger)
+		isProduction = false
+		rawDataLogRepo = NewRawDataLogIngestorRepo(isProduction, k8sRepo, clientSet, logger)
 	})
 
 	Describe("when creating RawDataLog", func() {
@@ -78,7 +73,6 @@ var _ = Describe("Repo", func() {
 				},
 				Extra: platform.HttpInputRawDataLogIngestorExtra{
 					Ingress: platform.HttpInputSimpleIngress{
-						Host:     "some-fancy.domain.name",
 						Path:     "/api/not-webhooks-just-to-be-sure",
 						Pathtype: "SpecialTypeNotActuallySupported",
 					},
@@ -86,90 +80,10 @@ var _ = Describe("Repo", func() {
 			}
 		})
 
-		JustBeforeEach(func() {
-			err = rawDataLogRepo.Create(namespace, tenant, application, input)
-		})
-
-		Context("for an application that does not exist", func() {
-			BeforeEach(func() {
-				gitRepo.
-					On("GetApplication", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
-					Return(storage.JSONApplication{}, errors.New("could not find application"))
-			})
-
-			It("should fail with an error", func() {
-				Expect(err).ToNot(BeNil())
-			})
-			It("should not create any resources", func() {
-				Expect(getCreateActions(clientSet)).To(BeEmpty())
-			})
-		})
-
 		Context("for an application that does not have any ingresses", func() {
 			BeforeEach(func() {
-				gitRepo.
-					On("GetApplication", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
-					Return(storage.JSONApplication{
-
-						Environments: []storage.JSONEnvironment{
-							{
-								Name: "LoisMay",
-								CustomerTenants: []platform.CustomerTenantInfo{
-									{
-										CustomerTenantID: "f4679b71-1215-4a60-8483-53b0d5f2bb47",
-										Hosts: []platform.CustomerTenantHost{
-											{
-												Host:       "",
-												SecretName: "",
-											},
-										},
-									},
-								},
-							},
-						},
-					}, nil)
-			})
-
-			It("should fail with an error", func() {
-				Expect(err).ToNot(BeNil())
-			})
-			It("should not create any resources", func() {
-				Expect(getCreateActions(clientSet)).To(BeEmpty())
-			})
-		})
-
-		Context("for an application that has ingresses for other hostnames than specified", func() {
-			BeforeEach(func() {
-				gitRepo.
-					On("GetApplication", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
-					Return(storage.JSONApplication{
-						Environments: []storage.JSONEnvironment{
-							{
-								Name: "LoisMay",
-								CustomerTenants: []platform.CustomerTenantInfo{
-									{
-										//CustomerTenantID: "80d6e5b5-2047-4e0b-81d7-9be3748a41aa",
-										CustomerTenantID: "3d0dcaf6-bbd1-4d84-b119-186472d65ea6",
-										Hosts: []platform.CustomerTenantHost{
-											{
-												Host:       "some-other.domain.name",
-												SecretName: "some-other-certificate",
-											},
-										},
-									},
-									{
-										CustomerTenantID: "c7e1d7f1-450b-4122-a08c-6d0f37051318",
-										Hosts: []platform.CustomerTenantHost{
-											{
-												Host:       "some-last.domain.name",
-												SecretName: "some-last-certificate",
-											},
-										},
-									},
-								},
-							},
-						},
-					}, nil)
+				customerTenants := make([]platform.CustomerTenantInfo, 0)
+				err = rawDataLogRepo.Create(namespace, tenant, application, customerTenants, input)
 			})
 
 			It("should fail with an error", func() {
@@ -195,26 +109,18 @@ var _ = Describe("Repo", func() {
 
 			BeforeEach(func() {
 				customerTenantID = "f4679b71-1215-4a60-8483-53b0d5f2bb47"
-				gitRepo.
-					On("GetApplication", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
-					Return(storage.JSONApplication{
-						Environments: []storage.JSONEnvironment{
+				customerTenants := []platform.CustomerTenantInfo{
+					{
+						CustomerTenantID: customerTenantID,
+						Hosts: []platform.CustomerTenantHost{
 							{
-								Name: "LoisMay",
-								CustomerTenants: []platform.CustomerTenantInfo{
-									{
-										CustomerTenantID: customerTenantID,
-										Hosts: []platform.CustomerTenantHost{
-											{
-												Host:       "some-fancy.domain.name",
-												SecretName: "some-fancy-certificate",
-											},
-										},
-									},
-								},
+								Host:       "some-fancy.domain.name",
+								SecretName: "some-fancy-certificate",
 							},
 						},
-					}, nil)
+					},
+				}
+				err = rawDataLogRepo.Create(namespace, tenant, application, customerTenants, input)
 			})
 
 			// NATS ConfigMap

@@ -84,7 +84,6 @@ var serverCMD = &cobra.Command{
 		}()
 
 		microserviceService := microservice.NewService(
-			platformEnvironment,
 			isProduction,
 			gitRepo,
 			k8sRepo,
@@ -138,7 +137,7 @@ var serverCMD = &cobra.Command{
 			k8sClient,
 		)
 		purchaseorderapiService := purchaseorderapi.NewService(
-			platformEnvironment,
+			isProduction,
 			gitRepo,
 			k8sRepo,
 			k8sClient,

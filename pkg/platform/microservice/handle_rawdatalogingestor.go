@@ -10,7 +10,13 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-func (s *service) handleRawDataLogIngestor(responseWriter http.ResponseWriter, r *http.Request, inputBytes []byte, applicationInfo platform.Application) {
+func (s *service) handleRawDataLogIngestor(
+	responseWriter http.ResponseWriter,
+	r *http.Request,
+	inputBytes []byte,
+	applicationInfo platform.Application,
+	customerTenants []platform.CustomerTenantInfo,
+) {
 	// Function assumes access check has taken place
 	var ms platform.HttpInputRawDataLogIngestorInfo
 
@@ -45,7 +51,7 @@ func (s *service) handleRawDataLogIngestor(responseWriter http.ResponseWriter, r
 	}
 	if !exists {
 		// Create in Kubernetes
-		err = s.rawDataLogIngestorRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, ms) //TODO:
+		err = s.rawDataLogIngestorRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, customerTenants, ms) //TODO:
 	} else {
 		err = s.rawDataLogIngestorRepo.Update(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, ms) //TODO:
 	}

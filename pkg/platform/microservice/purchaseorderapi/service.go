@@ -20,8 +20,8 @@ type service struct {
 	logger          logrus.FieldLogger
 }
 
-func NewService(platformEnvironment string, gitRepo storage.Repo, k8sDolittleRepo platformK8s.K8sRepo, k8sClient kubernetes.Interface, logContext logrus.FieldLogger) service {
-	rawDataLogRepo := rawdatalog.NewRawDataLogIngestorRepo(platformEnvironment, k8sDolittleRepo, k8sClient, gitRepo, logContext)
+func NewService(isProduction bool, gitRepo storage.Repo, k8sDolittleRepo platformK8s.K8sRepo, k8sClient kubernetes.Interface, logContext logrus.FieldLogger) service {
+	rawDataLogRepo := rawdatalog.NewRawDataLogIngestorRepo(isProduction, k8sDolittleRepo, k8sClient, logContext)
 	specFactory := NewK8sResourceSpecFactory()
 	k8sResources := NewK8sResource(k8sClient, specFactory)
 	return service{

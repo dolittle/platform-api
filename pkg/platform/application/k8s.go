@@ -55,7 +55,6 @@ func CreateApplicationAndEnvironmentAndWelcomeMicroservice(
 			Headimage:    welcomeImage,
 			Runtimeimage: "none",
 			Ingress: platform.HttpInputSimpleIngress{
-				Host:     "",
 				Path:     "/welcome-to-dolittle",
 				Pathtype: string(networkingv1.PathTypePrefix),
 			},

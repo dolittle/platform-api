@@ -253,8 +253,9 @@ func (s *Handler) updatePurchaseOrderAPIWebhooks(msK8sInfo k8s.MicroserviceK8sIn
 
 func (s *Handler) createRawDataLog(msK8sInfo k8s.MicroserviceK8sInfo, ms platform.HttpInputPurchaseOrderInfo, logger *logrus.Entry) *Error {
 	rawDataLogMicroservice := s.extractRawDataLogInfo(ms)
-
-	if err := s.rawdatalogRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, rawDataLogMicroservice); err != nil {
+	// TODO this is broken, come back to.
+	customerTenants := make([]platform.CustomerTenantInfo, 0)
+	if err := s.rawdatalogRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, customerTenants, rawDataLogMicroservice); err != nil {
 		logger.WithError(err).Error("Failed to create Raw Data Log")
 		return newInternalError(fmt.Errorf("failed to create Raw Data Log: %w", err))
 	}
