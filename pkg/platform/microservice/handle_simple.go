@@ -25,8 +25,6 @@ func (s *service) handleSimpleMicroservice(
 		return
 	}
 
-	// TODO phase out ms.Extra.Ingress.Host?
-
 	// TODO why is this broken?
 	pathExists := funk.Contains(applicationInfo.Ingresses, func(info platform.Ingress) bool {
 		return info.Path == ms.Extra.Ingress.Path
