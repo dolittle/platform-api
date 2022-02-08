@@ -156,27 +156,3 @@ func K8sDeleteDeployment(client kubernetes.Interface, ctx context.Context, names
 func K8sPrintAlreadyExists(resourceName string) {
 	fmt.Printf("Skipping %s already exists\n", resourceName)
 }
-
-func DeleteRole(client kubernetes.Interface, ctx context.Context, namespace string, listOpts metav1.ListOptions) error {
-	roles, _ := client.RbacV1().Roles(namespace).List(ctx, listOpts)
-	for _, role := range roles.Items {
-		err := client.RbacV1().Roles(namespace).Delete(ctx, role.Name, metav1.DeleteOptions{})
-		if err != nil {
-			log.Fatal(err)
-			return errors.New("issue")
-		}
-	}
-	return nil
-}
-
-func DeleteRoleBindings(client kubernetes.Interface, ctx context.Context, namespace string, listOpts metav1.ListOptions) error {
-	roleBindings, _ := client.RbacV1().RoleBindings(namespace).List(ctx, listOpts)
-	for _, roleBinding := range roleBindings.Items {
-		err := client.RbacV1().RoleBindings(namespace).Delete(ctx, roleBinding.Name, metav1.DeleteOptions{})
-		if err != nil {
-			log.Fatal(err)
-			return errors.New("issue")
-		}
-	}
-	return nil
-}
