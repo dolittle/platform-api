@@ -24,48 +24,105 @@ import (
 )
 
 var _ = Describe("Testing endpoints", func() {
-	When("GetByID", func() {
-		var (
-			logger    *logrus.Logger
-			gitRepo   *mockStorage.Repo
-			clientSet *fake.Clientset
-			config    *rest.Config
-			k8sRepo   platformK8s.K8sRepo
-			service   application.Service
+	var (
+		req *http.Request
+		w   *httptest.ResponseRecorder
 
-			applicationID string
-			customerID    string
+		logger    *logrus.Logger
+		gitRepo   *mockStorage.Repo
+		clientSet *fake.Clientset
+		config    *rest.Config
+		k8sRepo   platformK8s.K8sRepo
+		service   application.Service
+
+		customerID    string
+		applicationID string
+	)
+
+	BeforeEach(func() {
+		customerID = "fake-customer-123"
+		applicationID = "fake-application-123"
+		subscriptionID := "TODO"
+		externalClusterHost := "TODO"
+		platformOperationsImage := "TODO"
+		platformEnvironment := "dev"
+		isProduction := false
+
+		logger, _ = logrusTest.NewNullLogger()
+		clientSet = fake.NewSimpleClientset()
+		config = &rest.Config{}
+		logger, _ = logrusTest.NewNullLogger()
+		k8sRepo = platformK8s.NewK8sRepo(clientSet, config, logger)
+
+		gitRepo = &mockStorage.Repo{}
+
+		service = application.NewService(
+			subscriptionID,
+			externalClusterHost,
+			clientSet,
+			gitRepo,
+			k8sRepo,
+			platformOperationsImage,
+			platformEnvironment,
+			isProduction,
+			logger.WithField("context", "application-service"),
 		)
+	})
 
-		BeforeEach(func() {
-			applicationID = "fake-application-123"
-			customerID = "fake-customer-123"
-			subscriptionID := "TODO"
-			externalClusterHost := "TODO"
-			platformOperationsImage := "TODO"
-			platformEnvironment := "dev"
-			isProduction := false
+	When("GetApplications", func() {
+		It("Has 1 application with 2 environments", func() {
+			gitRepo.On(
+				"GetTerraformTenant",
+				customerID,
+			).Return(platform.TerraformCustomer{
+				GUID: customerID,
+				Name: "fake-customer",
+			}, nil)
 
-			logger, _ = logrusTest.NewNullLogger()
-			clientSet = fake.NewSimpleClientset()
-			config = &rest.Config{}
-			logger, _ = logrusTest.NewNullLogger()
-			k8sRepo = platformK8s.NewK8sRepo(clientSet, config, logger)
+			applicationName := "fake-application"
+			gitRepo.On(
+				"GetApplications",
+				customerID,
+			).Return([]storage.JSONApplication{
+				{
+					ID:   applicationID,
+					Name: applicationName,
+					Environments: []storage.JSONEnvironment{
+						{
+							Name: "Dev",
+						},
+						{
+							Name: "Prod",
+						},
+					},
+				},
+			}, nil)
 
-			gitRepo = &mockStorage.Repo{}
+			url := "http://studio/applications"
+			req = httptest.NewRequest("GET", url, nil)
+			w = httptest.NewRecorder()
 
-			service = application.NewService(
-				subscriptionID,
-				externalClusterHost,
-				clientSet,
-				gitRepo,
-				k8sRepo,
-				platformOperationsImage,
-				platformEnvironment,
-				isProduction,
-				logger.WithField("context", "application-service"),
-			)
+			req.Header.Set("Tenant-ID", customerID)
+
+			service.GetApplications(w, req)
+			resp := w.Result()
+			body, _ := io.ReadAll(resp.Body)
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+			var response application.HttpResponseApplications
+			json.Unmarshal(body, &response)
+
+			Expect(len(response.Applications)).To(Equal(2))
+			Expect(response.Applications[0].ID).To(Equal(applicationID))
+			Expect(response.Applications[0].Name).To(Equal(applicationName))
+			Expect(response.Applications[0].Environment).To(Equal("Dev"))
+			Expect(response.Applications[1].ID).To(Equal(applicationID))
+			Expect(response.Applications[1].Name).To(Equal(applicationName))
+			Expect(response.Applications[1].Environment).To(Equal("Prod"))
 		})
+
+	})
+	When("GetByID", func() {
 		It("Missing studio config", func() {
 			want := errors.New("fail")
 			gitRepo.On(
@@ -91,10 +148,6 @@ var _ = Describe("Testing endpoints", func() {
 		})
 
 		When("Successfully found", func() {
-			var (
-				req *http.Request
-				w   *httptest.ResponseRecorder
-			)
 			BeforeEach(func() {
 				gitRepo.On(
 					"GetStudioConfig",
@@ -152,7 +205,6 @@ var _ = Describe("Testing endpoints", func() {
 				body, _ := io.ReadAll(resp.Body)
 				Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
-				fmt.Println(resp.Header.Get("Content-Type"))
 				var response application.HttpResponseApplication
 				json.Unmarshal(body, &response)
 

@@ -298,22 +298,11 @@ func (s *Service) GetApplications(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, storedApplication := range storedApplications {
-		application, err := s.gitRepo.GetApplication(customerID, storedApplication.ID)
-		if err != nil {
-			s.logContext.WithFields(logrus.Fields{
-				"error":          err,
-				"method":         "s.gitRepo.GetApplication",
-				"customer_id":    customerID,
-				"application_id": storedApplication.ID,
-			}).Error("Broken state")
-			continue
-		}
-
-		for _, environmentInfo := range application.Environments {
+		for _, environmentInfo := range storedApplication.Environments {
 			response.Applications = append(response.Applications, platform.ShortInfoWithEnvironment{
 				ID:          storedApplication.ID,
 				Name:        storedApplication.Name,
-				Environment: environmentInfo.Name, // TODO do I want to include the info?
+				Environment: environmentInfo.Name,
 			})
 		}
 	}
