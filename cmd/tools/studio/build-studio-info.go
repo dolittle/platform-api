@@ -32,6 +32,8 @@ var buildStudioInfoCMD = &cobra.Command{
 		logger := logrus.StandardLogger()
 		resetAll, _ := cmd.Flags().GetBool("all")
 		disabledEnvironments, _ := cmd.Flags().GetBool("disable-environments")
+		disableCanCreateApplication, _ := cmd.Flags().GetBool("disable-create-application")
+
 		platformEnvironment, _ := cmd.Flags().GetString("platform-environment")
 		gitRepoConfig := git.InitGit(logger, platformEnvironment)
 
@@ -63,22 +65,18 @@ var buildStudioInfoCMD = &cobra.Command{
 		filteredCustomer := filterCustomers(gitRepo, customers, platformEnvironment)
 		logContext.Infof("Resetting studio configuration for customers: %v", filteredCustomer)
 
-		studioConfig := GetConfig(disabledEnvironments)
+		studioConfig := storage.DefaultStudioConfig()
+		if disabledEnvironments {
+			studioConfig.DisabledEnvironments = []string{"*"}
+		}
+
+		if disableCanCreateApplication {
+			studioConfig.CanCreateApplication = false
+		}
+
 		ResetStudioConfigs(gitRepo, filteredCustomer, studioConfig, logContext)
 		logContext.Info("Done!")
 	},
-}
-
-func GetConfig(disabledEnvironments bool) platform.StudioConfig {
-	config := platform.StudioConfig{
-		BuildOverwrite:       true,
-		DisabledEnvironments: make([]string, 0),
-	}
-
-	if disabledEnvironments {
-		config.DisabledEnvironments = append(config.DisabledEnvironments, "*")
-	}
-	return config
 }
 
 // ResetStudioConfigs resets all of the found customers studio.json files to enable automation for all environments
@@ -131,5 +129,6 @@ func filterCustomers(repo storage.Repo, customers []string, platformEnvironment 
 func init() {
 	buildStudioInfoCMD.Flags().String("platform-environment", "dev", "Platform environment (dev or prod), not linked to application environment")
 	buildStudioInfoCMD.Flags().Bool("disable-environments", false, "If flag set, Disable all environments")
+	buildStudioInfoCMD.Flags().Bool("disable-create-application", false, "If flag set, Disable ability to create application")
 	buildStudioInfoCMD.Flags().Bool("all", false, "Discovers all customers from the platform and resets all studio.json's to default state (everything allowed)")
 }

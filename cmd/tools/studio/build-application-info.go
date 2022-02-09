@@ -73,7 +73,12 @@ var buildApplicationInfoCMD = &cobra.Command{
 
 			ctx := context.TODO()
 			resource, err := k8sClient.CoreV1().Namespaces().Get(ctx, oneNamespace, metav1.GetOptions{})
-			fmt.Println(err)
+			if err != nil {
+				logContext.WithFields(logrus.Fields{
+					"namesapce": oneNamespace,
+					"error":     err,
+				}).Fatal("failed to lookup namespace")
+			}
 			resources = append(resources, *resource)
 		}
 

@@ -14,4 +14,5 @@ Tools to Explore the cluster`,
 
 func init() {
 	RootCmd.AddCommand(ingressCMD)
+	RootCmd.AddCommand(dolittleResourcesCMD)
 }

@@ -46,6 +46,7 @@ type HttpResponseApplications struct {
 	// Customer ID
 	ID string `json:"id"`
 	// Customer Name
-	Name         string                              `json:"name"`
-	Applications []platform.ShortInfoWithEnvironment `json:"applications"`
+	Name                 string                              `json:"name"`
+	CanCreateApplication bool                                `json:"canCreateApplication"`
+	Applications         []platform.ShortInfoWithEnvironment `json:"applications"`
 }

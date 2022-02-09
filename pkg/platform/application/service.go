@@ -175,6 +175,11 @@ func (s *Service) Create(w http.ResponseWriter, r *http.Request) {
 
 func (s *Service) GetLiveApplications(w http.ResponseWriter, r *http.Request) {
 	customerID := r.Header.Get("Tenant-ID")
+	studioConfig, err := s.gitRepo.GetStudioConfig(customerID)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+	}
+
 	tenantInfo, err := s.gitRepo.GetTerraformTenant(customerID)
 	if err != nil {
 		// TODO handle not found
@@ -196,8 +201,9 @@ func (s *Service) GetLiveApplications(w http.ResponseWriter, r *http.Request) {
 
 	// Lookup environments
 	response := HttpResponseApplications{
-		ID:   customer.ID,
-		Name: customer.Name,
+		ID:                   customer.ID,
+		Name:                 customer.Name,
+		CanCreateApplication: studioConfig.CanCreateApplication,
 	}
 
 	for _, liveApplication := range liveApplications {
@@ -266,6 +272,11 @@ func (s *Service) GetByID(w http.ResponseWriter, r *http.Request) {
 func (s *Service) GetApplications(w http.ResponseWriter, r *http.Request) {
 	customerID := r.Header.Get("Tenant-ID")
 
+	studioConfig, err := s.gitRepo.GetStudioConfig(customerID)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+	}
+
 	tenantInfo, err := s.gitRepo.GetTerraformTenant(customerID)
 	if err != nil {
 		s.logContext.WithFields(logrus.Fields{
@@ -292,9 +303,10 @@ func (s *Service) GetApplications(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := HttpResponseApplications{
-		ID:           customerID,
-		Name:         tenantInfo.Name,
-		Applications: make([]platform.ShortInfoWithEnvironment, 0),
+		ID:                   customerID,
+		Name:                 tenantInfo.Name,
+		CanCreateApplication: studioConfig.CanCreateApplication,
+		Applications:         make([]platform.ShortInfoWithEnvironment, 0),
 	}
 
 	for _, storedApplication := range storedApplications {

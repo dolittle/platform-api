@@ -72,6 +72,13 @@ var _ = Describe("Testing endpoints", func() {
 	When("GetApplications", func() {
 		It("Has 1 application with 2 environments", func() {
 			gitRepo.On(
+				"GetStudioConfig",
+				customerID,
+			).Return(platform.StudioConfig{
+				CanCreateApplication: true,
+			}, nil)
+
+			gitRepo.On(
 				"GetTerraformTenant",
 				customerID,
 			).Return(platform.TerraformCustomer{
@@ -111,6 +118,9 @@ var _ = Describe("Testing endpoints", func() {
 
 			var response application.HttpResponseApplications
 			json.Unmarshal(body, &response)
+
+			Expect(response.ID).To(Equal(customerID))
+			Expect(response.CanCreateApplication).To(Equal(true))
 
 			Expect(len(response.Applications)).To(Equal(2))
 			Expect(response.Applications[0].ID).To(Equal(applicationID))

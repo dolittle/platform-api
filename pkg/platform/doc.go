@@ -236,6 +236,7 @@ type TerraformCustomer struct {
 type StudioConfig struct {
 	BuildOverwrite       bool     `json:"build_overwrite"`
 	DisabledEnvironments []string `json:"disabled_environments"`
+	CanCreateApplication bool     `json:"can_create_application"`
 }
 
 type Entity struct {
