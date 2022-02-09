@@ -52,6 +52,17 @@ func (s *Service) Create(w http.ResponseWriter, r *http.Request) {
 		"customer_id": customerID,
 	})
 
+	studioConfig, err := s.gitRepo.GetStudioConfig(customerID)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if !studioConfig.CanCreateApplication {
+		utils.RespondWithError(w, http.StatusForbidden, "Creating applications is disabled")
+		return
+	}
+
 	terraformCustomer, err := s.gitRepo.GetTerraformTenant(customerID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, platform.ErrStudioInfoMissing.Error())
@@ -178,6 +189,7 @@ func (s *Service) GetLiveApplications(w http.ResponseWriter, r *http.Request) {
 	studioConfig, err := s.gitRepo.GetStudioConfig(customerID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	tenantInfo, err := s.gitRepo.GetTerraformTenant(customerID)
@@ -275,6 +287,7 @@ func (s *Service) GetApplications(w http.ResponseWriter, r *http.Request) {
 	studioConfig, err := s.gitRepo.GetStudioConfig(customerID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	tenantInfo, err := s.gitRepo.GetTerraformTenant(customerID)

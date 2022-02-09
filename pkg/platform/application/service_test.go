@@ -13,6 +13,7 @@ import (
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	mockStorage "github.com/dolittle/platform-api/pkg/platform/storage/mocks"
+	"github.com/dolittle/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -69,6 +70,50 @@ var _ = Describe("Testing endpoints", func() {
 		)
 	})
 
+	When("Creating an application", func() {
+		It("Studio config is missing", func() {
+			want := errors.New("fail")
+			gitRepo.On(
+				"GetStudioConfig",
+				customerID,
+			).Return(platform.StudioConfig{}, want)
+
+			url := "http://studio/application"
+			req = httptest.NewRequest("POST", url, nil)
+			w = httptest.NewRecorder()
+
+			req.Header.Set("Tenant-ID", customerID)
+
+			service.Create(w, req)
+			resp := w.Result()
+			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+
+			body, _ := io.ReadAll(resp.Body)
+
+			var response utils.HTTPMessageResponse
+			json.Unmarshal(body, &response)
+			Expect(response.Message).To(Equal(want.Error()))
+		})
+
+		It("Studio has creation of applications disabled", func() {
+			gitRepo.On(
+				"GetStudioConfig",
+				customerID,
+			).Return(platform.StudioConfig{
+				CanCreateApplication: false,
+			}, nil)
+
+			url := "http://studio/application"
+			req = httptest.NewRequest("POST", url, nil)
+			w = httptest.NewRecorder()
+
+			req.Header.Set("Tenant-ID", customerID)
+
+			service.Create(w, req)
+			resp := w.Result()
+			Expect(resp.StatusCode).To(Equal(http.StatusForbidden))
+		})
+	})
 	When("GetApplications", func() {
 		It("Has 1 application with 2 environments", func() {
 			gitRepo.On(
