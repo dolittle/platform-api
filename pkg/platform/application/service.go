@@ -154,11 +154,11 @@ func (s *Service) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	createResourceConfig := jobK8s.CreateResourceConfigWithDefaults(s.platformOperationsImage, s.platformEnvironment, s.isProduction)
 	resource := jobK8s.CreateApplicationResource(
-		s.platformOperationsImage,
-		s.platformEnvironment,
-		s.isProduction,
-		customerID, dolittleK8s.ShortInfo{
+		createResourceConfig,
+		customerID,
+		dolittleK8s.ShortInfo{
 			ID:   application.ID,
 			Name: application.Name,
 		})

@@ -14,16 +14,17 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// TODO if we pass in the payload, we can then chain other jobs?
-//func CreateCustomerResource(customer dolittleK8s.ShortInfo, extra []byte) *batchv1.Job {
-func CreateCustomerResource(platformImage string, platformEnvironment string, customer dolittleK8s.ShortInfo) *batchv1.Job {
-	// TODO change to use the api namespace
-	namespace := "system-api"
-	gitUserName := "Chris"
-	gitUserEmail := "chris@dolittle.com"
-	apiSecrets := "dev-api-v1-secrets"
-	localBranch := "test-job"
-	remoteBranch := "test-job"
+func CreateCustomerResource(config CreateResourceConfig, customer dolittleK8s.ShortInfo) *batchv1.Job {
+	namespace := config.Namespace
+	gitUserName := config.GitUserName
+	gitUserEmail := config.GitUserEmail
+	apiSecrets := config.ApiSecrets
+	localBranch := config.LocalBranch
+	remoteBranch := config.RemoteBranch
+	platformImage := config.PlatformImage
+	platformEnvironment := config.PlatformEnvironment
+	// config.ServiceAccountName not in use
+	// config.IsProduction not in use
 
 	customerID := customer.ID
 	customerName := customer.Name

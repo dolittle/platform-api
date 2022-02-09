@@ -12,15 +12,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func CreateApplicationResource(platformImage string, platformEnvironment string, isProduction bool, customerID string, application dolittleK8s.ShortInfo) *batchv1.Job {
-	// TODO change to use the api namespace
-	namespace := "system-api"
-	gitUserName := "Chris"
-	gitUserEmail := "chris@dolittle.com"
-	apiSecrets := "dev-api-v1-secrets"
-	localBranch := "test-job"
-	remoteBranch := "test-job"
-	serviceAccountName := "system-api-manager"
+func CreateApplicationResource(config CreateResourceConfig, customerID string, application dolittleK8s.ShortInfo) *batchv1.Job {
+	namespace := config.Namespace
+	gitUserName := config.GitUserName
+	gitUserEmail := config.GitUserEmail
+	apiSecrets := config.ApiSecrets
+	localBranch := config.LocalBranch
+	remoteBranch := config.RemoteBranch
+	serviceAccountName := config.ServiceAccountName
+	platformImage := config.PlatformImage
+	platformEnvironment := config.PlatformEnvironment
+	isProduction := config.IsProduction
 
 	terraformCustomerName := strings.ToLower(
 		fmt.Sprintf("customer_%s", customerID),

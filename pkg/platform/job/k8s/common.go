@@ -6,6 +6,34 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+type CreateResourceConfig struct {
+	PlatformImage       string
+	PlatformEnvironment string
+	IsProduction        bool
+	Namespace           string
+	GitUserName         string
+	GitUserEmail        string
+	ApiSecrets          string
+	LocalBranch         string
+	RemoteBranch        string
+	ServiceAccountName  string
+}
+
+func CreateResourceConfigWithDefaults(platformImage string, platformEnvironment string, isProduction bool) CreateResourceConfig {
+	return CreateResourceConfig{
+		PlatformImage:       platformImage,
+		PlatformEnvironment: platformEnvironment,
+		IsProduction:        isProduction,
+		Namespace:           "system-api",
+		GitUserName:         "Auto Platform",
+		GitUserEmail:        "platform-auto@dolittle.com", // TODO does this work? As I have this hazy memory of it complaining
+		ApiSecrets:          "dev-api-v1-secrets",         // TODO this is generic for the whole cluster, so doesn't care for the environment prefix
+		LocalBranch:         "test-job",
+		RemoteBranch:        "test-job",
+		ServiceAccountName:  "system-api-manager",
+	}
+}
+
 func sshSetup() corev1.Container {
 	return corev1.Container{
 		Name:  "ssh-setup",

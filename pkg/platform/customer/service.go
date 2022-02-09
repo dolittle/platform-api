@@ -82,14 +82,14 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	platformOperationsImage := s.platformOperationsImage
-	platformEnvironment := s.platformEnvironment
 	jobCustomer := dolittleK8s.ShortInfo{
 		ID:   customer.ID,
 		Name: customer.Name,
 	}
 
-	resource := jobK8s.CreateCustomerResource(platformOperationsImage, platformEnvironment, jobCustomer)
+	createResourceConfig := jobK8s.CreateResourceConfigWithDefaults(s.platformOperationsImage, s.platformEnvironment, true)
+
+	resource := jobK8s.CreateCustomerResource(createResourceConfig, jobCustomer)
 	err = jobK8s.DoJob(s.k8sclient, resource)
 	if err != nil {
 		// TODO log that we failed to make the job

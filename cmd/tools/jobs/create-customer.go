@@ -46,7 +46,8 @@ var createCustomerCMD = &cobra.Command{
 			Name: customerName,
 		}
 
-		resource := jobK8s.CreateCustomerResource(platformOperationsImage, platformEnvironment, customer)
+		createResourceConfig := jobK8s.CreateResourceConfigWithDefaults(platformOperationsImage, platformEnvironment, true)
+		resource := jobK8s.CreateCustomerResource(createResourceConfig, customer)
 
 		s := runtime.NewScheme()
 		serializer := k8sJson.NewSerializerWithOptions(
