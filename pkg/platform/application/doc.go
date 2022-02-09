@@ -9,7 +9,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-type service struct {
+type Service struct {
 	subscriptionID          string
 	externalClusterHost     string
 	simpleRepo              simple.Repo

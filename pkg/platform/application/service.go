@@ -30,8 +30,8 @@ func NewService(
 	platformOperationsImage string,
 	platformEnvironment string,
 	isProduction bool,
-	logContext logrus.FieldLogger) service {
-	return service{
+	logContext logrus.FieldLogger) Service {
+	return Service{
 		subscriptionID:          subscriptionID,
 		externalClusterHost:     externalClusterHost,
 		gitRepo:                 gitRepo,
@@ -45,7 +45,7 @@ func NewService(
 	}
 }
 
-func (s *service) Create(w http.ResponseWriter, r *http.Request) {
+func (s *Service) Create(w http.ResponseWriter, r *http.Request) {
 	customerID := r.Header.Get("Tenant-ID")
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"method":      "Create",
@@ -173,7 +173,7 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (s *service) GetLiveApplications(w http.ResponseWriter, r *http.Request) {
+func (s *Service) GetLiveApplications(w http.ResponseWriter, r *http.Request) {
 	customerID := r.Header.Get("Tenant-ID")
 	tenantInfo, err := s.gitRepo.GetTerraformTenant(customerID)
 	if err != nil {
@@ -220,7 +220,7 @@ func (s *service) GetLiveApplications(w http.ResponseWriter, r *http.Request) {
 	utils.RespondWithJSON(w, http.StatusOK, response)
 }
 
-func (s *service) GetByID(w http.ResponseWriter, r *http.Request) {
+func (s *Service) GetByID(w http.ResponseWriter, r *http.Request) {
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"method": "GetByID",
 	})
@@ -263,7 +263,7 @@ func (s *service) GetByID(w http.ResponseWriter, r *http.Request) {
 	utils.RespondWithJSON(w, http.StatusOK, response)
 }
 
-func (s *service) GetApplications(w http.ResponseWriter, r *http.Request) {
+func (s *Service) GetApplications(w http.ResponseWriter, r *http.Request) {
 	customerID := r.Header.Get("Tenant-ID")
 
 	tenantInfo, err := s.gitRepo.GetTerraformTenant(customerID)
@@ -321,7 +321,7 @@ func (s *service) GetApplications(w http.ResponseWriter, r *http.Request) {
 	utils.RespondWithJSON(w, http.StatusOK, response)
 }
 
-func (s *service) GetPersonalisedInfo(w http.ResponseWriter, r *http.Request) {
+func (s *Service) GetPersonalisedInfo(w http.ResponseWriter, r *http.Request) {
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"method": "GetPersonalisedInfo",
 	})
@@ -352,7 +352,7 @@ func (s *service) GetPersonalisedInfo(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *service) IsOnline(w http.ResponseWriter, r *http.Request) {
+func (s *Service) IsOnline(w http.ResponseWriter, r *http.Request) {
 	customerID := r.Header.Get("Tenant-ID")
 	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
