@@ -120,6 +120,7 @@ func createTerraform(image string, command []string) corev1.Container {
 		Image:           image,
 		EnvFrom: []corev1.EnvFromSource{
 			{
+				// TODO make it so only these are terraform variables
 				SecretRef: &corev1.SecretEnvSource{
 					LocalObjectReference: corev1.LocalObjectReference{
 						Name: "platform-terraform-env-variables",
