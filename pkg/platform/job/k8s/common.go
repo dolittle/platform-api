@@ -26,8 +26,8 @@ func CreateResourceConfigWithDefaults(platformImage string, platformEnvironment 
 		IsProduction:        isProduction,
 		Namespace:           "system-api",
 		GitUserName:         "Auto Platform",
-		GitUserEmail:        "platform-auto@dolittle.com", // TODO does this work? As I have this hazy memory of it complaining
-		ApiSecrets:          "dev-api-v1-secrets",         // TODO this is generic for the whole cluster, so doesn't care for the environment prefix
+		GitUserEmail:        "platform-auto@dolittle.com",
+		ApiSecrets:          "dev-api-v1-secrets", // TODO this is generic for the whole cluster, so doesn't care for the environment prefix
 		LocalBranch:         "test-job",
 		RemoteBranch:        "test-job",
 		ServiceAccountName:  "system-api-manager",

@@ -79,6 +79,8 @@ var serverCMD = &cobra.Command{
 			gitRepoConfig,
 		)
 
+		// TODO I wonder how this works when both are in the same cluster,
+		// today via the resources, it is not clear which is which "platform-environment".
 		go job.NewCustomerJobListener(k8sClient, gitRepo, logContext)
 		go job.NewApplicationJobListener(k8sClient, gitRepo, logContext)
 
