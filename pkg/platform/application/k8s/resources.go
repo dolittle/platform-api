@@ -151,7 +151,8 @@ func NewMongoPortForwardPolicyRole(environment string) rbacv1.PolicyRule {
 
 func NewDeveloperRbac(tenant dolittleK8s.Tenant, application dolittleK8s.Application, azureGroupId string) RbacResources {
 	tenantGroup := platform.GetCustomerGroup(tenant.ID)
-	namespace := fmt.Sprintf("application-%s", application.ID)
+
+	namespace := platformK8s.GetApplicationNamespace(application.ID)
 	labels := map[string]string{
 		"tenant":      platformK8s.ParseLabel(tenant.Name),
 		"application": platformK8s.ParseLabel(application.Name),
@@ -175,6 +176,20 @@ func NewDeveloperRbac(tenant dolittleK8s.Tenant, application dolittleK8s.Applica
 			Annotations: annotations,
 		},
 		Rules: []rbacv1.PolicyRule{
+			// Supporting being able to query their own namespace, seemed to be useful for deveops azure pipelines
+			{
+				Verbs: []string{
+					"get",
+					"list",
+				},
+				APIGroups: []string{""},
+				Resources: []string{
+					"namespaces",
+				},
+				ResourceNames: []string{
+					namespace,
+				},
+			},
 			{
 				Verbs: []string{
 					"get",

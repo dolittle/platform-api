@@ -2,7 +2,6 @@ package k8s_test
 
 import (
 	"encoding/json"
-	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -401,69 +400,6 @@ var _ = Describe("Repo", func() {
 		}
 	})
 })
-
-func getCreatedObject(clientSet *fake.Clientset, kind, name string) runtime.Object {
-	for _, create := range getCreateActions(clientSet) {
-		object := create.GetObject()
-		if object.GetObjectKind().GroupVersionKind().Kind == kind {
-			switch resource := object.(type) {
-			case *corev1.ConfigMap:
-				if resource.GetName() == name {
-					return resource
-				}
-			case *corev1.Service:
-				if resource.GetName() == name {
-					return resource
-				}
-			case *appsv1.StatefulSet:
-				if resource.GetName() == name {
-					return resource
-				}
-			case *networkingv1.Ingress:
-				if resource.GetName() == name {
-					return resource
-				}
-			case *appsv1.Deployment:
-				if resource.GetName() == name {
-					return resource
-				}
-			case *corev1.Namespace:
-				if resource.GetName() == name {
-					return resource
-				}
-			case *corev1.Secret:
-				if resource.GetName() == name {
-					return resource
-				}
-			case *v1beta1.CronJob:
-				if resource.GetName() == name {
-					return resource
-				}
-			case *corev1.ServiceAccount:
-				if resource.GetName() == name {
-					return resource
-				}
-			case *rbacv1.RoleBinding:
-				if resource.GetName() == name {
-					return resource
-				}
-			case *rbacv1.Role:
-				if resource.GetName() == name {
-					return resource
-				}
-			case *networkingv1.NetworkPolicy:
-				if resource.GetName() == name {
-					return resource
-				}
-			default:
-				fmt.Println(resource.GetObjectKind().GroupVersionKind().Kind)
-				panic("Doh")
-			}
-
-		}
-	}
-	return nil
-}
 
 func getCreateActions(clientSet *fake.Clientset) []testing.CreateAction {
 	var actions []testing.CreateAction

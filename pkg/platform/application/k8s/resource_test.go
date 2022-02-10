@@ -4,6 +4,7 @@ import (
 	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/platform/application/k8s"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/thoas/go-funk"
@@ -30,6 +31,31 @@ var _ = Describe("Setting up an application", func() {
 			ID:   "fake-application-123",
 			Name: "fake-application",
 		}
+	})
+
+	When("Creating rbac for the developer role", func() {
+		It("Support querying their own namespace", func() {
+			namespace := platformK8s.GetApplicationNamespace(application.ID)
+			rbacResources := k8s.NewDeveloperRbac(customer, application, azureGroupId)
+
+			found := funk.Contains(rbacResources.Role.Rules, func(subject rbacv1.PolicyRule) bool {
+				want := rbacv1.PolicyRule{
+					Verbs: []string{
+						"get",
+						"list",
+					},
+					APIGroups: []string{""},
+					Resources: []string{
+						"namespaces",
+					},
+					ResourceNames: []string{
+						namespace,
+					},
+				}
+				return equality.Semantic.DeepDerivative(subject, want)
+			})
+			Expect(found).To(BeTrue())
+		})
 	})
 
 	When("Creating mongo resource", func() {
