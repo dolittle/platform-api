@@ -45,7 +45,6 @@ var serverCMD = &cobra.Command{
 
 		logContext := logrus.StandardLogger()
 		platformEnvironment := viper.GetString("tools.server.platformEnvironment")
-		//platformOperationsImage := viper.GetString("tools.jobs.image.operations")
 		gitRepoConfig := git.InitGit(logContext, platformEnvironment)
 
 		// fix: https://github.com/spf13/viper/issues/798
@@ -64,7 +63,6 @@ var serverCMD = &cobra.Command{
 		listenOn := viper.GetString("tools.server.listenOn")
 		sharedSecret := viper.GetString("tools.server.secret")
 		subscriptionID := viper.GetString("tools.server.azure.subscriptionId")
-
 		isProduction := viper.GetBool("tools.server.isProduction")
 		// Hide secret
 		serverSettings := viper.Get("tools.server").(map[string]interface{})
