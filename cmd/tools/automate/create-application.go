@@ -7,6 +7,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
@@ -55,7 +56,8 @@ In kubernetes, create application
 		logrus.SetOutput(os.Stdout)
 
 		logContext := logrus.StandardLogger()
-		platformEnvironment, _ := cmd.Flags().GetString("platform-environment")
+		platformEnvironment := viper.GetString("tools.server.platformEnvironment")
+
 		gitRepoConfig := git.InitGit(logContext, platformEnvironment)
 
 		gitRepo := gitStorage.NewGitStorage(
@@ -157,6 +159,5 @@ func init() {
 	createApplicationCMD.Flags().String("application-id", "", "Application ID to use")
 	createApplicationCMD.Flags().Bool("with-environments", false, "Setup environments")
 	createApplicationCMD.Flags().Bool("with-welcome-microservice", false, "Add welcome microservice to each environment")
-	createApplicationCMD.Flags().String("platform-environment", "dev", "Platform environment (dev or prod), not linked to application environment")
 	createApplicationCMD.Flags().Bool("is-production", false, "Signal this is in production mode")
 }

@@ -33,7 +33,7 @@ var createCustomerApplicationCMD = &cobra.Command{
 		// TODO we shouldn't need this, but to re-use the labels we do
 		// Get this from studio.json
 		// If we use config file, then we can drop these
-		platformEnvironment, _ := cmd.Flags().GetString("platform-environment")
+		platformEnvironment := viper.GetString("tools.server.platformEnvironment")
 		isProduction, _ := cmd.Flags().GetBool("is-production")
 		applicationName, _ := cmd.Flags().GetString("application-name")
 		applicationID, _ := cmd.Flags().GetString("application-id")
@@ -90,6 +90,5 @@ func init() {
 	createCustomerApplicationCMD.Flags().String("application-name", "", "Name of application (readable)")
 	createCustomerApplicationCMD.Flags().String("application-id", "", "Application ID to use")
 	createCustomerApplicationCMD.Flags().String("customer-id", "", "Customer ID")
-	createCustomerApplicationCMD.Flags().String("platform-environment", "dev", "Platform environment (dev or prod), not linked to application environment")
 	createCustomerApplicationCMD.Flags().Bool("is-production", false, "Signal this is in production mode")
 }

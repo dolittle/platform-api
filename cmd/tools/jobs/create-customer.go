@@ -31,6 +31,7 @@ var createCustomerCMD = &cobra.Command{
 
 		// TODO we shouldn't need this, but to re-use the labels we do
 		// Get this from studio.json
+
 		customerName, _ := cmd.Flags().GetString("customer-name")
 
 		if customerName == "" {
@@ -38,15 +39,12 @@ var createCustomerCMD = &cobra.Command{
 			return
 		}
 
-		platformEnvironment, _ := cmd.Flags().GetString("platform-environment")
-
-		platformOperationsImage := viper.GetString("tools.jobs.image.operations")
 		customer := dolittleK8s.ShortInfo{
 			ID:   customerID,
 			Name: customerName,
 		}
 
-		createResourceConfig := jobK8s.CreateResourceConfigWithDefaults(platformOperationsImage, platformEnvironment, true)
+		createResourceConfig := jobK8s.CreateResourceConfigFromViper(viper.GetViper())
 		resource := jobK8s.CreateCustomerResource(createResourceConfig, customer)
 
 		s := runtime.NewScheme()
@@ -73,5 +71,4 @@ var createCustomerCMD = &cobra.Command{
 func init() {
 	createCustomerCMD.Flags().String("customer-id", "", "Customer ID (optional, if not included, will create one)")
 	createCustomerCMD.Flags().String("customer-name", "", "Customer NAME")
-	createCustomerCMD.Flags().String("platform-environment", "dev", "Platform environment (dev or prod), not linked to application environment")
 }

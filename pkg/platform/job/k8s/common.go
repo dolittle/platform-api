@@ -28,24 +28,9 @@ func CreateResourceConfigFromViper(v *viper.Viper) CreateResourceConfig {
 		Namespace:           "system-api",
 		GitUserName:         v.GetString("tools.jobs.git.user.name"),
 		GitUserEmail:        v.GetString("tools.jobs.git.user.email"),
-		ApiSecrets:          "dev-api-v1-secrets", // TODO this is generic for the whole cluster, so doesn't care for the environment prefix
+		ApiSecrets:          v.GetString("tools.jobs.secrets.name"),
 		LocalBranch:         v.GetString("tools.jobs.git.branch.local"),
 		RemoteBranch:        v.GetString("tools.jobs.git.branch.remote"),
-		ServiceAccountName:  "system-api-manager",
-	}
-}
-
-func CreateResourceConfigWithDefaults(platformImage string, platformEnvironment string, isProduction bool) CreateResourceConfig {
-	return CreateResourceConfig{
-		PlatformImage:       platformImage,
-		PlatformEnvironment: platformEnvironment,
-		IsProduction:        isProduction,
-		Namespace:           "system-api",
-		GitUserName:         "Auto Platform",
-		GitUserEmail:        "platform-auto@dolittle.com",
-		ApiSecrets:          "dev-api-v1-secrets", // TODO this is generic for the whole cluster, so doesn't care for the environment prefix
-		LocalBranch:         "test-job",
-		RemoteBranch:        "test-job",
 		ServiceAccountName:  "system-api-manager",
 	}
 }

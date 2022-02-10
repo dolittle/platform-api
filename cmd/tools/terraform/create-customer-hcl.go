@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -42,7 +43,7 @@ var createCustomerHclCMD = &cobra.Command{
 		}
 
 		source, _ := cmd.Flags().GetString("source")
-		platformEnvironment, _ := cmd.Flags().GetString("platform-environment")
+		platformEnvironment := viper.GetString("tools.server.platformEnvironment")
 
 		tfName := fmt.Sprintf("customer_%s", customerID)
 
@@ -103,7 +104,6 @@ func generateTerraformForCustomer(root *hclwrite.Body, customer tfCustomer) {
 func init() {
 	createCustomerHclCMD.Flags().String("name", "", "Name of customer (readable)")
 	createCustomerHclCMD.Flags().String("id", "", "Specific customer id to use")
-	createCustomerHclCMD.Flags().String("platform-environment", "dev", "Platform environment (dev or prod), not linked to application environment")
 	createCustomerHclCMD.Flags().String("source", "./modules/dolittle-customer-with-resources", "Override with specific source of the module")
 	createCustomerHclCMD.Flags().Bool("dry-run", false, "Will not write to disk")
 }

@@ -11,6 +11,7 @@ import (
 	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var buildStudioInfoCMD = &cobra.Command{
@@ -34,7 +35,7 @@ var buildStudioInfoCMD = &cobra.Command{
 		disabledEnvironments, _ := cmd.Flags().GetBool("disable-environments")
 		disableCanCreateApplication, _ := cmd.Flags().GetBool("disable-create-application")
 
-		platformEnvironment, _ := cmd.Flags().GetString("platform-environment")
+		platformEnvironment := viper.GetString("tools.server.platformEnvironment")
 		gitRepoConfig := git.InitGit(logger, platformEnvironment)
 
 		gitRepo := gitStorage.NewGitStorage(
@@ -127,7 +128,6 @@ func filterCustomers(repo storage.Repo, customers []string, platformEnvironment 
 }
 
 func init() {
-	buildStudioInfoCMD.Flags().String("platform-environment", "dev", "Platform environment (dev or prod), not linked to application environment")
 	buildStudioInfoCMD.Flags().Bool("disable-environments", false, "If flag set, Disable all environments")
 	buildStudioInfoCMD.Flags().Bool("disable-create-application", false, "If flag set, Disable ability to create application")
 	buildStudioInfoCMD.Flags().Bool("all", false, "Discovers all customers from the platform and resets all studio.json's to default state (everything allowed)")

@@ -9,6 +9,7 @@ import (
 	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var getCustomersCMD = &cobra.Command{
@@ -27,7 +28,7 @@ var getCustomersCMD = &cobra.Command{
 		logrus.SetFormatter(&logrus.JSONFormatter{})
 		logrus.SetOutput(os.Stdout)
 		logContext := logrus.StandardLogger()
-		platformEnvironment, _ := cmd.Flags().GetString("platform-environment")
+		platformEnvironment := viper.GetString("tools.server.platformEnvironment")
 		gitRepoConfig := git.InitGit(logContext, platformEnvironment)
 
 		storageRepo := gitStorage.NewGitStorage(
@@ -43,8 +44,4 @@ var getCustomersCMD = &cobra.Command{
 		b, _ := json.Marshal(customers)
 		fmt.Println(string(b))
 	},
-}
-
-func init() {
-	getCustomersCMD.Flags().String("platform-environment", "dev", "Platform environment (dev or prod), not linked to application environment")
 }

@@ -15,6 +15,7 @@ import (
 	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -42,7 +43,7 @@ var buildApplicationInfoCMD = &cobra.Command{
 			"cmd": "build-application-info",
 		})
 
-		platformEnvironment, _ := cmd.Flags().GetString("platform-environment")
+		platformEnvironment := viper.GetString("tools.server.platformEnvironment")
 		gitRepoConfig := git.InitGit(logContext, platformEnvironment)
 
 		storageRepo := gitStorage.NewGitStorage(
@@ -190,7 +191,6 @@ func processOne(
 }
 
 func init() {
-	buildApplicationInfoCMD.Flags().String("platform-environment", "dev", "Platform environment (dev or prod), not linked to application environment")
 	buildApplicationInfoCMD.Flags().Bool("dry-run", true, "Will not write to disk")
 	buildApplicationInfoCMD.Flags().Bool("all", false, "Discovers all customers from the platform and resets all studio.json's to default state (everything allowed)")
 }

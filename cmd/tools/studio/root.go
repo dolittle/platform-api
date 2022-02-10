@@ -37,8 +37,6 @@ func init() {
 	RootCmd.PersistentFlags().String("kube-config", fmt.Sprintf("%s/.kube/config", homeDir), "Full path to kubeconfig, set to 'incluster' to make it use kubernetes lookup instead")
 	viper.BindPFlag("tools.server.kubeConfig", RootCmd.PersistentFlags().Lookup("kube-config"))
 	viper.BindEnv("tools.server.kubeConfig", "KUBECONFIG")
-	viper.BindEnv("tools.server.platformEnvironment", "PLATFORM_ENVIRONMENT")
-	viper.SetDefault("tools.server.platformEnvironment", "dev")
 
 	git.SetupViper()
 }
