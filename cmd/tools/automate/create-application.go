@@ -146,7 +146,6 @@ In kubernetes, create application
 
 		err = gitRepo.SaveApplication(application)
 		if err != nil {
-			// TODO failed to update state
 			panic(err.Error())
 		}
 	},

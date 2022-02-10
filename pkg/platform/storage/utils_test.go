@@ -10,40 +10,137 @@ import (
 
 var _ = Describe("Customer Tenants", func() {
 	It("GetCustomerTenantsByEnvironment", func() {
-		item := []byte(`{"id":"fake-123","name":"Snow1","tenantId":"7df10b41-5fbd-4a4e-a2cf-27349d1f63ba","tenantName":"Test2","environments":[{"name":"Dev","tenantId":"7df10b41-5fbd-4a4e-a2cf-27349d1f63ba","applicationId":"fake-123","tenants":[],"ingresses":[],"customerTenants":[{"alias":"","environment":"Dev","customerTenantId":"445f8ea8-1a6f-40d7-b2fc-796dba92dc44","indexId":0,"ingress":{"host":"focused-feistel.dolittle.cloud","domainPrefix":"focused-feistel","secretName":"focused-feistel-certificate"},"microservicesRel":[{"microserviceID":"7d5d2a74-a6a1-4d52-8998-3970e445ee78","hash":"7d5d2a7_445f8ea"}],"runtime":{"databasePrefix":"7d5d2a7_445f8ea"}}],"customerTenantLastIndexID":0,"welcomeMicroserviceID":"7d5d2a74-a6a1-4d52-8998-3970e445ee78"},{"name":"Test","tenantId":"7df10b41-5fbd-4a4e-a2cf-27349d1f63ba","applicationId":"fake-123","tenants":[],"ingresses":[],"customerTenants":[{"alias":"","environment":"Test","customerTenantId":"445f8ea8-1a6f-40d7-b2fc-796dba92dc44","indexId":0,"ingress":{"host":"goofy-gates.dolittle.cloud","domainPrefix":"goofy-gates","secretName":"goofy-gates-certificate"},"microservicesRel":[{"microserviceID":"82febcb7-ec65-4ea1-84d8-0ccaa1b5365c","hash":"82febcb_445f8ea"}],"runtime":{"databasePrefix":"82febcb_445f8ea"}}],"customerTenantLastIndexID":0,"welcomeMicroserviceID":"82febcb7-ec65-4ea1-84d8-0ccaa1b5365c"}]}`)
+		item := []byte(`{
+			"id": "6eb64bea-769f-2f47-8fd6-42acb369b5cb",
+			"name": "Run1",
+			"tenantId": "b305719a-3a9c-4473-aaaa-5c60dbcb2049",
+			"tenantName": "Dry1",
+			"environments": [
+			 {
+			  "name": "Dev",
+			  "customerTenants": [
+			   {
+				"alias": "",
+				"environment": "Dev",
+				"customerTenantId": "445f8ea8-1a6f-40d7-b2fc-796dba92dc44",
+				"hosts": [
+				 {
+				  "host": "cool-swirles.dolittle.cloud",
+				  "secretName": "cool-swirles-certificate"
+				 }
+				],
+				"microservicesRel": [
+				 {
+				  "microserviceId": "3e239ed1-5cda-4fc8-9005-4d521b48c226",
+				  "hash": "3e239ed_445f8ea"
+				 }
+				]
+			   }
+			  ],
+			  "welcomeMicroserviceID": "3e239ed1-5cda-4fc8-9005-4d521b48c226"
+			 }
+			],
+			"status": {
+			 "status": "finished:success",
+			 "startedAt": "2022-02-10T11:08:32Z",
+			 "finishedAt": "2022-02-10T11:10:15Z"
+			}
+		   }`)
 		var application storage.JSONApplication
 		json.Unmarshal(item, &application)
 
 		customerTenants := storage.GetCustomerTenantsByEnvironment(application, "Dev")
-		//b, _ := json.MarshalIndent(customerTenants, "", "  ")
-		//output := string(b)
-		//fmt.Println(output)
 		Expect(len(customerTenants)).To(Equal(1))
+		Expect(customerTenants[0].CustomerTenantID).To(Equal("445f8ea8-1a6f-40d7-b2fc-796dba92dc44"))
+		Expect(len(customerTenants[0].Hosts)).To(Equal(1))
+		Expect(customerTenants[0].Hosts[0].Host).To(Equal("cool-swirles.dolittle.cloud"))
 	})
 
 	It("GetCustomerTenants", func() {
-		item := []byte(`{"id":"fake-123","name":"Snow1","tenantId":"7df10b41-5fbd-4a4e-a2cf-27349d1f63ba","tenantName":"Test2","environments":[{"name":"Dev","tenantId":"7df10b41-5fbd-4a4e-a2cf-27349d1f63ba","applicationId":"fake-123","tenants":[],"ingresses":[],"customerTenants":[{"alias":"","environment":"Dev","customerTenantId":"445f8ea8-1a6f-40d7-b2fc-796dba92dc44","indexId":0,"ingress":{"host":"focused-feistel.dolittle.cloud","domainPrefix":"focused-feistel","secretName":"focused-feistel-certificate"},"microservicesRel":[{"microserviceID":"7d5d2a74-a6a1-4d52-8998-3970e445ee78","hash":"7d5d2a7_445f8ea"}],"runtime":{"databasePrefix":"7d5d2a7_445f8ea"}}],"customerTenantLastIndexID":0,"welcomeMicroserviceID":"7d5d2a74-a6a1-4d52-8998-3970e445ee78"},{"name":"Test","tenantId":"7df10b41-5fbd-4a4e-a2cf-27349d1f63ba","applicationId":"fake-123","tenants":[],"ingresses":[],"customerTenants":[{"alias":"","environment":"Test","customerTenantId":"445f8ea8-1a6f-40d7-b2fc-796dba92dc44","indexId":0,"ingress":{"host":"goofy-gates.dolittle.cloud","domainPrefix":"goofy-gates","secretName":"goofy-gates-certificate"},"microservicesRel":[{"microserviceID":"82febcb7-ec65-4ea1-84d8-0ccaa1b5365c","hash":"82febcb_445f8ea"}],"runtime":{"databasePrefix":"82febcb_445f8ea"}}],"customerTenantLastIndexID":0,"welcomeMicroserviceID":"82febcb7-ec65-4ea1-84d8-0ccaa1b5365c"}]}`)
+		item := []byte(`{
+			"id": "6eb64bea-769f-2f47-8fd6-42acb369b5cb",
+			"name": "Run1",
+			"tenantId": "b305719a-3a9c-4473-aaaa-5c60dbcb2049",
+			"tenantName": "Dry1",
+			"environments": [
+			 {
+			  "name": "Dev",
+			  "customerTenants": [
+			   {
+				"alias": "",
+				"environment": "Dev",
+				"customerTenantId": "445f8ea8-1a6f-40d7-b2fc-796dba92dc44",
+				"hosts": [
+				 {
+				  "host": "cool-swirles.dolittle.cloud",
+				  "secretName": "cool-swirles-certificate"
+				 }
+				],
+				"microservicesRel": [
+				 {
+				  "microserviceId": "3e239ed1-5cda-4fc8-9005-4d521b48c226",
+				  "hash": "3e239ed_445f8ea"
+				 }
+				]
+			   }
+			  ],
+			  "welcomeMicroserviceID": "3e239ed1-5cda-4fc8-9005-4d521b48c226"
+			 }
+			],
+			"status": {
+			 "status": "finished:success",
+			 "startedAt": "2022-02-10T11:08:32Z",
+			 "finishedAt": "2022-02-10T11:10:15Z"
+			}
+		   }`)
 		var application storage.JSONApplication
 		json.Unmarshal(item, &application)
 
 		customerTenants := storage.GetCustomerTenants(application)
-
-		//b, _ := json.MarshalIndent(customerTenants, "", "  ")
-		//output := string(b)
-		//fmt.Println(output)
-		Expect(len(customerTenants)).To(Equal(2))
+		Expect(len(customerTenants)).To(Equal(1))
 	})
 
 	It("GetCustomerTenants", func() {
-		item := []byte(`{"id":"fake-123","name":"Snow1","tenantId":"7df10b41-5fbd-4a4e-a2cf-27349d1f63ba","tenantName":"Test2","environments":[{"name":"Dev","tenantId":"7df10b41-5fbd-4a4e-a2cf-27349d1f63ba","applicationId":"fake-123","tenants":[],"ingresses":[],"customerTenants":[{"alias":"","environment":"Dev","customerTenantId":"445f8ea8-1a6f-40d7-b2fc-796dba92dc44","indexId":0,"ingress":{"host":"focused-feistel.dolittle.cloud","domainPrefix":"focused-feistel","secretName":"focused-feistel-certificate"},"microservicesRel":[{"microserviceID":"7d5d2a74-a6a1-4d52-8998-3970e445ee78","hash":"7d5d2a7_445f8ea"}],"runtime":{"databasePrefix":"7d5d2a7_445f8ea"}}],"customerTenantLastIndexID":0,"welcomeMicroserviceID":"7d5d2a74-a6a1-4d52-8998-3970e445ee78"},{"name":"Test","tenantId":"7df10b41-5fbd-4a4e-a2cf-27349d1f63ba","applicationId":"fake-123","tenants":[],"ingresses":[],"customerTenants":[{"alias":"","environment":"Test","customerTenantId":"445f8ea8-1a6f-40d7-b2fc-796dba92dc44","indexId":0,"ingress":{"host":"goofy-gates.dolittle.cloud","domainPrefix":"goofy-gates","secretName":"goofy-gates-certificate"},"microservicesRel":[{"microserviceID":"82febcb7-ec65-4ea1-84d8-0ccaa1b5365c","hash":"82febcb_445f8ea"}],"runtime":{"databasePrefix":"82febcb_445f8ea"}}],"customerTenantLastIndexID":0,"welcomeMicroserviceID":"82febcb7-ec65-4ea1-84d8-0ccaa1b5365c"}]}`)
+		item := []byte(`{
+			"id": "6eb64bea-769f-2f47-8fd6-42acb369b5cb",
+			"name": "Run1",
+			"tenantId": "b305719a-3a9c-4473-aaaa-5c60dbcb2049",
+			"tenantName": "Dry1",
+			"environments": [
+			 {
+			  "name": "Dev",
+			  "customerTenants": [
+			   {
+				"alias": "",
+				"environment": "Dev",
+				"customerTenantId": "445f8ea8-1a6f-40d7-b2fc-796dba92dc44",
+				"hosts": [
+				 {
+				  "host": "cool-swirles.dolittle.cloud",
+				  "secretName": "cool-swirles-certificate"
+				 }
+				],
+				"microservicesRel": [
+				 {
+				  "microserviceId": "3e239ed1-5cda-4fc8-9005-4d521b48c226",
+				  "hash": "3e239ed_445f8ea"
+				 }
+				]
+			   }
+			  ],
+			  "welcomeMicroserviceID": "3e239ed1-5cda-4fc8-9005-4d521b48c226"
+			 }
+			],
+			"status": {
+			 "status": "finished:success",
+			 "startedAt": "2022-02-10T11:08:32Z",
+			 "finishedAt": "2022-02-10T11:10:15Z"
+			}
+		   }`)
 		var application storage.JSONApplication
 		json.Unmarshal(item, &application)
 
 		customerTenants := storage.GetCustomerTenantsByEnvironment(application, "Food")
-
-		//b, _ := json.MarshalIndent(customerTenants, "", "  ")
-		//output := string(b)
-		//fmt.Println(output)
 		Expect(len(customerTenants)).To(Equal(0))
 	})
 })
