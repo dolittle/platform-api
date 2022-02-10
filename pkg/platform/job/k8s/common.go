@@ -3,6 +3,7 @@ package k8s
 import (
 	"fmt"
 
+	"github.com/spf13/viper"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -17,6 +18,21 @@ type CreateResourceConfig struct {
 	LocalBranch         string
 	RemoteBranch        string
 	ServiceAccountName  string
+}
+
+func CreateResourceConfigFromViper(v *viper.Viper) CreateResourceConfig {
+	return CreateResourceConfig{
+		PlatformImage:       v.GetString("tools.jobs.image.operations"),
+		PlatformEnvironment: v.GetString("tools.server.platformEnvironment"),
+		IsProduction:        v.GetBool("tools.server.isProduction"),
+		Namespace:           "system-api",
+		GitUserName:         v.GetString("tools.jobs.git.userName"),
+		GitUserEmail:        v.GetString("tools.jobs.git.email"),
+		ApiSecrets:          "dev-api-v1-secrets", // TODO this is generic for the whole cluster, so doesn't care for the environment prefix
+		LocalBranch:         v.GetString("tools.jobs.git.localBranch"),
+		RemoteBranch:        v.GetString("tools.jobs.git.remoteBranch"),
+		ServiceAccountName:  "system-api-manager",
+	}
 }
 
 func CreateResourceConfigWithDefaults(platformImage string, platformEnvironment string, isProduction bool) CreateResourceConfig {

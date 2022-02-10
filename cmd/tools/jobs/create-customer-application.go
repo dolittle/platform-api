@@ -28,10 +28,11 @@ var createCustomerApplicationCMD = &cobra.Command{
 	--customer-id=""
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
-		platformOperationsImage := viper.GetString("tools.jobs.image.operations")
+
 		customerID, _ := cmd.Flags().GetString("customer-id")
 		// TODO we shouldn't need this, but to re-use the labels we do
 		// Get this from studio.json
+		// If we use config file, then we can drop these
 		platformEnvironment, _ := cmd.Flags().GetString("platform-environment")
 		isProduction, _ := cmd.Flags().GetBool("is-production")
 		applicationName, _ := cmd.Flags().GetString("application-name")
@@ -58,7 +59,11 @@ var createCustomerApplicationCMD = &cobra.Command{
 			Name: applicationName,
 		}
 
-		createResourceConfig := jobK8s.CreateResourceConfigWithDefaults(platformOperationsImage, platformEnvironment, isProduction)
+		createResourceConfig := jobK8s.CreateResourceConfigFromViper(viper.GetViper())
+		// if we move to config file, we can drop these
+		createResourceConfig.PlatformEnvironment = platformEnvironment
+		createResourceConfig.IsProduction = isProduction
+
 		resource := jobK8s.CreateApplicationResource(createResourceConfig, customerID, application)
 
 		s := runtime.NewScheme()

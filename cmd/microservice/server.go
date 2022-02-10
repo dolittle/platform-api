@@ -16,11 +16,13 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform/customer"
 	"github.com/dolittle/platform-api/pkg/platform/insights"
 	"github.com/dolittle/platform-api/pkg/platform/job"
+	jobK8s "github.com/dolittle/platform-api/pkg/platform/job/k8s"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/microservice"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/environmentVariables"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/purchaseorderapi"
 
+	k8sSimple "github.com/dolittle/platform-api/pkg/platform/microservice/simple/k8s"
 	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
@@ -43,7 +45,7 @@ var serverCMD = &cobra.Command{
 
 		logContext := logrus.StandardLogger()
 		platformEnvironment := viper.GetString("tools.server.platformEnvironment")
-		platformOperationsImage := viper.GetString("tools.jobs.image.operations")
+		//platformOperationsImage := viper.GetString("tools.jobs.image.operations")
 		gitRepoConfig := git.InitGit(logContext, platformEnvironment)
 
 		// fix: https://github.com/spf13/viper/issues/798
@@ -51,6 +53,7 @@ var serverCMD = &cobra.Command{
 			viper.Set(key, viper.Get(key))
 		}
 
+		viper.GetViper()
 		k8sClient, k8sConfig := platformK8s.InitKubernetesClient()
 
 		externalClusterHost := getExternalClusterHost(
@@ -78,6 +81,10 @@ var serverCMD = &cobra.Command{
 			logrus.WithField("context", "git-repo"),
 			gitRepoConfig,
 		)
+
+		jobResourceConfig := jobK8s.CreateResourceConfigFromViper(viper.GetViper())
+
+		microserviceSimpleRepo := k8sSimple.NewSimpleRepo(k8sClient, k8sRepo, isProduction)
 
 		// TODO I wonder how this works when both are in the same cluster,
 		// today via the resources, it is not clear which is which "platform-environment".
@@ -108,17 +115,15 @@ var serverCMD = &cobra.Command{
 			k8sClient,
 			gitRepo,
 			k8sRepo,
-			platformOperationsImage,
-			platformEnvironment,
-			isProduction,
+			jobResourceConfig,
+			microserviceSimpleRepo,
 			logrus.WithField("context", "application-service"),
 		)
 
 		customerService := customer.NewService(
 			k8sClient,
 			gitRepo,
-			platformOperationsImage,
-			platformEnvironment,
+			jobResourceConfig,
 		)
 		businessMomentsService := businessmoment.NewService(
 			logrus.WithField("context", "business-moments-service"),

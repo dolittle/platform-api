@@ -11,7 +11,7 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform"
 	jobK8s "github.com/dolittle/platform-api/pkg/platform/job/k8s"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
-	k8sSimple "github.com/dolittle/platform-api/pkg/platform/microservice/simple/k8s"
+	"github.com/dolittle/platform-api/pkg/platform/microservice/simple"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	"github.com/dolittle/platform-api/pkg/utils"
 	"github.com/google/uuid"
@@ -21,27 +21,35 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+type Service struct {
+	subscriptionID      string
+	externalClusterHost string
+	simpleRepo          simple.Repo
+	gitRepo             storage.Repo
+	k8sDolittleRepo     platformK8s.K8sRepo
+	k8sClient           kubernetes.Interface
+	logContext          logrus.FieldLogger
+	jobResourceConfig   jobK8s.CreateResourceConfig
+}
+
 func NewService(
 	subscriptionID string,
 	externalClusterHost string,
 	k8sClient kubernetes.Interface,
 	gitRepo storage.Repo,
 	k8sDolittleRepo platformK8s.K8sRepo,
-	platformOperationsImage string,
-	platformEnvironment string,
-	isProduction bool,
+	jobResourceConfig jobK8s.CreateResourceConfig,
+	simpleRepo simple.Repo,
 	logContext logrus.FieldLogger) Service {
 	return Service{
-		subscriptionID:          subscriptionID,
-		externalClusterHost:     externalClusterHost,
-		gitRepo:                 gitRepo,
-		simpleRepo:              k8sSimple.NewSimpleRepo(k8sClient, k8sDolittleRepo, isProduction),
-		k8sDolittleRepo:         k8sDolittleRepo,
-		k8sClient:               k8sClient,
-		platformOperationsImage: platformOperationsImage,
-		platformEnvironment:     platformEnvironment,
-		isProduction:            isProduction,
-		logContext:              logContext,
+		subscriptionID:      subscriptionID,
+		externalClusterHost: externalClusterHost,
+		gitRepo:             gitRepo,
+		jobResourceConfig:   jobResourceConfig,
+		simpleRepo:          simpleRepo,
+		k8sDolittleRepo:     k8sDolittleRepo,
+		k8sClient:           k8sClient,
+		logContext:          logContext,
 	}
 }
 
@@ -154,9 +162,8 @@ func (s *Service) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	createResourceConfig := jobK8s.CreateResourceConfigWithDefaults(s.platformOperationsImage, s.platformEnvironment, s.isProduction)
 	resource := jobK8s.CreateApplicationResource(
-		createResourceConfig,
+		s.jobResourceConfig,
 		customerID,
 		dolittleK8s.ShortInfo{
 			ID:   application.ID,

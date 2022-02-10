@@ -21,10 +21,9 @@ import (
 )
 
 type service struct {
-	k8sclient               kubernetes.Interface
-	storageRepo             storage.RepoCustomer
-	platformOperationsImage string
-	platformEnvironment     string
+	k8sclient         kubernetes.Interface
+	storageRepo       storage.RepoCustomer
+	jobResourceConfig jobK8s.CreateResourceConfig
 }
 
 type HttpCustomersResponse []platform.Customer
@@ -36,14 +35,12 @@ type HttpCustomerInput struct {
 func NewService(
 	k8sclient kubernetes.Interface,
 	storageRepo storage.RepoCustomer,
-	platformOperationsImage string,
-	platformEnvironment string,
+	jobResourceConfig jobK8s.CreateResourceConfig,
 ) service {
 	return service{
-		k8sclient:               k8sclient,
-		storageRepo:             storageRepo,
-		platformOperationsImage: platformOperationsImage,
-		platformEnvironment:     platformEnvironment,
+		k8sclient:         k8sclient,
+		storageRepo:       storageRepo,
+		jobResourceConfig: jobResourceConfig,
 	}
 }
 
@@ -87,9 +84,7 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		Name: customer.Name,
 	}
 
-	createResourceConfig := jobK8s.CreateResourceConfigWithDefaults(s.platformOperationsImage, s.platformEnvironment, true)
-
-	resource := jobK8s.CreateCustomerResource(createResourceConfig, jobCustomer)
+	resource := jobK8s.CreateCustomerResource(s.jobResourceConfig, jobCustomer)
 	err = jobK8s.DoJob(s.k8sclient, resource)
 	if err != nil {
 		// TODO log that we failed to make the job

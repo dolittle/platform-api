@@ -10,7 +10,9 @@ import (
 
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/platform/application"
+	jobK8s "github.com/dolittle/platform-api/pkg/platform/job/k8s"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
+	k8sSimple "github.com/dolittle/platform-api/pkg/platform/microservice/simple/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	mockStorage "github.com/dolittle/platform-api/pkg/platform/storage/mocks"
 	"github.com/dolittle/platform-api/pkg/utils"
@@ -45,8 +47,8 @@ var _ = Describe("Testing endpoints", func() {
 		applicationID = "fake-application-123"
 		subscriptionID := "TODO"
 		externalClusterHost := "TODO"
-		platformOperationsImage := "TODO"
-		platformEnvironment := "dev"
+		//platformOperationsImage := "TODO"
+		//platformEnvironment := "dev"
 		isProduction := false
 
 		logger, _ = logrusTest.NewNullLogger()
@@ -54,6 +56,8 @@ var _ = Describe("Testing endpoints", func() {
 		config = &rest.Config{}
 		logger, _ = logrusTest.NewNullLogger()
 		k8sRepo = platformK8s.NewK8sRepo(clientSet, config, logger)
+
+		microserviceSimpleRepo := k8sSimple.NewSimpleRepo(clientSet, k8sRepo, isProduction)
 
 		gitRepo = &mockStorage.Repo{}
 
@@ -63,9 +67,8 @@ var _ = Describe("Testing endpoints", func() {
 			clientSet,
 			gitRepo,
 			k8sRepo,
-			platformOperationsImage,
-			platformEnvironment,
-			isProduction,
+			jobK8s.CreateResourceConfig{},
+			microserviceSimpleRepo,
 			logger.WithField("context", "application-service"),
 		)
 	})
