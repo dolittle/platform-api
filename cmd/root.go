@@ -36,11 +36,11 @@ func init() {
 	viper.SetDefault("tools.jobs.git.user.name", "Auto Platform")
 	viper.SetDefault("tools.jobs.git.user.email", "platform-auto@dolittle.com")
 	viper.SetDefault("tools.jobs.secrets.name", "dev-api-v1-secrets")
-	viper.SetDefault("tools.jobs.git.remote.url", "")
+	viper.SetDefault("tools.jobs.git.remote.url", "git@github.com:dolittle-platform/Operations.git")
 
 	viper.BindEnv("tools.jobs.image.operations", "JOBS_OPERATIONS_IMAGE")
 	viper.BindEnv("tools.jobs.git.branch.local", "JOBS_GIT_BRANCH_LOCAL")
-	viper.BindEnv("tools.jobs.git.branch.remote", "JOBS_GIT_BRANCH_LOCAL")
+	viper.BindEnv("tools.jobs.git.branch.remote", "JOBS_GIT_BRANCH_REMOTE")
 	viper.BindEnv("tools.jobs.git.user.name", "JOBS_GIT_USER_NAME")
 	viper.BindEnv("tools.jobs.git.user.email", "JOBS_GIT_USER_EMAIL")
 	viper.BindEnv("tools.jobs.secrets.name", "JOBS_SECRETS_NAME")

@@ -84,7 +84,7 @@ func gitSetup(image string, gitRepoURL string, localBranch string, gitUserEmail 
 			"-c",
 			fmt.Sprintf(`
 mkdir -p /pod-data/git;
-GIT_SSH_COMMAND="ssh -i /pod-data/.ssh/operations -o IdentitiesOnly=yes -o StrictHostKeyChecking=no" git clone  --branch %s %s /pod-data/git;
+GIT_SSH_COMMAND="ssh -i /pod-data/.ssh/operations -o IdentitiesOnly=yes -o StrictHostKeyChecking=no" git clone --depth 1 --single-branch --branch %s %s /pod-data/git;
 cd /pod-data/git;
 git config user.email "%s";
 git config user.name "%s";

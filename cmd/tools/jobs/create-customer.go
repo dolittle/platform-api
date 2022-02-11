@@ -59,12 +59,7 @@ var createCustomerCMD = &cobra.Command{
 			},
 		)
 
-		dryRun := true
-		if dryRun {
-			serializer.Encode(resource, os.Stdout)
-			return
-		}
-
+		serializer.Encode(resource, os.Stdout)
 	},
 }
 

@@ -97,6 +97,9 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *G
 		URL:           gitConfig.URL,
 		Progress:      os.Stdout,
 		ReferenceName: branch,
+		// Using the below might speed things up
+		//SingleBranch:  true,
+		//Depth:         1,
 	})
 
 	if err != nil {
