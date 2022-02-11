@@ -16,6 +16,7 @@ import (
 	"github.com/thoas/go-funk"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -67,6 +68,11 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
+
+	if !IsCustomerNameValid(input.Name) {
+		utils.RespondWithError(w, http.StatusUnprocessableEntity, "Customer name is not valid")
+		return
+	}
 
 	customer := storage.JSONCustomer{
 		ID:   uuid.New().String(),
@@ -137,4 +143,9 @@ func (s *service) hasAccess(userID string) bool {
 	})
 
 	return access
+}
+
+func IsCustomerNameValid(name string) bool {
+	isValid := validation.NameIsDNSLabel(name, false)
+	return len(isValid) == 0
 }
