@@ -29,8 +29,8 @@ type Service struct {
 	gitRepo             storage.Repo
 	k8sDolittleRepo     platformK8s.K8sRepo
 	k8sClient           kubernetes.Interface
-	logContext          logrus.FieldLogger
 	jobResourceConfig   jobK8s.CreateResourceConfig
+	logContext          logrus.FieldLogger
 }
 
 func NewService(
@@ -178,7 +178,6 @@ func (s *Service) Create(w http.ResponseWriter, r *http.Request) {
 
 	err = jobK8s.DoJob(s.k8sClient, resource)
 	if err != nil {
-		// TODO log that we failed to make the job
 		logContext.WithFields(logrus.Fields{
 			"error":          err,
 			"application_id": application.ID,

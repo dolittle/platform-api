@@ -3,7 +3,6 @@ package customer
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	"github.com/dolittle/platform-api/pkg/utils"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -25,6 +25,7 @@ type service struct {
 	k8sclient         kubernetes.Interface
 	storageRepo       storage.RepoCustomer
 	jobResourceConfig jobK8s.CreateResourceConfig
+	logContext        logrus.FieldLogger
 }
 
 type HttpCustomersResponse []platform.Customer
@@ -37,11 +38,13 @@ func NewService(
 	k8sclient kubernetes.Interface,
 	storageRepo storage.RepoCustomer,
 	jobResourceConfig jobK8s.CreateResourceConfig,
+	logContext logrus.FieldLogger,
 ) service {
 	return service{
 		k8sclient:         k8sclient,
 		storageRepo:       storageRepo,
 		jobResourceConfig: jobResourceConfig,
+		logContext:        logContext,
 	}
 }
 
@@ -79,8 +82,16 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 		Name: input.Name,
 	}
 
+	logContext := s.logContext.WithFields(logrus.Fields{
+		"method":      "Create",
+		"customer_id": customer.ID,
+	})
+
 	err = s.storageRepo.SaveCustomer(customer)
 	if err != nil {
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("Failed to save customer")
 		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to save customer")
 		return
 	}
@@ -93,8 +104,9 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 	resource := jobK8s.CreateCustomerResource(s.jobResourceConfig, jobCustomer)
 	err = jobK8s.DoJob(s.k8sclient, resource)
 	if err != nil {
-		// TODO log that we failed to make the job
-		fmt.Println(err)
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("Failed to create job to create application")
 		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to save customer")
 		return
 	}

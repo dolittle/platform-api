@@ -122,6 +122,7 @@ var serverCMD = &cobra.Command{
 			k8sClient,
 			gitRepo,
 			jobResourceConfig,
+			logrus.WithField("context", "customer-service"),
 		)
 		businessMomentsService := businessmoment.NewService(
 			logrus.WithField("context", "business-moments-service"),
