@@ -5,36 +5,38 @@ import (
 	"net/http"
 
 	"github.com/dolittle/platform-api/pkg/platform"
-	. "github.com/dolittle/platform-api/pkg/platform/microservice/k8s"
 	"github.com/dolittle/platform-api/pkg/utils"
+	"github.com/thoas/go-funk"
 )
 
-func (s *service) handleSimpleMicroservice(responseWriter http.ResponseWriter, r *http.Request, inputBytes []byte, applicationInfo platform.Application) {
+func (s *service) handleSimpleMicroservice(
+	w http.ResponseWriter,
+	r *http.Request,
+	inputBytes []byte,
+	applicationInfo platform.Application,
+	customerTenants []platform.CustomerTenantInfo,
+) {
 	// Function assumes access check has taken place
 
 	var ms platform.HttpInputSimpleInfo
 	msK8sInfo, statusErr := s.parser.Parse(inputBytes, &ms, applicationInfo)
 	if statusErr != nil {
-		utils.RespondWithStatusError(responseWriter, statusErr)
+		utils.RespondWithStatusError(w, statusErr)
 		return
 	}
 
-	ingress := CreateTodoIngress()
+	pathExists := funk.Contains(applicationInfo.Ingresses, func(info platform.Ingress) bool {
+		return info.Path == ms.Extra.Ingress.Path
+	})
 
-	// TODO I cant decide if domainNamePrefix or SecretNamePrefix is better
-	//if ms.Extra.Ingress.SecretNamePrefix == "" {
-	//	utils.RespondWithError(w, http.StatusBadRequest, "Missing extra.ingress.secretNamePrefix")
-	//	return
-	//}
-
-	if ms.Extra.Ingress.Host == "" {
-		utils.RespondWithError(responseWriter, http.StatusBadRequest, "Missing extra.ingress.host")
+	if pathExists {
+		utils.RespondWithError(w, http.StatusBadRequest, "ms.Extra.Ingress.Path The path is already in use")
 		return
 	}
 
-	err := s.simpleRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, ingress, ms)
+	err := s.simpleRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, customerTenants, ms)
 	if err != nil {
-		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -50,9 +52,9 @@ func (s *service) handleSimpleMicroservice(responseWriter http.ResponseWriter, r
 
 	if err != nil {
 		// TODO change
-		utils.RespondWithError(responseWriter, http.StatusInternalServerError, err.Error())
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	utils.RespondWithJSON(responseWriter, http.StatusOK, ms)
+	utils.RespondWithJSON(w, http.StatusOK, ms)
 }

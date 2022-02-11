@@ -6,12 +6,11 @@ import (
 	"strings"
 
 	"github.com/dolittle/platform-api/pkg/platform"
-	. "github.com/dolittle/platform-api/pkg/platform/microservice/k8s"
 	"github.com/dolittle/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
 )
 
-func (s *service) handleBusinessMomentsAdaptor(responseWriter http.ResponseWriter, r *http.Request, inputBytes []byte, applicationInfo platform.Application) {
+func (s *service) handleBusinessMomentsAdaptor(responseWriter http.ResponseWriter, r *http.Request, inputBytes []byte, applicationInfo platform.Application, customerTenants []platform.CustomerTenantInfo) {
 	// Function assumes access check has taken place
 	var ms platform.HttpInputBusinessMomentAdaptorInfo
 	msK8sInfo, statusErr := s.parser.Parse(inputBytes, &ms, applicationInfo)
@@ -19,9 +18,8 @@ func (s *service) handleBusinessMomentsAdaptor(responseWriter http.ResponseWrite
 		utils.RespondWithStatusError(responseWriter, statusErr)
 		return
 	}
-	ingress := CreateTodoIngress()
 
-	err := s.businessMomentsAdaptorRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, ingress, ms)
+	err := s.businessMomentsAdaptorRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, customerTenants, ms)
 	if statusErr != nil {
 		// TODO change
 		utils.RespondWithError(responseWriter, http.StatusInternalServerError, statusErr.Error())

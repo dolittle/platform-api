@@ -12,7 +12,9 @@ type HTTPMessageResponse struct {
 }
 
 func RespondWithError(w http.ResponseWriter, code int, message string) {
-	RespondWithJSON(w, code, map[string]string{"message": message})
+	RespondWithJSON(w, code, HTTPMessageResponse{
+		Message: message,
+	})
 }
 
 func RespondWithStatusError(w http.ResponseWriter, err *errors.StatusError) {

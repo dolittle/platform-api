@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/sirupsen/logrus"
@@ -40,9 +39,7 @@ func (s *GitStorage) SaveTerraformApplication(application platform.TerraformAppl
 		return err
 	}
 
-	path := strings.TrimPrefix(filename, s.config.RepoRoot+string(os.PathSeparator))
-
-	err = s.CommitPathAndPush(path, fmt.Sprintf("Adding application %s for customer %s", applicationID, tenantID))
+	err = s.CommitPathAndPush(filename, fmt.Sprintf("Adding application %s for customer %s", applicationID, tenantID))
 
 	if err != nil {
 		return err
@@ -95,8 +92,7 @@ func (s *GitStorage) SaveTerraformTenant(tenant platform.TerraformCustomer) erro
 		return err
 	}
 
-	path := strings.TrimPrefix(filename, s.config.RepoRoot+string(os.PathSeparator))
-	err = s.CommitPathAndPush(path, fmt.Sprintf("Adding customer %s", tenantID))
+	err = s.CommitPathAndPush(filename, fmt.Sprintf("Adding customer %s", tenantID))
 
 	if err != nil {
 		return err

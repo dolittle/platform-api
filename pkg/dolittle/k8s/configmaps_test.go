@@ -9,6 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	. "github.com/dolittle/platform-api/pkg/dolittle/k8s"
+	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/testutils"
 )
 
@@ -17,13 +18,27 @@ var _ = Describe("Configmaps", func() {
 		var (
 			microservice     Microservice
 			customerTenantID string
+			customerTenants  []platform.CustomerTenantInfo
 			resource         *corev1.ConfigMap
+			microserviceID   string
 		)
 
 		BeforeEach(func() {
 			customerTenantID = "fake-customer-tenant-id-123"
+			microserviceID = "c974b165-38d7-4745-9c62-f78fa615682a"
+			customerTenants = []platform.CustomerTenantInfo{
+				{
+					CustomerTenantID: customerTenantID,
+					Hosts: []platform.CustomerTenantHost{
+						{
+							Host:       "fake-prefix.fake-host",
+							SecretName: "fake-prefix",
+						},
+					},
+				},
+			}
 			microservice = Microservice{
-				ID:          "c974b165-38d7-4745-9c62-f78fa615682a",
+				ID:          microserviceID,
 				Name:        "LeliaKim",
 				Environment: "AndreJensen",
 				Tenant: Tenant{
@@ -35,8 +50,8 @@ var _ = Describe("Configmaps", func() {
 					Name: "AlejandroRiley",
 				},
 			}
-
-			resource = NewMicroserviceConfigmap(microservice, customerTenantID)
+			// TODO do we test for dolittle resources?
+			resource = NewMicroserviceConfigmap(microservice, customerTenants)
 		})
 
 		It("should create a configmap with the correct ApiVersion", func() {

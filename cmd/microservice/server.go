@@ -9,19 +9,21 @@ import (
 
 	"github.com/dolittle/platform-api/pkg/git"
 	"github.com/dolittle/platform-api/pkg/middleware"
-	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/platform/application"
 	"github.com/dolittle/platform-api/pkg/platform/backup"
 	"github.com/dolittle/platform-api/pkg/platform/businessmoment"
 	"github.com/dolittle/platform-api/pkg/platform/cicd"
+	"github.com/dolittle/platform-api/pkg/platform/customer"
 	"github.com/dolittle/platform-api/pkg/platform/insights"
+	"github.com/dolittle/platform-api/pkg/platform/job"
+	jobK8s "github.com/dolittle/platform-api/pkg/platform/job/k8s"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/microservice"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/environmentVariables"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/purchaseorderapi"
 
-	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
+	k8sSimple "github.com/dolittle/platform-api/pkg/platform/microservice/simple/k8s"
 	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
-	"github.com/dolittle/platform-api/pkg/platform/tenant"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/rs/cors"
@@ -50,6 +52,7 @@ var serverCMD = &cobra.Command{
 			viper.Set(key, viper.Get(key))
 		}
 
+		viper.GetViper()
 		k8sClient, k8sConfig := platformK8s.InitKubernetesClient()
 
 		externalClusterHost := getExternalClusterHost(
@@ -60,7 +63,7 @@ var serverCMD = &cobra.Command{
 		listenOn := viper.GetString("tools.server.listenOn")
 		sharedSecret := viper.GetString("tools.server.secret")
 		subscriptionID := viper.GetString("tools.server.azure.subscriptionId")
-
+		isProduction := viper.GetBool("tools.server.isProduction")
 		// Hide secret
 		serverSettings := viper.Get("tools.server").(map[string]interface{})
 		serverSettings["secret"] = fmt.Sprintf("%s***", sharedSecret[:3])
@@ -70,14 +73,24 @@ var serverCMD = &cobra.Command{
 
 		router := mux.NewRouter()
 
-		k8sRepo := platform.NewK8sRepo(k8sClient, k8sConfig)
+		k8sRepo := platformK8s.NewK8sRepo(k8sClient, k8sConfig, logContext.WithField("context", "k8s-repo"))
 
 		gitRepo := gitStorage.NewGitStorage(
 			logrus.WithField("context", "git-repo"),
 			gitRepoConfig,
 		)
 
+		jobResourceConfig := jobK8s.CreateResourceConfigFromViper(viper.GetViper())
+
+		microserviceSimpleRepo := k8sSimple.NewSimpleRepo(k8sClient, k8sRepo, isProduction)
+
+		// TODO I wonder how this works when both are in the same cluster,
+		// today via the resources, it is not clear which is which "platform-environment".
+		go job.NewCustomerJobListener(k8sClient, gitRepo, logContext.WithField("context", "listener-job-customer"))
+		go job.NewApplicationJobListener(k8sClient, gitRepo, logContext.WithField("context", "listener-job-application"))
+
 		microserviceService := microservice.NewService(
+			isProduction,
 			gitRepo,
 			k8sRepo,
 			k8sClient,
@@ -97,11 +110,20 @@ var serverCMD = &cobra.Command{
 		applicationService := application.NewService(
 			subscriptionID,
 			externalClusterHost,
+			k8sClient,
 			gitRepo,
 			k8sRepo,
+			jobResourceConfig,
+			microserviceSimpleRepo,
 			logrus.WithField("context", "application-service"),
 		)
-		tenantService := tenant.NewService()
+
+		customerService := customer.NewService(
+			k8sClient,
+			gitRepo,
+			jobResourceConfig,
+			logrus.WithField("context", "customer-service"),
+		)
 		businessMomentsService := businessmoment.NewService(
 			logrus.WithField("context", "business-moments-service"),
 			gitRepo,
@@ -120,6 +142,7 @@ var serverCMD = &cobra.Command{
 			k8sClient,
 		)
 		purchaseorderapiService := purchaseorderapi.NewService(
+			isProduction,
 			gitRepo,
 			k8sRepo,
 			k8sClient,
@@ -167,31 +190,36 @@ var serverCMD = &cobra.Command{
 			"/application",
 			stdChainWithJSON.ThenFunc(applicationService.Create),
 		).Methods(http.MethodPost, http.MethodOptions)
-		router.Handle(
-			"/tenant",
-			stdChainWithJSON.ThenFunc(tenantService.Create),
-		).Methods(http.MethodPost, http.MethodOptions)
-		router.Handle(
-			"/environment",
-			stdChainWithJSON.ThenFunc(applicationService.SaveEnvironment),
-		).Methods(http.MethodPost, http.MethodOptions)
 
 		router.Handle(
-			"/application/{applicationID}/environment",
-			stdChainWithJSON.ThenFunc(applicationService.SaveEnvironment),
+			"/customers",
+			stdChainWithJSON.ThenFunc(customerService.GetAll),
+		).Methods(http.MethodGet, http.MethodOptions)
+
+		router.Handle(
+			"/customer",
+			stdChainWithJSON.ThenFunc(customerService.Create),
 		).Methods(http.MethodPost, http.MethodOptions)
+
 		router.Handle(
 			"/application/{applicationID}/microservices",
 			stdChainWithJSON.ThenFunc(microserviceService.GetByApplicationID),
 		).Methods(http.MethodGet, http.MethodOptions)
 		router.Handle(
+			"/application/{applicationID}/check/isonline",
+			stdChainWithJSON.ThenFunc(applicationService.IsOnline),
+		).Methods(http.MethodGet, http.MethodOptions)
+
+		router.Handle(
 			"/application/{applicationID}",
 			stdChainWithJSON.ThenFunc(applicationService.GetByID),
 		).Methods(http.MethodGet, http.MethodOptions)
+
 		router.Handle(
 			"/applications",
 			stdChainWithJSON.ThenFunc(applicationService.GetApplications),
 		).Methods(http.MethodGet, http.MethodOptions)
+
 		router.Handle(
 			"/application/{applicationID}/personalised-application-info",
 			stdChainWithJSON.ThenFunc(applicationService.GetPersonalisedInfo),
@@ -210,6 +238,7 @@ var serverCMD = &cobra.Command{
 			"/live/applications",
 			stdChainWithJSON.ThenFunc(applicationService.GetLiveApplications),
 		).Methods(http.MethodGet, http.MethodOptions)
+
 		router.Handle(
 			"/live/application/{applicationID}/microservices",
 			stdChainWithJSON.ThenFunc(microserviceService.GetLiveByApplicationID),
@@ -339,11 +368,13 @@ func init() {
 
 	viper.SetDefault("tools.server.secret", "change")
 	viper.SetDefault("tools.server.listenOn", "localhost:8080")
+	viper.SetDefault("tools.server.isProduction", false)
 	viper.SetDefault("tools.server.azure.subscriptionId", "")
 	viper.SetDefault("tools.server.kubernetes.externalClusterHost", defaultExternalClusterHost)
 
 	viper.BindEnv("tools.server.secret", "HEADER_SECRET")
 	viper.BindEnv("tools.server.listenOn", "LISTEN_ON")
+	viper.BindEnv("tools.server.isProduction", "IS_PRODUCTION")
 	viper.BindEnv("tools.server.azure.subscriptionId", "AZURE_SUBSCRIPTION_ID")
 	viper.BindEnv("tools.server.kubernetes.externalClusterHost", "AZURE_EXTERNAL_CLUSTER_HOST")
 }

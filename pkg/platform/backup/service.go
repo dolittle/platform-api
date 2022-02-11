@@ -11,16 +11,16 @@ import (
 
 	azureHelpers "github.com/dolittle/platform-api/pkg/azure"
 	"github.com/dolittle/platform-api/pkg/platform"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	"github.com/dolittle/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
-func NewService(logContext logrus.FieldLogger, gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClient kubernetes.Interface) service {
+func NewService(logContext logrus.FieldLogger, gitRepo storage.Repo, k8sDolittleRepo platformK8s.K8sRepo, k8sClient kubernetes.Interface) service {
 	return service{
 		logContext:      logContext,
 		gitRepo:         gitRepo,
@@ -54,7 +54,7 @@ func (s *service) GetLatestByApplication(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	exists := environmentExists(applicationInfo.Environments, environment)
+	exists := storage.EnvironmentExists(applicationInfo.Environments, environment)
 
 	if !exists {
 		utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Environment %s does not exist", environment))
@@ -135,7 +135,7 @@ func (s *service) CreateLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	exists := environmentExists(applicationInfo.Environments, input.Environment)
+	exists := storage.EnvironmentExists(applicationInfo.Environments, input.Environment)
 
 	if !exists {
 		utils.RespondWithError(w, http.StatusNotFound, fmt.Sprintf("Environment %s does not exist", input.Environment))
@@ -201,13 +201,6 @@ func (s *service) CreateLink(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func environmentExists(environments []platform.HttpInputEnvironment, environment string) bool {
-	return funk.Contains(environments, func(item platform.HttpInputEnvironment) bool {
-		return item.Name == environment
-	})
-}
-
-// TODO maybe we should move this into the k8sRepo
 func getStorageAccountInfo(ctx context.Context, namespace string, client kubernetes.Interface) (AzureStorageInfo, error) {
 	secret, err := client.CoreV1().Secrets(namespace).Get(ctx, "storage-account-secret", metaV1.GetOptions{})
 	if err != nil {

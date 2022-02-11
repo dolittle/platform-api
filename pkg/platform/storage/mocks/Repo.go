@@ -4,6 +4,7 @@ package mocks
 
 import (
 	platform "github.com/dolittle/platform-api/pkg/platform"
+	storage "github.com/dolittle/platform-api/pkg/platform/storage"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -55,14 +56,14 @@ func (_m *Repo) DeleteMicroservice(tenantID string, applicationID string, enviro
 }
 
 // GetApplication provides a mock function with given fields: tenantID, applicationID
-func (_m *Repo) GetApplication(tenantID string, applicationID string) (platform.HttpResponseApplication, error) {
+func (_m *Repo) GetApplication(tenantID string, applicationID string) (storage.JSONApplication, error) {
 	ret := _m.Called(tenantID, applicationID)
 
-	var r0 platform.HttpResponseApplication
-	if rf, ok := ret.Get(0).(func(string, string) platform.HttpResponseApplication); ok {
+	var r0 storage.JSONApplication
+	if rf, ok := ret.Get(0).(func(string, string) storage.JSONApplication); ok {
 		r0 = rf(tenantID, applicationID)
 	} else {
-		r0 = ret.Get(0).(platform.HttpResponseApplication)
+		r0 = ret.Get(0).(storage.JSONApplication)
 	}
 
 	var r1 error
@@ -76,15 +77,15 @@ func (_m *Repo) GetApplication(tenantID string, applicationID string) (platform.
 }
 
 // GetApplications provides a mock function with given fields: tenantID
-func (_m *Repo) GetApplications(tenantID string) ([]platform.HttpResponseApplication, error) {
+func (_m *Repo) GetApplications(tenantID string) ([]storage.JSONApplication, error) {
 	ret := _m.Called(tenantID)
 
-	var r0 []platform.HttpResponseApplication
-	if rf, ok := ret.Get(0).(func(string) []platform.HttpResponseApplication); ok {
+	var r0 []storage.JSONApplication
+	if rf, ok := ret.Get(0).(func(string) []storage.JSONApplication); ok {
 		r0 = rf(tenantID)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]platform.HttpResponseApplication)
+			r0 = ret.Get(0).([]storage.JSONApplication)
 		}
 	}
 
@@ -228,13 +229,13 @@ func (_m *Repo) GetTerraformTenant(tenantID string) (platform.TerraformCustomer,
 	return r0, r1
 }
 
-// IsAutomationEnabled provides a mock function with given fields: tenantID, applicationID, environment
-func (_m *Repo) IsAutomationEnabled(tenantID string, applicationID string, environment string) bool {
-	ret := _m.Called(tenantID, applicationID, environment)
+// IsAutomationEnabledWithStudioConfig provides a mock function with given fields: studioConfig, applicationID, environment
+func (_m *Repo) IsAutomationEnabledWithStudioConfig(studioConfig platform.StudioConfig, applicationID string, environment string) bool {
+	ret := _m.Called(studioConfig, applicationID, environment)
 
 	var r0 bool
-	if rf, ok := ret.Get(0).(func(string, string, string) bool); ok {
-		r0 = rf(tenantID, applicationID, environment)
+	if rf, ok := ret.Get(0).(func(platform.StudioConfig, string, string) bool); ok {
+		r0 = rf(studioConfig, applicationID, environment)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
@@ -243,25 +244,11 @@ func (_m *Repo) IsAutomationEnabled(tenantID string, applicationID string, envir
 }
 
 // SaveApplication provides a mock function with given fields: application
-func (_m *Repo) SaveApplication(application platform.HttpResponseApplication) error {
+func (_m *Repo) SaveApplication(application storage.JSONApplication) error {
 	ret := _m.Called(application)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(platform.HttpResponseApplication) error); ok {
-		r0 = rf(application)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// SaveApplicationAndCommit provides a mock function with given fields: application
-func (_m *Repo) SaveApplicationAndCommit(application platform.HttpResponseApplication) error {
-	ret := _m.Called(application)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(platform.HttpResponseApplication) error); ok {
+	if rf, ok := ret.Get(0).(func(storage.JSONApplication) error); ok {
 		r0 = rf(application)
 	} else {
 		r0 = ret.Error(0)
@@ -314,20 +301,6 @@ func (_m *Repo) SaveMicroservice(tenantID string, applicationID string, environm
 
 // SaveStudioConfig provides a mock function with given fields: tenantID, config
 func (_m *Repo) SaveStudioConfig(tenantID string, config platform.StudioConfig) error {
-	ret := _m.Called(tenantID, config)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(string, platform.StudioConfig) error); ok {
-		r0 = rf(tenantID, config)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// SaveStudioConfigAndCommit provides a mock function with given fields: tenantID, config
-func (_m *Repo) SaveStudioConfigAndCommit(tenantID string, config platform.StudioConfig) error {
 	ret := _m.Called(tenantID, config)
 
 	var r0 error

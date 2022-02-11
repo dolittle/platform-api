@@ -11,14 +11,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 
-	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
+	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/platform/automate"
+	"github.com/dolittle/platform-api/pkg/platform/customertenant"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/businessmomentsadaptor"
-	. "github.com/dolittle/platform-api/pkg/platform/microservice/k8s"
-	networkingv1 "k8s.io/api/networking/v1"
+	microserviceK8s "github.com/dolittle/platform-api/pkg/platform/microservice/k8s"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -26,58 +25,47 @@ import (
 )
 
 type businessMomentsAdaptorRepo struct {
-	k8sClient kubernetes.Interface
-	kind      platform.MicroserviceKind
+	k8sClient    kubernetes.Interface
+	kind         platform.MicroserviceKind
+	isProduction bool
 }
 
-func NewBusinessMomentsAdaptorRepo(k8sClient kubernetes.Interface) businessMomentsAdaptorRepo {
+func NewBusinessMomentsAdaptorRepo(k8sClient kubernetes.Interface, isProduction bool) businessMomentsAdaptorRepo {
 	return businessMomentsAdaptorRepo{
-		k8sClient,
-		platform.MicroserviceKindBusinessMomentsAdaptor,
+		k8sClient:    k8sClient,
+		kind:         platform.MicroserviceKindBusinessMomentsAdaptor,
+		isProduction: isProduction,
 	}
 }
 
-func (r businessMomentsAdaptorRepo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, applicationIngress k8s.Ingress, input platform.HttpInputBusinessMomentAdaptorInfo) error {
+func (r businessMomentsAdaptorRepo) Create(namespace string, tenant dolittleK8s.Tenant, application dolittleK8s.Application, customerTenants []platform.CustomerTenantInfo, input platform.HttpInputBusinessMomentAdaptorInfo) error {
 	environment := input.Environment
-	host := applicationIngress.Host
-	secretName := applicationIngress.SecretName
 
 	microserviceID := input.Dolittle.MicroserviceID
 	microserviceName := input.Name
 	headImage := input.Extra.Headimage
 	runtimeImage := input.Extra.Runtimeimage
 
-	microservice := k8s.Microservice{
+	microservice := dolittleK8s.Microservice{
 		ID:          microserviceID,
 		Name:        microserviceName,
 		Tenant:      tenant,
 		Application: application,
 		Environment: environment,
-		ResourceID:  TodoCustomersTenantID,
 		Kind:        r.kind,
 	}
 
-	ingressServiceName := strings.ToLower(fmt.Sprintf("%s-%s", microservice.Environment, microservice.Name))
-	ingressRules := []k8s.SimpleIngressRule{
-		{
-			Path:            input.Extra.Ingress.Path,
-			PathType:        networkingv1.PathType(input.Extra.Ingress.Pathtype),
-			ServiceName:     ingressServiceName,
-			ServicePortName: "http",
-		},
-	}
+	microserviceConfigmap := dolittleK8s.NewMicroserviceConfigmap(microservice, customerTenants)
+	deployment := dolittleK8s.NewDeployment(microservice, headImage, runtimeImage)
+	service := dolittleK8s.NewService(microservice)
 
-	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, TodoCustomersTenantID)
-	deployment := k8s.NewDeployment(microservice, headImage, runtimeImage)
-	service := k8s.NewService(microservice)
-	ingress := k8s.NewIngress(microservice)
-	networkPolicy := k8s.NewNetworkPolicy(microservice)
-	configEnvVariables := k8s.NewEnvVariablesConfigmap(microservice)
-	configFiles := k8s.NewConfigFilesConfigmap(microservice)
-	configSecrets := k8s.NewEnvVariablesSecret(microservice)
+	networkPolicy := dolittleK8s.NewNetworkPolicy(microservice)
+	configEnvVariables := dolittleK8s.NewEnvVariablesConfigmap(microservice)
+	configFiles := dolittleK8s.NewConfigFilesConfigmap(microservice)
+	configSecrets := dolittleK8s.NewEnvVariablesSecret(microservice)
 	configBusinessMoments := businessmomentsadaptor.NewBusinessMomentsConfigmap(microservice)
-	ingress.Spec.TLS = k8s.AddIngressTLS([]string{host}, secretName)
-	ingress.Spec.Rules = append(ingress.Spec.Rules, k8s.AddIngressRule(host, ingressRules))
+
+	ingresses := customertenant.CreateIngresses(r.isProduction, customerTenants, microservice, service.Name, input.Extra.Ingress)
 
 	token := ""
 
@@ -132,44 +120,46 @@ func (r businessMomentsAdaptorRepo) Create(namespace string, tenant k8s.Tenant, 
 	ctx := context.TODO()
 
 	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, microserviceConfigmap, metaV1.CreateOptions{})
-	if K8sHandleResourceCreationError(err, func() { K8sPrintAlreadyExists("microservice config map") }) != nil {
+	if microserviceK8s.K8sHandleResourceCreationError(err, func() { microserviceK8s.K8sPrintAlreadyExists("microservice config map") }) != nil {
 		return err
 	}
 
 	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, configEnvVariables, metaV1.CreateOptions{})
-	if K8sHandleResourceCreationError(err, func() { K8sPrintAlreadyExists("config env variables") }) != nil {
+	if microserviceK8s.K8sHandleResourceCreationError(err, func() { microserviceK8s.K8sPrintAlreadyExists("config env variables") }) != nil {
 		return err
 	}
 	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, configFiles, metaV1.CreateOptions{})
-	if K8sHandleResourceCreationError(err, func() { K8sPrintAlreadyExists("config files") }) != nil {
+	if microserviceK8s.K8sHandleResourceCreationError(err, func() { microserviceK8s.K8sPrintAlreadyExists("config files") }) != nil {
 		return err
 	}
 	_, err = client.CoreV1().ConfigMaps(namespace).Create(ctx, configBusinessMoments, metaV1.CreateOptions{})
-	if K8sHandleResourceCreationError(err, func() { K8sPrintAlreadyExists("config business moments") }) != nil {
+	if microserviceK8s.K8sHandleResourceCreationError(err, func() { microserviceK8s.K8sPrintAlreadyExists("config business moments") }) != nil {
 		return err
 	}
 	_, err = client.CoreV1().Secrets(namespace).Create(ctx, configSecrets, metaV1.CreateOptions{})
-	if K8sHandleResourceCreationError(err, func() { K8sPrintAlreadyExists("config secrets") }) != nil {
+	if microserviceK8s.K8sHandleResourceCreationError(err, func() { microserviceK8s.K8sPrintAlreadyExists("config secrets") }) != nil {
 		return err
 	}
 
-	_, err = client.NetworkingV1().Ingresses(namespace).Create(ctx, ingress, metaV1.CreateOptions{})
-	if K8sHandleResourceCreationError(err, func() { K8sPrintAlreadyExists("ingress") }) != nil {
-		return err
+	for _, ingress := range ingresses {
+		_, err = client.NetworkingV1().Ingresses(namespace).Create(ctx, ingress, metaV1.CreateOptions{})
+		if microserviceK8s.K8sHandleResourceCreationError(err, func() { microserviceK8s.K8sPrintAlreadyExists("ingress") }) != nil {
+			return err
+		}
 	}
 
 	_, err = client.CoreV1().Services(namespace).Create(ctx, service, metaV1.CreateOptions{})
-	if K8sHandleResourceCreationError(err, func() { K8sPrintAlreadyExists("service") }) != nil {
+	if microserviceK8s.K8sHandleResourceCreationError(err, func() { microserviceK8s.K8sPrintAlreadyExists("service") }) != nil {
 		return err
 	}
 
 	_, err = client.NetworkingV1().NetworkPolicies(namespace).Create(ctx, networkPolicy, metaV1.CreateOptions{})
-	if K8sHandleResourceCreationError(err, func() { K8sPrintAlreadyExists("network policy") }) != nil {
+	if microserviceK8s.K8sHandleResourceCreationError(err, func() { microserviceK8s.K8sPrintAlreadyExists("network policy") }) != nil {
 		return err
 	}
 
 	_, err = client.AppsV1().Deployments(namespace).Create(ctx, deployment, metaV1.CreateOptions{})
-	if K8sHandleResourceCreationError(err, func() { K8sPrintAlreadyExists("deployment") }) != nil {
+	if microserviceK8s.K8sHandleResourceCreationError(err, func() { microserviceK8s.K8sPrintAlreadyExists("deployment") }) != nil {
 		return err
 	}
 
@@ -184,7 +174,7 @@ func (r businessMomentsAdaptorRepo) Delete(applicationID, environment, microserv
 	}
 
 	namespace := fmt.Sprintf("application-%s", applicationID)
-	if err = K8sStopDeployment(r.k8sClient, ctx, namespace, &deployment); err != nil {
+	if err = microserviceK8s.K8sStopDeployment(r.k8sClient, ctx, namespace, &deployment); err != nil {
 		return err
 	}
 
@@ -193,27 +183,27 @@ func (r businessMomentsAdaptorRepo) Delete(applicationID, environment, microserv
 		LabelSelector: labels.FormatLabels(deployment.GetObjectMeta().GetLabels()),
 	}
 
-	if err = K8sDeleteConfigmaps(r.k8sClient, ctx, namespace, listOpts); err != nil {
+	if err = microserviceK8s.K8sDeleteConfigmaps(r.k8sClient, ctx, namespace, listOpts); err != nil {
 		return err
 	}
 
-	if err = K8sDeleteSecrets(r.k8sClient, ctx, namespace, listOpts); err != nil {
+	if err = microserviceK8s.K8sDeleteSecrets(r.k8sClient, ctx, namespace, listOpts); err != nil {
 		return err
 	}
 
-	if err = K8sDeleteIngresses(r.k8sClient, ctx, namespace, listOpts); err != nil {
+	if err = microserviceK8s.K8sDeleteIngresses(r.k8sClient, ctx, namespace, listOpts); err != nil {
 		return err
 	}
 
-	if err = K8sDeleteNetworkPolicies(r.k8sClient, ctx, namespace, listOpts); err != nil {
+	if err = microserviceK8s.K8sDeleteNetworkPolicies(r.k8sClient, ctx, namespace, listOpts); err != nil {
 		return err
 	}
 
-	if err = K8sDeleteServices(r.k8sClient, ctx, namespace, listOpts); err != nil {
+	if err = microserviceK8s.K8sDeleteServices(r.k8sClient, ctx, namespace, listOpts); err != nil {
 		return err
 	}
 
-	if err = K8sDeleteDeployment(r.k8sClient, ctx, namespace, &deployment); err != nil {
+	if err = microserviceK8s.K8sDeleteDeployment(r.k8sClient, ctx, namespace, &deployment); err != nil {
 		return err
 	}
 

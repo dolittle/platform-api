@@ -14,6 +14,7 @@ import (
 	"github.com/itchyny/gojq"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/thoas/go-funk"
 )
 
@@ -39,8 +40,9 @@ var buildTerraformInfoCMD = &cobra.Command{
 
 		logContext := logrus.StandardLogger()
 
-		platformEnvironment, _ := cmd.Flags().GetString("platform-environment")
+		platformEnvironment := viper.GetString("tools.server.platformEnvironment")
 		gitRepoConfig := git.InitGit(logContext, platformEnvironment)
+		customerID, _ := cmd.Flags().GetString("customer-id")
 
 		// TODO possibly change this if / when we introduce dynamic platform-environment
 		filterPlatformEnvironment := funk.ContainsString([]string{
@@ -66,6 +68,17 @@ var buildTerraformInfoCMD = &cobra.Command{
 		customers, err := extractTerraformCustomers(platformEnvironment, fileBytes)
 		if err != nil {
 			logContext.WithField("error", err).Fatal("Failed to extract terraform customers")
+		}
+
+		if customerID != "" {
+			filteredCustomer, err := findCustomer(customers, customerID)
+			if err != nil {
+				fmt.Println("Customer not found")
+				return
+			}
+			customers = []platform.TerraformCustomer{
+				filteredCustomer,
+			}
 		}
 
 		err = saveTerraformCustomers(gitRepo, customers)
@@ -211,5 +224,5 @@ func findCustomer(customers []platform.TerraformCustomer, customerID string) (pl
 }
 
 func init() {
-	buildTerraformInfoCMD.Flags().String("platform-environment", "dev", "Platform environment (dev or prod), not linked to application environment")
+	buildTerraformInfoCMD.Flags().String("customer-id", "", "Specific customer-id to use (optional)")
 }

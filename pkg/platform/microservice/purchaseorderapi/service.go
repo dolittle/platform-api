@@ -4,7 +4,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/dolittle/platform-api/pkg/platform"
+	"github.com/dolittle/platform-api/pkg/k8s"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/parser"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/rawdatalog"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
@@ -16,18 +17,19 @@ import (
 
 type service struct {
 	handler         *Handler
-	k8sDolittleRepo platform.K8sRepo
+	k8sDolittleRepo platformK8s.K8sRepo
 	logger          logrus.FieldLogger
 }
 
-func NewService(gitRepo storage.Repo, k8sDolittleRepo platform.K8sRepo, k8sClient kubernetes.Interface, logContext logrus.FieldLogger) service {
-	rawDataLogRepo := rawdatalog.NewRawDataLogIngestorRepo(k8sDolittleRepo, k8sClient, gitRepo, logContext)
+func NewService(isProduction bool, gitRepo storage.Repo, k8sDolittleRepo platformK8s.K8sRepo, k8sClient kubernetes.Interface, logContext logrus.FieldLogger) service {
+	rawDataLogRepo := rawdatalog.NewRawDataLogIngestorRepo(isProduction, k8sDolittleRepo, k8sClient, logContext)
 	specFactory := NewK8sResourceSpecFactory()
 	k8sResources := NewK8sResource(k8sClient, specFactory)
+	k8sRepoV2 := k8s.NewRepo(k8sClient, logContext.WithField("context", "k8s-repo-v2"))
 	return service{
 		handler: NewHandler(
 			parser.NewJsonParser(),
-			NewRepo(k8sResources, specFactory, k8sClient),
+			NewRepo(k8sResources, specFactory, k8sClient, k8sRepoV2),
 			gitRepo,
 			rawDataLogRepo,
 			logContext,

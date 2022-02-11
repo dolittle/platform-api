@@ -6,6 +6,11 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 )
 
+const (
+	TodoCustomersTenantID        string = "17426336-fb8e-4425-8ab7-07d488367be9"
+	DevelopmentCustomersTenantID string = "445f8ea8-1a6f-40d7-b2fc-796dba92dc44"
+)
+
 var (
 	ErrStudioInfoMissing = errors.New("studio info is missing, reach out to the platform team")
 )
@@ -38,45 +43,7 @@ type HttpResponsePersonalisedInfoEndpoints struct {
 	ContainerRegistry string `json:"containerRegistry"`
 }
 
-type HttpInputApplication struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	TenantID string `json:"tenantId"`
-}
-
 type TenantId string
-
-type EnvironmentIngress struct {
-	Host         string `json:"host"`
-	DomainPrefix string `json:"domainPrefix"`
-	SecretName   string `json:"secretName"`
-}
-
-type EnvironmentIngresses map[TenantId]EnvironmentIngress
-
-type HttpInputEnvironment struct {
-	AutomationEnabled bool                 `json:"automationEnabled"`
-	Name              string               `json:"name"`
-	TenantID          string               `json:"tenantId"`
-	ApplicationID     string               `json:"applicationId"`
-	Tenants           []TenantId           `json:"tenants"`
-	Ingresses         EnvironmentIngresses `json:"ingresses"`
-}
-
-type HttpResponseApplication struct {
-	ID            string                 `json:"id"`
-	Name          string                 `json:"name"`
-	TenantID      string                 `json:"tenantId"`
-	TenantName    string                 `json:"tenantName"`
-	Environments  []HttpInputEnvironment `json:"environments"`
-	Microservices []HttpMicroserviceBase `json:"microservices,omitempty"`
-}
-
-type HttpResponseApplications struct {
-	ID           string                     `json:"id"`
-	Name         string                     `json:"name"`
-	Applications []ShortInfoWithEnvironment `json:"applications"`
-}
 
 type ImageInfo struct {
 	Image string `json:"image"`
@@ -119,9 +86,10 @@ type Tenant struct {
 }
 
 type Ingress struct {
-	Host        string `json:"host"`
-	Environment string `json:"environment"`
-	Path        string `json:"path"`
+	Host             string `json:"host"`
+	Environment      string `json:"environment"`
+	Path             string `json:"path"`
+	CustomerTenantID string `json:"customerTenantID"`
 }
 
 type Application struct {
@@ -140,12 +108,6 @@ type ShortInfoWithEnvironment struct {
 	Name        string `json:"name"`
 	Environment string `json:"environment"`
 	ID          string `json:"id"`
-}
-
-type GitRepo interface {
-	Write(tenantID string, applicationID string, data []byte) error
-	Read(tenantID string, applicationID string) ([]byte, error)
-	GetAll(tenantID string) ([]Application, error)
 }
 
 type MicroserviceKind string
@@ -173,11 +135,8 @@ type HttpInputDolittle struct {
 }
 
 type HttpInputSimpleIngress struct {
-	Host             string `json:"host"`
-	SecretNamePrefix string `json:"secretNamePrefix"` // Not happy with this part
-	DomainPrefix     string `json:"domainPrefix"`     // Not happy with this part
-	Path             string `json:"path"`
-	Pathtype         string `json:"pathType"`
+	Path     string `json:"path"`
+	Pathtype string `json:"pathType"`
 }
 
 type HttpInputSimpleInfo struct {
@@ -230,19 +189,12 @@ type HttpInputRawDataLogIngestorInfo struct {
 }
 
 type HttpInputRawDataLogIngestorExtra struct {
-	Headimage                 string                             `json:"headImage"`
-	Runtimeimage              string                             `json:"runtimeImage"`
-	Ingress                   HttpInputRawDataLogIngestorIngress `json:"ingress"`
-	Webhooks                  []RawDataLogIngestorWebhookConfig  `json:"webhooks"`
-	WebhookStatsAuthorization string                             `json:"webhookStatsAuthorization"`
-	WriteTo                   string                             `json:"writeTo"`
-}
-
-type HttpInputRawDataLogIngestorIngress struct {
-	Host         string `json:"host"`
-	DomainPrefix string `json:"domainPrefix"`
-	Path         string `json:"path"`
-	Pathtype     string `json:"pathType"`
+	Headimage                 string                            `json:"headImage"`
+	Runtimeimage              string                            `json:"runtimeImage"`
+	Ingress                   HttpInputSimpleIngress            `json:"ingress"`
+	Webhooks                  []RawDataLogIngestorWebhookConfig `json:"webhooks"`
+	WebhookStatsAuthorization string                            `json:"webhookStatsAuthorization"`
+	WriteTo                   string                            `json:"writeTo"`
 }
 
 type RawDataLogIngestorWebhookConfig struct {
@@ -284,6 +236,7 @@ type TerraformCustomer struct {
 type StudioConfig struct {
 	BuildOverwrite       bool     `json:"build_overwrite"`
 	DisabledEnvironments []string `json:"disabled_environments"`
+	CanCreateApplication bool     `json:"can_create_application"`
 }
 
 type Entity struct {
@@ -330,11 +283,11 @@ type HttpInputPurchaseOrderInfo struct {
 }
 
 type HttpInputPurchaseOrderExtra struct {
-	Headimage      string                             `json:"headImage"`
-	Runtimeimage   string                             `json:"runtimeImage"`
-	Ingress        HttpInputRawDataLogIngestorIngress `json:"ingress"`
-	Webhooks       []RawDataLogIngestorWebhookConfig  `json:"webhooks"`
-	RawDataLogName string                             `json:"rawDataLogName"`
+	Headimage      string                            `json:"headImage"`
+	Runtimeimage   string                            `json:"runtimeImage"`
+	Ingress        HttpInputSimpleIngress            `json:"ingress"`
+	Webhooks       []RawDataLogIngestorWebhookConfig `json:"webhooks"`
+	RawDataLogName string                            `json:"rawDataLogName"`
 }
 
 type TerraformApplication struct {
@@ -415,7 +368,6 @@ type HttpResponseEnvironmentVariables struct {
 	Environment    string                      `json:"environment"`
 	Data           []StudioEnvironmentVariable `json:"data"`
 }
-
 type MicroserviceMetadataShortInfo struct {
 	CustomerID       string `json:"customerId"`
 	CustomerName     string `json:"customerName"`
@@ -424,4 +376,45 @@ type MicroserviceMetadataShortInfo struct {
 	Environment      string `json:"environment"`
 	MicroserviceID   string `json:"microserviceId"`
 	MicroserviceName string `json:"microserviceName"`
+}
+
+type RuntimeTenantsIDS map[string]interface{}
+
+// CustomerTenantInfo
+// Today this is specific for high level customer tenant info,
+// This does not contain all the low level data across all our customers,
+// We rely on code for that, at the moment
+type CustomerTenantInfo struct {
+	Alias            string               `json:"alias"`
+	Environment      string               `json:"environment"`
+	CustomerTenantID string               `json:"customerTenantId"`
+	Hosts            []CustomerTenantHost `json:"hosts"`
+
+	MicroservicesRel []CustomerTenantMicroserviceRel `json:"microservicesRel"`
+}
+
+const (
+	HostNotInSystem = "na"
+	HostLookUp      = ""
+)
+
+type CustomerTenantHost struct {
+	Host string `json:"host"`
+	// If empty get it from the cluster?
+	// If not in the cluster make
+	// na = not in the cluster
+	SecretName string `json:"secretName"`
+}
+
+type CustomerTenantMicroserviceRel struct {
+	MicroserviceID string `json:"microserviceId"`
+	// ffb20e4f_a74fed4a
+	// (microserviceID first block + customerTenantID first block)
+	Hash string `json:"hash"`
+	// We could have a legacy option here to include the current data, but why?
+}
+
+type Customer struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }

@@ -5,13 +5,23 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/dolittle/platform-api/pkg/platform"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type emptyObject struct{}
+
 type MicroserviceResources map[string]MicroserviceResource
 
+// MicroserviceResource
+/*
+Today we have custom variables for the respective  databases
+Going forward we are looking to use a key based on the microserviceID and the customerTenantID
+At the moment we do not need to know the individual information as we can consume the data as
+one whole object.
+The main reason for the new approach is to create a repeatable approach with a very low level of collision for the prefix
+*/
 type MicroserviceResource struct {
 	Readmodels  MicroserviceResourceReadmodels `json:"readModels"`
 	Eventstore  MicroserviceResourceStore      `json:"eventStore"`
@@ -21,7 +31,7 @@ type MicroserviceResource struct {
 type MicroserviceResourceReadmodels struct {
 	Host     string `json:"host"`
 	Database string `json:"database"`
-	Usessl   bool   `json:"useSSL"`
+	UseSSL   bool   `json:"useSSL"`
 }
 type MicroserviceResourceStore struct {
 	Servers  []string `json:"servers"`
@@ -115,21 +125,34 @@ func NewEnvVariablesConfigmap(microservice Microservice) *corev1.ConfigMap {
 	}
 }
 
-func NewMicroserviceResources(microservice Microservice, customersTenantID string) MicroserviceResources {
+// ResourcePrefix Create a uniq preifx
+// Linked to resources.json inside *-dolittle configmap
+func ResourcePrefix(microserviceID string, customerTenantID string) string {
+	return strings.ToLower(
+		fmt.Sprintf("%s_%s",
+			microserviceID[0:7],
+			customerTenantID[0:7],
+		))
+}
+
+// NewMicroserviceResources
+// Build the microservice resource creating custmoer tenants specific blocks
+func NewMicroserviceResources(microservice Microservice, customerTenants []platform.CustomerTenantInfo) MicroserviceResources {
+
 	environment := strings.ToLower(microservice.Environment)
 	mongoDNS := fmt.Sprintf("%s-mongo.application-%s.svc.cluster.local", environment, microservice.Application.ID)
-	databasePrefix := strings.ToLower(
-		fmt.Sprintf("%s_%s_%s",
-			microservice.Application.Name,
-			microservice.Environment,
-			microservice.Name,
-		))
-	return MicroserviceResources{
-		customersTenantID: MicroserviceResource{
+
+	resources := MicroserviceResources{}
+
+	for _, customerTenant := range customerTenants {
+		customerTenantID := customerTenant.CustomerTenantID
+		databasePrefix := ResourcePrefix(microservice.ID, customerTenant.CustomerTenantID)
+
+		dolittleResource := MicroserviceResource{
 			Readmodels: MicroserviceResourceReadmodels{
 				Host:     fmt.Sprintf("mongodb://%s-mongo.application-%s.svc.cluster.local:27017", environment, microservice.Application.ID),
 				Database: fmt.Sprintf("%s_readmodels", databasePrefix),
-				Usessl:   false,
+				UseSSL:   false,
 			},
 			Eventstore: MicroserviceResourceStore{
 				Servers: []string{
@@ -149,8 +172,11 @@ func NewMicroserviceResources(microservice Microservice, customersTenantID strin
 				},
 				Database: fmt.Sprintf("%s_embeddings", databasePrefix),
 			},
-		},
+		}
+		resources[customerTenantID] = dolittleResource
 	}
+
+	return resources
 }
 
 func NewMicroserviceConfigMapPlatformData(microservice Microservice) MicroservicePlatform {
@@ -165,7 +191,7 @@ func NewMicroserviceConfigMapPlatformData(microservice Microservice) Microservic
 	}
 }
 
-func NewMicroserviceConfigmap(microservice Microservice, customersTenantID string) *corev1.ConfigMap {
+func NewMicroserviceConfigmap(microservice Microservice, customersTenants []platform.CustomerTenantInfo) *corev1.ConfigMap {
 	name := fmt.Sprintf("%s-%s-dolittle",
 		microservice.Environment,
 		microservice.Name,
@@ -176,7 +202,7 @@ func NewMicroserviceConfigmap(microservice Microservice, customersTenantID strin
 
 	name = strings.ToLower(name)
 
-	resources := NewMicroserviceResources(microservice, customersTenantID)
+	resources := NewMicroserviceResources(microservice, customersTenants)
 
 	endpoints := MicroserviceEndpoints{
 		Public: MicroserviceEndpointPort{

@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
-	"github.com/dolittle/platform-api/pkg/platform"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	coreV1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -86,7 +86,7 @@ func (r K8sRepo) GetBusinessMomentsConfigmap(applicationID string, environment s
 
 	if !found {
 		// TO make we need
-		return coreV1.ConfigMap{}, platform.ErrNotFound
+		return coreV1.ConfigMap{}, platformK8s.ErrNotFound
 	}
 	return foundConfigmap, nil
 }

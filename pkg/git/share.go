@@ -15,7 +15,9 @@ func SetupViper() {
 	viper.BindEnv("tools.server.gitRepo.dryRun", "GIT_REPO_DRY_RUN")
 
 	viper.SetDefault("tools.server.gitRepo.sshKey", "")
-	viper.SetDefault("tools.server.gitRepo.url", "")
+	// TODO this could differ from viper.SetDefault("tools.jobs.git.remote.url", "") which might cause
+	// confusion,
+	viper.SetDefault("tools.server.gitRepo.url", "git@github.com:dolittle-platform/Operations.git")
 	viper.SetDefault("tools.server.gitRepo.directory", "/tmp/dolittle-k8s")
 	viper.SetDefault("tools.server.gitRepo.directoryOnly", false)
 	viper.SetDefault("tools.server.gitRepo.dryRun", false)

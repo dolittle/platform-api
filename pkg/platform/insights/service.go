@@ -10,13 +10,14 @@ import (
 	"time"
 
 	"github.com/dolittle/platform-api/pkg/platform"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/mongo"
 	"github.com/dolittle/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )
 
-func NewService(logContext logrus.FieldLogger, k8sDolittleRepo platform.K8sRepo, lokiHost string) service {
+func NewService(logContext logrus.FieldLogger, k8sDolittleRepo platformK8s.K8sRepo, lokiHost string) service {
 	return service{
 		logContext:      logContext,
 		k8sDolittleRepo: k8sDolittleRepo,
@@ -130,7 +131,7 @@ func (s *service) ProxyLoki(w http.ResponseWriter, r *http.Request) {
 	r.Header.Del("Tenant-ID")
 	r.Header.Del("User-ID")
 	r.Header.Del("x-shared-secret")
-	r.Header.Set("X-Scope-OrgId", fmt.Sprintf("tenant-%s", tenantID))
+	r.Header.Set("X-Scope-OrgId", platform.GetCustomerGroup(tenantID))
 	// Remove prefix
 	parts := strings.Split(r.URL.Path, "/loki")
 

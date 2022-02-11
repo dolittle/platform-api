@@ -1,7 +1,7 @@
 package rawdatalog_test
 
 import (
-	"errors"
+	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -18,27 +18,27 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/testing"
 
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	. "github.com/dolittle/platform-api/pkg/platform/microservice/rawdatalog"
-	mocks "github.com/dolittle/platform-api/pkg/platform/storage/mocks"
 )
 
 var _ = Describe("Repo", func() {
 	var (
 		clientSet      *fake.Clientset
 		config         *rest.Config
-		k8sRepo        platform.K8sRepo
-		gitRepo        *mocks.Repo
+		k8sRepo        platformK8s.K8sRepo
 		logger         *logrus.Logger
 		rawDataLogRepo RawDataLogIngestorRepo
+		isProduction   bool
 	)
 
 	BeforeEach(func() {
+		logger, _ = logrusTest.NewNullLogger()
 		clientSet = fake.NewSimpleClientset()
 		config = &rest.Config{}
-		k8sRepo = platform.NewK8sRepo(clientSet, config)
-		gitRepo = new(mocks.Repo)
-		logger, _ = logrusTest.NewNullLogger()
-		rawDataLogRepo = NewRawDataLogIngestorRepo(k8sRepo, clientSet, gitRepo, logger)
+		k8sRepo = platformK8s.NewK8sRepo(clientSet, config, logger)
+		isProduction = false
+		rawDataLogRepo = NewRawDataLogIngestorRepo(isProduction, k8sRepo, clientSet, logger)
 	})
 
 	Describe("when creating RawDataLog", func() {
@@ -72,8 +72,7 @@ var _ = Describe("Repo", func() {
 					Kind: platform.MicroserviceKindRawDataLogIngestor,
 				},
 				Extra: platform.HttpInputRawDataLogIngestorExtra{
-					Ingress: platform.HttpInputRawDataLogIngestorIngress{
-						Host:     "some-fancy.domain.name",
+					Ingress: platform.HttpInputSimpleIngress{
 						Path:     "/api/not-webhooks-just-to-be-sure",
 						Pathtype: "SpecialTypeNotActuallySupported",
 					},
@@ -81,76 +80,10 @@ var _ = Describe("Repo", func() {
 			}
 		})
 
-		JustBeforeEach(func() {
-			err = rawDataLogRepo.Create(namespace, tenant, application, input)
-		})
-
-		Context("for an application that does not exist", func() {
-			BeforeEach(func() {
-				gitRepo.
-					On("GetApplication", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
-					Return(platform.HttpResponseApplication{}, errors.New("could not find application"))
-			})
-
-			It("should fail with an error", func() {
-				Expect(err).ToNot(BeNil())
-			})
-			It("should not create any resources", func() {
-				Expect(getCreateActions(clientSet)).To(BeEmpty())
-			})
-		})
-
 		Context("for an application that does not have any ingresses", func() {
 			BeforeEach(func() {
-				gitRepo.
-					On("GetApplication", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
-					Return(platform.HttpResponseApplication{
-						Environments: []platform.HttpInputEnvironment{
-							{
-								Name: "LoisMay",
-								Tenants: []platform.TenantId{
-									"f4679b71-1215-4a60-8483-53b0d5f2bb47",
-								},
-							},
-						},
-					}, nil)
-			})
-
-			It("should fail with an error", func() {
-				Expect(err).ToNot(BeNil())
-			})
-			It("should not create any resources", func() {
-				Expect(getCreateActions(clientSet)).To(BeEmpty())
-			})
-		})
-
-		Context("for an application that has ingresses for other hostnames than specified", func() {
-			BeforeEach(func() {
-				gitRepo.
-					On("GetApplication", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
-					Return(platform.HttpResponseApplication{
-						Environments: []platform.HttpInputEnvironment{
-							{
-								Name: "LoisMay",
-								Tenants: []platform.TenantId{
-									"3d0dcaf6-bbd1-4d84-b119-186472d65ea6",
-									"c7e1d7f1-450b-4122-a08c-6d0f37051318",
-								},
-								Ingresses: platform.EnvironmentIngresses{
-									"80d6e5b5-2047-4e0b-81d7-9be3748a41aa": platform.EnvironmentIngress{
-										Host:         "some-other.domain.name",
-										DomainPrefix: "some-other",
-										SecretName:   "some-other-certificate",
-									},
-									"c7e1d7f1-450b-4122-a08c-6d0f37051318": platform.EnvironmentIngress{
-										Host:         "some-last.domain.name",
-										DomainPrefix: "some-last",
-										SecretName:   "some-last-certificate",
-									},
-								},
-							},
-						},
-					}, nil)
+				customerTenants := make([]platform.CustomerTenantInfo, 0)
+				err = rawDataLogRepo.Create(namespace, tenant, application, customerTenants, input)
 			})
 
 			It("should fail with an error", func() {
@@ -171,28 +104,23 @@ var _ = Describe("Repo", func() {
 				stanStatefulSet           *appsv1.StatefulSet
 				rawDataLogIngestorIngress *netv1.Ingress
 				rawDataLogDeployment      *appsv1.Deployment
+				customerTenantID          string
 			)
 
 			BeforeEach(func() {
-				gitRepo.
-					On("GetApplication", "c6c72dab-a770-47d5-b85d-2777d2ac0922", "6db1278e-da39-481a-8474-e0ef6bdc2f6e").
-					Return(platform.HttpResponseApplication{
-						Environments: []platform.HttpInputEnvironment{
+				customerTenantID = "f4679b71-1215-4a60-8483-53b0d5f2bb47"
+				customerTenants := []platform.CustomerTenantInfo{
+					{
+						CustomerTenantID: customerTenantID,
+						Hosts: []platform.CustomerTenantHost{
 							{
-								Name: "LoisMay",
-								Tenants: []platform.TenantId{
-									"f4679b71-1215-4a60-8483-53b0d5f2bb47",
-								},
-								Ingresses: platform.EnvironmentIngresses{
-									"f4679b71-1215-4a60-8483-53b0d5f2bb47": platform.EnvironmentIngress{
-										Host:         "some-fancy.domain.name",
-										DomainPrefix: "some-fancy",
-										SecretName:   "some-fancy-certificate",
-									},
-								},
+								Host:       "some-fancy.domain.name",
+								SecretName: "some-fancy-certificate",
 							},
 						},
-					}, nil)
+					},
+				}
+				err = rawDataLogRepo.Create(namespace, tenant, application, customerTenants, input)
 			})
 
 			// NATS ConfigMap
@@ -681,14 +609,15 @@ var _ = Describe("Repo", func() {
 
 			// RawDataLogIngestor Ingress
 			It("should create an ingress for rawdatalogingestor named 'ernestbush'", func() {
-				object := getCreatedObject(clientSet, "Ingress", "loismay-ernestbush")
+				object := getCreatedObject(clientSet, "Ingress", fmt.Sprintf("loismay-ernestbush-%s", customerTenantID[0:7]))
 				Expect(object).ToNot(BeNil())
 				rawDataLogIngestorIngress = object.(*netv1.Ingress)
 			})
 			It("should create an ingress for rawdatalogingestor with the production certmanager issuer", func() {
-				Expect(rawDataLogIngestorIngress.Annotations["cert-manager.io/cluster-issuer"]).To(Equal("letsencrypt-production"))
+				Expect(rawDataLogIngestorIngress.Annotations["cert-manager.io/cluster-issuer"]).To(Equal("letsencrypt-staging"))
 			})
 			It("should create an ingress for rawdatalogingestor with the correct tenant id", func() {
+				// TODO this is broken now, as we get a dynamic id
 				Expect(rawDataLogIngestorIngress.Annotations["nginx.ingress.kubernetes.io/configuration-snippet"]).To(Equal("proxy_set_header Tenant-ID \"f4679b71-1215-4a60-8483-53b0d5f2bb47\";\n"))
 			})
 			It("should create an ingress for rawdatalogingestor with one rule", func() {

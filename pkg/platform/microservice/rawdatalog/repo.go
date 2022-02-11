@@ -7,7 +7,7 @@ import (
 	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
 
-	"github.com/dolittle/platform-api/pkg/platform/storage"
+	"github.com/dolittle/platform-api/pkg/platform/customertenant"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 
@@ -16,9 +16,9 @@ import (
 	"fmt"
 	"strings"
 
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8slabels "k8s.io/apimachinery/pkg/labels"
@@ -28,16 +28,16 @@ import (
 
 type RawDataLogIngestorRepo struct {
 	k8sClient       kubernetes.Interface
-	k8sDolittleRepo platform.K8sRepo
-	gitRepo         storage.Repo
+	k8sDolittleRepo platformK8s.K8sRepo
 	logContext      logrus.FieldLogger
+	isProduction    bool
 }
 
-func NewRawDataLogIngestorRepo(k8sDolittleRepo platform.K8sRepo, k8sClient kubernetes.Interface, gitRepo storage.Repo, logContext logrus.FieldLogger) RawDataLogIngestorRepo {
+func NewRawDataLogIngestorRepo(isProduction bool, k8sDolittleRepo platformK8s.K8sRepo, k8sClient kubernetes.Interface, logContext logrus.FieldLogger) RawDataLogIngestorRepo {
 	return RawDataLogIngestorRepo{
 		k8sClient:       k8sClient,
 		k8sDolittleRepo: k8sDolittleRepo,
-		gitRepo:         gitRepo,
+		isProduction:    isProduction,
 		logContext:      logContext,
 	}
 }
@@ -98,11 +98,6 @@ func (r RawDataLogIngestorRepo) Update(namespace string, customer k8s.Tenant, ap
 		logger.Warnf("A Raw Data Log doesn't exist for namespace %s and environment %s", namespace, input.Environment)
 		return fmt.Errorf("a Raw Data Log doesn't exist for namespace %s and environment %s", namespace, input.Environment)
 	}
-	_, tenant, err := r.getIngressAndTenantForHost(customer, application, input.Environment, input.Extra.Ingress.Host)
-	if err != nil {
-		logger.WithError(err).Error("Failed to map input ingress to stored ingress")
-		return err
-	}
 
 	environment := input.Environment
 
@@ -116,7 +111,6 @@ func (r RawDataLogIngestorRepo) Update(namespace string, customer k8s.Tenant, ap
 		Tenant:      customer,
 		Application: application,
 		Environment: environment,
-		ResourceID:  string(tenant),
 		Kind:        kind,
 	}
 
@@ -139,7 +133,7 @@ func (r RawDataLogIngestorRepo) Update(namespace string, customer k8s.Tenant, ap
 	return nil
 }
 
-func (r RawDataLogIngestorRepo) Create(namespace string, customer k8s.Tenant, application k8s.Application, input platform.HttpInputRawDataLogIngestorInfo) error {
+func (r RawDataLogIngestorRepo) Create(namespace string, customer k8s.Tenant, application k8s.Application, customerTenants []platform.CustomerTenantInfo, input platform.HttpInputRawDataLogIngestorInfo) error {
 	logger := r.logContext.WithFields(logrus.Fields{
 		"namespace":   namespace,
 		"customer":    customer.ID,
@@ -161,10 +155,8 @@ func (r RawDataLogIngestorRepo) Create(namespace string, customer k8s.Tenant, ap
 	labels := k8s.GetLabels(microservice)
 	annotations := k8s.GetAnnotations(microservice)
 
-	ingress, tenant, err := r.getIngressAndTenantForHost(customer, application, input.Environment, input.Extra.Ingress.Host)
-	if err != nil {
-		logger.WithError(err).Error("Failed to map input ingress to stored ingress")
-		return err
+	if len(customerTenants) == 0 {
+		return errors.New("no-customer-tenants")
 	}
 
 	// TODO changing writeTo will break this.
@@ -177,7 +169,7 @@ func (r RawDataLogIngestorRepo) Create(namespace string, customer k8s.Tenant, ap
 		}
 	}
 
-	if err := r.doDolittle(namespace, customer, application, ingress, tenant, input); err != nil {
+	if err := r.doDolittle(namespace, customer, application, customerTenants, input); err != nil {
 		logger.WithError(err).Error("Could not doDolittle")
 		return err
 	}
@@ -426,15 +418,15 @@ func (r RawDataLogIngestorRepo) doNats(namespace string, labels, annotations k8s
 }
 
 // Creates the RawDataLog microservice in k8s
-func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant, application k8s.Application, environmentIngress platform.EnvironmentIngress, tenant platform.TenantId, input platform.HttpInputRawDataLogIngestorInfo) error {
+// TODO this tenant is wrong
+func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant, application k8s.Application, customerTenants []platform.CustomerTenantInfo, input platform.HttpInputRawDataLogIngestorInfo) error {
+	isProduction := r.isProduction
 	r.logContext.WithFields(logrus.Fields{
 		"namespace": namespace,
 		"method":    "RawDataLogIngestorRepo.doDolittle",
 	}).Debug("Starting to create RawDataLog microservice")
 
 	environment := input.Environment
-	host := environmentIngress.Host
-	secretName := environmentIngress.SecretName
 
 	microserviceID := input.Dolittle.MicroserviceID
 	microserviceName := input.Name
@@ -448,39 +440,33 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 		Tenant:      customer,
 		Application: application,
 		Environment: environment,
-		ResourceID:  string(tenant),
 		Kind:        kind,
 	}
 
-	ingressServiceName := strings.ToLower(fmt.Sprintf("%s-%s", microservice.Environment, microservice.Name))
-	ingressRules := []k8s.SimpleIngressRule{
-		{
-			Path:            input.Extra.Ingress.Path,
-			PathType:        networkingv1.PathType(input.Extra.Ingress.Pathtype),
-			ServiceName:     ingressServiceName,
-			ServicePortName: "http",
-		},
-	}
-
+	// TODO I don't understand why we are creating microserviceconfigmap, yet.
 	// TODO update should not allow changes to:
 	// - name
 	// What else?
 
 	// TODO do I need this?
 	// TODO if I remove it, do I remove the config mapping?
-	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, string(tenant))
+	microserviceConfigmap := k8s.NewMicroserviceConfigmap(microservice, customerTenants)
 	deployment := k8s.NewDeployment(microservice, headImage, runtimeImage)
 	service := k8s.NewService(microservice)
-	ingress := k8s.NewIngress(microservice)
+
 	networkPolicy := k8s.NewNetworkPolicy(microservice)
 	configEnvVariables := k8s.NewEnvVariablesConfigmap(microservice)
 	configFiles := k8s.NewConfigFilesConfigmap(microservice)
 	configSecrets := k8s.NewEnvVariablesSecret(microservice)
 	// TODO add rawDataLog Configmap
 	//configBusinessMoments := businessmomentsadaptor.NewBusinessMomentsConfigmap(microservice)
-	ingress.Spec.TLS = k8s.AddIngressTLS([]string{host}, secretName)
-	ingress.Spec.Rules = append(ingress.Spec.Rules, k8s.AddIngressRule(host, ingressRules))
 
+	// TODO this needs coming back to when / if we want to bring rawdatalog back online
+	ingresses := customertenant.CreateIngresses(isProduction, customerTenants, microservice, service.Name, input.Extra.Ingress)
+	if len(ingresses) == 0 {
+		return errors.New("no ingresses were found")
+	}
+	ingress := ingresses[0]
 	// Could use config-files
 
 	webhookPrefix := strings.ToLower(input.Extra.Ingress.Path)
@@ -531,6 +517,7 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 		if err != nil {
 			fmt.Println("error updating")
 			fmt.Println(err.Error())
+			// TODO continuing after an error, not ideal
 		}
 	}
 
@@ -664,35 +651,6 @@ func (r RawDataLogIngestorRepo) doDolittle(namespace string, customer k8s.Tenant
 	return nil
 }
 
-func (r RawDataLogIngestorRepo) getIngressAndTenantForHost(customer k8s.Tenant, application k8s.Application, environment string, host string) (platform.EnvironmentIngress, platform.TenantId, error) {
-	app, err := r.gitRepo.GetApplication(customer.ID, application.ID)
-	if err != nil {
-		return platform.EnvironmentIngress{}, "", err
-	}
-
-	env, err := r.getEnvironmentFromApplication(app, environment)
-	if err != nil {
-		return platform.EnvironmentIngress{}, "", err
-	}
-
-	for tenantID, existingIngress := range env.Ingresses {
-		if strings.EqualFold(existingIngress.Host, host) {
-			return existingIngress, tenantID, nil
-		}
-	}
-
-	return platform.EnvironmentIngress{}, "", fmt.Errorf("no ingress with host %s found in environment %s in application %s", host, environment, application.ID)
-}
-
-func (r RawDataLogIngestorRepo) getEnvironmentFromApplication(application platform.HttpResponseApplication, environment string) (platform.HttpInputEnvironment, error) {
-	for _, env := range application.Environments {
-		if strings.EqualFold(env.Name, environment) {
-			return env, nil
-		}
-	}
-
-	return platform.HttpInputEnvironment{}, fmt.Errorf("environment %s not found in application %s", environment, application.ID)
-}
 func (r RawDataLogIngestorRepo) configureConfigFiles(configFiles *corev1.ConfigMap, input platform.HttpInputRawDataLogIngestorInfo) *corev1.ConfigMap {
 	configFiles.Data = map[string]string{}
 	// We store the config data into the config-Files for the service to pick up on

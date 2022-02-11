@@ -1,6 +1,5 @@
 default:
 
-
 test:
 	rm -f profile.cov
 	go test ./... -covermode=count -coverprofile=profile.cov;
@@ -15,3 +14,9 @@ server:
 	HEADER_SECRET="FAKE" \
 	AZURE_SUBSCRIPTION_ID="e7220048-8a2c-4537-994b-6f9b320692d7" \
 	go run main.go microservice server
+
+docker-build-dev-platform-api:
+	docker build -f ./Dockerfile -t dolittle-dev/platform-api:latest .
+
+docker-build-dev-platform-operations: docker-build-dev-platform-api
+	docker build --build-arg BASE_IMAGE=dolittle-dev/platform-api:latest -f Dockerfile.operations -t platform-operations:latest .

@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/sirupsen/logrus"
@@ -35,9 +33,7 @@ func (s *GitStorage) SaveStudioConfig(tenantID string, config platform.StudioCon
 		return err
 	}
 
-	// Need to remove the prefix
-	path := strings.TrimPrefix(filename, s.config.RepoRoot+string(os.PathSeparator))
-	err = s.CommitPathAndPush(path, fmt.Sprintf("upsert studio config for customer %s", tenantID))
+	err = s.CommitPathAndPush(filename, fmt.Sprintf("upsert studio config for customer %s", tenantID))
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
@@ -55,20 +51,15 @@ func (s *GitStorage) writeStudioConfig(tenantID string, config platform.StudioCo
 	})
 
 	dir := s.GetTenantDirectory(tenantID)
-	err := os.MkdirAll(dir, 0755)
-	if err != nil {
-		return "", err
-	}
-
 	filename := filepath.Join(dir, "studio.json")
-	data, _ := json.MarshalIndent(config, "", "  ")
-	if err := ioutil.WriteFile(filename, data, 0644); err != nil {
+	err := s.writeToDisk(filename, config)
+	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error":    err,
 			"filename": filename,
 		}).Error("Failed to write to 'studio.json")
-		return filename, err
 	}
+
 	return filename, nil
 }
 

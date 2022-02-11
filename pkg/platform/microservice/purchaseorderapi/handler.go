@@ -52,7 +52,7 @@ func NewHandler(parser parser.Parser, repo Repo, gitRepo storage.Repo, rawDataLo
 }
 
 // Create creates a new PurchaseOrderAPI microservice and creates a RawDataLog microservice too if it didn't already exist
-func (s *Handler) Create(inputBytes []byte, applicationInfo platform.Application) (platform.HttpInputPurchaseOrderInfo, *Error) {
+func (s *Handler) Create(inputBytes []byte, applicationInfo platform.Application, customerTenants []platform.CustomerTenantInfo) (platform.HttpInputPurchaseOrderInfo, *Error) {
 	// Function assumes access check has taken place
 	var ms platform.HttpInputPurchaseOrderInfo
 	logger := s.logContext.WithFields(logrus.Fields{
@@ -73,31 +73,26 @@ func (s *Handler) Create(inputBytes []byte, applicationInfo platform.Application
 	})
 	logger.Debug("Starting to create a PurchaseOrderAPI microservice")
 
-	tenant, err := s.getConfiguredTenant(applicationInfo.Tenant.ID, applicationInfo.ID, ms.Environment)
-	if err != nil {
-		logger.WithError(err).Error("Failed to get configured tenant")
-		return ms, newInternalError(fmt.Errorf("failed to get configured tenant: %w", err))
-	}
-
-	exists, statusErr := s.purchaseOrderApiExists(msK8sInfo, ms, tenant, logger)
+	exists, statusErr := s.purchaseOrderApiExists(msK8sInfo, ms, logger)
 	if statusErr != nil {
 		logger.WithError(statusErr).Error("Failed to check whether Purchase Order API exists")
-		return ms, newInternalError(fmt.Errorf("failed to whether Purchase Order API exists: %w", err))
+		return ms, newInternalError(fmt.Errorf("failed to whether Purchase Order API exists: %w", statusErr))
 	}
+
 	if exists {
 		logger.WithField("microserviceID", ms.Dolittle.MicroserviceID).Warn("A Purchase Order API Microservice with the same name already exists in kubernetes or git storage")
 		return ms, newConflict(fmt.Errorf("a Purchase Order API Microservice with the same name already exists in kubernetes or git storage"))
 	}
 
-	if statusErr := s.ensureRawDataLogExists(msK8sInfo, ms, logger); statusErr != nil {
+	if statusErr := s.ensureRawDataLogExists(msK8sInfo, ms, customerTenants, logger); statusErr != nil {
 		return ms, statusErr
 	}
 
-	return ms, s.createPurchaseOrderAPI(msK8sInfo, ms, tenant, logger)
+	return ms, s.createPurchaseOrderAPI(msK8sInfo, ms, customerTenants, logger)
 }
 
 // Update updates an existing PurchaseOrderAPI microservice and creates a RawDataLog microservice too if it didn't already exist
-func (s *Handler) UpdateWebhooks(inputBytes []byte, applicationInfo platform.Application) (platform.HttpInputPurchaseOrderInfo, *Error) {
+func (s *Handler) UpdateWebhooks(inputBytes []byte, applicationInfo platform.Application, customerTenants []platform.CustomerTenantInfo) (platform.HttpInputPurchaseOrderInfo, *Error) {
 	// Function assumes access check has taken place
 	var ms platform.HttpInputPurchaseOrderInfo
 	logger := s.logContext.WithFields(logrus.Fields{
@@ -118,23 +113,17 @@ func (s *Handler) UpdateWebhooks(inputBytes []byte, applicationInfo platform.App
 	})
 	logger.Debug("Starting to update PurchaseOrderAPI microservice")
 
-	tenant, err := s.getConfiguredTenant(applicationInfo.Tenant.ID, applicationInfo.ID, ms.Environment)
-	if err != nil {
-		logger.WithError(err).Error("Failed to get configured tenant")
-		return ms, newInternalError(fmt.Errorf("failed to get configured tenant: %w", err))
-	}
-
-	exists, statusErr := s.purchaseOrderApiExists(msK8sInfo, ms, tenant, logger)
+	exists, statusErr := s.purchaseOrderApiExists(msK8sInfo, ms, logger)
 	if statusErr != nil {
 		logger.WithError(statusErr).Error("Failed to check whether Purchase Order API exists")
-		return ms, newInternalError(fmt.Errorf("failed to whether Purchase Order API exists: %w", err))
+		return ms, newInternalError(fmt.Errorf("failed to whether Purchase Order API exists: %w", statusErr))
 	}
 	if !exists {
 		logger.WithField("microserviceID", ms.Dolittle.MicroserviceID).Warn("A Purchase Order API Microservice does not exist in kubernetes or git storage")
 		return ms, newConflict(fmt.Errorf("a Purchase Order API Microservice does not exist in kubernetes or git storage"))
 	}
 
-	if statusErr := s.ensureRawDataLogExists(msK8sInfo, ms, logger); statusErr != nil {
+	if statusErr := s.ensureRawDataLogExists(msK8sInfo, ms, customerTenants, logger); statusErr != nil {
 		return ms, statusErr
 	}
 	return ms, s.updatePurchaseOrderAPIWebhooks(msK8sInfo, ms.Extra.Webhooks, ms.Environment, ms.Dolittle.MicroserviceID, logger)
@@ -190,15 +179,7 @@ func (s *Handler) GetDataStatus(dns, tenantID, applicationID, environment, micro
 	return status, nil
 }
 
-func (s *Handler) getConfiguredTenant(customerID, appplicationID, environment string) (platform.TenantId, error) {
-	application, err := s.gitRepo.GetApplication(customerID, appplicationID)
-	if err != nil {
-		return "", err
-	}
-	return application.GetTenantForEnvironment(environment)
-}
-
-func (s *Handler) purchaseOrderApiExists(msK8sInfo k8s.MicroserviceK8sInfo, ms platform.HttpInputPurchaseOrderInfo, tenant platform.TenantId, logger *logrus.Entry) (bool, *Error) {
+func (s *Handler) purchaseOrderApiExists(msK8sInfo k8s.MicroserviceK8sInfo, ms platform.HttpInputPurchaseOrderInfo, logger *logrus.Entry) (bool, *Error) {
 	microservices, err := s.gitRepo.GetMicroservices(msK8sInfo.Tenant.ID, msK8sInfo.Application.ID)
 	if err != nil {
 		logger.WithError(err).Error("Failed to get microservices from GitRepo")
@@ -221,8 +202,8 @@ func (s *Handler) purchaseOrderApiExists(msK8sInfo k8s.MicroserviceK8sInfo, ms p
 	return false, nil
 }
 
-func (s *Handler) createPurchaseOrderAPI(msK8sInfo k8s.MicroserviceK8sInfo, ms platform.HttpInputPurchaseOrderInfo, tenant platform.TenantId, logger *logrus.Entry) *Error {
-	if err := s.repo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, tenant, ms); err != nil {
+func (s *Handler) createPurchaseOrderAPI(msK8sInfo k8s.MicroserviceK8sInfo, ms platform.HttpInputPurchaseOrderInfo, customerTenants []platform.CustomerTenantInfo, logger *logrus.Entry) *Error {
+	if err := s.repo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, customerTenants, ms); err != nil {
 		logger.WithError(err).Error("Failed to create Purchase Order API")
 		return newInternalError(fmt.Errorf("failed to create Purchase Order API: %w", err))
 	}
@@ -235,7 +216,7 @@ func (s *Handler) createPurchaseOrderAPI(msK8sInfo k8s.MicroserviceK8sInfo, ms p
 	return nil
 }
 
-func (s *Handler) ensureRawDataLogExists(msK8sInfo k8s.MicroserviceK8sInfo, ms platform.HttpInputPurchaseOrderInfo, logger *logrus.Entry) *Error {
+func (s *Handler) ensureRawDataLogExists(msK8sInfo k8s.MicroserviceK8sInfo, ms platform.HttpInputPurchaseOrderInfo, customerTenants []platform.CustomerTenantInfo, logger *logrus.Entry) *Error {
 	rawDataLogExists, microserviceID, err := s.rawdatalogRepo.Exists(msK8sInfo.Namespace, ms.Environment)
 	if err != nil {
 		logger.WithError(err).Error("Failed to check if Raw Data Log exists")
@@ -243,7 +224,7 @@ func (s *Handler) ensureRawDataLogExists(msK8sInfo k8s.MicroserviceK8sInfo, ms p
 	}
 	if !rawDataLogExists {
 		logger.Debug("Raw Data Log does not exist, creating a new one")
-		return s.createRawDataLog(msK8sInfo, ms, logger)
+		return s.createRawDataLog(msK8sInfo, ms, customerTenants, logger)
 	} else {
 		return s.updateRawDataLogWebhooks(msK8sInfo, ms.Extra.Webhooks, ms.Environment, microserviceID, logger)
 	}
@@ -267,10 +248,9 @@ func (s *Handler) updatePurchaseOrderAPIWebhooks(msK8sInfo k8s.MicroserviceK8sIn
 	return nil
 }
 
-func (s *Handler) createRawDataLog(msK8sInfo k8s.MicroserviceK8sInfo, ms platform.HttpInputPurchaseOrderInfo, logger *logrus.Entry) *Error {
+func (s *Handler) createRawDataLog(msK8sInfo k8s.MicroserviceK8sInfo, ms platform.HttpInputPurchaseOrderInfo, customerTenants []platform.CustomerTenantInfo, logger *logrus.Entry) *Error {
 	rawDataLogMicroservice := s.extractRawDataLogInfo(ms)
-
-	if err := s.rawdatalogRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, rawDataLogMicroservice); err != nil {
+	if err := s.rawdatalogRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, customerTenants, rawDataLogMicroservice); err != nil {
 		logger.WithError(err).Error("Failed to create Raw Data Log")
 		return newInternalError(fmt.Errorf("failed to create Raw Data Log: %w", err))
 	}

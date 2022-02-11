@@ -9,7 +9,7 @@ import (
 	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	v1 "k8s.io/api/apps/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -23,18 +23,9 @@ type MicroserviceK8sInfo struct {
 	Namespace   string
 }
 
-func CreateTodoIngress() k8s.Ingress {
-	// TODO replace this with something from the cluster or something from git
-	domainPrefix := "freshteapot-taco"
-	return k8s.Ingress{
-		Host:       fmt.Sprintf("%s.dolittle.cloud", domainPrefix),
-		SecretName: fmt.Sprintf("%s-certificate", domainPrefix),
-	}
-}
-
 // K8sHasDeploymentWithName gets the microservice deployment that is has a specific name in the given namespace
 func K8sHasDeploymentWithName(client kubernetes.Interface, context context.Context, namespace, name string) (bool, error) {
-	deployments, err := client.AppsV1().Deployments(namespace).List(context, metaV1.ListOptions{})
+	deployments, err := client.AppsV1().Deployments(namespace).List(context, metav1.ListOptions{})
 	if err != nil {
 		return false, err
 	}
@@ -57,7 +48,7 @@ func K8sHasDeploymentWithName(client kubernetes.Interface, context context.Conte
 
 // Stops a deployment by scaling it down to zero
 func K8sStopDeployment(client kubernetes.Interface, context context.Context, namespace string, deployment *v1.Deployment) error {
-	s, err := client.AppsV1().Deployments(namespace).GetScale(context, deployment.Name, metaV1.GetOptions{})
+	s, err := client.AppsV1().Deployments(namespace).GetScale(context, deployment.Name, metav1.GetOptions{})
 	if err != nil {
 		log.Fatal(err)
 		return errors.New("issue")
@@ -66,7 +57,7 @@ func K8sStopDeployment(client kubernetes.Interface, context context.Context, nam
 	sc := *s
 	if sc.Spec.Replicas != 0 {
 		sc.Spec.Replicas = 0
-		_, err := client.AppsV1().Deployments(namespace).UpdateScale(context, deployment.Name, &sc, metaV1.UpdateOptions{})
+		_, err := client.AppsV1().Deployments(namespace).UpdateScale(context, deployment.Name, &sc, metav1.UpdateOptions{})
 		if err != nil {
 			log.Fatal(err)
 			return errors.New("todo")
@@ -87,11 +78,11 @@ func K8sHandleResourceCreationError(creationError error, onExists func()) error 
 	return nil
 }
 
-/// Finds and deletes all configmaps in namespace based on the given metaV1.ListOptions
-func K8sDeleteConfigmaps(client kubernetes.Interface, ctx context.Context, namespace string, listOpts metaV1.ListOptions) error {
+/// Finds and deletes all configmaps in namespace based on the given metav1.ListOptions
+func K8sDeleteConfigmaps(client kubernetes.Interface, ctx context.Context, namespace string, listOpts metav1.ListOptions) error {
 	configs, _ := client.CoreV1().ConfigMaps(namespace).List(ctx, listOpts)
 	for _, config := range configs.Items {
-		err := client.CoreV1().ConfigMaps(namespace).Delete(ctx, config.Name, metaV1.DeleteOptions{})
+		err := client.CoreV1().ConfigMaps(namespace).Delete(ctx, config.Name, metav1.DeleteOptions{})
 		if err != nil {
 			log.Fatal(err)
 			return errors.New("todo")
@@ -100,11 +91,11 @@ func K8sDeleteConfigmaps(client kubernetes.Interface, ctx context.Context, names
 	return nil
 }
 
-/// Finds and deletes all secrets in namespace based on the given metaV1.ListOptions
-func K8sDeleteSecrets(client kubernetes.Interface, ctx context.Context, namespace string, listOpts metaV1.ListOptions) error {
+/// Finds and deletes all secrets in namespace based on the given metav1.ListOptions
+func K8sDeleteSecrets(client kubernetes.Interface, ctx context.Context, namespace string, listOpts metav1.ListOptions) error {
 	secrets, _ := client.CoreV1().Secrets(namespace).List(ctx, listOpts)
 	for _, secret := range secrets.Items {
-		err := client.CoreV1().Secrets(namespace).Delete(ctx, secret.Name, metaV1.DeleteOptions{})
+		err := client.CoreV1().Secrets(namespace).Delete(ctx, secret.Name, metav1.DeleteOptions{})
 		if err != nil {
 			log.Fatal(err)
 			return errors.New("todo")
@@ -113,11 +104,11 @@ func K8sDeleteSecrets(client kubernetes.Interface, ctx context.Context, namespac
 	return nil
 }
 
-/// Finds and deletes all ingresses in namespace based on the given metaV1.ListOptions
-func K8sDeleteIngresses(client kubernetes.Interface, ctx context.Context, namespace string, listOpts metaV1.ListOptions) error {
+/// Finds and deletes all ingresses in namespace based on the given metav1.ListOptions
+func K8sDeleteIngresses(client kubernetes.Interface, ctx context.Context, namespace string, listOpts metav1.ListOptions) error {
 	ingresses, _ := client.NetworkingV1().Ingresses(namespace).List(ctx, listOpts)
 	for _, ingress := range ingresses.Items {
-		err := client.NetworkingV1().Ingresses(namespace).Delete(ctx, ingress.Name, metaV1.DeleteOptions{})
+		err := client.NetworkingV1().Ingresses(namespace).Delete(ctx, ingress.Name, metav1.DeleteOptions{})
 		if err != nil {
 			log.Fatal(err)
 			return errors.New("issue")
@@ -126,11 +117,11 @@ func K8sDeleteIngresses(client kubernetes.Interface, ctx context.Context, namesp
 	return nil
 }
 
-/// Finds and deletes all network policies in namespace based on the given metaV1.ListOptions
-func K8sDeleteNetworkPolicies(client kubernetes.Interface, ctx context.Context, namespace string, listOpts metaV1.ListOptions) error {
+/// Finds and deletes all network policies in namespace based on the given metav1.ListOptions
+func K8sDeleteNetworkPolicies(client kubernetes.Interface, ctx context.Context, namespace string, listOpts metav1.ListOptions) error {
 	policies, _ := client.NetworkingV1().NetworkPolicies(namespace).List(ctx, listOpts)
 	for _, policy := range policies.Items {
-		err := client.NetworkingV1().NetworkPolicies(namespace).Delete(ctx, policy.Name, metaV1.DeleteOptions{})
+		err := client.NetworkingV1().NetworkPolicies(namespace).Delete(ctx, policy.Name, metav1.DeleteOptions{})
 		if err != nil {
 			log.Fatal(err)
 			return errors.New("issue")
@@ -139,11 +130,11 @@ func K8sDeleteNetworkPolicies(client kubernetes.Interface, ctx context.Context, 
 	return nil
 }
 
-/// Finds and deletes all services in namespace based on the given metaV1.ListOptions
-func K8sDeleteServices(client kubernetes.Interface, ctx context.Context, namespace string, listOpts metaV1.ListOptions) error {
+/// Finds and deletes all services in namespace based on the given metav1.ListOptions
+func K8sDeleteServices(client kubernetes.Interface, ctx context.Context, namespace string, listOpts metav1.ListOptions) error {
 	services, _ := client.CoreV1().Services(namespace).List(ctx, listOpts)
 	for _, service := range services.Items {
-		err := client.CoreV1().Services(namespace).Delete(ctx, service.Name, metaV1.DeleteOptions{})
+		err := client.CoreV1().Services(namespace).Delete(ctx, service.Name, metav1.DeleteOptions{})
 		if err != nil {
 			log.Fatal(err)
 			return errors.New("issue")
@@ -154,7 +145,7 @@ func K8sDeleteServices(client kubernetes.Interface, ctx context.Context, namespa
 
 // Finds and deletes the deployment in the given namespace
 func K8sDeleteDeployment(client kubernetes.Interface, ctx context.Context, namespace string, deployment *v1.Deployment) error {
-	err := client.AppsV1().Deployments(namespace).Delete(ctx, deployment.Name, metaV1.DeleteOptions{})
+	err := client.AppsV1().Deployments(namespace).Delete(ctx, deployment.Name, metav1.DeleteOptions{})
 	if err != nil {
 		log.Fatal(err)
 		return errors.New("todo")
