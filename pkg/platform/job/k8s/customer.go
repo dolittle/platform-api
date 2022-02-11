@@ -23,8 +23,6 @@ func CreateCustomerResource(config CreateResourceConfig, customer dolittleK8s.Sh
 	branch := config.GitBranch
 	platformImage := config.PlatformImage
 	platformEnvironment := config.PlatformEnvironment
-	// config.ServiceAccountName not in use
-	// config.IsProduction not in use
 
 	customerID := customer.ID
 	customerName := customer.Name
