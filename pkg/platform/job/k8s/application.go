@@ -164,11 +164,20 @@ func DeleteApplicationResource() error {
 // buildApplicationInCluster
 // We rely on  next steps to write to git
 func buildApplicationInCluster(platformImage string, platformEnvironment string, customerID string, applicationID string, isProduction bool) corev1.Container {
+
+	envVars := []corev1.EnvVar{
+		{
+			Name:  "KUBECONFIG",
+			Value: "incluster",
+		},
+	}
+	envVars = append(envVars, envVarGitNotInUse()...)
+
 	return corev1.Container{
 		Name:            "build-application-in-cluster",
 		ImagePullPolicy: "Always",
 		Image:           platformImage,
-		Env:             envVarGitNotInUse(),
+		Env:             envVars,
 		Command: []string{
 			"sh",
 			"-c",

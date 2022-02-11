@@ -208,12 +208,19 @@ GIT_SSH_COMMAND="ssh -i /pod-data/.ssh/operations -o IdentitiesOnly=yes -o Stric
 }
 
 func toolsStudioBuildStudioInfo(platformImage string, platformEnvironment string, customerID string) corev1.Container {
+	envVars := []corev1.EnvVar{
+		{
+			Name:  "KUBECONFIG",
+			Value: "incluster",
+		},
+	}
+	envVars = append(envVars, envVarGitNotInUse()...)
+
 	return corev1.Container{
 		Name:            "tools-studio-build-studio-info",
 		ImagePullPolicy: "Always",
 		Image:           platformImage,
-		// Env is used over EnvFrom
-		Env: envVarGitNotInUse(),
+		Env:             envVars,
 		Command: []string{
 			"sh",
 			"-c",
