@@ -86,8 +86,8 @@ var serverCMD = &cobra.Command{
 
 		// TODO I wonder how this works when both are in the same cluster,
 		// today via the resources, it is not clear which is which "platform-environment".
-		go job.NewCustomerJobListener(k8sClient, gitRepo, logContext)
-		go job.NewApplicationJobListener(k8sClient, gitRepo, logContext)
+		go job.NewCustomerJobListener(k8sClient, gitRepo, logContext.WithField("context", "listener-job-customer"))
+		go job.NewApplicationJobListener(k8sClient, gitRepo, logContext.WithField("context", "listener-job-application"))
 
 		microserviceService := microservice.NewService(
 			isProduction,
