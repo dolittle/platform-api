@@ -114,8 +114,6 @@ func processOne(
 	dryRun bool,
 	logContext logrus.FieldLogger,
 ) {
-
-	// TODO having this use all, will make it as simple as the others
 	application, err := manualRepo.GatherOne(platformEnvironment, namespace)
 
 	if err != nil {

@@ -63,7 +63,6 @@ var createCustomerHclCMD = &cobra.Command{
 }
 
 func generateTerraformForCustomer(root *hclwrite.Body, customer tfCustomer) {
-	// TODO need to migrate? or do we?
 	/*
 		module "customer_test_marka" {
 			module_name          = "customer_test_marka"
