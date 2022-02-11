@@ -14,6 +14,7 @@ import (
 
 func CreateApplicationResource(config CreateResourceConfig, customerID string, application dolittleK8s.ShortInfo) *batchv1.Job {
 	namespace := config.Namespace
+	gitRemote := config.GitRemote
 	gitUserName := config.GitUserName
 	gitUserEmail := config.GitUserEmail
 	apiSecrets := config.ApiSecrets
@@ -40,6 +41,7 @@ func CreateApplicationResource(config CreateResourceConfig, customerID string, a
 	}
 	annotations := platformK8s.GetAnnotationsForApplication(customerID, applicationID)
 
+	terraformBaseContainer := terraformBase(platformImage, apiSecrets)
 	return &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Job",
@@ -84,10 +86,11 @@ func CreateApplicationResource(config CreateResourceConfig, customerID string, a
 					},
 					InitContainers: []corev1.Container{
 						sshSetup(),
-						gitSetup(platformImage, localBranch, gitUserEmail, gitUserName),
+						// We could write the env variables required?
+						gitSetup(platformImage, gitRemote, localBranch, gitUserEmail, gitUserName),
 						// Create terraform
 						// TODO We don't really need envfrom here
-						createTerraform(platformImage, []string{
+						createTerraformWithCommand(terraformBaseContainer, []string{
 							"sh",
 							"-c",
 							fmt.Sprintf(`
@@ -102,98 +105,20 @@ func CreateApplicationResource(config CreateResourceConfig, customerID string, a
 								terrformFileName,
 							),
 						}),
+
 						gitUpdateTerraform(platformImage, terrformFileName, localBranch, remoteBranch),
 						// Update git with the changes
 
 						// Terraform init new module
-						terraformInit(platformImage),
+						terraformInit(terraformBaseContainer),
 						// Terraform apply new module
-						terraformApply(platformImage, terrformFileName),
-						// We are not outputing the applicaiton terraform
-						terraformOutputJSON(platformImage),
-						// TODO build-terraform-info
-						// TODO make it so build-terraform-info works with 1 output not all
+						terraformApply(terraformBaseContainer, terrformFileName),
+						// Terraform create azure.json
+						terraformOutputJSON(terraformBaseContainer),
 						toolsStudioBuildTerraformInfo(platformImage, platformEnvironment, customerID),
 						gitUpdateStudioTerraformInfo(platformImage, platformEnvironment, customerID, localBranch, remoteBranch),
 
-						{
-							Name:            "build-application-in-cluster",
-							ImagePullPolicy: "Always",
-							Image:           platformImage,
-							// TODO do we let it handle its own git?
-							Env: []corev1.EnvVar{
-								{
-									Name:  "GIT_REPO_BRANCH", // Not really needed, but it fails without it
-									Value: "na",
-								},
-								// Not needed as we are using GIT_REPO_DIRECTORY_ONLY
-								{
-									Name:  "GIT_REPO_URL", // Not needed
-									Value: "na",
-								},
-								// Not needed as we are using GIT_REPO_DIRECTORY_ONLY
-								{
-									Name:  "GIT_REPO_SSH_KEY",
-									Value: "na",
-								},
-								{
-									Name:  "GIT_REPO_DIRECTORY",
-									Value: "/pod-data/git/",
-								},
-								{
-									Name:  "GIT_REPO_DIRECTORY_ONLY",
-									Value: "true",
-								},
-								{
-									Name:  "GIT_REPO_DRY_RUN",
-									Value: "true",
-								},
-							},
-							EnvFrom: []corev1.EnvFromSource{
-								{
-									SecretRef: &corev1.SecretEnvSource{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: "platform-terraform-env-variables",
-										},
-									},
-								},
-							},
-							Command: []string{
-								"sh",
-								"-c",
-								fmt.Sprintf(
-									`
-/app/bin/app tools automate create-application \
---platform-environment="%s" \
---with-environments \
---with-welcome-microservice \
---customer-id="%s" \
---application-id="%s" \
---is-production="%t"
-`,
-									platformEnvironment,
-									customerID,
-									applicationID,
-									isProduction,
-								),
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "shared-data",
-									MountPath: "/pod-data",
-								},
-								{
-									Name:      "secrets",
-									MountPath: "/dolittle/.ssh/operations",
-									SubPath:   "operations",
-								},
-								{
-									Name:      "secrets",
-									MountPath: "/dolittle/.ssh/operations.pub",
-									SubPath:   "operations.pub",
-								},
-							},
-						},
+						buildApplicationInCluster(platformImage, platformEnvironment, customerID, applicationID, isProduction),
 						gitUpdate(platformImage, "post-application-created", []string{
 							"sh",
 							"-c",
@@ -234,4 +159,40 @@ GIT_SSH_COMMAND="ssh -i /pod-data/.ssh/operations -o IdentitiesOnly=yes -o Stric
 func DeleteApplicationResource() error {
 	// TODO
 	return errors.New("TODO: currently we lock this in azure")
+}
+
+// buildApplicationInCluster
+// We rely on  next steps to write to git
+func buildApplicationInCluster(platformImage string, platformEnvironment string, customerID string, applicationID string, isProduction bool) corev1.Container {
+	return corev1.Container{
+		Name:            "build-application-in-cluster",
+		ImagePullPolicy: "Always",
+		Image:           platformImage,
+		Env:             envVarGitNotInUse(),
+		Command: []string{
+			"sh",
+			"-c",
+			fmt.Sprintf(
+				`
+/app/bin/app tools automate create-application \
+--platform-environment="%s" \
+--with-environments \
+--with-welcome-microservice \
+--customer-id="%s" \
+--application-id="%s" \
+--is-production="%t"
+`,
+				platformEnvironment,
+				customerID,
+				applicationID,
+				isProduction,
+			),
+		},
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      "shared-data",
+				MountPath: "/pod-data",
+			},
+		},
+	}
 }

@@ -16,6 +16,7 @@ import (
 
 func CreateCustomerResource(config CreateResourceConfig, customer dolittleK8s.ShortInfo) *batchv1.Job {
 	namespace := config.Namespace
+	gitRemote := config.GitRemote
 	gitUserName := config.GitUserName
 	gitUserEmail := config.GitUserEmail
 	apiSecrets := config.ApiSecrets
@@ -37,6 +38,7 @@ func CreateCustomerResource(config CreateResourceConfig, customer dolittleK8s.Sh
 	labels := platformK8s.GetLabelsForCustomer(customerName)
 	annotations := platformK8s.GetAnnotationsForCustomer(customerID)
 
+	terraformBaseContainer := terraformBase(platformImage, apiSecrets)
 	return &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Job",
@@ -82,8 +84,8 @@ func CreateCustomerResource(config CreateResourceConfig, customer dolittleK8s.Sh
 					},
 					InitContainers: []corev1.Container{
 						sshSetup(),
-						gitSetup(platformImage, localBranch, gitUserEmail, gitUserName),
-						createTerraform(platformImage, []string{
+						gitSetup(platformImage, gitRemote, localBranch, gitUserEmail, gitUserName),
+						createTerraformWithCommand(terraformBaseContainer, []string{
 							"sh",
 							"-c",
 							fmt.Sprintf(`
@@ -103,13 +105,11 @@ func CreateCustomerResource(config CreateResourceConfig, customer dolittleK8s.Sh
 						// Update git with the changes
 
 						// Terraform init new module
-						terraformInit(platformImage),
+						terraformInit(terraformBaseContainer),
 						// Terraform apply new module
-						terraformApply(platformImage, terrformFileName),
+						terraformApply(terraformBaseContainer, terrformFileName),
 						// Terraform create azure.json
-						terraformOutputJSON(platformImage),
-						// TODO build-terraform-info
-						// TODO make it so build-terraform-info works with 1 output not all
+						terraformOutputJSON(terraformBaseContainer),
 						toolsStudioBuildTerraformInfo(platformImage, platformEnvironment, customerID),
 						gitUpdateStudioTerraformInfo(platformImage, platformEnvironment, customerID, localBranch, remoteBranch),
 						toolsStudioBuildStudioInfo(platformImage, platformEnvironment, customerID),

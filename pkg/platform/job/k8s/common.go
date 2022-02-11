@@ -14,6 +14,7 @@ type CreateResourceConfig struct {
 	Namespace           string
 	GitUserName         string
 	GitUserEmail        string
+	GitRemote           string
 	ApiSecrets          string
 	LocalBranch         string
 	RemoteBranch        string
@@ -21,6 +22,12 @@ type CreateResourceConfig struct {
 }
 
 func CreateResourceConfigFromViper(v *viper.Viper) CreateResourceConfig {
+	// TODO We should come back to this after, as we have hard coded user + email in git storage
+	// We could have different gitRepo urls going on here
+	// gitRepoURL = viper.GetString("tools.server.gitRepo.url")
+	// VS
+	// v.GetString("tools.jobs.git.remote")
+
 	return CreateResourceConfig{
 		PlatformImage:       v.GetString("tools.jobs.image.operations"),
 		PlatformEnvironment: v.GetString("tools.server.platformEnvironment"),
@@ -31,6 +38,7 @@ func CreateResourceConfigFromViper(v *viper.Viper) CreateResourceConfig {
 		ApiSecrets:          v.GetString("tools.jobs.secrets.name"),
 		LocalBranch:         v.GetString("tools.jobs.git.branch.local"),
 		RemoteBranch:        v.GetString("tools.jobs.git.branch.remote"),
+		GitRemote:           v.GetString("tools.jobs.git.remote.url"),
 		ServiceAccountName:  "system-api-manager",
 	}
 }
@@ -39,15 +47,6 @@ func sshSetup() corev1.Container {
 	return corev1.Container{
 		Name:  "ssh-setup",
 		Image: "busybox",
-		EnvFrom: []corev1.EnvFromSource{
-			{
-				SecretRef: &corev1.SecretEnvSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "platform-terraform-env-variables",
-					},
-				},
-			},
-		},
 		Command: []string{
 			"sh",
 			"-c",
@@ -75,31 +74,23 @@ ls -lah /pod-data`,
 	}
 }
 
-func gitSetup(image string, localBranch string, gitUserEmail string, gitUserName string) corev1.Container {
+func gitSetup(image string, gitRepoURL string, localBranch string, gitUserEmail string, gitUserName string) corev1.Container {
 	return corev1.Container{
 		Name:            "git-setup",
 		ImagePullPolicy: "Always",
 		Image:           image,
-		EnvFrom: []corev1.EnvFromSource{
-			{
-				SecretRef: &corev1.SecretEnvSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "platform-terraform-env-variables",
-					},
-				},
-			},
-		},
 		Command: []string{
 			"sh",
 			"-c",
 			fmt.Sprintf(`
 mkdir -p /pod-data/git;
-GIT_SSH_COMMAND="ssh -i /pod-data/.ssh/operations -o IdentitiesOnly=yes -o StrictHostKeyChecking=no" git clone  --branch %s $GIT_REPO_URL /pod-data/git;
+GIT_SSH_COMMAND="ssh -i /pod-data/.ssh/operations -o IdentitiesOnly=yes -o StrictHostKeyChecking=no" git clone  --branch %s %s /pod-data/git;
 cd /pod-data/git;
 git config user.email "%s";
 git config user.name "%s";
 `,
 				localBranch,
+				gitRepoURL,
 				gitUserEmail,
 				gitUserName,
 			),
@@ -113,27 +104,33 @@ git config user.name "%s";
 	}
 }
 
-func createTerraform(image string, command []string) corev1.Container {
-	return corev1.Container{
-		Name:            "create-terraform",
-		ImagePullPolicy: "Always",
-		Image:           image,
-		EnvFrom: []corev1.EnvFromSource{
-			{
-				// TODO make it so only these are terraform variables
-				SecretRef: &corev1.SecretEnvSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "platform-terraform-env-variables",
-					},
-				},
-			},
+func envVarGitNotInUse() []corev1.EnvVar {
+	return []corev1.EnvVar{
+		{
+			Name:  "GIT_REPO_BRANCH", // Not really needed, but it fails without it
+			Value: "na",
 		},
-		Command: command,
-		VolumeMounts: []corev1.VolumeMount{
-			{
-				Name:      "shared-data",
-				MountPath: "/pod-data",
-			},
+		// Not needed as we are using GIT_REPO_DIRECTORY_ONLY
+		{
+			Name:  "GIT_REPO_URL", // Not needed
+			Value: "na",
+		},
+		// Not needed as we are using GIT_REPO_DIRECTORY_ONLY
+		{
+			Name:  "GIT_REPO_SSH_KEY",
+			Value: "na",
+		},
+		{
+			Name:  "GIT_REPO_DIRECTORY",
+			Value: "/pod-data/git/",
+		},
+		{
+			Name:  "GIT_REPO_DIRECTORY_ONLY",
+			Value: "true",
+		},
+		{
+			Name:  "GIT_REPO_DRY_RUN",
+			Value: "true",
 		},
 	}
 }
@@ -160,179 +157,12 @@ GIT_SSH_COMMAND="ssh -i /pod-data/.ssh/operations -o IdentitiesOnly=yes -o Stric
 	return gitUpdate(image, "terraform", commands)
 }
 
-func terraformInit(image string) corev1.Container {
-	return corev1.Container{
-		Name:            "terraform-init",
-		ImagePullPolicy: "Always",
-		Image:           image,
-		Env: []corev1.EnvVar{
-			{
-				Name:  "TF_IN_AUTOMATION",
-				Value: "1",
-			},
-		},
-		EnvFrom: []corev1.EnvFromSource{
-			{
-				SecretRef: &corev1.SecretEnvSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "platform-terraform-env-variables",
-					},
-				},
-			},
-		},
-		WorkingDir: "/pod-data/git/Source/V3/Azure",
-		Command: []string{
-			"sh",
-			"-c",
-			"terraform init",
-		},
-		VolumeMounts: []corev1.VolumeMount{
-			{
-				Name:      "shared-data",
-				MountPath: "/pod-data",
-			},
-		},
-	}
-}
-
-// name is currently the filename without .tf suffix
-func terraformApply(image string, name string) corev1.Container {
-	return corev1.Container{
-		Name:            "terraform-apply",
-		ImagePullPolicy: "Always",
-		Image:           image,
-		Env: []corev1.EnvVar{
-			{
-				Name:  "TF_IN_AUTOMATION",
-				Value: "1",
-			},
-		},
-		EnvFrom: []corev1.EnvFromSource{
-			{
-				SecretRef: &corev1.SecretEnvSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "platform-terraform-env-variables",
-					},
-				},
-			},
-		},
-		WorkingDir: "/pod-data/git/Source/V3/Azure",
-		Command: []string{
-			"sh",
-			"-c",
-			fmt.Sprintf(
-				`terraform apply -target="module.%s" -auto-approve -no-color`,
-				name,
-			),
-		},
-		VolumeMounts: []corev1.VolumeMount{
-			{
-				Name:      "shared-data",
-				MountPath: "/pod-data",
-			},
-		},
-	}
-}
-
-func terraformOutputJSON(image string) corev1.Container {
-	return corev1.Container{
-		Name:            "terraform-output-json",
-		ImagePullPolicy: "Always",
-		Image:           image,
-		Env: []corev1.EnvVar{
-			{
-				Name:  "TF_IN_AUTOMATION",
-				Value: "1",
-			},
-		},
-		EnvFrom: []corev1.EnvFromSource{
-			{
-				SecretRef: &corev1.SecretEnvSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "platform-terraform-env-variables",
-					},
-				},
-			},
-		},
-		WorkingDir: "/pod-data/git/Source/V3/Azure",
-		Command: []string{
-			"sh",
-			"-c",
-			"terraform output -json > azure.json",
-		},
-		VolumeMounts: []corev1.VolumeMount{
-			{
-				Name:      "shared-data",
-				MountPath: "/pod-data",
-			},
-		},
-	}
-}
-
-// terraformRemoveOutputJSON we remove the temp json to reduce the chance of data leaking
-func terraformRemoveOutputJSON(image string) corev1.Container {
-	return corev1.Container{
-		Name:            "terraform-rm-output-json",
-		ImagePullPolicy: "Always",
-		Image:           image,
-		WorkingDir:      "/pod-data/git/Source/V3/Azure",
-		Command: []string{
-			"sh",
-			"-c",
-			"rm azure.json",
-		},
-		VolumeMounts: []corev1.VolumeMount{
-			{
-				Name:      "shared-data",
-				MountPath: "/pod-data",
-			},
-		},
-	}
-}
-
 func toolsStudioBuildTerraformInfo(platformImage string, platformEnvironment string, customerID string) corev1.Container {
 	return corev1.Container{
 		Name:            "tools-studio-build-terraform-info",
 		ImagePullPolicy: "Always",
 		Image:           platformImage,
-		// Env is used over EnvFrom
-		Env: []corev1.EnvVar{
-			{
-				Name:  "GIT_REPO_BRANCH", // Not really needed, but it fails without it
-				Value: "na",
-			},
-			// Not needed as we are using GIT_REPO_DIRECTORY_ONLY
-			{
-				Name:  "GIT_REPO_URL", // Not needed
-				Value: "na",
-			},
-			// Not needed as we are using GIT_REPO_DIRECTORY_ONLY
-			{
-				Name:  "GIT_REPO_SSH_KEY",
-				Value: "na",
-			},
-			{
-				Name:  "GIT_REPO_DIRECTORY",
-				Value: "/pod-data/git/",
-			},
-			{
-				Name:  "GIT_REPO_DIRECTORY_ONLY",
-				Value: "true",
-			},
-			{
-				Name:  "GIT_REPO_DRY_RUN",
-				Value: "true",
-			},
-		},
-		EnvFrom: []corev1.EnvFromSource{
-			{
-				SecretRef: &corev1.SecretEnvSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "platform-terraform-env-variables",
-					},
-				},
-			},
-		},
+		Env:             envVarGitNotInUse(),
 		Command: []string{
 			"sh",
 			"-c",
@@ -383,43 +213,7 @@ func toolsStudioBuildStudioInfo(platformImage string, platformEnvironment string
 		ImagePullPolicy: "Always",
 		Image:           platformImage,
 		// Env is used over EnvFrom
-		Env: []corev1.EnvVar{
-			{
-				Name:  "GIT_REPO_BRANCH", // Not really needed, but it fails without it
-				Value: "na",
-			},
-			// Not needed as we are using GIT_REPO_DIRECTORY_ONLY
-			{
-				Name:  "GIT_REPO_URL", // Not needed
-				Value: "na",
-			},
-			// Not needed as we are using GIT_REPO_DIRECTORY_ONLY
-			{
-				Name:  "GIT_REPO_SSH_KEY",
-				Value: "na",
-			},
-			{
-				Name:  "GIT_REPO_DIRECTORY",
-				Value: "/pod-data/git/",
-			},
-			{
-				Name:  "GIT_REPO_DIRECTORY_ONLY",
-				Value: "true",
-			},
-			{
-				Name:  "GIT_REPO_DRY_RUN",
-				Value: "true",
-			},
-		},
-		EnvFrom: []corev1.EnvFromSource{
-			{
-				SecretRef: &corev1.SecretEnvSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "platform-terraform-env-variables",
-					},
-				},
-			},
-		},
+		Env: envVarGitNotInUse(),
 		Command: []string{
 			"sh",
 			"-c",
@@ -469,16 +263,7 @@ func gitUpdate(platformImage string, suffix string, commands []string) corev1.Co
 		Name:            fmt.Sprintf("git-update-%s", suffix),
 		ImagePullPolicy: "Always",
 		Image:           platformImage,
-		EnvFrom: []corev1.EnvFromSource{
-			{
-				SecretRef: &corev1.SecretEnvSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "platform-terraform-env-variables",
-					},
-				},
-			},
-		},
-		Command: commands,
+		Command:         commands,
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      "shared-data",
