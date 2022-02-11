@@ -46,7 +46,7 @@ func (c *applicationController) podAdd(obj interface{}) {
 func (c *applicationController) podUpdate(old, new interface{}) {
 	oldPod := old.(*corev1.Pod)
 	newPod := new.(*corev1.Pod)
-	// TODO why didn't this log?
+
 	c.logContext.Infof(
 		"POD UPDATED. %s/%s %s",
 		oldPod.Namespace, oldPod.Name, newPod.Status.Phase,
