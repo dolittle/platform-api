@@ -20,8 +20,7 @@ func CreateCustomerResource(config CreateResourceConfig, customer dolittleK8s.Sh
 	gitUserName := config.GitUserName
 	gitUserEmail := config.GitUserEmail
 	apiSecrets := config.ApiSecrets
-	localBranch := config.LocalBranch
-	remoteBranch := config.RemoteBranch
+	branch := config.GitBranch
 	platformImage := config.PlatformImage
 	platformEnvironment := config.PlatformEnvironment
 	// config.ServiceAccountName not in use
@@ -84,7 +83,7 @@ func CreateCustomerResource(config CreateResourceConfig, customer dolittleK8s.Sh
 					},
 					InitContainers: []corev1.Container{
 						sshSetup(),
-						gitSetup(platformImage, gitRemote, localBranch, gitUserEmail, gitUserName),
+						gitSetup(platformImage, gitRemote, branch, gitUserEmail, gitUserName),
 						createTerraformWithCommand(terraformBaseContainer, []string{
 							"sh",
 							"-c",
@@ -101,7 +100,7 @@ func CreateCustomerResource(config CreateResourceConfig, customer dolittleK8s.Sh
 								terrformFileName,
 							),
 						}),
-						gitUpdateTerraform(platformImage, terrformFileName, localBranch, remoteBranch),
+						gitUpdateTerraform(platformImage, terrformFileName, branch),
 						// Update git with the changes
 
 						// Terraform init new module
@@ -111,9 +110,9 @@ func CreateCustomerResource(config CreateResourceConfig, customer dolittleK8s.Sh
 						// Terraform create azure.json
 						terraformOutputJSON(terraformBaseContainer),
 						toolsStudioBuildTerraformInfo(platformImage, platformEnvironment, customerID),
-						gitUpdateStudioTerraformInfo(platformImage, platformEnvironment, customerID, localBranch, remoteBranch),
+						gitUpdateStudioTerraformInfo(platformImage, platformEnvironment, customerID, branch),
 						toolsStudioBuildStudioInfo(platformImage, platformEnvironment, customerID),
-						gitUpdateStudioInfo(platformImage, platformEnvironment, customerID, localBranch, remoteBranch),
+						gitUpdateStudioInfo(platformImage, platformEnvironment, customerID, branch),
 						terraformRemoveOutputJSON(platformImage),
 					},
 					Containers: []corev1.Container{

@@ -20,6 +20,7 @@ var createCustomerCMD = &cobra.Command{
 	Long: `
 	Outputs a new Dolittle platform customer in hcl to stdout.
 
+
 	go run main.go tools jobs create-customer \
 	--customer-name="Test1"
 	`,

@@ -18,8 +18,7 @@ func CreateApplicationResource(config CreateResourceConfig, customerID string, a
 	gitUserName := config.GitUserName
 	gitUserEmail := config.GitUserEmail
 	apiSecrets := config.ApiSecrets
-	localBranch := config.LocalBranch
-	remoteBranch := config.RemoteBranch
+	branch := config.GitBranch
 	serviceAccountName := config.ServiceAccountName
 	platformImage := config.PlatformImage
 	platformEnvironment := config.PlatformEnvironment
@@ -87,7 +86,7 @@ func CreateApplicationResource(config CreateResourceConfig, customerID string, a
 					InitContainers: []corev1.Container{
 						sshSetup(),
 						// We could write the env variables required?
-						gitSetup(platformImage, gitRemote, localBranch, gitUserEmail, gitUserName),
+						gitSetup(platformImage, gitRemote, branch, gitUserEmail, gitUserName),
 						// Create terraform
 						// TODO We don't really need envfrom here
 						createTerraformWithCommand(terraformBaseContainer, []string{
@@ -106,7 +105,7 @@ func CreateApplicationResource(config CreateResourceConfig, customerID string, a
 							),
 						}),
 
-						gitUpdateTerraform(platformImage, terrformFileName, localBranch, remoteBranch),
+						gitUpdateTerraform(platformImage, terrformFileName, branch),
 						// Update git with the changes
 
 						// Terraform init new module
@@ -116,7 +115,7 @@ func CreateApplicationResource(config CreateResourceConfig, customerID string, a
 						// Terraform create azure.json
 						terraformOutputJSON(terraformBaseContainer),
 						toolsStudioBuildTerraformInfo(platformImage, platformEnvironment, customerID),
-						gitUpdateStudioTerraformInfo(platformImage, platformEnvironment, customerID, localBranch, remoteBranch),
+						gitUpdateStudioTerraformInfo(platformImage, platformEnvironment, customerID, branch),
 
 						buildApplicationInCluster(platformImage, platformEnvironment, customerID, applicationID, isProduction),
 						gitUpdate(platformImage, "post-application-created", []string{
@@ -128,13 +127,12 @@ git add ./Source/V3/platform-api/%s/%s;
 git status;
 git commit -m "Application created %s";
 git log -1;
-GIT_SSH_COMMAND="ssh -i /pod-data/.ssh/operations -o IdentitiesOnly=yes -o StrictHostKeyChecking=no" git push origin %s:%s;
+GIT_SSH_COMMAND="ssh -i /pod-data/.ssh/operations -o IdentitiesOnly=yes -o StrictHostKeyChecking=no" git push origin %s;
 							`,
 								platformEnvironment,
 								customerID,
 								customerID,
-								localBranch,
-								remoteBranch,
+								branch,
 							),
 						}),
 						terraformRemoveOutputJSON(platformImage),

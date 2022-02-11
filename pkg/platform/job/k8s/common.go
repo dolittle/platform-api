@@ -16,8 +16,7 @@ type CreateResourceConfig struct {
 	GitUserEmail        string
 	GitRemote           string
 	ApiSecrets          string
-	LocalBranch         string
-	RemoteBranch        string
+	GitBranch           string
 	ServiceAccountName  string
 }
 
@@ -36,9 +35,8 @@ func CreateResourceConfigFromViper(v *viper.Viper) CreateResourceConfig {
 		GitUserName:         v.GetString("tools.jobs.git.user.name"),
 		GitUserEmail:        v.GetString("tools.jobs.git.user.email"),
 		ApiSecrets:          v.GetString("tools.jobs.secrets.name"),
-		LocalBranch:         v.GetString("tools.jobs.git.branch.local"),
-		RemoteBranch:        v.GetString("tools.jobs.git.branch.remote"),
 		GitRemote:           v.GetString("tools.jobs.git.remote.url"),
+		GitBranch:           v.GetString("tools.jobs.git.remote.branch"),
 		ServiceAccountName:  "system-api-manager",
 	}
 }
@@ -136,7 +134,7 @@ func envVarGitNotInUse() []corev1.EnvVar {
 }
 
 // name is currently the filename without .tf suffix
-func gitUpdateTerraform(image string, name string, localBranch string, remoteBranch string) corev1.Container {
+func gitUpdateTerraform(image string, name string, branch string) corev1.Container {
 	commands := []string{
 		"sh",
 		"-c",
@@ -146,12 +144,11 @@ git add ./Source/V3/Azure/%s.tf;
 git status;
 git commit -m "Adding %s";
 git log -1;
-GIT_SSH_COMMAND="ssh -i /pod-data/.ssh/operations -o IdentitiesOnly=yes -o StrictHostKeyChecking=no" git push origin %s:%s;
+GIT_SSH_COMMAND="ssh -i /pod-data/.ssh/operations -o IdentitiesOnly=yes -o StrictHostKeyChecking=no" git push origin %s;
 `,
 			name,
 			name,
-			localBranch,
-			remoteBranch,
+			branch,
 		),
 	}
 	return gitUpdate(image, "terraform", commands)
@@ -185,7 +182,7 @@ func toolsStudioBuildTerraformInfo(platformImage string, platformEnvironment str
 	}
 }
 
-func gitUpdateStudioTerraformInfo(platformImage string, platformEnvironment string, customerID string, localBranch string, remoteBranch string) corev1.Container {
+func gitUpdateStudioTerraformInfo(platformImage string, platformEnvironment string, customerID string, branch string) corev1.Container {
 	commands := []string{
 		"sh",
 		"-c",
@@ -195,13 +192,12 @@ git add ./Source/V3/platform-api/%s/%s;
 git status;
 git commit -m "Adding terraform json to studio for customer %s";
 git log -1;
-GIT_SSH_COMMAND="ssh -i /pod-data/.ssh/operations -o IdentitiesOnly=yes -o StrictHostKeyChecking=no" git push origin %s:%s;
+GIT_SSH_COMMAND="ssh -i /pod-data/.ssh/operations -o IdentitiesOnly=yes -o StrictHostKeyChecking=no" git push origin %s;
 `,
 			platformEnvironment,
 			customerID,
 			customerID,
-			localBranch,
-			remoteBranch,
+			branch,
 		),
 	}
 	return gitUpdate(platformImage, "studio-terraform", commands)
@@ -242,7 +238,7 @@ func toolsStudioBuildStudioInfo(platformImage string, platformEnvironment string
 	}
 }
 
-func gitUpdateStudioInfo(platformImage string, platformEnvironment string, customerID string, localBranch string, remoteBranch string) corev1.Container {
+func gitUpdateStudioInfo(platformImage string, platformEnvironment string, customerID string, branch string) corev1.Container {
 	commands := []string{
 		"sh",
 		"-c",
@@ -252,13 +248,12 @@ git add ./Source/V3/platform-api/%s/%s;
 git status;
 git commit -m "Adding studio json to studio for customer %s";
 git log -1;
-GIT_SSH_COMMAND="ssh -i /pod-data/.ssh/operations -o IdentitiesOnly=yes -o StrictHostKeyChecking=no" git push origin %s:%s;
+GIT_SSH_COMMAND="ssh -i /pod-data/.ssh/operations -o IdentitiesOnly=yes -o StrictHostKeyChecking=no" git push origin %s;
 `,
 			platformEnvironment,
 			customerID,
 			customerID,
-			localBranch,
-			remoteBranch,
+			branch,
 		),
 	}
 
