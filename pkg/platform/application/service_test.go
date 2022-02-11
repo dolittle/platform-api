@@ -74,6 +74,14 @@ var _ = Describe("Testing endpoints", func() {
 	})
 
 	When("Creating an application", func() {
+		It("check name", func() {
+			name := "hello world"
+			valid := application.IsApplicationNameValid(name)
+			Expect(valid).To(BeFalse())
+			name = "helloworld1"
+			valid = application.IsApplicationNameValid(name)
+			Expect(valid).To(BeTrue())
+		})
 		It("Studio config is missing", func() {
 			want := errors.New("fail")
 			gitRepo.On(

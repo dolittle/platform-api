@@ -18,6 +18,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -103,6 +104,11 @@ func (s *Service) Create(w http.ResponseWriter, r *http.Request) {
 	// Confirm at least 1 environment
 	if len(input.Environments) == 0 {
 		utils.RespondWithError(w, http.StatusUnprocessableEntity, "You need at least one environment")
+		return
+	}
+
+	if !IsApplicationNameValid(input.Name) {
+		utils.RespondWithError(w, http.StatusUnprocessableEntity, "Application name is not valid")
 		return
 	}
 
@@ -391,4 +397,9 @@ func (s *Service) IsOnline(w http.ResponseWriter, r *http.Request) {
 
 	// TODO consider not using storage as the response
 	utils.RespondWithJSON(w, http.StatusOK, application.Status)
+}
+
+func IsApplicationNameValid(name string) bool {
+	isValid := validation.NameIsDNSLabel(name, false)
+	return len(isValid) == 0
 }
