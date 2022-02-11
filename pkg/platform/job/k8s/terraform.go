@@ -10,6 +10,7 @@ func envVarForTerraform(apiSecrets string) []corev1.EnvVar {
 	gitVars := envVarGitNotInUse()
 	terraformVars := []corev1.EnvVar{
 		{
+			Name: "ARM_CLIENT_ID",
 			ValueFrom: &corev1.EnvVarSource{
 				SecretKeyRef: &corev1.SecretKeySelector{
 					LocalObjectReference: corev1.LocalObjectReference{
@@ -20,6 +21,7 @@ func envVarForTerraform(apiSecrets string) []corev1.EnvVar {
 			},
 		},
 		{
+			Name: "ARM_CLIENT_SECRET",
 			ValueFrom: &corev1.EnvVarSource{
 				SecretKeyRef: &corev1.SecretKeySelector{
 					LocalObjectReference: corev1.LocalObjectReference{
@@ -30,6 +32,7 @@ func envVarForTerraform(apiSecrets string) []corev1.EnvVar {
 			},
 		},
 		{
+			Name: "ARM_SUBSCRIPTION_ID",
 			ValueFrom: &corev1.EnvVarSource{
 				SecretKeyRef: &corev1.SecretKeySelector{
 					LocalObjectReference: corev1.LocalObjectReference{
@@ -40,6 +43,7 @@ func envVarForTerraform(apiSecrets string) []corev1.EnvVar {
 			},
 		},
 		{
+			Name: "ARM_TENANT_ID",
 			ValueFrom: &corev1.EnvVarSource{
 				SecretKeyRef: &corev1.SecretKeySelector{
 					LocalObjectReference: corev1.LocalObjectReference{
