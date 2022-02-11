@@ -1,3 +1,22 @@
+# [2.8.0] - 2022-2-11 [PR: #59](https://github.com/dolittle/platform-api/pull/59)
+# Summary
+- Able to create a customer via the command line
+- Able to create a customer via the rest api
+- Able to create an application via the command line
+- Able to create an application via the rest api
+- Able to create a microservice
+- Developer rbac out the box, supports querying own namespace
+- Creating an application will make a namespace
+- Add Acr secret to access the container registry
+- Application Storage
+- Application Role
+- Application RoleBindings
+- Environment Networkpolicy
+- Environment tenants configmap
+- Mongo (Service, Stateful, Cronjob)
+- For local dev we create rolebindings for the local-dev user (Linked to Studio and k3d)
+
+
 # [2.7.0] - 2022-2-2 [PR: #83](https://github.com/dolittle/platform-api/pull/83)
 ## Summary
 
