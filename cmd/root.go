@@ -30,7 +30,7 @@ func init() {
 	rootCmd.PersistentFlags().String("platform-environment", viper.GetString("tools.server.platformEnvironment"), "Platform environment (dev or prod), not linked to application environment")
 	viper.BindPFlag("tools.server.platformEnvironment", rootCmd.PersistentFlags().Lookup("platform-environment"))
 
-	viper.SetDefault("tools.jobs.image.operations", "dolittle/platform-operations:application-namespace")
+	viper.SetDefault("tools.jobs.image.operations", "dolittle/platform-operations:latest")
 	viper.SetDefault("tools.jobs.git.user.name", "Auto Platform")
 	viper.SetDefault("tools.jobs.git.user.email", "platform-auto@dolittle.com")
 	viper.SetDefault("tools.jobs.secrets.name", "dev-api-v1-secrets")
