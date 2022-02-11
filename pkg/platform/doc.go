@@ -406,14 +406,6 @@ type CustomerTenantHost struct {
 	SecretName string `json:"secretName"`
 }
 
-type CustomerTenantIngress struct {
-	MicroserviceID string `json:"microserviceId"`
-	Host           string `json:"host"`
-	DomainPrefix   string `json:"domainPrefix"`
-	SecretName     string `json:"secretName"`
-	Path           string `json:"path,omitempty"`
-}
-
 type CustomerTenantMicroserviceRel struct {
 	MicroserviceID string `json:"microserviceId"`
 	// ffb20e4f_a74fed4a
