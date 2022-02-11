@@ -1,9 +1,0 @@
-tools:
-  jobs:
-    image:
-      operations: dolittle/platform-operations:application-namespace
-    git:
-      localBranch: test-job
-      remoteBranch: test-job
-      userName: Auto Platform
-      email: platform-auto@dolittle.com
