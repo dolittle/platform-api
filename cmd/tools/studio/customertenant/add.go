@@ -67,7 +67,7 @@ func init() {
 	addCMD.Flags().String("application-id", "", "Application id")
 	addCMD.Flags().String("environment", "", "Environment")
 	addCMD.Flags().String("microservice-id", "", "Microservice id")
-	addCMD.Flags().String("step", "", "Which step")
+	addCMD.Flags().String("step", "0", "Which step")
 	addCMD.Flags().String("root-directory", "", "Root directory to write to, linked to --output=disk")
 }
 
