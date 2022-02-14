@@ -135,22 +135,25 @@ func ResourcePrefix(microserviceID string, customerTenantID string) string {
 		))
 }
 
+func NewMicroserviceResourcesWithMicroservice(microservice Microservice, customerTenants []platform.CustomerTenantInfo) MicroserviceResources {
+	return NewMicroserviceResources(microservice.Application.ID, microservice.Environment, microservice.ID, customerTenants)
+}
+
 // NewMicroserviceResources
 // Build the microservice resource creating custmoer tenants specific blocks
-func NewMicroserviceResources(microservice Microservice, customerTenants []platform.CustomerTenantInfo) MicroserviceResources {
-
-	environment := strings.ToLower(microservice.Environment)
-	mongoDNS := fmt.Sprintf("%s-mongo.application-%s.svc.cluster.local", environment, microservice.Application.ID)
+func NewMicroserviceResources(applicationID string, environment string, microserviceID string, customerTenants []platform.CustomerTenantInfo) MicroserviceResources {
+	environment = strings.ToLower(environment)
+	mongoDNS := fmt.Sprintf("%s-mongo.application-%s.svc.cluster.local", environment, applicationID)
 
 	resources := MicroserviceResources{}
 
 	for _, customerTenant := range customerTenants {
 		customerTenantID := customerTenant.CustomerTenantID
-		databasePrefix := ResourcePrefix(microservice.ID, customerTenant.CustomerTenantID)
+		databasePrefix := ResourcePrefix(microserviceID, customerTenant.CustomerTenantID)
 
 		dolittleResource := MicroserviceResource{
 			Readmodels: MicroserviceResourceReadmodels{
-				Host:     fmt.Sprintf("mongodb://%s-mongo.application-%s.svc.cluster.local:27017", environment, microservice.Application.ID),
+				Host:     fmt.Sprintf("mongodb://%s-mongo.application-%s.svc.cluster.local:27017", environment, applicationID),
 				Database: fmt.Sprintf("%s_readmodels", databasePrefix),
 				UseSSL:   false,
 			},
@@ -202,7 +205,7 @@ func NewMicroserviceConfigmap(microservice Microservice, customersTenants []plat
 
 	name = strings.ToLower(name)
 
-	resources := NewMicroserviceResources(microservice, customersTenants)
+	resources := NewMicroserviceResourcesWithMicroservice(microservice, customersTenants)
 
 	endpoints := MicroserviceEndpoints{
 		Public: MicroserviceEndpointPort{

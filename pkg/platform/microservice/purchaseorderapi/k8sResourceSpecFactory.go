@@ -33,7 +33,7 @@ func (r *k8sResourceSpecFactory) modifyEnvironmentVariablesConfigMap(environment
 	// I am not 100% what we are thinking, as if we rely on an ingress we need many webhooks
 	// I believe the issue is we want the tenantID to come from the payload
 	tenantID := customerTenants[0].CustomerTenantID
-	resources := k8s.NewMicroserviceResources(k8sMicroservice, customerTenants)
+	resources := k8s.NewMicroserviceResourcesWithMicroservice(k8sMicroservice, customerTenants)
 	mongoDBURL := resources[tenantID].Readmodels.Host
 	readmodelDBName := resources[tenantID].Readmodels.Database
 
