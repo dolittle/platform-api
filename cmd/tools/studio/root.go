@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/dolittle/platform-api/cmd/tools/studio/customertenant"
 	"github.com/dolittle/platform-api/pkg/git"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -26,6 +27,7 @@ func init() {
 	RootCmd.AddCommand(buildApplicationInfoCMD)
 	RootCmd.AddCommand(deleteApplicationCMD)
 	RootCmd.AddCommand(deleteCustomerCMD)
+	RootCmd.AddCommand(customertenant.RootCmd)
 
 	RootCmd.PersistentFlags().Bool("git-dry-run", false, "Don't commit and push changes")
 	viper.BindPFlag("tools.server.gitRepo.dryRun", RootCmd.PersistentFlags().Lookup("git-dry-run"))
