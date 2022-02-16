@@ -849,7 +849,7 @@ func (r *K8sRepo) RemovePolicyRule(roleName string, applicationID string, newRul
 	return nil
 }
 
-func (r *K8sRepo) WhatCanISee(applicationID string, userID string, groupID string) (*authv1.SelfSubjectRulesReview, error) {
+func (r *K8sRepo) GetUserSpecificSubjectRulesReviewStatus(applicationID string, groupID string, userID string) (authv1.SubjectRulesReviewStatus, error) {
 	namespace := GetApplicationNamespace(applicationID)
 
 	config := r.GetRestConfig()
@@ -862,7 +862,7 @@ func (r *K8sRepo) WhatCanISee(applicationID string, userID string, groupID strin
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		panic(err.Error())
+		return authv1.SubjectRulesReviewStatus{}, err
 	}
 
 	sar := &authv1.SelfSubjectRulesReview{
@@ -872,5 +872,9 @@ func (r *K8sRepo) WhatCanISee(applicationID string, userID string, groupID strin
 	}
 
 	response, err := clientset.AuthorizationV1().SelfSubjectRulesReviews().Create(context.TODO(), sar, metav1.CreateOptions{})
-	return response, err
+	if err != nil {
+		return authv1.SubjectRulesReviewStatus{}, err
+	}
+
+	return response.Status, nil
 }

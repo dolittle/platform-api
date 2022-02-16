@@ -351,11 +351,18 @@ func (s *Service) GetPersonalisedInfo(w http.ResponseWriter, r *http.Request) {
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"method": "GetPersonalisedInfo",
 	})
+	userID := r.Header.Get("User-ID")
 	customerID := r.Header.Get("Tenant-ID")
 	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
 
 	studioInfo, err := storage.GetStudioInfo(s.gitRepo, customerID, applicationID, logContext)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	rawSubjectRulesReviewStatus, err := s.k8sDolittleRepo.GetUserSpecificSubjectRulesReviewStatus(applicationID, studioInfo.TerraformApplication.GroupID, userID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -375,6 +382,7 @@ func (s *Service) GetPersonalisedInfo(w http.ResponseWriter, r *http.Request) {
 			Cluster:           clusterEndpoint,
 			ContainerRegistry: fmt.Sprintf("%s.azurecr.io", studioInfo.TerraformCustomer.ContainerRegistryName),
 		},
+		RawSubjectRulesReviewStatus: rawSubjectRulesReviewStatus,
 	})
 }
 
@@ -401,47 +409,4 @@ func (s *Service) IsOnline(w http.ResponseWriter, r *http.Request) {
 func IsApplicationNameValid(name string) bool {
 	isValid := validation.NameIsDNSLabel(name, false)
 	return len(isValid) == 0
-}
-
-func (s *Service) WhatCanISee(w http.ResponseWriter, r *http.Request) {
-	// Maybe this should be baked into personalised-info
-	vars := mux.Vars(r)
-	applicationID := vars["applicationID"]
-	userID := r.Header.Get("User-ID")
-	tenantID := r.Header.Get("Tenant-ID")
-
-	terraformApplication, err := s.gitRepo.GetTerraformApplication(tenantID, applicationID)
-	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	groupID := terraformApplication.GroupID
-	response, err := s.k8sDolittleRepo.WhatCanISee(applicationID, userID, groupID)
-	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	secrets := make([]string, 0)
-
-	for _, rule := range response.Status.ResourceRules {
-		if !funk.ContainsString(rule.Resources, "secrets") {
-			continue
-		}
-		secrets = append(secrets, rule.ResourceNames...)
-	}
-
-	configMaps := make([]string, 0)
-
-	for _, rule := range response.Status.ResourceRules {
-		if !funk.ContainsString(rule.Resources, "configmaps") {
-			continue
-		}
-		configMaps = append(configMaps, rule.ResourceNames...)
-	}
-
-	utils.RespondWithJSON(w, http.StatusNotFound, map[string]interface{}{
-		"secrets":    secrets,
-		"configMaps": configMaps,
-	})
 }
