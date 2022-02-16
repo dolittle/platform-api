@@ -351,11 +351,18 @@ func (s *Service) GetPersonalisedInfo(w http.ResponseWriter, r *http.Request) {
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"method": "GetPersonalisedInfo",
 	})
+	userID := r.Header.Get("User-ID")
 	customerID := r.Header.Get("Tenant-ID")
 	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
 
 	studioInfo, err := storage.GetStudioInfo(s.gitRepo, customerID, applicationID, logContext)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	rawSubjectRulesReviewStatus, err := s.k8sDolittleRepo.GetUserSpecificSubjectRulesReviewStatus(applicationID, studioInfo.TerraformApplication.GroupID, userID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -375,6 +382,7 @@ func (s *Service) GetPersonalisedInfo(w http.ResponseWriter, r *http.Request) {
 			Cluster:           clusterEndpoint,
 			ContainerRegistry: fmt.Sprintf("%s.azurecr.io", studioInfo.TerraformCustomer.ContainerRegistryName),
 		},
+		RawSubjectRulesReviewStatus: rawSubjectRulesReviewStatus,
 	})
 }
 

@@ -3,6 +3,7 @@ package platform
 import (
 	"errors"
 
+	authv1 "k8s.io/api/authorization/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 )
 
@@ -30,12 +31,18 @@ func (m MicroserviceBase) GetBase() MicroserviceBase {
 }
 
 type HttpResponsePersonalisedInfo struct {
-	ResourceGroup         string                                `json:"resourceGroup"`
-	ClusterName           string                                `json:"clusterName"`
-	SubscriptionID        string                                `json:"subscriptionId"`
-	ApplicationID         string                                `json:"applicationId"`
-	ContainerRegistryName string                                `json:"containerRegistryName"`
-	Endpoints             HttpResponsePersonalisedInfoEndpoints `json:"endpoints"`
+	ResourceGroup               string                                `json:"resourceGroup"`
+	ClusterName                 string                                `json:"clusterName"`
+	SubscriptionID              string                                `json:"subscriptionId"`
+	ApplicationID               string                                `json:"applicationId"`
+	ContainerRegistryName       string                                `json:"containerRegistryName"`
+	Endpoints                   HttpResponsePersonalisedInfoEndpoints `json:"endpoints"`
+	RawSubjectRulesReviewStatus authv1.SubjectRulesReviewStatus       `json:"subjectRulesReviewStatus"`
+}
+
+type HttpResponseKubernetesResourceAccess struct {
+	Secrets    []string `json:"secrets"`
+	ConfigMaps []string `json:"configMaps"`
 }
 
 type HttpResponsePersonalisedInfoEndpoints struct {

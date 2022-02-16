@@ -848,3 +848,33 @@ func (r *K8sRepo) RemovePolicyRule(roleName string, applicationID string, newRul
 	}
 	return nil
 }
+
+func (r *K8sRepo) GetUserSpecificSubjectRulesReviewStatus(applicationID string, groupID string, userID string) (authv1.SubjectRulesReviewStatus, error) {
+	namespace := GetApplicationNamespace(applicationID)
+
+	config := r.GetRestConfig()
+	config.Impersonate = rest.ImpersonationConfig{
+		UserName: userID,
+		Groups: []string{
+			groupID,
+		},
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return authv1.SubjectRulesReviewStatus{}, err
+	}
+
+	sar := &authv1.SelfSubjectRulesReview{
+		Spec: authv1.SelfSubjectRulesReviewSpec{
+			Namespace: namespace,
+		},
+	}
+
+	response, err := clientset.AuthorizationV1().SelfSubjectRulesReviews().Create(context.TODO(), sar, metav1.CreateOptions{})
+	if err != nil {
+		return authv1.SubjectRulesReviewStatus{}, err
+	}
+
+	return response.Status, nil
+}
