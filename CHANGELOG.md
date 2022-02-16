@@ -1,3 +1,9 @@
+# [2.9.0] - 2022-2-16 [PR: #56](https://github.com/dolittle/platform-api/pull/56)
+## Summary
+
+Exposing the raw subjectRulesReviewStatus for a user, to be manipulated via /application/{applicationID}/personalised-application-info.
+
+
 # [2.8.0] - 2022-2-11 [PR: #59](https://github.com/dolittle/platform-api/pull/59)
 # Summary
 - Able to create a customer via the command line
