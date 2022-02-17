@@ -2,14 +2,21 @@ package k8s
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+)
+
+var (
+	ErrAlreadyExists = errors.New("already-exists")
 )
 
 type repo struct {
@@ -36,10 +43,16 @@ type RepoDeployment interface {
 	GetDeploymentsByEnvironmentWithMicroservice(namespace string, environment string) ([]appsv1.Deployment, error)
 }
 
+type RepoRoleBinding interface {
+	AddSubjectToRoleBinding(namespace string, name string, subject rbacv1.Subject) error
+	RemoveSubjectToRoleBinding(namespace string, name string, subject rbacv1.Subject) error
+	GetRoleBinding(namespace string, name string) (rbacv1.RoleBinding, error)
+}
 type Repo interface {
 	RepoIngress
 	RepoNamspace
 	RepoDeployment
+	RepoRoleBinding
 }
 
 func NewRepo(client kubernetes.Interface, logContext logrus.FieldLogger) Repo {
@@ -114,4 +127,58 @@ func (r repo) GetDeploymentsByEnvironmentWithMicroservice(namespace string, envi
 	// Instead of in the code
 	// if !IsApplicationNamespace(namespace) {
 	return r.GetDeploymentsWithOptions(namespace, opts)
+}
+
+func (r repo) AddSubjectToRoleBinding(namespace string, name string, subject rbacv1.Subject) error {
+	roleBinding, err := r.GetRoleBinding(namespace, name)
+	if err != nil {
+		return err
+	}
+
+	for _, current := range roleBinding.Subjects {
+		if current.Kind == subject.Kind && current.Name == subject.Name {
+			return ErrAlreadyExists
+		}
+	}
+
+	roleBinding.Subjects = append(roleBinding.Subjects, subject)
+
+	ctx := context.TODO()
+	_, err = r.client.RbacV1().RoleBindings(namespace).Update(ctx, &roleBinding, metav1.UpdateOptions{})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r repo) RemoveSubjectToRoleBinding(namespace string, name string, subject rbacv1.Subject) error {
+	roleBinding, err := r.GetRoleBinding(namespace, name)
+	if err != nil {
+		return err
+	}
+
+	updateSubjects := funk.Filter(roleBinding.Subjects, func(current rbacv1.Subject) bool {
+		if current.Kind != subject.Kind {
+			return true
+		}
+
+		return current.Name != subject.Name
+	}).([]rbacv1.Subject)
+
+	roleBinding.Subjects = updateSubjects
+
+	ctx := context.TODO()
+	_, err = r.client.RbacV1().RoleBindings(namespace).Update(ctx, &roleBinding, metav1.UpdateOptions{})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r repo) GetRoleBinding(namespace string, name string) (rbacv1.RoleBinding, error) {
+	ctx := context.TODO()
+	resource, err := r.client.RbacV1().RoleBindings(namespace).Get(ctx, name, metav1.GetOptions{})
+	return *resource, err
 }
