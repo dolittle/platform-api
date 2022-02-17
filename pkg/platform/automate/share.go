@@ -465,3 +465,55 @@ func AddVolumeMountToContainer(ctx context.Context,
 
 	return nil
 }
+
+func GetCustomerTenantsConfigMapFromConfigMaps(environment string, configMaps []corev1.ConfigMap) (corev1.ConfigMap, error) {
+	for _, configMap := range configMaps {
+		if configMap.Labels["environment"] != environment {
+			continue
+		}
+		return configMap, nil
+	}
+
+	// TODO make error
+	return corev1.ConfigMap{}, errors.New("not-found")
+}
+
+func GetEnvironmentDirectory(rootFolder string, objectMeta metav1.Object) string {
+	labels := objectMeta.GetLabels()
+	customer := labels["tenant"]
+	application := labels["application"]
+	environment := labels["environment"]
+
+	return filepath.Join(rootFolder,
+		"Source",
+		"V3",
+		"Kubernetes",
+		"Customers",
+		customer,
+		application,
+		environment,
+	)
+}
+
+func WriteCustomerTenantsToDirectory(rootDirectory string, configMap corev1.ConfigMap) error {
+	scheme, serializer, err := InitializeSchemeAndSerializer()
+	if err != nil {
+		return err
+	}
+
+	// We remove these fields to make it cleaner and to make it a little less painful
+	// to do multiple manual changes if we were debugging.
+	configMap.ManagedFields = nil
+	configMap.ResourceVersion = ""
+	delete(configMap.ObjectMeta.Annotations, "kubectl.kubernetes.io/last-applied-configuration")
+
+	SetRuntimeObjectGVK(scheme, &configMap)
+
+	directory := GetEnvironmentDirectory(rootDirectory, configMap.GetObjectMeta())
+	err = WriteResourceToFile(directory, "tenants.yml", &configMap, serializer)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
