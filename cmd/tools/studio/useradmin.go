@@ -17,7 +17,15 @@ var userAdminCMD = &cobra.Command{
 	Short: "Add or remove a user from the studio admin access",
 	Long: `
 
+
+List users
+	go run main.go tools studio admin user list
+
+Add user "fake"
 	go run main.go tools studio admin user add fake
+
+Remove user "fake"
+	go run main.go tools studio admin user remove fake
 	`,
 	Args: cobra.RangeArgs(2, 3),
 	Run: func(cmd *cobra.Command, args []string) {
