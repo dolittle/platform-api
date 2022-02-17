@@ -93,7 +93,3 @@ var adminCMD = &cobra.Command{
 		logContext.Info("Done!")
 	},
 }
-
-func init() {
-	adminCMD.Flags().Bool("user", false, "Add user")
-}
