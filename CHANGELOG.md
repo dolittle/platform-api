@@ -1,3 +1,11 @@
+# [2.10.0] - 2022-2-17 [PR: #86](https://github.com/dolittle/platform-api/pull/86)
+## Summary
+
+- Able to add user to "studio admin"
+- Able to remove user from "studio admin"
+- Able to list users who have "studio admin"
+
+
 # [2.9.0] - 2022-2-16 [PR: #56](https://github.com/dolittle/platform-api/pull/56)
 ## Summary
 
