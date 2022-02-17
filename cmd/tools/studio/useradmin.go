@@ -12,7 +12,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 )
 
-var adminCMD = &cobra.Command{
+var userAdminCMD = &cobra.Command{
 	Use:   "admin [user] [add|remove|list] [useruuid]",
 	Short: "Add or remove a user from the studio admin access",
 	Long: `

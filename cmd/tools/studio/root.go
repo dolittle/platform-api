@@ -26,7 +26,7 @@ func init() {
 	RootCmd.AddCommand(buildApplicationInfoCMD)
 	RootCmd.AddCommand(deleteApplicationCMD)
 	RootCmd.AddCommand(deleteCustomerCMD)
-	RootCmd.AddCommand(adminCMD)
+	RootCmd.AddCommand(userAdminCMD)
 
 	RootCmd.PersistentFlags().Bool("git-dry-run", false, "Don't commit and push changes")
 	viper.BindPFlag("tools.server.gitRepo.dryRun", RootCmd.PersistentFlags().Lookup("git-dry-run"))
