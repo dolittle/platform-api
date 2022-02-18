@@ -1,3 +1,8 @@
+# [2.10.1] - 2022-2-18 [PR: #87](https://github.com/dolittle/platform-api/pull/87)
+## Summary
+Fixing bug in delete microservice endpoint
+
+
 # [2.10.0] - 2022-2-17 [PR: #86](https://github.com/dolittle/platform-api/pull/86)
 ## Summary
 
