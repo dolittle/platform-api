@@ -19,6 +19,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/testing"
 
+	"github.com/dolittle/platform-api/pkg/k8s"
 	applicationK8s "github.com/dolittle/platform-api/pkg/platform/application/k8s"
 
 	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
@@ -101,7 +102,8 @@ var _ = Describe("Repo", func() {
 		}
 
 		k8sDolittleRepo := platformK8s.NewK8sRepo(clientSet, config, logContext.WithField("context", "k8s-repo"))
-		simpleRepo := k8sSimple.NewSimpleRepo(clientSet, k8sDolittleRepo, isProduction)
+		k8sRepoV2 := k8s.NewRepo(clientSet, logContext.WithField("context", "k8s-repo-v2"))
+		simpleRepo := k8sSimple.NewSimpleRepo(clientSet, k8sDolittleRepo, k8sRepoV2, isProduction)
 		// TODO refactor when it works
 
 		gitRepo.On(

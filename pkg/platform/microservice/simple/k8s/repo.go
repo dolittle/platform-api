@@ -3,9 +3,9 @@ package k8s
 import (
 	"context"
 
-	"github.com/dolittle/platform-api/pkg/dolittle/k8s"
+	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
+	"github.com/dolittle/platform-api/pkg/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
-	"github.com/dolittle/platform-api/pkg/platform/automate"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	microserviceK8s "github.com/dolittle/platform-api/pkg/platform/microservice/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/simple"
@@ -34,21 +34,23 @@ type SimpleMicroserviceResources struct {
 
 type k8sRepo struct {
 	k8sClient       kubernetes.Interface
+	k8sRepoV2       k8s.Repo
 	k8sDolittleRepo platformK8s.K8sRepo
 	kind            platform.MicroserviceKind
 	isProduction    bool
 }
 
-func NewSimpleRepo(k8sClient kubernetes.Interface, k8sDolittleRepo platformK8s.K8sRepo, isProduction bool) simple.Repo {
+func NewSimpleRepo(k8sClient kubernetes.Interface, k8sDolittleRepo platformK8s.K8sRepo, k8sRepoV2 k8s.Repo, isProduction bool) simple.Repo {
 	return k8sRepo{
 		k8sClient:       k8sClient,
+		k8sRepoV2:       k8sRepoV2,
 		k8sDolittleRepo: k8sDolittleRepo,
 		kind:            platform.MicroserviceKindSimple,
 		isProduction:    isProduction,
 	}
 }
 
-func (r k8sRepo) Create(namespace string, tenant k8s.Tenant, application k8s.Application, customerTenants []platform.CustomerTenantInfo, input platform.HttpInputSimpleInfo) error {
+func (r k8sRepo) Create(namespace string, tenant dolittleK8s.Tenant, application dolittleK8s.Application, customerTenants []platform.CustomerTenantInfo, input platform.HttpInputSimpleInfo) error {
 	var err error
 
 	client := r.k8sClient
@@ -115,10 +117,11 @@ func (r k8sRepo) Delete(applicationID, environment, microserviceID string) error
 	ctx := context.TODO()
 	namespace := platformK8s.GetApplicationNamespace(applicationID)
 
-	deployment, err := automate.GetDeployment(ctx, r.k8sClient, applicationID, environment, microserviceID)
+	deployment, err := r.k8sRepoV2.GetDeployment(namespace, environment, microserviceID)
 	if err != nil {
 		return err
 	}
+
 	// TODO can i get the name? it should be the deployment name
 	// Label Environment micoservice
 	microserviceName := deployment.Labels["Microservice"]

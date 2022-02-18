@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/viper"
 
 	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
+	"github.com/dolittle/platform-api/pkg/k8s"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
@@ -99,7 +100,7 @@ In kubernetes, create application
 			return
 		}
 
-		client, config := platformK8s.InitKubernetesClient()
+		k8sClient, k8sConfig := platformK8s.InitKubernetesClient()
 
 		terraformCustomer, err := gitRepo.GetTerraformTenant(customerID)
 		if err != nil {
@@ -123,11 +124,12 @@ In kubernetes, create application
 		}
 
 		welcomeImage := welcome.Image
-		k8sDolittleRepo := platformK8s.NewK8sRepo(client, config, logContext.WithField("context", "k8s-repo"))
-		simpleRepo := k8sSimple.NewSimpleRepo(client, k8sDolittleRepo, isProduction)
+		k8sDolittleRepo := platformK8s.NewK8sRepo(k8sClient, k8sConfig, logContext.WithField("context", "k8s-repo"))
+		k8sRepoV2 := k8s.NewRepo(k8sClient, logContext.WithField("context", "k8s-repo-v2"))
+		simpleRepo := k8sSimple.NewSimpleRepo(k8sClient, k8sDolittleRepo, k8sRepoV2, isProduction)
 
 		err = platformApplication.CreateApplicationAndEnvironmentAndWelcomeMicroservice(
-			client,
+			k8sClient,
 			gitRepo,
 			simpleRepo,
 			k8sDolittleRepo,

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dolittle/platform-api/pkg/git"
+	"github.com/dolittle/platform-api/pkg/k8s"
 	"github.com/dolittle/platform-api/pkg/middleware"
 	"github.com/dolittle/platform-api/pkg/platform/application"
 	"github.com/dolittle/platform-api/pkg/platform/backup"
@@ -74,6 +75,7 @@ var serverCMD = &cobra.Command{
 		router := mux.NewRouter()
 
 		k8sRepo := platformK8s.NewK8sRepo(k8sClient, k8sConfig, logContext.WithField("context", "k8s-repo"))
+		k8sRepoV2 := k8s.NewRepo(k8sClient, logContext.WithField("context", "k8s-repo-v2"))
 
 		gitRepo := gitStorage.NewGitStorage(
 			logrus.WithField("context", "git-repo"),
@@ -82,7 +84,7 @@ var serverCMD = &cobra.Command{
 
 		jobResourceConfig := jobK8s.CreateResourceConfigFromViper(viper.GetViper())
 
-		microserviceSimpleRepo := k8sSimple.NewSimpleRepo(k8sClient, k8sRepo, isProduction)
+		microserviceSimpleRepo := k8sSimple.NewSimpleRepo(k8sClient, k8sRepo, k8sRepoV2, isProduction)
 
 		// TODO I wonder how this works when both are in the same cluster,
 		// today via the resources, it is not clear which is which "platform-environment".
@@ -94,6 +96,7 @@ var serverCMD = &cobra.Command{
 			gitRepo,
 			k8sRepo,
 			k8sClient,
+			microserviceSimpleRepo,
 			logrus.WithField("context", "microservice-service"),
 		)
 
