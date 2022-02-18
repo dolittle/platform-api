@@ -17,6 +17,7 @@ import (
 
 var (
 	ErrAlreadyExists = errors.New("already-exists")
+	ErrNotFound      = errors.New("not-found")
 )
 
 type repo struct {
@@ -41,6 +42,8 @@ type RepoDeployment interface {
 	GetDeploymentsWithOptions(namespace string, opts metav1.ListOptions) ([]appsv1.Deployment, error)
 	GetDeploymentsWithMicroservice(namespace string) ([]appsv1.Deployment, error)
 	GetDeploymentsByEnvironmentWithMicroservice(namespace string, environment string) ([]appsv1.Deployment, error)
+
+	GetDeployment(namespace string, environment string, microserviceID string) (appsv1.Deployment, error)
 }
 
 type RepoRoleBinding interface {
@@ -127,6 +130,23 @@ func (r repo) GetDeploymentsByEnvironmentWithMicroservice(namespace string, envi
 	// Instead of in the code
 	// if !IsApplicationNamespace(namespace) {
 	return r.GetDeploymentsWithOptions(namespace, opts)
+}
+
+func (r repo) GetDeployment(namespace string, environment string, microserviceID string) (appsv1.Deployment, error) {
+	deployments, err := r.GetDeploymentsByEnvironmentWithMicroservice(namespace, environment)
+	if err != nil {
+		return appsv1.Deployment{}, err
+	}
+
+	for _, deployment := range deployments {
+		if deployment.Annotations["dolittle.io/microservice-id"] != microserviceID {
+			continue
+		}
+
+		return deployment, nil
+	}
+
+	return appsv1.Deployment{}, ErrNotFound
 }
 
 func (r repo) AddSubjectToRoleBinding(namespace string, name string, subject rbacv1.Subject) error {

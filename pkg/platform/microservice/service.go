@@ -14,7 +14,7 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform/microservice/parser"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/purchaseorderapi"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/rawdatalog"
-	k8sSimple "github.com/dolittle/platform-api/pkg/platform/microservice/simple/k8s"
+	"github.com/dolittle/platform-api/pkg/platform/microservice/simple"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	"github.com/dolittle/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
@@ -31,6 +31,7 @@ func NewService(
 	gitRepo storage.Repo,
 	k8sDolittleRepo platformK8s.K8sRepo,
 	k8sClient kubernetes.Interface,
+	simpleRepo simple.Repo,
 	logContext logrus.FieldLogger,
 ) service {
 	parser := parser.NewJsonParser()
@@ -41,7 +42,7 @@ func NewService(
 
 	return service{
 		gitRepo:                    gitRepo,
-		simpleRepo:                 k8sSimple.NewSimpleRepo(k8sClient, k8sDolittleRepo, isProduction),
+		simpleRepo:                 simpleRepo,
 		businessMomentsAdaptorRepo: NewBusinessMomentsAdaptorRepo(k8sClient, isProduction),
 		rawDataLogIngestorRepo:     rawDataLogRepo,
 		k8sDolittleRepo:            k8sDolittleRepo,
@@ -331,10 +332,8 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 		"method": "Delete",
 	})
 	vars := mux.Vars(r)
-	// I feel we shouldn't need namespace
 	applicationID := vars["applicationID"]
-	// TODO Can we rely on this? or does it have to be exact?
-	environment := strings.ToLower(vars["environment"])
+	environment := vars["environment"]
 	microserviceID := vars["microserviceID"]
 	namespace := fmt.Sprintf("application-%s", applicationID)
 

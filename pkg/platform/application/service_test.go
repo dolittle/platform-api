@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"github.com/dolittle/platform-api/pkg/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/platform/application"
 	jobK8s "github.com/dolittle/platform-api/pkg/platform/job/k8s"
@@ -56,8 +57,8 @@ var _ = Describe("Testing endpoints", func() {
 		config = &rest.Config{}
 		logger, _ = logrusTest.NewNullLogger()
 		k8sRepo = platformK8s.NewK8sRepo(clientSet, config, logger)
-
-		microserviceSimpleRepo := k8sSimple.NewSimpleRepo(clientSet, k8sRepo, isProduction)
+		k8sRepoV2 := k8s.NewRepo(clientSet, logger.WithField("context", "k8s-repo-v2"))
+		microserviceSimpleRepo := k8sSimple.NewSimpleRepo(clientSet, k8sRepo, k8sRepoV2, isProduction)
 
 		gitRepo = &mockStorage.Repo{}
 
