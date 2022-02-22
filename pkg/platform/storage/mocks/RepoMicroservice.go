@@ -13,7 +13,7 @@ type RepoMicroservice struct {
 }
 
 // DeleteMicroservice provides a mock function with given fields: tenantID, applicationID, environment, microserviceID
-func (_m *RepoMicroservice) DeleteMicroservice(tenantID string, applicationID string, environment string, microserviceID string) error {
+func (_m *RepoMicroservice) DeleteMicroservice(customerID string, applicationID string, environment string, microserviceID string) error {
 	ret := _m.Called(tenantID, applicationID, environment, microserviceID)
 
 	var r0 error
@@ -27,7 +27,7 @@ func (_m *RepoMicroservice) DeleteMicroservice(tenantID string, applicationID st
 }
 
 // GetMicroservice provides a mock function with given fields: tenantID, applicationID, environment, microserviceID
-func (_m *RepoMicroservice) GetMicroservice(tenantID string, applicationID string, environment string, microserviceID string) ([]byte, error) {
+func (_m *RepoMicroservice) GetMicroservice(customerID string, applicationID string, environment string, microserviceID string) ([]byte, error) {
 	ret := _m.Called(tenantID, applicationID, environment, microserviceID)
 
 	var r0 []byte
@@ -50,7 +50,7 @@ func (_m *RepoMicroservice) GetMicroservice(tenantID string, applicationID strin
 }
 
 // GetMicroservices provides a mock function with given fields: tenantID, applicationID
-func (_m *RepoMicroservice) GetMicroservices(tenantID string, applicationID string) ([]platform.HttpMicroserviceBase, error) {
+func (_m *RepoMicroservice) GetMicroservices(customerID string, applicationID string) ([]platform.HttpMicroserviceBase, error) {
 	ret := _m.Called(tenantID, applicationID)
 
 	var r0 []platform.HttpMicroserviceBase
@@ -73,7 +73,7 @@ func (_m *RepoMicroservice) GetMicroservices(tenantID string, applicationID stri
 }
 
 // SaveMicroservice provides a mock function with given fields: tenantID, applicationID, environment, microserviceID, data
-func (_m *RepoMicroservice) SaveMicroservice(tenantID string, applicationID string, environment string, microserviceID string, data interface{}) error {
+func (_m *RepoMicroservice) SaveMicroservice(customerID string, applicationID string, environment string, microserviceID string, data interface{}) error {
 	ret := _m.Called(tenantID, applicationID, environment, microserviceID, data)
 
 	var r0 error

@@ -20,3 +20,6 @@ docker-build-dev-platform-api:
 
 docker-build-dev-platform-operations: docker-build-dev-platform-api
 	docker build --build-arg BASE_IMAGE=dolittle-dev/platform-api:latest -f Dockerfile.operations -t platform-operations:latest .
+
+// TODO maybe change how we store this
+build-tests:

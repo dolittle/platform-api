@@ -13,7 +13,7 @@ type RepoApplication struct {
 }
 
 // GetApplication provides a mock function with given fields: tenantID, applicationID
-func (_m *RepoApplication) GetApplication(tenantID string, applicationID string) (storage.JSONApplication, error) {
+func (_m *RepoApplication) GetApplication(customerID string, applicationID string) (storage.JSONApplication, error) {
 	ret := _m.Called(tenantID, applicationID)
 
 	var r0 storage.JSONApplication
@@ -34,7 +34,7 @@ func (_m *RepoApplication) GetApplication(tenantID string, applicationID string)
 }
 
 // GetApplications provides a mock function with given fields: tenantID
-func (_m *RepoApplication) GetApplications(tenantID string) ([]storage.JSONApplication, error) {
+func (_m *RepoApplication) GetApplications(customerID string) ([]storage.JSONApplication, error) {
 	ret := _m.Called(tenantID)
 
 	var r0 []storage.JSONApplication

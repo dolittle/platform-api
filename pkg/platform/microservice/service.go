@@ -674,7 +674,7 @@ func (s *service) CanI(w http.ResponseWriter, r *http.Request) {
 	// TODO bringing online the ad group from microsoft will allow us to check group access
 	type httpInput struct {
 		UserID            string `json:"user_id"`
-		TenantID          string `json:"tenant_id"`
+		CustomerID        string `json:"customer_id"`
 		Group             string `json:"group"`
 		ApplicationID     string `json:"application_id"`
 		ResourceAttribute struct {
@@ -714,7 +714,7 @@ func (s *service) CanI(w http.ResponseWriter, r *http.Request) {
 		attribute.Verb = input.ResourceAttribute.Verb
 	}
 
-	allowed, err := s.k8sDolittleRepo.CanModifyApplicationWithResourceAttributes(input.TenantID, input.ApplicationID, input.UserID, attribute)
+	allowed, err := s.k8sDolittleRepo.CanModifyApplicationWithResourceAttributes(input.CustomerID, input.ApplicationID, input.UserID, attribute)
 
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())

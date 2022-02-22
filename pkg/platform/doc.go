@@ -50,6 +50,7 @@ type HttpResponsePersonalisedInfoEndpoints struct {
 	ContainerRegistry string `json:"containerRegistry"`
 }
 
+// TODO remove
 type TenantId string
 
 type ImageInfo struct {

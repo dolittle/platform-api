@@ -266,12 +266,12 @@ func (s *service) GetMoments(w http.ResponseWriter, r *http.Request) {
 	utils.RespondWithJSON(w, http.StatusOK, data)
 }
 
-func (s *service) eventUpdateConfigmap(tenantID string, applicationID string, environment string, microserviceID string) error {
+func (s *service) eventUpdateConfigmap(customerID string, applicationID string, environment string, microserviceID string) error {
 	logContext := s.logContext
 	environment = strings.ToLower(environment)
 
 	//  TODO this should be an event
-	data, err := s.gitRepo.GetBusinessMoments(tenantID, applicationID, environment)
+	data, err := s.gitRepo.GetBusinessMoments(customerID, applicationID, environment)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error":  err,

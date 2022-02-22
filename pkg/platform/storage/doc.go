@@ -16,16 +16,16 @@ type RepoCustomerTenants interface {
 }
 
 type RepoMicroservice interface {
-	SaveMicroservice(tenantID string, applicationID string, environment string, microserviceID string, data interface{}) error
-	GetMicroservice(tenantID string, applicationID string, environment string, microserviceID string) ([]byte, error)
-	DeleteMicroservice(tenantID string, applicationID string, environment string, microserviceID string) error
-	GetMicroservices(tenantID string, applicationID string) ([]platform.HttpMicroserviceBase, error)
+	SaveMicroservice(customerID string, applicationID string, environment string, microserviceID string, data interface{}) error
+	GetMicroservice(customerID string, applicationID string, environment string, microserviceID string) ([]byte, error)
+	DeleteMicroservice(customerID string, applicationID string, environment string, microserviceID string) error
+	GetMicroservices(customerID string, applicationID string) ([]platform.HttpMicroserviceBase, error)
 }
 
 type RepoApplication interface {
-	GetApplication(tenantID string, applicationID string) (JSONApplication, error)
+	GetApplication(customerID string, applicationID string) (JSONApplication, error)
 	SaveApplication(application JSONApplication) error
-	GetApplications(tenantID string) ([]JSONApplication, error)
+	GetApplications(customerID string) ([]JSONApplication, error)
 }
 
 type Repo interface {
@@ -33,21 +33,21 @@ type Repo interface {
 	RepoApplication
 
 	SaveTerraformApplication(application platform.TerraformApplication) error
-	GetTerraformApplication(tenantID string, applicationID string) (platform.TerraformApplication, error)
+	GetTerraformApplication(customerID string, applicationID string) (platform.TerraformApplication, error)
 
 	SaveTerraformTenant(tenant platform.TerraformCustomer) error
-	GetTerraformTenant(tenantID string) (platform.TerraformCustomer, error)
+	GetTerraformTenant(customerID string) (platform.TerraformCustomer, error)
 
-	SaveStudioConfig(tenantID string, config platform.StudioConfig) error
-	GetStudioConfig(tenantID string) (platform.StudioConfig, error)
+	SaveStudioConfig(customerID string, config platform.StudioConfig) error
+	GetStudioConfig(customerID string) (platform.StudioConfig, error)
 	IsAutomationEnabledWithStudioConfig(studioConfig platform.StudioConfig, applicationID string, environment string) bool
 
-	SaveBusinessMoment(tenantID string, input platform.HttpInputBusinessMoment) error
-	GetBusinessMoments(tenantID string, applicationID string, environment string) (platform.HttpResponseBusinessMoments, error)
-	DeleteBusinessMoment(tenantID string, applicationID string, environment string, microserviceID string, momentID string) error
+	SaveBusinessMoment(customerID string, input platform.HttpInputBusinessMoment) error
+	GetBusinessMoments(customerID string, applicationID string, environment string) (platform.HttpResponseBusinessMoments, error)
+	DeleteBusinessMoment(customerID string, applicationID string, environment string, microserviceID string, momentID string) error
 
-	SaveBusinessMomentEntity(tenantID string, input platform.HttpInputBusinessMomentEntity) error
-	DeleteBusinessMomentEntity(tenantID string, applicationID string, environment string, microserviceID string, entityID string) error
+	SaveBusinessMomentEntity(customerID string, input platform.HttpInputBusinessMomentEntity) error
+	DeleteBusinessMomentEntity(customerID string, applicationID string, environment string, microserviceID string, entityID string) error
 }
 
 var (

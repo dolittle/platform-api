@@ -48,8 +48,8 @@ func (s *GitStorage) SaveTerraformApplication(application platform.TerraformAppl
 	return nil
 }
 
-func (s *GitStorage) GetTerraformApplication(tenantID string, applicationID string) (platform.TerraformApplication, error) {
-	dir := s.GetApplicationDirectory(tenantID, applicationID)
+func (s *GitStorage) GetTerraformApplication(customerID string, applicationID string) (platform.TerraformApplication, error) {
+	dir := s.GetApplicationDirectory(customerID, applicationID)
 	filename := filepath.Join(dir, "terraform.json")
 	b, err := ioutil.ReadFile(filename)
 
@@ -101,8 +101,8 @@ func (s *GitStorage) SaveTerraformTenant(tenant platform.TerraformCustomer) erro
 	return nil
 }
 
-func (s *GitStorage) GetTerraformTenant(tenantID string) (platform.TerraformCustomer, error) {
-	dir := s.GetCustomerDirectory(tenantID)
+func (s *GitStorage) GetTerraformTenant(customerID string) (platform.TerraformCustomer, error) {
+	dir := s.GetCustomerDirectory(customerID)
 	filename := filepath.Join(dir, "tenant.json")
 	b, err := ioutil.ReadFile(filename)
 
