@@ -5,6 +5,9 @@ test:
 	go test ./... -covermode=count -coverprofile=profile.cov;
 	scripts/total_coverage.sh
 
+build-mocks:
+	mockery --inpackage --keeptree --all
+
 server:
 	GIT_REPO_DIRECTORY="/tmp/dolittle-local-dev" \
 	GIT_REPO_DIRECTORY_ONLY="true" \
