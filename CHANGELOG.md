@@ -1,3 +1,10 @@
+# [2.12.0] - 2022-2-22 [PR: #92](https://github.com/dolittle/platform-api/pull/92)
+## Summary
+
+- Moving mocks into own package and adding makefile command to make it easier to update interfaces `make build-mocks`.
+- Adding codeclimate yaml
+
+
 # [2.11.0] - 2022-2-22 [PR: #91](https://github.com/dolittle/platform-api/pull/91)
 ## Summary
 
