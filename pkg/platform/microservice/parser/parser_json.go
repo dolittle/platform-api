@@ -26,16 +26,16 @@ func (p *parser) Parse(requestBytes []byte, microservice platform.Microservice, 
 		return info, errors.NewBadRequest(fmt.Sprintf("Invalid request payload. Error: %v", err))
 	}
 
-	info.Tenant = k8s.Tenant{
-		ID:   applicationInfo.Tenant.ID,
-		Name: applicationInfo.Tenant.Name,
+	info.Customer = k8s.Tenant{
+		ID:   applicationInfo.Customer.ID,
+		Name: applicationInfo.Customer.Name,
 	}
 
 	info.Application = k8s.Application{
 		ID:   applicationInfo.ID,
 		Name: applicationInfo.Name,
 	}
-	if info.Tenant.ID != microservice.GetBase().Dolittle.CustomerID {
+	if info.Customer.ID != microservice.GetBase().Dolittle.CustomerID {
 		return info, errors.NewBadRequest("Invalid request payload. Tenant id in the system does not match the one in the input")
 	}
 

@@ -19,7 +19,7 @@ func (s *service) handleBusinessMomentsAdaptor(responseWriter http.ResponseWrite
 		return
 	}
 
-	err := s.businessMomentsAdaptorRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, customerTenants, ms)
+	err := s.businessMomentsAdaptorRepo.Create(msK8sInfo.Namespace, msK8sInfo.Customer, msK8sInfo.Application, customerTenants, ms)
 	if statusErr != nil {
 		// TODO change
 		utils.RespondWithError(responseWriter, http.StatusInternalServerError, statusErr.Error())

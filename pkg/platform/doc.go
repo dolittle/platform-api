@@ -104,7 +104,7 @@ type Application struct {
 	Name string `json:"name"`
 	ID   string `json:"id"`
 	// Rename to customer
-	Tenant    Tenant    `json:"tenant"`
+	Customer  Tenant    `json:"customer"`
 	Ingresses []Ingress `json:"ingresses"`
 }
 

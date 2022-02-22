@@ -67,7 +67,7 @@ func (r *K8sRepo) GetApplication(applicationID string) (platform.Application, er
 	application := platform.Application{
 		Name: labelMap["application"],
 		ID:   annotationsMap["dolittle.io/application-id"],
-		Tenant: platform.Tenant{
+		Customer: platform.Tenant{
 			Name: labelMap["tenant"],
 			ID:   annotationsMap["dolittle.io/tenant-id"],
 		},
