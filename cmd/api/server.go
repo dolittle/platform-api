@@ -1,4 +1,4 @@
-package microservice
+package api
 
 import (
 	"fmt"
@@ -39,7 +39,7 @@ const (
 
 var serverCMD = &cobra.Command{
 	Use:   "server",
-	Short: "Server to talk to k8s",
+	Short: "Server for the api",
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
 		logrus.SetOutput(os.Stdout)
