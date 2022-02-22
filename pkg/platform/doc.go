@@ -138,6 +138,7 @@ type HttpMicroserviceBase struct {
 }
 type HttpInputDolittle struct {
 	ApplicationID  string `json:"applicationId"`
+	CustomerID     string `json:"customerId"`
 	TenantID       string `json:"tenantId"`
 	MicroserviceID string `json:"microserviceId"`
 }

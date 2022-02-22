@@ -982,6 +982,7 @@ func newPurchaseOrderAPICreateInput(customer dolittleK8s.Tenant, application dol
 		MicroserviceBase: platform.MicroserviceBase{
 			Dolittle: platform.HttpInputDolittle{
 				TenantID:       customer.ID,
+				CustomerID:     customer.ID,
 				ApplicationID:  application.ID,
 				MicroserviceID: "ef97a13b-2597-42a3-9fcb-161add2264c7",
 			},

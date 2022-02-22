@@ -71,10 +71,8 @@ type JSONBuildStatus struct {
 }
 
 type JSONApplication struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	//TenantID     string            `json:"tenantId"`
-	//TenantName   string            `json:"tenantName"`
+	ID           string            `json:"id"`
+	Name         string            `json:"name"`
 	CustomerID   string            `json:"tenantId"`
 	CustomerName string            `json:"tenantName"`
 	Environments []JSONEnvironment `json:"environments"`
