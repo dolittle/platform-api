@@ -10,7 +10,9 @@ import (
 var RootCMD = &cobra.Command{
 	Use:   "helpers",
 	Short: "Helpers to create commands and HCL/YAML files to copy-paste",
-	Long:  ``,
+	Long: `
+Helpers to create commands and HCL/YAML files to copy-paste. These commands are meant to make our life easier by creating copy-paste ready commands.
+	`,
 }
 
 func init() {

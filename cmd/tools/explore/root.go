@@ -8,8 +8,7 @@ var RootCmd = &cobra.Command{
 	Use:   "explore",
 	Short: "Explore the platform",
 	Long: `
-
-Tools to explore the platform`,
+Tools to explore the platform and it's data. The output from these commands is meant for us to explore and to pipe to other commands.`,
 }
 
 func init() {
