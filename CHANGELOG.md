@@ -1,3 +1,9 @@
+# [2.11.0] - 2022-2-22 [PR: #91](https://github.com/dolittle/platform-api/pull/91)
+## Summary
+
+Rebuilding application state, take status + welcomeMicroservice from storage if exists.
+
+
 # [2.10.3] - 2022-2-22 [PR: #89](https://github.com/dolittle/platform-api/pull/89)
 ## Summary
 
