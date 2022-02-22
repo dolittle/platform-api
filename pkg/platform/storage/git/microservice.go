@@ -55,7 +55,7 @@ func (s *GitStorage) DeleteMicroservice(customerID string, applicationID string,
 func (s *GitStorage) SaveMicroservice(customerID string, applicationID string, environment string, microserviceID string, data interface{}) error {
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"method":          "SaveMicroservice",
-		"tenant_id":       customerID,
+		"customer_id":     customerID,
 		"application_id":  applicationID,
 		"environment":     environment,
 		"microservice_id": microserviceID,

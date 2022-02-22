@@ -140,7 +140,7 @@ func (s *Handler) GetDataStatus(dns, customerID, applicationID, environment, mic
 	logger := s.logContext.WithFields(logrus.Fields{
 		"handler":         "PurchaseOrderAPI",
 		"method":          "GetDataStatus",
-		"tenant_id":       customerID,
+		"customer_id":     customerID,
 		"application_id":  applicationID,
 		"environment":     environment,
 		"microservice_id": microserviceID,
