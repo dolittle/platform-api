@@ -32,10 +32,10 @@ func (r *k8sResourceSpecFactory) modifyEnvironmentVariablesConfigMap(environment
 	// TODO I think we need to come back and look at this properly
 	// I am not 100% what we are thinking, as if we rely on an ingress we need many webhooks
 	// I believe the issue is we want the tenantID to come from the payload
-	tenantID := customerTenants[0].CustomerTenantID
+	customerTenantID := customerTenants[0].CustomerTenantID
 	resources := k8s.NewMicroserviceResources(k8sMicroservice, customerTenants)
-	mongoDBURL := resources[tenantID].Readmodels.Host
-	readmodelDBName := resources[tenantID].Readmodels.Database
+	mongoDBURL := resources[customerTenantID].Readmodels.Host
+	readmodelDBName := resources[customerTenantID].Readmodels.Database
 
 	natsClusterURL := fmt.Sprintf("%s-nats.application-%s.svc.cluster.local:4222", strings.ToLower(k8sMicroservice.Environment), k8sMicroservice.Application.ID)
 
@@ -44,7 +44,7 @@ func (r *k8sResourceSpecFactory) modifyEnvironmentVariablesConfigMap(environment
 		"DATABASE_READMODELS_URL":   mongoDBURL,
 		"DATABASE_READMODELS_NAME":  readmodelDBName,
 		"NODE_ENV":                  "production",
-		"TENANT":                    tenantID,
+		"TENANT":                    customerTenantID,
 		"SERVER_PORT":               "80",
 		"NATS_CLUSTER_URL":          natsClusterURL,
 		"NATS_START_FROM_BEGINNING": "false",

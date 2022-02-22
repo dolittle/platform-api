@@ -13,13 +13,13 @@ type Repo struct {
 	mock.Mock
 }
 
-// DeleteBusinessMoment provides a mock function with given fields: tenantID, applicationID, environment, microserviceID, momentID
-func (_m *Repo) DeleteBusinessMoment(tenantID string, applicationID string, environment string, microserviceID string, momentID string) error {
-	ret := _m.Called(tenantID, applicationID, environment, microserviceID, momentID)
+// DeleteBusinessMoment provides a mock function with given fields: customerID, applicationID, environment, microserviceID, momentID
+func (_m *Repo) DeleteBusinessMoment(customerID string, applicationID string, environment string, microserviceID string, momentID string) error {
+	ret := _m.Called(customerID, applicationID, environment, microserviceID, momentID)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string) error); ok {
-		r0 = rf(tenantID, applicationID, environment, microserviceID, momentID)
+		r0 = rf(customerID, applicationID, environment, microserviceID, momentID)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -27,13 +27,13 @@ func (_m *Repo) DeleteBusinessMoment(tenantID string, applicationID string, envi
 	return r0
 }
 
-// DeleteBusinessMomentEntity provides a mock function with given fields: tenantID, applicationID, environment, microserviceID, entityID
-func (_m *Repo) DeleteBusinessMomentEntity(tenantID string, applicationID string, environment string, microserviceID string, entityID string) error {
-	ret := _m.Called(tenantID, applicationID, environment, microserviceID, entityID)
+// DeleteBusinessMomentEntity provides a mock function with given fields: customerID, applicationID, environment, microserviceID, entityID
+func (_m *Repo) DeleteBusinessMomentEntity(customerID string, applicationID string, environment string, microserviceID string, entityID string) error {
+	ret := _m.Called(customerID, applicationID, environment, microserviceID, entityID)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string) error); ok {
-		r0 = rf(tenantID, applicationID, environment, microserviceID, entityID)
+		r0 = rf(customerID, applicationID, environment, microserviceID, entityID)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -41,13 +41,13 @@ func (_m *Repo) DeleteBusinessMomentEntity(tenantID string, applicationID string
 	return r0
 }
 
-// DeleteMicroservice provides a mock function with given fields: tenantID, applicationID, environment, microserviceID
-func (_m *Repo) DeleteMicroservice(tenantID string, applicationID string, environment string, microserviceID string) error {
-	ret := _m.Called(tenantID, applicationID, environment, microserviceID)
+// DeleteMicroservice provides a mock function with given fields: customerID, applicationID, environment, microserviceID
+func (_m *Repo) DeleteMicroservice(customerID string, applicationID string, environment string, microserviceID string) error {
+	ret := _m.Called(customerID, applicationID, environment, microserviceID)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, string, string) error); ok {
-		r0 = rf(tenantID, applicationID, environment, microserviceID)
+		r0 = rf(customerID, applicationID, environment, microserviceID)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -55,20 +55,20 @@ func (_m *Repo) DeleteMicroservice(tenantID string, applicationID string, enviro
 	return r0
 }
 
-// GetApplication provides a mock function with given fields: tenantID, applicationID
-func (_m *Repo) GetApplication(tenantID string, applicationID string) (storage.JSONApplication, error) {
-	ret := _m.Called(tenantID, applicationID)
+// GetApplication provides a mock function with given fields: customerID, applicationID
+func (_m *Repo) GetApplication(customerID string, applicationID string) (storage.JSONApplication, error) {
+	ret := _m.Called(customerID, applicationID)
 
 	var r0 storage.JSONApplication
 	if rf, ok := ret.Get(0).(func(string, string) storage.JSONApplication); ok {
-		r0 = rf(tenantID, applicationID)
+		r0 = rf(customerID, applicationID)
 	} else {
 		r0 = ret.Get(0).(storage.JSONApplication)
 	}
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(tenantID, applicationID)
+		r1 = rf(customerID, applicationID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -76,13 +76,13 @@ func (_m *Repo) GetApplication(tenantID string, applicationID string) (storage.J
 	return r0, r1
 }
 
-// GetApplications provides a mock function with given fields: tenantID
-func (_m *Repo) GetApplications(tenantID string) ([]storage.JSONApplication, error) {
-	ret := _m.Called(tenantID)
+// GetApplications provides a mock function with given fields: customerID
+func (_m *Repo) GetApplications(customerID string) ([]storage.JSONApplication, error) {
+	ret := _m.Called(customerID)
 
 	var r0 []storage.JSONApplication
 	if rf, ok := ret.Get(0).(func(string) []storage.JSONApplication); ok {
-		r0 = rf(tenantID)
+		r0 = rf(customerID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]storage.JSONApplication)
@@ -91,7 +91,7 @@ func (_m *Repo) GetApplications(tenantID string) ([]storage.JSONApplication, err
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(tenantID)
+		r1 = rf(customerID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -99,20 +99,20 @@ func (_m *Repo) GetApplications(tenantID string) ([]storage.JSONApplication, err
 	return r0, r1
 }
 
-// GetBusinessMoments provides a mock function with given fields: tenantID, applicationID, environment
-func (_m *Repo) GetBusinessMoments(tenantID string, applicationID string, environment string) (platform.HttpResponseBusinessMoments, error) {
-	ret := _m.Called(tenantID, applicationID, environment)
+// GetBusinessMoments provides a mock function with given fields: customerID, applicationID, environment
+func (_m *Repo) GetBusinessMoments(customerID string, applicationID string, environment string) (platform.HttpResponseBusinessMoments, error) {
+	ret := _m.Called(customerID, applicationID, environment)
 
 	var r0 platform.HttpResponseBusinessMoments
 	if rf, ok := ret.Get(0).(func(string, string, string) platform.HttpResponseBusinessMoments); ok {
-		r0 = rf(tenantID, applicationID, environment)
+		r0 = rf(customerID, applicationID, environment)
 	} else {
 		r0 = ret.Get(0).(platform.HttpResponseBusinessMoments)
 	}
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string, string, string) error); ok {
-		r1 = rf(tenantID, applicationID, environment)
+		r1 = rf(customerID, applicationID, environment)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -120,13 +120,13 @@ func (_m *Repo) GetBusinessMoments(tenantID string, applicationID string, enviro
 	return r0, r1
 }
 
-// GetMicroservice provides a mock function with given fields: tenantID, applicationID, environment, microserviceID
-func (_m *Repo) GetMicroservice(tenantID string, applicationID string, environment string, microserviceID string) ([]byte, error) {
-	ret := _m.Called(tenantID, applicationID, environment, microserviceID)
+// GetMicroservice provides a mock function with given fields: customerID, applicationID, environment, microserviceID
+func (_m *Repo) GetMicroservice(customerID string, applicationID string, environment string, microserviceID string) ([]byte, error) {
+	ret := _m.Called(customerID, applicationID, environment, microserviceID)
 
 	var r0 []byte
 	if rf, ok := ret.Get(0).(func(string, string, string, string) []byte); ok {
-		r0 = rf(tenantID, applicationID, environment, microserviceID)
+		r0 = rf(customerID, applicationID, environment, microserviceID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]byte)
@@ -135,7 +135,7 @@ func (_m *Repo) GetMicroservice(tenantID string, applicationID string, environme
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string, string, string, string) error); ok {
-		r1 = rf(tenantID, applicationID, environment, microserviceID)
+		r1 = rf(customerID, applicationID, environment, microserviceID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -143,13 +143,13 @@ func (_m *Repo) GetMicroservice(tenantID string, applicationID string, environme
 	return r0, r1
 }
 
-// GetMicroservices provides a mock function with given fields: tenantID, applicationID
-func (_m *Repo) GetMicroservices(tenantID string, applicationID string) ([]platform.HttpMicroserviceBase, error) {
-	ret := _m.Called(tenantID, applicationID)
+// GetMicroservices provides a mock function with given fields: customerID, applicationID
+func (_m *Repo) GetMicroservices(customerID string, applicationID string) ([]platform.HttpMicroserviceBase, error) {
+	ret := _m.Called(customerID, applicationID)
 
 	var r0 []platform.HttpMicroserviceBase
 	if rf, ok := ret.Get(0).(func(string, string) []platform.HttpMicroserviceBase); ok {
-		r0 = rf(tenantID, applicationID)
+		r0 = rf(customerID, applicationID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]platform.HttpMicroserviceBase)
@@ -158,7 +158,7 @@ func (_m *Repo) GetMicroservices(tenantID string, applicationID string) ([]platf
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(tenantID, applicationID)
+		r1 = rf(customerID, applicationID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -166,20 +166,20 @@ func (_m *Repo) GetMicroservices(tenantID string, applicationID string) ([]platf
 	return r0, r1
 }
 
-// GetStudioConfig provides a mock function with given fields: tenantID
-func (_m *Repo) GetStudioConfig(tenantID string) (platform.StudioConfig, error) {
-	ret := _m.Called(tenantID)
+// GetStudioConfig provides a mock function with given fields: customerID
+func (_m *Repo) GetStudioConfig(customerID string) (platform.StudioConfig, error) {
+	ret := _m.Called(customerID)
 
 	var r0 platform.StudioConfig
 	if rf, ok := ret.Get(0).(func(string) platform.StudioConfig); ok {
-		r0 = rf(tenantID)
+		r0 = rf(customerID)
 	} else {
 		r0 = ret.Get(0).(platform.StudioConfig)
 	}
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(tenantID)
+		r1 = rf(customerID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -187,20 +187,20 @@ func (_m *Repo) GetStudioConfig(tenantID string) (platform.StudioConfig, error) 
 	return r0, r1
 }
 
-// GetTerraformApplication provides a mock function with given fields: tenantID, applicationID
-func (_m *Repo) GetTerraformApplication(tenantID string, applicationID string) (platform.TerraformApplication, error) {
-	ret := _m.Called(tenantID, applicationID)
+// GetTerraformApplication provides a mock function with given fields: customerID, applicationID
+func (_m *Repo) GetTerraformApplication(customerID string, applicationID string) (platform.TerraformApplication, error) {
+	ret := _m.Called(customerID, applicationID)
 
 	var r0 platform.TerraformApplication
 	if rf, ok := ret.Get(0).(func(string, string) platform.TerraformApplication); ok {
-		r0 = rf(tenantID, applicationID)
+		r0 = rf(customerID, applicationID)
 	} else {
 		r0 = ret.Get(0).(platform.TerraformApplication)
 	}
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(tenantID, applicationID)
+		r1 = rf(customerID, applicationID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -208,20 +208,20 @@ func (_m *Repo) GetTerraformApplication(tenantID string, applicationID string) (
 	return r0, r1
 }
 
-// GetTerraformTenant provides a mock function with given fields: tenantID
-func (_m *Repo) GetTerraformTenant(tenantID string) (platform.TerraformCustomer, error) {
-	ret := _m.Called(tenantID)
+// GetTerraformTenant provides a mock function with given fields: customerID
+func (_m *Repo) GetTerraformTenant(customerID string) (platform.TerraformCustomer, error) {
+	ret := _m.Called(customerID)
 
 	var r0 platform.TerraformCustomer
 	if rf, ok := ret.Get(0).(func(string) platform.TerraformCustomer); ok {
-		r0 = rf(tenantID)
+		r0 = rf(customerID)
 	} else {
 		r0 = ret.Get(0).(platform.TerraformCustomer)
 	}
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(tenantID)
+		r1 = rf(customerID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -257,13 +257,13 @@ func (_m *Repo) SaveApplication(application storage.JSONApplication) error {
 	return r0
 }
 
-// SaveBusinessMoment provides a mock function with given fields: tenantID, input
-func (_m *Repo) SaveBusinessMoment(tenantID string, input platform.HttpInputBusinessMoment) error {
-	ret := _m.Called(tenantID, input)
+// SaveBusinessMoment provides a mock function with given fields: customerID, input
+func (_m *Repo) SaveBusinessMoment(customerID string, input platform.HttpInputBusinessMoment) error {
+	ret := _m.Called(customerID, input)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, platform.HttpInputBusinessMoment) error); ok {
-		r0 = rf(tenantID, input)
+		r0 = rf(customerID, input)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -271,13 +271,13 @@ func (_m *Repo) SaveBusinessMoment(tenantID string, input platform.HttpInputBusi
 	return r0
 }
 
-// SaveBusinessMomentEntity provides a mock function with given fields: tenantID, input
-func (_m *Repo) SaveBusinessMomentEntity(tenantID string, input platform.HttpInputBusinessMomentEntity) error {
-	ret := _m.Called(tenantID, input)
+// SaveBusinessMomentEntity provides a mock function with given fields: customerID, input
+func (_m *Repo) SaveBusinessMomentEntity(customerID string, input platform.HttpInputBusinessMomentEntity) error {
+	ret := _m.Called(customerID, input)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, platform.HttpInputBusinessMomentEntity) error); ok {
-		r0 = rf(tenantID, input)
+		r0 = rf(customerID, input)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -285,13 +285,13 @@ func (_m *Repo) SaveBusinessMomentEntity(tenantID string, input platform.HttpInp
 	return r0
 }
 
-// SaveMicroservice provides a mock function with given fields: tenantID, applicationID, environment, microserviceID, data
-func (_m *Repo) SaveMicroservice(tenantID string, applicationID string, environment string, microserviceID string, data interface{}) error {
-	ret := _m.Called(tenantID, applicationID, environment, microserviceID, data)
+// SaveMicroservice provides a mock function with given fields: customerID, applicationID, environment, microserviceID, data
+func (_m *Repo) SaveMicroservice(customerID string, applicationID string, environment string, microserviceID string, data interface{}) error {
+	ret := _m.Called(customerID, applicationID, environment, microserviceID, data)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, string, string, interface{}) error); ok {
-		r0 = rf(tenantID, applicationID, environment, microserviceID, data)
+		r0 = rf(customerID, applicationID, environment, microserviceID, data)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -299,13 +299,13 @@ func (_m *Repo) SaveMicroservice(tenantID string, applicationID string, environm
 	return r0
 }
 
-// SaveStudioConfig provides a mock function with given fields: tenantID, config
-func (_m *Repo) SaveStudioConfig(tenantID string, config platform.StudioConfig) error {
-	ret := _m.Called(tenantID, config)
+// SaveStudioConfig provides a mock function with given fields: customerID, config
+func (_m *Repo) SaveStudioConfig(customerID string, config platform.StudioConfig) error {
+	ret := _m.Called(customerID, config)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, platform.StudioConfig) error); ok {
-		r0 = rf(tenantID, config)
+		r0 = rf(customerID, config)
 	} else {
 		r0 = ret.Error(0)
 	}

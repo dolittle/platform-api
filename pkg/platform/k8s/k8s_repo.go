@@ -67,7 +67,7 @@ func (r *K8sRepo) GetApplication(applicationID string) (platform.Application, er
 	application := platform.Application{
 		Name: labelMap["application"],
 		ID:   annotationsMap["dolittle.io/application-id"],
-		Tenant: platform.Tenant{
+		Customer: platform.Tenant{
 			Name: labelMap["tenant"],
 			ID:   annotationsMap["dolittle.io/tenant-id"],
 		},
@@ -327,14 +327,14 @@ func (r *K8sRepo) GetLogs(applicationID string, containerName string, podName st
 }
 
 // CanModifyApplication confirm user is in the tenant and application and if not set the http response
-func (r *K8sRepo) CanModifyApplicationWithResponse(w http.ResponseWriter, tenantID string, applicationID string, userID string) bool {
-	if tenantID == "" || userID == "" {
+func (r *K8sRepo) CanModifyApplicationWithResponse(w http.ResponseWriter, customerID string, applicationID string, userID string) bool {
+	if customerID == "" || userID == "" {
 		// If the middleware is enabled this shouldn't happen
 		utils.RespondWithError(w, http.StatusForbidden, "Tenant-ID and User-ID is missing from the headers")
 		return false
 	}
 
-	allowed, err := r.CanModifyApplication(tenantID, applicationID, userID)
+	allowed, err := r.CanModifyApplication(customerID, applicationID, userID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return false
@@ -540,25 +540,25 @@ func (r *K8sRepo) CreateRoleBinding(logger logrus.FieldLogger, customerID, custo
 
 // CanModifyApplication confirm user is in the tenant and application
 // Only works when we can use the namespace
-func (r *K8sRepo) CanModifyApplication(tenantID string, applicationID string, userID string) (bool, error) {
+func (r *K8sRepo) CanModifyApplication(customerID string, applicationID string, userID string) (bool, error) {
 	attribute := authv1.ResourceAttributes{
 		Namespace: fmt.Sprintf("application-%s", applicationID),
 		Verb:      "list",
 		Resource:  "pods",
 	}
-	return r.CanModifyApplicationWithResourceAttributes(tenantID, applicationID, userID, attribute)
+	return r.CanModifyApplicationWithResourceAttributes(customerID, applicationID, userID, attribute)
 }
 
 // CanModifyApplicationWithResourceAttributes confirm user is in the tenant and application
 // Only works when we can use the namespace
 // TODO bringing online the ad group from microsoft will allow us to check group access
-func (r *K8sRepo) CanModifyApplicationWithResourceAttributes(tenantID string, applicationID string, userID string, attribute authv1.ResourceAttributes) (bool, error) {
+func (r *K8sRepo) CanModifyApplicationWithResourceAttributes(customerID string, applicationID string, userID string, attribute authv1.ResourceAttributes) (bool, error) {
 	config := r.GetRestConfig()
 
 	config.Impersonate = rest.ImpersonationConfig{
 		UserName: userID,
 		Groups: []string{
-			platform.GetCustomerGroup(tenantID),
+			platform.GetCustomerGroup(customerID),
 		},
 	}
 
@@ -656,13 +656,13 @@ func GetApplicationNamespace(id string) string {
 // TODO which is better?
 //var tenantFromIngressAnnotationExtractor = regexp.MustCompile(`proxy_set_header\s+Tenant-ID\s+"([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})"`)
 //
-//func tryGetTenantFromIngress(ingress netv1.Ingress) (bool, platform.TenantId) {
+//func tryGetTenantFromIngress(ingress netv1.Ingress) (bool, platform.customerID) {
 //	tenantHeaderAnnotation := ingress.GetObjectMeta().GetAnnotations()["nginx.ingress.kubernetes.io/configuration-snippet"]
-//	tenantID := tenantFromIngressAnnotationExtractor.FindStringSubmatch(tenantHeaderAnnotation)
-//	if tenantID == nil {
+//	customerID := tenantFromIngressAnnotationExtractor.FindStringSubmatch(tenantHeaderAnnotation)
+//	if customerID == nil {
 //		return false, ""
 //	}
-//	return true, platform.TenantId(tenantID[1])
+//	return true, platform.customerID(customerID[1])
 //}
 // This input can have multiple lines
 func GetCustomerTenantIDFromNginxConfigurationSnippet(input string) string {

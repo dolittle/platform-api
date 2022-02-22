@@ -67,9 +67,9 @@ func (s *Handler) Create(inputBytes []byte, applicationInfo platform.Application
 	}
 
 	logger = logger.WithFields(logrus.Fields{
-		"tenantID":      applicationInfo.Tenant.ID,
-		"applicationID": applicationInfo.ID,
-		"environment":   ms.Environment,
+		"customer_id":    applicationInfo.Customer.ID,
+		"application_id": applicationInfo.ID,
+		"environment":    ms.Environment,
 	})
 	logger.Debug("Starting to create a PurchaseOrderAPI microservice")
 
@@ -107,9 +107,9 @@ func (s *Handler) UpdateWebhooks(inputBytes []byte, applicationInfo platform.App
 	}
 
 	logger = logger.WithFields(logrus.Fields{
-		"tenantID":      applicationInfo.Tenant.ID,
-		"applicationID": applicationInfo.ID,
-		"environment":   ms.Environment,
+		"customer_id":    applicationInfo.Customer.ID,
+		"application_id": applicationInfo.ID,
+		"environment":    ms.Environment,
 	})
 	logger.Debug("Starting to update PurchaseOrderAPI microservice")
 
@@ -136,15 +136,15 @@ func (s *Handler) Delete(applicationID, environment, microserviceID string) erro
 	return nil
 }
 
-func (s *Handler) GetDataStatus(dns, tenantID, applicationID, environment, microserviceID string) (platform.PurchaseOrderStatus, *Error) {
+func (s *Handler) GetDataStatus(dns, customerID, applicationID, environment, microserviceID string) (platform.PurchaseOrderStatus, *Error) {
 	logger := s.logContext.WithFields(logrus.Fields{
-		"handler":        "PurchaseOrderAPI",
-		"method":         "GetDataStatus",
-		"tenantID":       tenantID,
-		"applicationID":  applicationID,
-		"environment":    environment,
-		"microserviceID": microserviceID,
-		"dns":            dns,
+		"handler":         "PurchaseOrderAPI",
+		"method":          "GetDataStatus",
+		"customer_id":     customerID,
+		"application_id":  applicationID,
+		"environment":     environment,
+		"microservice_id": microserviceID,
+		"dns":             dns,
 	})
 
 	var status platform.PurchaseOrderStatus
@@ -180,7 +180,7 @@ func (s *Handler) GetDataStatus(dns, tenantID, applicationID, environment, micro
 }
 
 func (s *Handler) purchaseOrderApiExists(msK8sInfo k8s.MicroserviceK8sInfo, ms platform.HttpInputPurchaseOrderInfo, logger *logrus.Entry) (bool, *Error) {
-	microservices, err := s.gitRepo.GetMicroservices(msK8sInfo.Tenant.ID, msK8sInfo.Application.ID)
+	microservices, err := s.gitRepo.GetMicroservices(msK8sInfo.Customer.ID, msK8sInfo.Application.ID)
 	if err != nil {
 		logger.WithError(err).Error("Failed to get microservices from GitRepo")
 		return false, newInternalError(fmt.Errorf("failed to get microservices from GitRepo: %w", err))
@@ -203,12 +203,12 @@ func (s *Handler) purchaseOrderApiExists(msK8sInfo k8s.MicroserviceK8sInfo, ms p
 }
 
 func (s *Handler) createPurchaseOrderAPI(msK8sInfo k8s.MicroserviceK8sInfo, ms platform.HttpInputPurchaseOrderInfo, customerTenants []platform.CustomerTenantInfo, logger *logrus.Entry) *Error {
-	if err := s.repo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, customerTenants, ms); err != nil {
+	if err := s.repo.Create(msK8sInfo.Namespace, msK8sInfo.Customer, msK8sInfo.Application, customerTenants, ms); err != nil {
 		logger.WithError(err).Error("Failed to create Purchase Order API")
 		return newInternalError(fmt.Errorf("failed to create Purchase Order API: %w", err))
 	}
 
-	if err := s.gitRepo.SaveMicroservice(ms.Dolittle.TenantID, ms.Dolittle.ApplicationID, ms.Environment, ms.Dolittle.MicroserviceID, ms); err != nil {
+	if err := s.gitRepo.SaveMicroservice(ms.Dolittle.CustomerID, ms.Dolittle.ApplicationID, ms.Environment, ms.Dolittle.MicroserviceID, ms); err != nil {
 		// TODO change
 		logger.WithError(err).Error("Failed to save Purchase Order API in GitRepo")
 		return newInternalError(fmt.Errorf("failed to save Purchase Order API in GitRepo"))
@@ -232,7 +232,7 @@ func (s *Handler) ensureRawDataLogExists(msK8sInfo k8s.MicroserviceK8sInfo, ms p
 
 func (s *Handler) updatePurchaseOrderAPIWebhooks(msK8sInfo k8s.MicroserviceK8sInfo, webhooks []platform.RawDataLogIngestorWebhookConfig, environment, microserviceID string, logger *logrus.Entry) *Error {
 	var storedMicroservice platform.HttpInputPurchaseOrderInfo
-	bytes, err := s.gitRepo.GetMicroservice(msK8sInfo.Tenant.ID, msK8sInfo.Application.ID, environment, microserviceID)
+	bytes, err := s.gitRepo.GetMicroservice(msK8sInfo.Customer.ID, msK8sInfo.Application.ID, environment, microserviceID)
 	if err != nil {
 		logger.WithError(err).Error("Failed to get Purchase Order API microservice from GitRepo")
 		return newInternalError(fmt.Errorf("failed to get Purchase Order API microservice from GitRepo: %w", err))
@@ -241,7 +241,7 @@ func (s *Handler) updatePurchaseOrderAPIWebhooks(msK8sInfo k8s.MicroserviceK8sIn
 	json.Unmarshal(bytes, &storedMicroservice)
 	storedMicroservice.Extra.Webhooks = webhooks
 
-	if err := s.gitRepo.SaveMicroservice(storedMicroservice.Dolittle.TenantID, storedMicroservice.Dolittle.ApplicationID, storedMicroservice.Environment, storedMicroservice.Dolittle.MicroserviceID, storedMicroservice); err != nil {
+	if err := s.gitRepo.SaveMicroservice(storedMicroservice.Dolittle.CustomerID, storedMicroservice.Dolittle.ApplicationID, storedMicroservice.Environment, storedMicroservice.Dolittle.MicroserviceID, storedMicroservice); err != nil {
 		logger.WithError(err).Error("Failed to save Purchase Order API in GitRepo")
 		return newInternalError(fmt.Errorf("failed to save Purchase Order API in GitRepo: %w", err))
 	}
@@ -250,12 +250,12 @@ func (s *Handler) updatePurchaseOrderAPIWebhooks(msK8sInfo k8s.MicroserviceK8sIn
 
 func (s *Handler) createRawDataLog(msK8sInfo k8s.MicroserviceK8sInfo, ms platform.HttpInputPurchaseOrderInfo, customerTenants []platform.CustomerTenantInfo, logger *logrus.Entry) *Error {
 	rawDataLogMicroservice := s.extractRawDataLogInfo(ms)
-	if err := s.rawdatalogRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, customerTenants, rawDataLogMicroservice); err != nil {
+	if err := s.rawdatalogRepo.Create(msK8sInfo.Namespace, msK8sInfo.Customer, msK8sInfo.Application, customerTenants, rawDataLogMicroservice); err != nil {
 		logger.WithError(err).Error("Failed to create Raw Data Log")
 		return newInternalError(fmt.Errorf("failed to create Raw Data Log: %w", err))
 	}
 
-	if err := s.gitRepo.SaveMicroservice(rawDataLogMicroservice.Dolittle.TenantID, rawDataLogMicroservice.Dolittle.ApplicationID, rawDataLogMicroservice.Environment, rawDataLogMicroservice.Dolittle.MicroserviceID, rawDataLogMicroservice); err != nil {
+	if err := s.gitRepo.SaveMicroservice(rawDataLogMicroservice.Dolittle.CustomerID, rawDataLogMicroservice.Dolittle.ApplicationID, rawDataLogMicroservice.Environment, rawDataLogMicroservice.Dolittle.MicroserviceID, rawDataLogMicroservice); err != nil {
 		logger.WithError(err).Error("Failed to save Raw Data Log in GitRepo")
 		return newInternalError(fmt.Errorf("failed to save Raw Data Log in GitRepo: %w", err))
 	}
@@ -264,7 +264,7 @@ func (s *Handler) createRawDataLog(msK8sInfo k8s.MicroserviceK8sInfo, ms platfor
 
 func (s *Handler) updateRawDataLogWebhooks(msK8sInfo k8s.MicroserviceK8sInfo, webhooks []platform.RawDataLogIngestorWebhookConfig, environment, microserviceID string, logger *logrus.Entry) *Error {
 	var storedMicroservice platform.HttpInputRawDataLogIngestorInfo
-	bytes, err := s.gitRepo.GetMicroservice(msK8sInfo.Tenant.ID, msK8sInfo.Application.ID, environment, microserviceID)
+	bytes, err := s.gitRepo.GetMicroservice(msK8sInfo.Customer.ID, msK8sInfo.Application.ID, environment, microserviceID)
 	if err != nil {
 		logger.WithError(err).Error("Failed to get Raw Data Log microservice from GitRepo")
 		return newInternalError(fmt.Errorf("failed to get Raw Data Log microservice from GitRepo: %w", err))
@@ -272,12 +272,12 @@ func (s *Handler) updateRawDataLogWebhooks(msK8sInfo k8s.MicroserviceK8sInfo, we
 
 	json.Unmarshal(bytes, &storedMicroservice)
 	storedMicroservice.Extra.Webhooks = webhooks
-	if err := s.rawdatalogRepo.Update(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, storedMicroservice); err != nil {
+	if err := s.rawdatalogRepo.Update(msK8sInfo.Namespace, msK8sInfo.Customer, msK8sInfo.Application, storedMicroservice); err != nil {
 		logger.WithError(err).Error("Failed to update Raw Data Log")
 		return newInternalError(fmt.Errorf("failed to update Raw Data Log: %w", err))
 	}
 
-	if err := s.gitRepo.SaveMicroservice(storedMicroservice.Dolittle.TenantID, storedMicroservice.Dolittle.ApplicationID, storedMicroservice.Environment, storedMicroservice.Dolittle.MicroserviceID, storedMicroservice); err != nil {
+	if err := s.gitRepo.SaveMicroservice(storedMicroservice.Dolittle.CustomerID, storedMicroservice.Dolittle.ApplicationID, storedMicroservice.Environment, storedMicroservice.Dolittle.MicroserviceID, storedMicroservice); err != nil {
 		logger.WithError(err).Error("Failed to save Raw Data Log in GitRepo")
 		return newInternalError(fmt.Errorf("failed to save Raw Data Log in GitRepo: %w", err))
 	}
@@ -292,7 +292,7 @@ func (s *Handler) extractRawDataLogInfo(ms platform.HttpInputPurchaseOrderInfo) 
 			Environment: ms.Environment,
 			Dolittle: platform.HttpInputDolittle{
 				ApplicationID:  ms.Dolittle.ApplicationID,
-				TenantID:       ms.Dolittle.TenantID,
+				CustomerID:     ms.Dolittle.CustomerID,
 				MicroserviceID: uuid.New().String(),
 			},
 		},

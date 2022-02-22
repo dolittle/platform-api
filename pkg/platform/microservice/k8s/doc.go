@@ -18,7 +18,7 @@ const (
 )
 
 type MicroserviceK8sInfo struct {
-	Tenant      k8s.Tenant
+	Customer    k8s.Tenant
 	Application k8s.Application
 	Namespace   string
 }

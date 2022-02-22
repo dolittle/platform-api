@@ -13,8 +13,8 @@ var _ = Describe("Customer Tenants", func() {
 		item := []byte(`{
 			"id": "6eb64bea-769f-2f47-8fd6-42acb369b5cb",
 			"name": "Run1",
-			"tenantId": "b305719a-3a9c-4473-aaaa-5c60dbcb2049",
-			"tenantName": "Dry1",
+			"customerId": "b305719a-3a9c-4473-aaaa-5c60dbcb2049",
+			"customerName": "Dry1",
 			"environments": [
 			 {
 			  "name": "Dev",
@@ -60,8 +60,8 @@ var _ = Describe("Customer Tenants", func() {
 		item := []byte(`{
 			"id": "6eb64bea-769f-2f47-8fd6-42acb369b5cb",
 			"name": "Run1",
-			"tenantId": "b305719a-3a9c-4473-aaaa-5c60dbcb2049",
-			"tenantName": "Dry1",
+			"customerId": "b305719a-3a9c-4473-aaaa-5c60dbcb2049",
+			"customerName": "Dry1",
 			"environments": [
 			 {
 			  "name": "Dev",
@@ -104,8 +104,8 @@ var _ = Describe("Customer Tenants", func() {
 		item := []byte(`{
 			"id": "6eb64bea-769f-2f47-8fd6-42acb369b5cb",
 			"name": "Run1",
-			"tenantId": "b305719a-3a9c-4473-aaaa-5c60dbcb2049",
-			"tenantName": "Dry1",
+			"customerId": "b305719a-3a9c-4473-aaaa-5c60dbcb2049",
+			"customerName": "Dry1",
 			"environments": [
 			 {
 			  "name": "Dev",

@@ -18,9 +18,9 @@ func GetLabelsForCustomer(tenant string) map[string]string {
 	}
 }
 
-func GetAnnotationsForCustomer(tenantID string) map[string]string {
+func GetAnnotationsForCustomer(customerID string) map[string]string {
 	return map[string]string{
-		"dolittle.io/tenant-id": ParseLabel(tenantID),
+		"dolittle.io/tenant-id": ParseLabel(customerID),
 	}
 }
 
@@ -31,9 +31,9 @@ func GetLabelsForApplication(tenant string, application string) map[string]strin
 	}
 }
 
-func GetAnnotationsForApplication(tenantID string, applicationID string) map[string]string {
+func GetAnnotationsForApplication(customerID string, applicationID string) map[string]string {
 	return map[string]string{
-		"dolittle.io/tenant-id":      ParseLabel(tenantID),
+		"dolittle.io/tenant-id":      ParseLabel(customerID),
 		"dolittle.io/application-id": ParseLabel(applicationID),
 	}
 }
@@ -46,14 +46,6 @@ func GetLabelsForEnvironment(tenant string, application string, environment stri
 	}
 }
 
-// TODO do we need this
-//func GetAnnotationsForEnvironment(tenantID string, applicationID string) map[string]string {
-//	return map[string]string{
-//		"dolittle.io/tenant-id":      ParseLabel(tenantID),
-//		"dolittle.io/application-id": ParseLabel(applicationID),
-//	}
-//}
-
 func GetLabelsForMicroservice(tenant string, application string, environment string, name string) map[string]string {
 	return map[string]string{
 		"tenant":       ParseLabel(tenant),
@@ -63,9 +55,9 @@ func GetLabelsForMicroservice(tenant string, application string, environment str
 	}
 }
 
-func GetAnnotationsForMicroservice(tenantID string, applicationID string, microserviceID string, microserviceKind string) map[string]string {
+func GetAnnotationsForMicroservice(customerID string, applicationID string, microserviceID string, microserviceKind string) map[string]string {
 	return map[string]string{
-		"dolittle.io/tenant-id":         ParseLabel(tenantID),
+		"dolittle.io/tenant-id":         ParseLabel(customerID),
 		"dolittle.io/application-id":    ParseLabel(applicationID),
 		"dolittle.io/microservice-id":   ParseLabel(microserviceID),
 		"dolittle.io/microservice-kind": ParseLabel(microserviceKind),

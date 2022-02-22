@@ -40,7 +40,7 @@ func NewService(isProduction bool, gitRepo storage.Repo, k8sDolittleRepo platfor
 }
 
 func (s *service) GetDataStatus(responseWriter http.ResponseWriter, request *http.Request) {
-	tenantID := request.Header.Get("Tenant-ID")
+	customerID := request.Header.Get("Tenant-ID")
 
 	vars := mux.Vars(request)
 	applicationID := vars["applicationID"]
@@ -48,12 +48,12 @@ func (s *service) GetDataStatus(responseWriter http.ResponseWriter, request *htt
 	microserviceID := vars["microserviceID"]
 
 	logger := s.logger.WithFields(logrus.Fields{
-		"service":        "PurchaseOrderAPI",
-		"method":         "GetDataStatus",
-		"tenantID":       tenantID,
-		"applicationID":  applicationID,
-		"environment":    environment,
-		"microserviceID": microserviceID,
+		"service":         "PurchaseOrderAPI",
+		"method":          "GetDataStatus",
+		"customer_id":     customerID,
+		"application_id":  applicationID,
+		"environment":     environment,
+		"microservice_id": microserviceID,
 	})
 
 	dns, err := s.k8sDolittleRepo.GetMicroserviceDNS(applicationID, microserviceID)
@@ -63,7 +63,7 @@ func (s *service) GetDataStatus(responseWriter http.ResponseWriter, request *htt
 		return
 	}
 
-	status, getError := s.handler.GetDataStatus(dns, tenantID, applicationID, environment, microserviceID)
+	status, getError := s.handler.GetDataStatus(dns, customerID, applicationID, environment, microserviceID)
 
 	if getError != nil {
 		logger.WithError(getError).Error("Failed to get the microservices data status")

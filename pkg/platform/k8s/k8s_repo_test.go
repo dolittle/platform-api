@@ -23,7 +23,7 @@ import (
 
 var _ = Describe("k8s repo test", func() {
 	When("Working with the Ingress", func() {
-		When("Get the Customer TenantID from nginx configuration", func() {
+		When("Get the CustomerTenantID from nginx configuration", func() {
 			It("Not found", func() {
 				sample := `nothing`
 				expect := ""

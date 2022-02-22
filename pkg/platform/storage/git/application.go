@@ -12,17 +12,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (s *GitStorage) GetApplicationDirectory(tenantID string, applicationID string) string {
-	return filepath.Join(s.GetRoot(), tenantID, applicationID)
+func (s *GitStorage) GetApplicationDirectory(customerID string, applicationID string) string {
+	return filepath.Join(s.GetRoot(), customerID, applicationID)
 }
 
 func (s *GitStorage) SaveApplication(application storage.JSONApplication) error {
 	applicationID := application.ID
-	tenantID := application.TenantID
+	customerID := application.CustomerID
 	logContext := s.logContext.WithFields(logrus.Fields{
-		"method":        "SaveApplication",
-		"customer":      tenantID,
-		"applicationID": applicationID,
+		"method":         "SaveApplication",
+		"customer_id":    customerID,
+		"application_id": applicationID,
 	})
 
 	if err := s.Pull(); err != nil {
@@ -51,8 +51,8 @@ func (s *GitStorage) SaveApplication(application storage.JSONApplication) error 
 	return nil
 }
 
-func (s *GitStorage) GetApplication(tenantID string, applicationID string) (storage.JSONApplication, error) {
-	dir := s.GetApplicationDirectory(tenantID, applicationID)
+func (s *GitStorage) GetApplication(customerID string, applicationID string) (storage.JSONApplication, error) {
+	dir := s.GetApplicationDirectory(customerID, applicationID)
 	filename := filepath.Join(dir, "application.json")
 	b, err := ioutil.ReadFile(filename)
 
@@ -125,12 +125,12 @@ func (s *GitStorage) discoverCustomerApplicationIds(customerID string) ([]string
 }
 
 func (s *GitStorage) writeApplication(application storage.JSONApplication) (string, error) {
-	customerID := application.TenantID
+	customerID := application.CustomerID
 	applicationID := application.ID
 	logContext := s.logContext.WithFields(logrus.Fields{
-		"method":        "writeApplication",
-		"customer":      application.TenantID,
-		"applicationID": application.ID,
+		"method":         "writeApplication",
+		"customer_id":    application.CustomerID,
+		"application_id": application.ID,
 	})
 
 	dir := s.GetApplicationDirectory(customerID, applicationID)

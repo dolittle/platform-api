@@ -12,20 +12,20 @@ type RepoApplication struct {
 	mock.Mock
 }
 
-// GetApplication provides a mock function with given fields: tenantID, applicationID
-func (_m *RepoApplication) GetApplication(tenantID string, applicationID string) (storage.JSONApplication, error) {
-	ret := _m.Called(tenantID, applicationID)
+// GetApplication provides a mock function with given fields: customerID, applicationID
+func (_m *RepoApplication) GetApplication(customerID string, applicationID string) (storage.JSONApplication, error) {
+	ret := _m.Called(customerID, applicationID)
 
 	var r0 storage.JSONApplication
 	if rf, ok := ret.Get(0).(func(string, string) storage.JSONApplication); ok {
-		r0 = rf(tenantID, applicationID)
+		r0 = rf(customerID, applicationID)
 	} else {
 		r0 = ret.Get(0).(storage.JSONApplication)
 	}
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(tenantID, applicationID)
+		r1 = rf(customerID, applicationID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -33,13 +33,13 @@ func (_m *RepoApplication) GetApplication(tenantID string, applicationID string)
 	return r0, r1
 }
 
-// GetApplications provides a mock function with given fields: tenantID
-func (_m *RepoApplication) GetApplications(tenantID string) ([]storage.JSONApplication, error) {
-	ret := _m.Called(tenantID)
+// GetApplications provides a mock function with given fields: customerID
+func (_m *RepoApplication) GetApplications(customerID string) ([]storage.JSONApplication, error) {
+	ret := _m.Called(customerID)
 
 	var r0 []storage.JSONApplication
 	if rf, ok := ret.Get(0).(func(string) []storage.JSONApplication); ok {
-		r0 = rf(tenantID)
+		r0 = rf(customerID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]storage.JSONApplication)
@@ -48,7 +48,7 @@ func (_m *RepoApplication) GetApplications(tenantID string) ([]storage.JSONAppli
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(tenantID)
+		r1 = rf(customerID)
 	} else {
 		r1 = ret.Error(1)
 	}

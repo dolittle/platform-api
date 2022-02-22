@@ -50,8 +50,6 @@ type HttpResponsePersonalisedInfoEndpoints struct {
 	ContainerRegistry string `json:"containerRegistry"`
 }
 
-type TenantId string
-
 type ImageInfo struct {
 	Image string `json:"image"`
 	Name  string `json:"name"`
@@ -102,7 +100,7 @@ type Ingress struct {
 type Application struct {
 	Name      string    `json:"name"`
 	ID        string    `json:"id"`
-	Tenant    Tenant    `json:"tenant"`
+	Customer  Tenant    `json:"customer"`
 	Ingresses []Ingress `json:"ingresses"`
 }
 
@@ -137,7 +135,7 @@ type HttpMicroserviceBase struct {
 }
 type HttpInputDolittle struct {
 	ApplicationID  string `json:"applicationId"`
-	TenantID       string `json:"tenantId"`
+	CustomerID     string `json:"customerId"`
 	MicroserviceID string `json:"microserviceId"`
 }
 

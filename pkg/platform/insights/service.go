@@ -31,16 +31,16 @@ func (s *service) GetRuntimeV1(w http.ResponseWriter, r *http.Request) {
 	environment := strings.ToLower(vars["environment"])
 
 	userID := r.Header.Get("User-ID")
-	tenantID := r.Header.Get("Tenant-ID")
-	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
+	customerID := r.Header.Get("Tenant-ID")
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
 	if !allowed {
 		return
 	}
 
 	logContext := s.logContext.WithFields(logrus.Fields{
-		"applicationID": applicationID,
-		"tenantID":      tenantID,
-		"userID":        userID,
+		"application_id": applicationID,
+		"customer_id":    customerID,
+		"user_id":        userID,
 	})
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -127,11 +127,11 @@ func (s *service) GetRuntimeV1(w http.ResponseWriter, r *http.Request) {
 
 // ProxyLoki
 func (s *service) ProxyLoki(w http.ResponseWriter, r *http.Request) {
-	tenantID := r.Header.Get("Tenant-ID")
+	customerID := r.Header.Get("Tenant-ID")
 	r.Header.Del("Tenant-ID")
 	r.Header.Del("User-ID")
 	r.Header.Del("x-shared-secret")
-	r.Header.Set("X-Scope-OrgId", platform.GetCustomerGroup(tenantID))
+	r.Header.Set("X-Scope-OrgId", platform.GetCustomerGroup(customerID))
 	// Remove prefix
 	parts := strings.Split(r.URL.Path, "/loki")
 

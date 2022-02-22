@@ -14,8 +14,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (s *GitStorage) GetCustomerDirectory(tenantID string) string {
-	return filepath.Join(s.GetRoot(), tenantID)
+func (s *GitStorage) GetCustomerDirectory(customerID string) string {
+	return filepath.Join(s.GetRoot(), customerID)
 }
 
 func (s *GitStorage) GetCustomers() ([]platform.Customer, error) {

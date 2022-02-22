@@ -12,17 +12,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (s *GitStorage) GetMicroserviceDirectory(tenantID string, applicationID string, environment string) string {
-	return filepath.Join(s.GetRoot(), tenantID, applicationID, strings.ToLower(environment))
+func (s *GitStorage) GetMicroserviceDirectory(customerID string, applicationID string, environment string) string {
+	return filepath.Join(s.GetRoot(), customerID, applicationID, strings.ToLower(environment))
 }
 
-func (s *GitStorage) DeleteMicroservice(tenantID string, applicationID string, environment string, microserviceID string) error {
+func (s *GitStorage) DeleteMicroservice(customerID string, applicationID string, environment string, microserviceID string) error {
 	logContext := s.logContext.WithFields(logrus.Fields{
-		"method":         "DeleteMicroservice",
-		"tenantID":       tenantID,
-		"applicationID":  applicationID,
-		"environment":    environment,
-		"microserviceID": microserviceID,
+		"method":          "DeleteMicroservice",
+		"customer_id":     customerID,
+		"application_id":  applicationID,
+		"environment":     environment,
+		"microservice_id": microserviceID,
 	})
 
 	if err := s.Pull(); err != nil {
@@ -32,7 +32,7 @@ func (s *GitStorage) DeleteMicroservice(tenantID string, applicationID string, e
 		return err
 	}
 
-	dir := s.GetMicroserviceDirectory(tenantID, applicationID, environment)
+	dir := s.GetMicroserviceDirectory(customerID, applicationID, environment)
 	filename := filepath.Join(dir, fmt.Sprintf("ms_%s.json", microserviceID))
 	err := os.Remove(filename)
 	if err != nil {
@@ -52,13 +52,13 @@ func (s *GitStorage) DeleteMicroservice(tenantID string, applicationID string, e
 	return nil
 }
 
-func (s *GitStorage) SaveMicroservice(tenantID string, applicationID string, environment string, microserviceID string, data interface{}) error {
+func (s *GitStorage) SaveMicroservice(customerID string, applicationID string, environment string, microserviceID string, data interface{}) error {
 	logContext := s.logContext.WithFields(logrus.Fields{
-		"method":         "SaveMicroservice",
-		"tenantID":       tenantID,
-		"applicationID":  applicationID,
-		"environment":    environment,
-		"microserviceID": microserviceID,
+		"method":          "SaveMicroservice",
+		"customer_id":     customerID,
+		"application_id":  applicationID,
+		"environment":     environment,
+		"microservice_id": microserviceID,
 	})
 
 	if err := s.Pull(); err != nil {
@@ -68,7 +68,7 @@ func (s *GitStorage) SaveMicroservice(tenantID string, applicationID string, env
 		return err
 	}
 
-	dir := s.GetMicroserviceDirectory(tenantID, applicationID, environment)
+	dir := s.GetMicroserviceDirectory(customerID, applicationID, environment)
 	filename := filepath.Join(dir, fmt.Sprintf("ms_%s.json", microserviceID))
 	err := s.writeToDisk(filename, data)
 	if err != nil {
@@ -88,17 +88,17 @@ func (s *GitStorage) SaveMicroservice(tenantID string, applicationID string, env
 	return nil
 }
 
-func (s *GitStorage) GetMicroservice(tenantID string, applicationID string, environment string, microserviceID string) ([]byte, error) {
-	dir := s.GetMicroserviceDirectory(tenantID, applicationID, environment)
+func (s *GitStorage) GetMicroservice(customerID string, applicationID string, environment string, microserviceID string) ([]byte, error) {
+	dir := s.GetMicroserviceDirectory(customerID, applicationID, environment)
 	filename := filepath.Join(dir, fmt.Sprintf("ms_%s.json", microserviceID))
 	return ioutil.ReadFile(filename)
 }
 
-func (s *GitStorage) GetMicroservices(tenantID string, applicationID string) ([]platform.HttpMicroserviceBase, error) {
+func (s *GitStorage) GetMicroservices(customerID string, applicationID string) ([]platform.HttpMicroserviceBase, error) {
 	files := []string{}
 
 	// TODO change
-	rootDirectory := s.GetApplicationDirectory(tenantID, applicationID)
+	rootDirectory := s.GetApplicationDirectory(customerID, applicationID)
 	// TODO change to fs when gone to 1.16
 	err := filepath.Walk(rootDirectory, func(path string, info os.FileInfo, err error) error {
 		if err != nil {

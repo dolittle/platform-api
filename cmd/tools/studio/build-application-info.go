@@ -127,15 +127,15 @@ func processOne(
 		"application_id": application.ID,
 	})
 
-	customer, err := storageRepo.GetTerraformTenant(application.TenantID)
+	customer, err := storageRepo.GetTerraformTenant(application.CustomerID)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error":       err,
-			"customer_id": application.TenantID,
+			"customer_id": application.CustomerID,
 			"tip": fmt.Sprintf(
 				"didn't find a studio config for customer %s, create a config for this customer by running 'tools studio build-studio-info %s'",
-				application.TenantID,
-				application.TenantID,
+				application.CustomerID,
+				application.CustomerID,
 			),
 		}).Error("Failed to find customer terraform")
 		return
@@ -151,15 +151,15 @@ func processOne(
 		return
 	}
 
-	studioConfig, err := storageRepo.GetStudioConfig(application.TenantID)
+	studioConfig, err := storageRepo.GetStudioConfig(application.CustomerID)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error":       err,
-			"customer_id": application.TenantID,
+			"customer_id": application.CustomerID,
 			"tip": fmt.Sprintf(
 				"didn't find a studio config for customer %s, create a config for this customer by running 'tools studio build-studio-info %s'",
-				application.TenantID,
-				application.TenantID,
+				application.CustomerID,
+				application.CustomerID,
 			),
 		}).Error("Failed to find studio config")
 		return
@@ -168,7 +168,7 @@ func processOne(
 	if !studioConfig.BuildOverwrite {
 		logContext.WithFields(logrus.Fields{
 			"error":       "build-overwrite-set",
-			"customer_id": application.TenantID,
+			"customer_id": application.CustomerID,
 		}).Warn("Skipping")
 		return
 	}
