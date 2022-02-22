@@ -21,14 +21,16 @@ What is a platform without an api? :)
 
 `platform-api` is a project to automate the [Dolittle Platform](https://dolittle.io/docs/platform/).
 
-It is built from 2 main CLI tools:
+It is built from 3 main CLI tools:
 
-- `microservice` is a CLI tool that builds JSON files from our cluster. It's also a server, that handles k8s resources (get, create, etc). It lives in `cmd/microservice`.
+- `api` is a CLI tool that builds JSON files from our cluster. It's also a server, that handles k8s resources (get, create, etc). It lives in `cmd/api`.
 
 - `rawdatalog` is a:
     - code entry point into the raw-data-log
     - sharing code
     - lives in `cmd/rawdatalog`
+
+- `tools` is a collection of different commands to help us manage the platform. It lives in `cmd/tools`.
 
 # Setup
 
