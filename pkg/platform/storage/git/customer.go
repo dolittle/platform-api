@@ -14,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (s *GitStorage) GetTenantDirectory(tenantID string) string {
+func (s *GitStorage) GetCustomerDirectory(tenantID string) string {
 	return filepath.Join(s.GetRoot(), tenantID)
 }
 
@@ -76,7 +76,7 @@ func (s *GitStorage) SaveCustomer(customer storage.JSONCustomer) error {
 		return err
 	}
 
-	dir := s.GetTenantDirectory(customerID)
+	dir := s.GetCustomerDirectory(customerID)
 	filename := filepath.Join(dir, "customer.json")
 	err := s.writeToDisk(filename, customer)
 	if err != nil {

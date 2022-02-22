@@ -50,7 +50,7 @@ func (s *GitStorage) writeStudioConfig(tenantID string, config platform.StudioCo
 		"customer": tenantID,
 	})
 
-	dir := s.GetTenantDirectory(tenantID)
+	dir := s.GetCustomerDirectory(tenantID)
 	filename := filepath.Join(dir, "studio.json")
 	err := s.writeToDisk(filename, config)
 	if err != nil {
@@ -64,7 +64,7 @@ func (s *GitStorage) writeStudioConfig(tenantID string, config platform.StudioCo
 }
 
 func (s *GitStorage) GetStudioConfig(tenantID string) (platform.StudioConfig, error) {
-	dir := s.GetTenantDirectory(tenantID)
+	dir := s.GetCustomerDirectory(tenantID)
 	filename := filepath.Join(dir, "studio.json")
 	b, err := ioutil.ReadFile(filename)
 

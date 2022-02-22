@@ -99,7 +99,7 @@ func (s *GitStorage) discoverCustomerApplicationIds(customerID string) ([]string
 	applicationIDs := []string{}
 
 	// TODO change to fs when gone to 1.16
-	err := filepath.Walk(s.GetTenantDirectory(customerID), func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(s.GetCustomerDirectory(customerID), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			s.logContext.WithFields(logrus.Fields{
 				"customer": customerID,
