@@ -30,7 +30,7 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform/microservice/welcome"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 
-	mockStorage "github.com/dolittle/platform-api/pkg/platform/storage/mocks"
+	mockStorage "github.com/dolittle/platform-api/mocks/pkg/platform/storage"
 
 	v1beta1 "k8s.io/api/batch/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"

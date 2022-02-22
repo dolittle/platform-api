@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	mockStorage "github.com/dolittle/platform-api/mocks/pkg/platform/storage"
 	"github.com/dolittle/platform-api/pkg/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/platform/application"
@@ -15,7 +16,6 @@ import (
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	k8sSimple "github.com/dolittle/platform-api/pkg/platform/microservice/simple/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
-	mockStorage "github.com/dolittle/platform-api/pkg/platform/storage/mocks"
 	"github.com/dolittle/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
 	. "github.com/onsi/ginkgo"
