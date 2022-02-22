@@ -90,7 +90,6 @@ var serverCMD = &cobra.Command{
 }
 
 func init() {
-	RootCmd.AddCommand(serverCMD)
 	viper.SetDefault("rawdatalog.server.secret", "change")
 	viper.SetDefault("rawdatalog.server.listenOn", "localhost:8080")
 	viper.SetDefault("rawdatalog.server.webhookRepo", "stdout")

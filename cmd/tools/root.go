@@ -22,6 +22,5 @@ func init() {
 	RootCmd.AddCommand(automate.RootCmd)
 	RootCmd.AddCommand(terraform.RootCmd)
 	RootCmd.AddCommand(jobs.RootCmd)
-	RootCmd.AddCommand(automate.RootCmd)
 	RootCmd.AddCommand(explore.RootCmd)
 }
