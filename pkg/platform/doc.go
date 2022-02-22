@@ -50,9 +50,6 @@ type HttpResponsePersonalisedInfoEndpoints struct {
 	ContainerRegistry string `json:"containerRegistry"`
 }
 
-// TODO remove
-type TenantId string
-
 type ImageInfo struct {
 	Image string `json:"image"`
 	Name  string `json:"name"`
@@ -101,9 +98,8 @@ type Ingress struct {
 }
 
 type Application struct {
-	Name string `json:"name"`
-	ID   string `json:"id"`
-	// Rename to customer
+	Name      string    `json:"name"`
+	ID        string    `json:"id"`
 	Customer  Tenant    `json:"customer"`
 	Ingresses []Ingress `json:"ingresses"`
 }
