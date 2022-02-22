@@ -78,7 +78,7 @@ func (s *GitStorage) SaveTerraformTenant(tenant platform.TerraformCustomer) erro
 		return err
 	}
 
-	dir := s.GetTenantDirectory(tenantID)
+	dir := s.GetCustomerDirectory(tenantID)
 	err := os.MkdirAll(dir, 0755)
 	if err != nil {
 		fmt.Println("MkdirAll")
@@ -102,7 +102,7 @@ func (s *GitStorage) SaveTerraformTenant(tenant platform.TerraformCustomer) erro
 }
 
 func (s *GitStorage) GetTerraformTenant(tenantID string) (platform.TerraformCustomer, error) {
-	dir := s.GetTenantDirectory(tenantID)
+	dir := s.GetCustomerDirectory(tenantID)
 	filename := filepath.Join(dir, "tenant.json")
 	b, err := ioutil.ReadFile(filename)
 
