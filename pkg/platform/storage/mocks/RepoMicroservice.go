@@ -12,13 +12,13 @@ type RepoMicroservice struct {
 	mock.Mock
 }
 
-// DeleteMicroservice provides a mock function with given fields: tenantID, applicationID, environment, microserviceID
+// DeleteMicroservice provides a mock function with given fields: customerID, applicationID, environment, microserviceID
 func (_m *RepoMicroservice) DeleteMicroservice(customerID string, applicationID string, environment string, microserviceID string) error {
-	ret := _m.Called(tenantID, applicationID, environment, microserviceID)
+	ret := _m.Called(customerID, applicationID, environment, microserviceID)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, string, string) error); ok {
-		r0 = rf(tenantID, applicationID, environment, microserviceID)
+		r0 = rf(customerID, applicationID, environment, microserviceID)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -26,13 +26,13 @@ func (_m *RepoMicroservice) DeleteMicroservice(customerID string, applicationID 
 	return r0
 }
 
-// GetMicroservice provides a mock function with given fields: tenantID, applicationID, environment, microserviceID
+// GetMicroservice provides a mock function with given fields: customerID, applicationID, environment, microserviceID
 func (_m *RepoMicroservice) GetMicroservice(customerID string, applicationID string, environment string, microserviceID string) ([]byte, error) {
-	ret := _m.Called(tenantID, applicationID, environment, microserviceID)
+	ret := _m.Called(customerID, applicationID, environment, microserviceID)
 
 	var r0 []byte
 	if rf, ok := ret.Get(0).(func(string, string, string, string) []byte); ok {
-		r0 = rf(tenantID, applicationID, environment, microserviceID)
+		r0 = rf(customerID, applicationID, environment, microserviceID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]byte)
@@ -41,7 +41,7 @@ func (_m *RepoMicroservice) GetMicroservice(customerID string, applicationID str
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string, string, string, string) error); ok {
-		r1 = rf(tenantID, applicationID, environment, microserviceID)
+		r1 = rf(customerID, applicationID, environment, microserviceID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -49,13 +49,13 @@ func (_m *RepoMicroservice) GetMicroservice(customerID string, applicationID str
 	return r0, r1
 }
 
-// GetMicroservices provides a mock function with given fields: tenantID, applicationID
+// GetMicroservices provides a mock function with given fields: customerID, applicationID
 func (_m *RepoMicroservice) GetMicroservices(customerID string, applicationID string) ([]platform.HttpMicroserviceBase, error) {
-	ret := _m.Called(tenantID, applicationID)
+	ret := _m.Called(customerID, applicationID)
 
 	var r0 []platform.HttpMicroserviceBase
 	if rf, ok := ret.Get(0).(func(string, string) []platform.HttpMicroserviceBase); ok {
-		r0 = rf(tenantID, applicationID)
+		r0 = rf(customerID, applicationID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]platform.HttpMicroserviceBase)
@@ -64,7 +64,7 @@ func (_m *RepoMicroservice) GetMicroservices(customerID string, applicationID st
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(tenantID, applicationID)
+		r1 = rf(customerID, applicationID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -72,13 +72,13 @@ func (_m *RepoMicroservice) GetMicroservices(customerID string, applicationID st
 	return r0, r1
 }
 
-// SaveMicroservice provides a mock function with given fields: tenantID, applicationID, environment, microserviceID, data
+// SaveMicroservice provides a mock function with given fields: customerID, applicationID, environment, microserviceID, data
 func (_m *RepoMicroservice) SaveMicroservice(customerID string, applicationID string, environment string, microserviceID string, data interface{}) error {
-	ret := _m.Called(tenantID, applicationID, environment, microserviceID, data)
+	ret := _m.Called(customerID, applicationID, environment, microserviceID, data)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, string, string, interface{}) error); ok {
-		r0 = rf(tenantID, applicationID, environment, microserviceID, data)
+		r0 = rf(customerID, applicationID, environment, microserviceID, data)
 	} else {
 		r0 = ret.Error(0)
 	}
