@@ -12,5 +12,4 @@ var RootCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(createCustomerApplicationCMD)
 	RootCmd.AddCommand(createCustomerCMD)
-	RootCmd.AddCommand(statusCMD)
 }

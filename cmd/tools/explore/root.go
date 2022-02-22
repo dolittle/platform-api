@@ -16,4 +16,5 @@ func init() {
 	RootCmd.AddCommand(ingressCMD)
 	RootCmd.AddCommand(dolittleResourcesCMD)
 	RootCmd.AddCommand(microservicesCMD)
+	RootCmd.AddCommand(jobStatusCMD)
 }
