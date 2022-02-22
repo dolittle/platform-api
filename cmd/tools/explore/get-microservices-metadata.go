@@ -1,4 +1,4 @@
-package automate
+package explore
 
 import (
 	"encoding/json"
@@ -14,8 +14,8 @@ import (
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 )
 
-var getMicroservicesMetaDataCMD = &cobra.Command{
-	Use:   "get-microservices-metadata",
+var microservicesCMD = &cobra.Command{
+	Use:   "microservices",
 	Short: "Get all microservices metadata from the cluster",
 	Long: `
 go run main.go tools automate get-microservices-metadata
