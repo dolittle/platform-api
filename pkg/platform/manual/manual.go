@@ -49,8 +49,8 @@ func (r Repo) GatherOne(platformEnvironment string, namespace string) (storage.J
 	// Confirm it has applicaiton terraform
 	application.ID = namespaceResource.Annotations["dolittle.io/application-id"]
 	application.Name = namespaceResource.Labels["application"]
-	application.TenantID = namespaceResource.Annotations["dolittle.io/tenant-id"]
-	application.TenantName = namespaceResource.Labels["tenant"]
+	application.CustomerID = namespaceResource.Annotations["dolittle.io/tenant-id"]
+	application.CustomerName = namespaceResource.Labels["tenant"]
 
 	//Get customerTenants
 	// TODO write this to storage?

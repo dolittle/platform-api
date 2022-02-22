@@ -32,8 +32,8 @@ func CreateApplicationAndEnvironmentAndWelcomeMicroservice(
 	azureStorageAccountKey := terraformCustomer.AzureStorageAccountKey
 
 	tenantInfo := dolittleK8s.Tenant{
-		Name: application.TenantName,
-		ID:   application.TenantID,
+		Name: application.CustomerName,
+		ID:   application.CustomerID,
 	}
 
 	applicationInfo := dolittleK8s.Application{
@@ -45,7 +45,7 @@ func CreateApplicationAndEnvironmentAndWelcomeMicroservice(
 		MicroserviceBase: platform.MicroserviceBase{
 			Dolittle: platform.HttpInputDolittle{
 				ApplicationID:  application.ID,
-				TenantID:       application.TenantID,
+				TenantID:       application.CustomerID,
 				MicroserviceID: "",
 			},
 			Name: "Welcome",

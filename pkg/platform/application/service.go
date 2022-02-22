@@ -137,8 +137,8 @@ func (s *Service) Create(w http.ResponseWriter, r *http.Request) {
 	application := storage.JSONApplication{
 		ID:           input.ID,
 		Name:         input.Name,
-		TenantID:     customer.ID,
-		TenantName:   customer.Name,
+		CustomerID:   customer.ID,
+		CustomerName: customer.Name,
 		Environments: make([]storage.JSONEnvironment, 0),
 		Status: storage.JSONBuildStatus{
 			State:     storage.BuildStatusStateWaiting,

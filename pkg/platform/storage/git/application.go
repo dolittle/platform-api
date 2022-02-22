@@ -18,11 +18,11 @@ func (s *GitStorage) GetApplicationDirectory(tenantID string, applicationID stri
 
 func (s *GitStorage) SaveApplication(application storage.JSONApplication) error {
 	applicationID := application.ID
-	tenantID := application.TenantID
+	customerID := application.CustomerID
 	logContext := s.logContext.WithFields(logrus.Fields{
-		"method":        "SaveApplication",
-		"customer":      tenantID,
-		"applicationID": applicationID,
+		"method":         "SaveApplication",
+		"customer_id":    customerID,
+		"application_id": applicationID,
 	})
 
 	if err := s.Pull(); err != nil {
@@ -125,12 +125,12 @@ func (s *GitStorage) discoverCustomerApplicationIds(customerID string) ([]string
 }
 
 func (s *GitStorage) writeApplication(application storage.JSONApplication) (string, error) {
-	customerID := application.TenantID
+	customerID := application.CustomerID
 	applicationID := application.ID
 	logContext := s.logContext.WithFields(logrus.Fields{
-		"method":        "writeApplication",
-		"customer":      application.TenantID,
-		"applicationID": application.ID,
+		"method":         "writeApplication",
+		"customer_id":    application.CustomerID,
+		"application_id": application.ID,
 	})
 
 	dir := s.GetApplicationDirectory(customerID, applicationID)
