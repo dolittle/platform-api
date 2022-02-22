@@ -1,3 +1,9 @@
+# [2.10.2] - 2022-2-22 [PR: #88](https://github.com/dolittle/platform-api/pull/88)
+## Summary
+
+Rename from GetTenantDirectory to GetCustomerDirectory
+
+
 # [2.10.1] - 2022-2-18 [PR: #87](https://github.com/dolittle/platform-api/pull/87)
 ## Summary
 Fixing bug in delete microservice endpoint
