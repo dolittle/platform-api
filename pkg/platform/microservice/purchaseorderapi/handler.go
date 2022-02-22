@@ -67,9 +67,9 @@ func (s *Handler) Create(inputBytes []byte, applicationInfo platform.Application
 	}
 
 	logger = logger.WithFields(logrus.Fields{
-		"tenantID":      applicationInfo.Tenant.ID,
-		"applicationID": applicationInfo.ID,
-		"environment":   ms.Environment,
+		"customer_id":    applicationInfo.Tenant.ID,
+		"application_id": applicationInfo.ID,
+		"environment":    ms.Environment,
 	})
 	logger.Debug("Starting to create a PurchaseOrderAPI microservice")
 
@@ -136,15 +136,15 @@ func (s *Handler) Delete(applicationID, environment, microserviceID string) erro
 	return nil
 }
 
-func (s *Handler) GetDataStatus(dns, tenantID, applicationID, environment, microserviceID string) (platform.PurchaseOrderStatus, *Error) {
+func (s *Handler) GetDataStatus(dns, customerID, applicationID, environment, microserviceID string) (platform.PurchaseOrderStatus, *Error) {
 	logger := s.logContext.WithFields(logrus.Fields{
-		"handler":        "PurchaseOrderAPI",
-		"method":         "GetDataStatus",
-		"tenantID":       tenantID,
-		"applicationID":  applicationID,
-		"environment":    environment,
-		"microserviceID": microserviceID,
-		"dns":            dns,
+		"handler":         "PurchaseOrderAPI",
+		"method":          "GetDataStatus",
+		"tenant_id":       customerID,
+		"application_id":  applicationID,
+		"environment":     environment,
+		"microservice_id": microserviceID,
+		"dns":             dns,
 	})
 
 	var status platform.PurchaseOrderStatus

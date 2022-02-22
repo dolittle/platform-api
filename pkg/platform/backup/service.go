@@ -48,7 +48,7 @@ func (s *service) GetLatestByApplication(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
-			"where": "s.gitRepo.GetApplication(tenantID, applicationID)",
+			"where": "s.gitRepo.GetApplication(customerID, applicationID)",
 		}).Error("lookup error")
 		utils.RespondWithError(w, http.StatusBadRequest, "Application already exists")
 		return
@@ -129,7 +129,7 @@ func (s *service) CreateLink(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
-			"where": "s.gitRepo.GetApplication(tenantID, applicationID)",
+			"where": "s.gitRepo.GetApplication(customerID, applicationID)",
 		}).Error("lookup error")
 		utils.RespondWithError(w, http.StatusBadRequest, "Application already exists")
 		return
