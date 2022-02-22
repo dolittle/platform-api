@@ -30,7 +30,7 @@ func NewService(logContext logrus.FieldLogger, gitRepo storage.Repo, k8sDolittle
 }
 
 func (s *service) GetLatestByApplication(w http.ResponseWriter, r *http.Request) {
-	tenantID := r.Header.Get("Tenant-ID")
+	customerID := r.Header.Get("Tenant-ID")
 	ctx := r.Context()
 	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
@@ -38,13 +38,13 @@ func (s *service) GetLatestByApplication(w http.ResponseWriter, r *http.Request)
 	environment := vars["environment"]
 
 	logContext := s.logContext.WithFields(logrus.Fields{
-		"method":        "GetLatestByApplication",
-		"tenantID":      tenantID,
-		"applicationID": applicationID,
-		"environment":   environment,
+		"method":         "GetLatestByApplication",
+		"customer_id":    customerID,
+		"application_id": applicationID,
+		"environment":    environment,
 	})
 
-	applicationInfo, err := s.gitRepo.GetApplication(tenantID, applicationID)
+	applicationInfo, err := s.gitRepo.GetApplication(customerID, applicationID)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
@@ -107,7 +107,7 @@ func (s *service) GetLatestByApplication(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *service) CreateLink(w http.ResponseWriter, r *http.Request) {
-	tenantID := r.Header.Get("Tenant-ID")
+	customerID := r.Header.Get("Tenant-ID")
 	ctx := r.Context()
 
 	var input HTTPDownloadLogsInput
@@ -119,13 +119,13 @@ func (s *service) CreateLink(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	logContext := s.logContext.WithFields(logrus.Fields{
-		"method":        "CreateLink",
-		"tenantID":      tenantID,
-		"applicationID": input.ApplicationID,
-		"environment":   input.Environment,
+		"method":         "CreateLink",
+		"customer_id":    customerID,
+		"application_id": input.ApplicationID,
+		"environment":    input.Environment,
 	})
 
-	applicationInfo, err := s.gitRepo.GetApplication(tenantID, input.ApplicationID)
+	applicationInfo, err := s.gitRepo.GetApplication(customerID, input.ApplicationID)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
