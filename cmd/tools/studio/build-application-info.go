@@ -173,6 +173,34 @@ func processOne(
 		return
 	}
 
+	// Check what is there?
+	currentApplicaiton, err := storageRepo.GetApplication(application.CustomerID, application.ID)
+	if err != nil {
+		if err != storage.ErrNotFound {
+			logContext.WithFields(logrus.Fields{
+				"error":     err,
+				"namespace": namespace,
+			}).Fatal("Failed to get application")
+		}
+	}
+
+	// Keep track of welcomeMicroserviceID
+	// Get currentEnvironmentWelcomeMicroservices
+	currentEnvironmentWelcomeMicroservices := make(map[string]string)
+	for _, environment := range currentApplicaiton.Environments {
+		currentEnvironmentWelcomeMicroservices[environment.Name] = environment.WelcomeMicroserviceID
+	}
+
+	for index, environment := range application.Environments {
+		if welcomeMicroserviceID, ok := currentEnvironmentWelcomeMicroservices[environment.Name]; ok {
+			environment.WelcomeMicroserviceID = welcomeMicroserviceID
+			application.Environments[index] = environment
+		}
+	}
+
+	// Set the status from what is already there
+	application.Status = currentApplicaiton.Status
+
 	if dryRun {
 		b, _ := json.Marshal(application)
 		fmt.Println(string(b))
