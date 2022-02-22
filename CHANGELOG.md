@@ -1,3 +1,9 @@
+# [2.10.3] - 2022-2-22 [PR: #89](https://github.com/dolittle/platform-api/pull/89)
+## Summary
+
+Reducing the mixture of tenantID and customerID
+
+
 # [2.10.2] - 2022-2-22 [PR: #88](https://github.com/dolittle/platform-api/pull/88)
 ## Summary
 
