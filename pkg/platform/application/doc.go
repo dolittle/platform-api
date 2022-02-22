@@ -13,8 +13,8 @@ type HttpInputApplication struct {
 type HttpResponseApplication struct {
 	ID            string                          `json:"id"`
 	Name          string                          `json:"name"`
-	TenantID      string                          `json:"tenantId"`   // TODO why do we include this?
-	TenantName    string                          `json:"tenantName"` // TODO why do we include this?
+	CustomerID    string                          `json:"customerId"`
+	CustomerName  string                          `json:"customerName"`
 	Environments  []HttpResponseEnvironment       `json:"environments"`
 	Microservices []platform.HttpMicroserviceBase `json:"microservices,omitempty"`
 }

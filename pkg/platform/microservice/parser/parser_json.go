@@ -35,7 +35,7 @@ func (p *parser) Parse(requestBytes []byte, microservice platform.Microservice, 
 		ID:   applicationInfo.ID,
 		Name: applicationInfo.Name,
 	}
-	if info.Tenant.ID != microservice.GetBase().Dolittle.TenantID {
+	if info.Tenant.ID != microservice.GetBase().Dolittle.CustomerID {
 		return info, errors.NewBadRequest("Invalid request payload. Tenant id in the system does not match the one in the input")
 	}
 

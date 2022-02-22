@@ -101,8 +101,9 @@ type Ingress struct {
 }
 
 type Application struct {
-	Name      string    `json:"name"`
-	ID        string    `json:"id"`
+	Name string `json:"name"`
+	ID   string `json:"id"`
+	// Rename to customer
 	Tenant    Tenant    `json:"tenant"`
 	Ingresses []Ingress `json:"ingresses"`
 }
@@ -139,7 +140,6 @@ type HttpMicroserviceBase struct {
 type HttpInputDolittle struct {
 	ApplicationID  string `json:"applicationId"`
 	CustomerID     string `json:"customerId"`
-	TenantID       string `json:"tenantId"`
 	MicroserviceID string `json:"microserviceId"`
 }
 

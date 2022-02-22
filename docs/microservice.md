@@ -18,7 +18,7 @@ curl -XPOST localhost:8080/microservice -d '
 {
   "dolittle": {
     "applicationId": "11b6cf47-5d9f-438f-8116-0d9828654657",
-    "tenantId": "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3",
+    "customerId": "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3",
     "microserviceId": "9f6a613f-d969-4938-a1ac-5b7df199bc40"
   },
   "name": "Order",
@@ -58,7 +58,7 @@ curl -XPOST localhost:8080/microservice -d '
 {
   "dolittle": {
     "applicationId": "11b6cf47-5d9f-438f-8116-0d9828654657",
-    "tenantId": "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3",
+    "customerId": "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3",
     "microserviceId": "9f6a613f-d969-4938-a1ac-5b7df199bc41"
   },
   "name": "Webhook-101",
@@ -97,7 +97,7 @@ curl -XPOST localhost:8080/application -d '
 {
   "id": "11b6cf47-5d9f-438f-8116-0d9828654657",
   "name": "Taco",
-  "tenantId": "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3"
+  "customerId": "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3"
 }'
 ```
 ## Create application environment
@@ -136,7 +136,7 @@ curl -XPOST localhost:8080/microservice \
 {
   "dolittle": {
     "applicationId": "11b6cf47-5d9f-438f-8116-0d9828654657",
-    "tenantId": "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3",
+    "customerId": "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3",
     "microserviceId": "8d7be4a0-7fcb-dc48-ab2b-28fd8dbdbd3b"
   },
   "name": "RawDataLogIngestor",

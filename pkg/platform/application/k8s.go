@@ -45,7 +45,7 @@ func CreateApplicationAndEnvironmentAndWelcomeMicroservice(
 		MicroserviceBase: platform.MicroserviceBase{
 			Dolittle: platform.HttpInputDolittle{
 				ApplicationID:  application.ID,
-				TenantID:       application.CustomerID,
+				CustomerID:     application.CustomerID,
 				MicroserviceID: "",
 			},
 			Name: "Welcome",
@@ -106,7 +106,7 @@ func CreateApplicationAndEnvironmentAndWelcomeMicroservice(
 
 		// TODO Would be nice to hoist this to the creation of the application, so this is semi immutable
 		err = storageRepo.SaveMicroservice(
-			microservice.Dolittle.TenantID,
+			microservice.Dolittle.CustomerID,
 			microservice.Dolittle.ApplicationID,
 			microservice.Environment,
 			microservice.Dolittle.MicroserviceID,

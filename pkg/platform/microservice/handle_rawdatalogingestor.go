@@ -65,7 +65,7 @@ func (s *service) handleRawDataLogIngestor(
 	// TODO this could be an event
 	// TODO this should be decoupled
 	err = s.gitRepo.SaveMicroservice(
-		ms.Dolittle.TenantID,
+		ms.Dolittle.CustomerID,
 		ms.Dolittle.ApplicationID,
 		ms.Environment,
 		ms.Dolittle.MicroserviceID,

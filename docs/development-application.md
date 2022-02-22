@@ -1,5 +1,5 @@
 ## Create application
-- Wrong tenantId does something odd
+- Wrong customerId does something odd
 ```sh
 curl -XPOST \
 -H 'Content-Type: application/json' \
@@ -10,7 +10,7 @@ localhost:8081/application -d '
 {
   "id": "fake-application-123",
   "name": "Taco2",
-  "tenantId": "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3",
+  "customerId": "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3",
   "environments": ["Dev", "Test", "Prod"]
 }'
 ```

@@ -17,6 +17,7 @@ const (
 	TodoCustomersTenantID string = "17426336-fb8e-4425-8ab7-07d488367be9"
 )
 
+// TODO rename
 type MicroserviceK8sInfo struct {
 	Tenant      k8s.Tenant
 	Application k8s.Application

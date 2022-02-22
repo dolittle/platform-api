@@ -66,7 +66,6 @@ var _ = Describe("Repo", func() {
 					Name:        "ErnestBush",
 					Dolittle: platform.HttpInputDolittle{
 						ApplicationID:  application.ID,
-						TenantID:       customer.ID,
 						CustomerID:     customer.ID,
 						MicroserviceID: "b9a9211e-f118-4ea0-9eb9-8d0d8f33c753",
 					},
@@ -656,7 +655,7 @@ var _ = Describe("Repo", func() {
 				Expect(rawDataLogDeployment.Kind).To(Equal("Deployment"))
 			})
 			It("should create a deployment for raw data log with the correct tenant-id annotation", func() {
-				Expect(rawDataLogDeployment.Annotations["dolittle.io/tenant-id"]).To(Equal(input.Dolittle.TenantID))
+				Expect(rawDataLogDeployment.Annotations["dolittle.io/tenant-id"]).To(Equal(input.Dolittle.CustomerID))
 			})
 			It("should create a deployment for raw data log with the correct application-id annotation", func() {
 				Expect(rawDataLogDeployment.Annotations["dolittle.io/application-id"]).To(Equal(input.Dolittle.ApplicationID))
