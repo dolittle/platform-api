@@ -24,8 +24,6 @@ func init() {
 	RootCmd.AddCommand(buildStudioInfoCMD)
 	RootCmd.AddCommand(buildTerraformInfoCMD)
 	RootCmd.AddCommand(buildApplicationInfoCMD)
-	RootCmd.AddCommand(deleteApplicationCMD)
-	RootCmd.AddCommand(deleteCustomerCMD)
 	RootCmd.AddCommand(userAdminCMD)
 
 	RootCmd.PersistentFlags().Bool("git-dry-run", false, "Don't commit and push changes")

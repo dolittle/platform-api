@@ -19,7 +19,7 @@ type tfCustomer struct {
 	PlatformEnvironment string
 }
 
-var createCustomerHclCMD = &cobra.Command{
+var customerCMD = &cobra.Command{
 	Use:   "create-customer-hcl",
 	Short: "Write terraform output for a customer",
 	Long: `
@@ -101,8 +101,8 @@ func generateTerraformForCustomer(root *hclwrite.Body, customer tfCustomer) {
 }
 
 func init() {
-	createCustomerHclCMD.Flags().String("name", "", "Name of customer (readable)")
-	createCustomerHclCMD.Flags().String("id", "", "Specific customer id to use")
-	createCustomerHclCMD.Flags().String("source", "./modules/dolittle-customer-with-resources", "Override with specific source of the module")
-	createCustomerHclCMD.Flags().Bool("dry-run", false, "Will not write to disk")
+	customerCMD.Flags().String("name", "", "Name of customer (readable)")
+	customerCMD.Flags().String("id", "", "Specific customer id to use")
+	customerCMD.Flags().String("source", "./modules/dolittle-customer-with-resources", "Override with specific source of the module")
+	customerCMD.Flags().Bool("dry-run", false, "Will not write to disk")
 }

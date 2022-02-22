@@ -1,4 +1,4 @@
-package studio
+package commands
 
 import (
 	"fmt"
@@ -10,11 +10,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var deleteCustomerCMD = &cobra.Command{
-	Use:   "delete-customer",
-	Short: "Shows commands to aid in deleting a customer from the cluster",
+var deleteApplicationCMD = &cobra.Command{
+	Use:   "delete-application",
+	Short: "Shows commands to aid in deleting an application from the cluster",
 	Long: `
-	go run main.go tools studio delete-customer --directory="/Users/freshteapot/dolittle/git/Operations" 6677c2f0-9e2f-4d2b-beb5-50014fc8ad0c
+	go run main.go tools studio delete-application --directory="/Users/freshteapot/dolittle/git/Operations" 6677c2f0-9e2f-4d2b-beb5-50014fc8ad0c
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		rootDir, _ := cmd.Flags().GetString("directory")
@@ -23,7 +23,7 @@ var deleteCustomerCMD = &cobra.Command{
 		platformApiDir := filepath.Join(rootDir, "Source", "V3", "platform-api")
 		azureDir := filepath.Join(rootDir, "Source", "V3", "Azure")
 
-		customerID := args[0]
+		applicationID := args[0]
 
 		type storageInfo struct {
 			CustomerID          string
@@ -51,11 +51,7 @@ var deleteCustomerCMD = &cobra.Command{
 				return filepath.SkipDir
 			}
 
-			if !strings.Contains(path, customerID) {
-				return nil
-			}
-
-			if len(parts) != 3 {
+			if !strings.Contains(path, applicationID) {
 				return nil
 			}
 
@@ -95,5 +91,5 @@ var deleteCustomerCMD = &cobra.Command{
 }
 
 func init() {
-	deleteCustomerCMD.Flags().String("directory", "", "Path to git repo")
+	deleteApplicationCMD.Flags().String("directory", "", "Path to git repo")
 }

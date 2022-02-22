@@ -1,4 +1,4 @@
-package jobs
+package kubernetes
 
 import (
 	"fmt"
@@ -14,11 +14,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-var createCustomerCMD = &cobra.Command{
-	Use:   "create-customer",
-	Short: "Create job to make customer",
+var customerJobCMD = &cobra.Command{
+	Use:   "customer-job",
+	Short: "Create a k8s Job to make customer",
 	Long: `
-	Outputs a new Dolittle platform customer in hcl to stdout.
+	Outputs a k8s job to create a customers application
 
 
 	go run main.go tools jobs create-customer \
@@ -65,6 +65,6 @@ var createCustomerCMD = &cobra.Command{
 }
 
 func init() {
-	createCustomerCMD.Flags().String("customer-id", "", "Customer ID (optional, if not included, will create one)")
-	createCustomerCMD.Flags().String("customer-name", "", "Customer NAME")
+	customerJobCMD.Flags().String("customer-id", "", "Customer ID (optional, if not included, will create one)")
+	customerJobCMD.Flags().String("customer-name", "", "Customer NAME")
 }
