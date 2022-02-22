@@ -1,4 +1,4 @@
-package studio
+package explore
 
 import (
 	"encoding/json"
@@ -12,8 +12,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-var getCustomersCMD = &cobra.Command{
-	Use:   "get-customers",
+var studioCustomersCMD = &cobra.Command{
+	Use:   "studio-customers",
 	Short: "Get customer info from studio storage",
 	Long: `
 	Attempts to get customer.json
@@ -22,7 +22,7 @@ var getCustomersCMD = &cobra.Command{
 	GIT_REPO_DRY_RUN=true \
 	GIT_REPO_DIRECTORY="/tmp/dolittle-local-dev" \
 	GIT_REPO_DIRECTORY_ONLY=true \
-	go run main.go tools studio get-customers
+	go run main.go tools explore studio-customers
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
@@ -44,4 +44,8 @@ var getCustomersCMD = &cobra.Command{
 		b, _ := json.Marshal(customers)
 		fmt.Println(string(b))
 	},
+}
+
+func init() {
+	git.SetupViper()
 }

@@ -6,10 +6,10 @@ import (
 
 var RootCmd = &cobra.Command{
 	Use:   "explore",
-	Short: "Explore the Cluster",
+	Short: "Explore the platform",
 	Long: `
 
-Tools to Explore the cluster`,
+Tools to explore the platform`,
 }
 
 func init() {
@@ -17,4 +17,5 @@ func init() {
 	RootCmd.AddCommand(dolittleResourcesCMD)
 	RootCmd.AddCommand(microservicesCMD)
 	RootCmd.AddCommand(jobStatusCMD)
+	RootCmd.AddCommand(studioCustomersCMD)
 }

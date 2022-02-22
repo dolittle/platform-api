@@ -15,7 +15,7 @@ var pullMicroserviceDeploymentCMD = &cobra.Command{
 	Use:   "pull-microservice-deployment",
 	Short: "Pulls all dolittle microservice deployments from the cluster and writes them to their respective microservice inside the specified repo",
 	Long: `
-	go run main.go tools pull-microservice-deployment <repo-root>
+	go run main.go tools automate pull-microservice-deployment <repo-root>
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
