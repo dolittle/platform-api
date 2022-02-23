@@ -18,7 +18,7 @@ var microservicesCMD = &cobra.Command{
 	Use:   "microservices",
 	Short: "Get all microservices metadata from the cluster",
 	Long: `
-go run main.go tools automate get-microservices-metadata
+go run main.go tools explore microservices
 
 Returns an array of metadata
 
