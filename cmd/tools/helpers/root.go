@@ -2,7 +2,6 @@ package helpers
 
 import (
 	"github.com/dolittle/platform-api/cmd/tools/helpers/commands"
-	"github.com/dolittle/platform-api/cmd/tools/helpers/kubernetes"
 	"github.com/dolittle/platform-api/cmd/tools/helpers/terraform"
 	"github.com/spf13/cobra"
 )
@@ -17,6 +16,5 @@ Helpers to create commands and HCL/YAML files to copy-paste. These commands are 
 
 func init() {
 	RootCMD.AddCommand(terraform.RootCmd)
-	RootCMD.AddCommand(kubernetes.RootCmd)
 	RootCMD.AddCommand(commands.RootCmd)
 }

@@ -4,6 +4,7 @@ import (
 	"github.com/dolittle/platform-api/cmd/tools/automate"
 	"github.com/dolittle/platform-api/cmd/tools/explore"
 	"github.com/dolittle/platform-api/cmd/tools/helpers"
+	"github.com/dolittle/platform-api/cmd/tools/job"
 	"github.com/dolittle/platform-api/cmd/tools/studio"
 	"github.com/spf13/cobra"
 )
@@ -21,4 +22,5 @@ func init() {
 	RootCmd.AddCommand(automate.RootCmd)
 	RootCmd.AddCommand(explore.RootCmd)
 	RootCmd.AddCommand(helpers.RootCMD)
+	RootCmd.AddCommand(job.RootCMD)
 }

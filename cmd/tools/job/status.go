@@ -1,4 +1,4 @@
-package explore
+package job
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var jobStatusCMD = &cobra.Command{
-	Use:   "job-status",
+var statusCMD = &cobra.Command{
+	Use:   "status",
 	Short: "Get status for a job",
 	Long: `
 	Outputs a State of each container in the job
@@ -78,8 +78,4 @@ var jobStatusCMD = &cobra.Command{
 			}
 		}
 	},
-}
-
-func init() {
-
 }

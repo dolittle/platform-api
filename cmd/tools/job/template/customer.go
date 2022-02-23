@@ -1,4 +1,4 @@
-package kubernetes
+package template
 
 import (
 	"fmt"
@@ -14,8 +14,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-var customerJobCMD = &cobra.Command{
-	Use:   "customer-job",
+var customerCMD = &cobra.Command{
+	Use:   "customer",
 	Short: "Create a k8s Job to make customer",
 	Long: `
 	Outputs a k8s job to create a customers application
@@ -65,6 +65,6 @@ var customerJobCMD = &cobra.Command{
 }
 
 func init() {
-	customerJobCMD.Flags().String("customer-id", "", "Customer ID (optional, if not included, will create one)")
-	customerJobCMD.Flags().String("customer-name", "", "Customer NAME")
+	customerCMD.Flags().String("customer-id", "", "Customer ID (optional, if not included, will create one)")
+	customerCMD.Flags().String("customer-name", "", "Customer NAME")
 }

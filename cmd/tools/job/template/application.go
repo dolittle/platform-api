@@ -1,4 +1,4 @@
-package kubernetes
+package template
 
 import (
 	"fmt"
@@ -15,8 +15,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-var applicationJobCMD = &cobra.Command{
-	Use:   "application-job",
+var applicationCMD = &cobra.Command{
+	Use:   "application",
 	Short: "Create a k8s Job to make a customers application",
 	Long: `
 	Outputs a k8s job to create a customers application
@@ -83,8 +83,8 @@ var applicationJobCMD = &cobra.Command{
 }
 
 func init() {
-	applicationJobCMD.Flags().String("application-name", "", "Name of application (readable)")
-	applicationJobCMD.Flags().String("application-id", "", "Application ID to use")
-	applicationJobCMD.Flags().String("customer-id", "", "Customer ID")
-	applicationJobCMD.Flags().Bool("is-production", false, "Signal this is in production mode")
+	applicationCMD.Flags().String("application-name", "", "Name of application (readable)")
+	applicationCMD.Flags().String("application-id", "", "Application ID to use")
+	applicationCMD.Flags().String("customer-id", "", "Customer ID")
+	applicationCMD.Flags().Bool("is-production", false, "Signal this is in production mode")
 }
