@@ -154,7 +154,7 @@ GIT_SSH_COMMAND="ssh -i /pod-data/.ssh/operations -o IdentitiesOnly=yes -o Stric
 	return gitUpdate(image, "terraform", commands)
 }
 
-func toolsStudioBuildTerraformInfo(platformImage string, platformEnvironment string, customerID string) corev1.Container {
+func toolsStudioUpdateTerraform(platformImage string, platformEnvironment string, customerID string) corev1.Container {
 	return corev1.Container{
 		Name:            "tools-studio-update-terraform",
 		ImagePullPolicy: "Always",
@@ -203,7 +203,7 @@ GIT_SSH_COMMAND="ssh -i /pod-data/.ssh/operations -o IdentitiesOnly=yes -o Stric
 	return gitUpdate(platformImage, "studio-terraform", commands)
 }
 
-func toolsStudioBuildStudioInfo(platformImage string, platformEnvironment string, customerID string) corev1.Container {
+func toolsStudioUpdateStudio(platformImage string, platformEnvironment string, customerID string) corev1.Container {
 	envVars := []corev1.EnvVar{
 		{
 			Name:  "KUBECONFIG",
