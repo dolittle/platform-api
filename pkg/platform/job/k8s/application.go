@@ -93,7 +93,7 @@ func CreateApplicationResource(config CreateResourceConfig, customerID string, a
 							"sh",
 							"-c",
 							fmt.Sprintf(`
-/app/bin/app tools terraform create-customer-application-hcl \
+/app/bin/app tools terraform template application \
 --application-name="%s" \
 --application-id="%s" \
 --customer="%s"  > /pod-data/git/Source/V3/Azure/%s.tf;
