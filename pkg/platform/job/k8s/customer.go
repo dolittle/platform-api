@@ -107,9 +107,9 @@ func CreateCustomerResource(config CreateResourceConfig, customer dolittleK8s.Sh
 						terraformApply(terraformBaseContainer, terrformFileName),
 						// Terraform create azure.json
 						terraformOutputJSON(terraformBaseContainer),
-						toolsStudioBuildTerraformInfo(platformImage, platformEnvironment, customerID),
+						toolsStudioUpdateTerraform(platformImage, platformEnvironment, customerID),
 						gitUpdateStudioTerraformInfo(platformImage, platformEnvironment, customerID, branch),
-						toolsStudioBuildStudioInfo(platformImage, platformEnvironment, customerID),
+						toolsStudioUpdateStudio(platformImage, platformEnvironment, customerID),
 						gitUpdateStudioInfo(platformImage, platformEnvironment, customerID, branch),
 						terraformRemoveOutputJSON(platformImage),
 					},

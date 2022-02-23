@@ -114,7 +114,7 @@ func CreateApplicationResource(config CreateResourceConfig, customerID string, a
 						terraformApply(terraformBaseContainer, terrformFileName),
 						// Terraform create azure.json
 						terraformOutputJSON(terraformBaseContainer),
-						toolsStudioBuildTerraformInfo(platformImage, platformEnvironment, customerID),
+						toolsStudioUpdateTerraform(platformImage, platformEnvironment, customerID),
 						gitUpdateStudioTerraformInfo(platformImage, platformEnvironment, customerID, branch),
 
 						buildApplicationInCluster(platformImage, platformEnvironment, customerID, applicationID, isProduction),
