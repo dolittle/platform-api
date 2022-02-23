@@ -1,4 +1,4 @@
-package studio
+package update
 
 import (
 	"encoding/json"
@@ -18,11 +18,11 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-var buildTerraformInfoCMD = &cobra.Command{
-	Use:   "build-terraform-info",
-	Short: "Write tenant info into the git repo",
+var terraformCMD = &cobra.Command{
+	Use:   "terraform",
+	Short: "Update the terraform.json",
 	Long: `
-	You need  the output from terraform
+	You need the output from terraform
 
 	cd Source/V3/Azure
 	terraform output -json > azure.json
@@ -31,7 +31,7 @@ var buildTerraformInfoCMD = &cobra.Command{
 	GIT_REPO_DRY_RUN=true \
 	GIT_REPO_DIRECTORY="/tmp/dolittle-local-dev" \
 	GIT_REPO_DIRECTORY_ONLY=true \
-	go run main.go tools studio build-terraform-info ~/Dolittle/Operations/Source/V3/Azure/azure.json
+	go run main.go tools studio update terraform ~/Dolittle/Operations/Source/V3/Azure/azure.json
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 
@@ -224,5 +224,5 @@ func findCustomer(customers []platform.TerraformCustomer, customerID string) (pl
 }
 
 func init() {
-	buildTerraformInfoCMD.Flags().String("customer-id", "", "Specific customer-id to use (optional)")
+	terraformCMD.Flags().String("customer-id", "", "Specific customer-id to use (optional)")
 }

@@ -1,4 +1,4 @@
-package explore
+package get
 
 import (
 	"encoding/json"
@@ -12,11 +12,11 @@ import (
 	"github.com/spf13/viper"
 )
 
-var studioCustomersCMD = &cobra.Command{
-	Use:   "studio-customers",
-	Short: "Get customer info from studio storage",
+var customersCMD = &cobra.Command{
+	Use:   "customers",
+	Short: "Get customer info from Studio",
 	Long: `
-	Attempts to get customer.json
+	Gets the customer.json
 
 	GIT_REPO_BRANCH=dev \
 	GIT_REPO_DRY_RUN=true \
@@ -44,8 +44,4 @@ var studioCustomersCMD = &cobra.Command{
 		b, _ := json.Marshal(customers)
 		fmt.Println(string(b))
 	},
-}
-
-func init() {
-	git.SetupViper()
 }

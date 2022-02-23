@@ -1,4 +1,4 @@
-package studio
+package create
 
 import (
 	"context"
@@ -13,8 +13,8 @@ import (
 )
 
 // TODO should we deprecate this? or make it reusable in terms of add the "name" and it will hook up the developer rbac
-var createServiceAccountCMD = &cobra.Command{
-	Use:   "create-service-account",
+var serviceAccountCMD = &cobra.Command{
+	Use:   "service-account",
 	Short: "Create a k8s devops service account for an application",
 	Long: `
 	Attempts to create a "devops" serviceaccount for the application and adds it to the already existing "developer" rolebinding.
@@ -101,5 +101,5 @@ var createServiceAccountCMD = &cobra.Command{
 }
 
 func init() {
-	createServiceAccountCMD.Flags().Bool("all", false, "Add a devops serviceaccount for all customers")
+	serviceAccountCMD.Flags().Bool("all", false, "Add a devops serviceaccount for all customers")
 }

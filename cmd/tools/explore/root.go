@@ -16,5 +16,4 @@ func init() {
 	RootCmd.AddCommand(dolittleResourcesCMD)
 	RootCmd.AddCommand(microservicesCMD)
 	RootCmd.AddCommand(jobStatusCMD)
-	RootCmd.AddCommand(studioCustomersCMD)
 }
