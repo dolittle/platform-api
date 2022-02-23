@@ -12,10 +12,10 @@ import (
 
 // SaveStudioConfig pulls the remote, writes the studio.json file, commits the changes
 // and pushes them to the remote
-func (s *GitStorage) SaveStudioConfig(tenantID string, config platform.StudioConfig) error {
+func (s *GitStorage) SaveStudioConfig(customerID string, config platform.StudioConfig) error {
 	logContext := s.logContext.WithFields(logrus.Fields{
-		"method":   "SaveStudioConfig",
-		"tenantID": tenantID,
+		"method":      "SaveStudioConfig",
+		"customer_id": customerID,
 	})
 
 	if err := s.Pull(); err != nil {
@@ -25,7 +25,7 @@ func (s *GitStorage) SaveStudioConfig(tenantID string, config platform.StudioCon
 		return err
 	}
 
-	filename, err := s.writeStudioConfig(tenantID, config)
+	filename, err := s.writeStudioConfig(customerID, config)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
@@ -33,7 +33,7 @@ func (s *GitStorage) SaveStudioConfig(tenantID string, config platform.StudioCon
 		return err
 	}
 
-	err = s.CommitPathAndPush(filename, fmt.Sprintf("upsert studio config for customer %s", tenantID))
+	err = s.CommitPathAndPush(filename, fmt.Sprintf("upsert studio config for customer %s", customerID))
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
@@ -44,13 +44,13 @@ func (s *GitStorage) SaveStudioConfig(tenantID string, config platform.StudioCon
 	return nil
 }
 
-func (s *GitStorage) writeStudioConfig(tenantID string, config platform.StudioConfig) (string, error) {
+func (s *GitStorage) writeStudioConfig(customerID string, config platform.StudioConfig) (string, error) {
 	logContext := s.logContext.WithFields(logrus.Fields{
-		"method":   "writeStudioConfig",
-		"customer": tenantID,
+		"method":      "writeStudioConfig",
+		"customer_id": customerID,
 	})
 
-	dir := s.GetTenantDirectory(tenantID)
+	dir := s.GetCustomerDirectory(customerID)
 	filename := filepath.Join(dir, "studio.json")
 	err := s.writeToDisk(filename, config)
 	if err != nil {
@@ -63,8 +63,8 @@ func (s *GitStorage) writeStudioConfig(tenantID string, config platform.StudioCo
 	return filename, nil
 }
 
-func (s *GitStorage) GetStudioConfig(tenantID string) (platform.StudioConfig, error) {
-	dir := s.GetTenantDirectory(tenantID)
+func (s *GitStorage) GetStudioConfig(customerID string) (platform.StudioConfig, error) {
+	dir := s.GetCustomerDirectory(customerID)
 	filename := filepath.Join(dir, "studio.json")
 	b, err := ioutil.ReadFile(filename)
 

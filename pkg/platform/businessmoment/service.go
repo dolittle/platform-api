@@ -41,13 +41,13 @@ func (s *service) DeleteMoment(w http.ResponseWriter, r *http.Request) {
 	})
 
 	userID := r.Header.Get("User-ID")
-	tenantID := r.Header.Get("Tenant-ID")
-	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
+	customerID := r.Header.Get("Tenant-ID")
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
 	if !allowed {
 		return
 	}
 
-	err := s.gitRepo.DeleteBusinessMoment(tenantID, applicationID, environment, microserviceID, momentID)
+	err := s.gitRepo.DeleteBusinessMoment(customerID, applicationID, environment, microserviceID, momentID)
 	if err != nil {
 		// TODO handle if error not found?
 		logContext.WithFields(logrus.Fields{
@@ -58,7 +58,7 @@ func (s *service) DeleteMoment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.eventUpdateConfigmap(tenantID, applicationID, environment, microserviceID)
+	err = s.eventUpdateConfigmap(customerID, applicationID, environment, microserviceID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, "Something has gone wrong whilst updating business moments to microservice")
 		return
@@ -66,7 +66,7 @@ func (s *service) DeleteMoment(w http.ResponseWriter, r *http.Request) {
 
 	utils.RespondWithJSON(w, http.StatusOK, map[string]string{
 		"message":        "Moment removed",
-		"tenant_id":      tenantID,
+		"customer_id":    customerID,
 		"application_id": applicationID,
 		"environment":    environment,
 		"moment_id":      momentID,
@@ -89,13 +89,13 @@ func (s *service) DeleteEntity(w http.ResponseWriter, r *http.Request) {
 	})
 
 	userID := r.Header.Get("User-ID")
-	tenantID := r.Header.Get("Tenant-ID")
-	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
+	customerID := r.Header.Get("Tenant-ID")
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
 	if !allowed {
 		return
 	}
 
-	err := s.gitRepo.DeleteBusinessMomentEntity(tenantID, applicationID, environment, microserviceID, entityID)
+	err := s.gitRepo.DeleteBusinessMomentEntity(customerID, applicationID, environment, microserviceID, entityID)
 	if err != nil {
 		// TODO handle if error not found?
 		logContext.WithFields(logrus.Fields{
@@ -106,7 +106,7 @@ func (s *service) DeleteEntity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.eventUpdateConfigmap(tenantID, applicationID, environment, microserviceID)
+	err = s.eventUpdateConfigmap(customerID, applicationID, environment, microserviceID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, "Something has gone wrong whilst updating business moments to microservice")
 		return
@@ -114,7 +114,7 @@ func (s *service) DeleteEntity(w http.ResponseWriter, r *http.Request) {
 
 	utils.RespondWithJSON(w, http.StatusOK, map[string]string{
 		"message":        "Entity removed",
-		"tenant_id":      tenantID,
+		"customer_id":    customerID,
 		"application_id": applicationID,
 		"environment":    environment,
 		"entity_id":      entityID,
@@ -139,14 +139,14 @@ func (s *service) SaveEntity(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID := r.Header.Get("User-ID")
-	tenantID := r.Header.Get("Tenant-ID")
+	customerID := r.Header.Get("Tenant-ID")
 	applicationID := input.ApplicationID
-	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
 	if !allowed {
 		return
 	}
 
-	rawBytes, err := s.gitRepo.GetMicroservice(tenantID, applicationID, input.Environment, input.MicroserviceID)
+	rawBytes, err := s.gitRepo.GetMicroservice(customerID, applicationID, input.Environment, input.MicroserviceID)
 	if err != nil {
 		// TODO add logContext
 		utils.RespondWithError(w, http.StatusBadRequest, "Not able to find microservice in the storage")
@@ -167,14 +167,14 @@ func (s *service) SaveEntity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.gitRepo.SaveBusinessMomentEntity(tenantID, input)
+	err = s.gitRepo.SaveBusinessMomentEntity(customerID, input)
 	if err != nil {
 		// TODO add logContext
 		utils.RespondWithError(w, http.StatusInternalServerError, "Something has gone wrong")
 		return
 	}
 
-	err = s.eventUpdateConfigmap(tenantID, input.ApplicationID, input.Environment, input.MicroserviceID)
+	err = s.eventUpdateConfigmap(customerID, input.ApplicationID, input.Environment, input.MicroserviceID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, "Something has gone wrong whilst updating business moments to microservice")
 		return
@@ -200,14 +200,14 @@ func (s *service) SaveMoment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID := r.Header.Get("User-ID")
-	tenantID := r.Header.Get("Tenant-ID")
+	customerID := r.Header.Get("Tenant-ID")
 	applicationID := input.ApplicationID
-	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
 	if !allowed {
 		return
 	}
 
-	rawBytes, err := s.gitRepo.GetMicroservice(tenantID, applicationID, input.Environment, input.MicroserviceID)
+	rawBytes, err := s.gitRepo.GetMicroservice(customerID, applicationID, input.Environment, input.MicroserviceID)
 	if err != nil {
 		// TODO add logContext
 		utils.RespondWithError(w, http.StatusBadRequest, "Not able to find microservice in the storage")
@@ -228,14 +228,14 @@ func (s *service) SaveMoment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.gitRepo.SaveBusinessMoment(tenantID, input)
+	err = s.gitRepo.SaveBusinessMoment(customerID, input)
 	if err != nil {
 		// TODO add logContext
 		utils.RespondWithError(w, http.StatusInternalServerError, "Something has gone wrong")
 		return
 	}
 
-	err = s.eventUpdateConfigmap(tenantID, applicationID, input.Environment, input.MicroserviceID)
+	err = s.eventUpdateConfigmap(customerID, applicationID, input.Environment, input.MicroserviceID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, "Something has gone wrong whilst updating business moments to microservice")
 		return
@@ -250,13 +250,13 @@ func (s *service) GetMoments(w http.ResponseWriter, r *http.Request) {
 	environment := strings.ToLower(vars["environment"])
 
 	userID := r.Header.Get("User-ID")
-	tenantID := r.Header.Get("Tenant-ID")
-	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, tenantID, applicationID, userID)
+	customerID := r.Header.Get("Tenant-ID")
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
 	if !allowed {
 		return
 	}
 
-	data, err := s.gitRepo.GetBusinessMoments(tenantID, applicationID, environment)
+	data, err := s.gitRepo.GetBusinessMoments(customerID, applicationID, environment)
 	if err != nil {
 		// TODO add logContext
 		utils.RespondWithError(w, http.StatusInternalServerError, "Something has gone wrong")
@@ -266,12 +266,12 @@ func (s *service) GetMoments(w http.ResponseWriter, r *http.Request) {
 	utils.RespondWithJSON(w, http.StatusOK, data)
 }
 
-func (s *service) eventUpdateConfigmap(tenantID string, applicationID string, environment string, microserviceID string) error {
+func (s *service) eventUpdateConfigmap(customerID string, applicationID string, environment string, microserviceID string) error {
 	logContext := s.logContext
 	environment = strings.ToLower(environment)
 
 	//  TODO this should be an event
-	data, err := s.gitRepo.GetBusinessMoments(tenantID, applicationID, environment)
+	data, err := s.gitRepo.GetBusinessMoments(customerID, applicationID, environment)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error":  err,

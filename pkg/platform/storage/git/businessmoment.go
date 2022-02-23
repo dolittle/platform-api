@@ -10,9 +10,9 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-func (s *GitStorage) SaveBusinessMomentEntity(tenantID string, input platform.HttpInputBusinessMomentEntity) error {
+func (s *GitStorage) SaveBusinessMomentEntity(customerID string, input platform.HttpInputBusinessMomentEntity) error {
 	logContext := s.logContext.WithFields(logrus.Fields{
-		"tenat_id":        tenantID,
+		"customer_id":     customerID,
 		"application_id":  input.ApplicationID,
 		"environment":     input.Environment,
 		"microservice_id": input.MicroserviceID,
@@ -20,7 +20,7 @@ func (s *GitStorage) SaveBusinessMomentEntity(tenantID string, input platform.Ht
 	})
 
 	// Lookup the microservice
-	rawBytes, err := s.GetMicroservice(tenantID, input.ApplicationID, input.Environment, input.MicroserviceID)
+	rawBytes, err := s.GetMicroservice(customerID, input.ApplicationID, input.Environment, input.MicroserviceID)
 	if err != nil {
 		return storage.ErrNotFound
 	}
@@ -54,7 +54,7 @@ func (s *GitStorage) SaveBusinessMomentEntity(tenantID string, input platform.Ht
 	}
 
 	// I guess a possible race condition is possible.
-	err = s.SaveMicroservice(tenantID, input.ApplicationID, input.Environment, microservice.Dolittle.MicroserviceID, microservice)
+	err = s.SaveMicroservice(customerID, input.ApplicationID, input.Environment, microservice.Dolittle.MicroserviceID, microservice)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error":  err,
@@ -66,9 +66,9 @@ func (s *GitStorage) SaveBusinessMomentEntity(tenantID string, input platform.Ht
 }
 
 // Save all is cheaper
-func (s *GitStorage) SaveBusinessMoment(tenantID string, input platform.HttpInputBusinessMoment) error {
+func (s *GitStorage) SaveBusinessMoment(customerID string, input platform.HttpInputBusinessMoment) error {
 	logContext := s.logContext.WithFields(logrus.Fields{
-		"tenat_id":        tenantID,
+		"customer_id":     customerID,
 		"application_id":  input.ApplicationID,
 		"environment":     input.Environment,
 		"microservice_id": input.MicroserviceID,
@@ -76,7 +76,7 @@ func (s *GitStorage) SaveBusinessMoment(tenantID string, input platform.HttpInpu
 	})
 
 	// Lookup the microservice
-	rawBytes, err := s.GetMicroservice(tenantID, input.ApplicationID, input.Environment, input.MicroserviceID)
+	rawBytes, err := s.GetMicroservice(customerID, input.ApplicationID, input.Environment, input.MicroserviceID)
 	if err != nil {
 		return storage.ErrNotFound
 	}
@@ -109,7 +109,7 @@ func (s *GitStorage) SaveBusinessMoment(tenantID string, input platform.HttpInpu
 		microservice.Extra.Moments = append(microservice.Extra.Moments, input.Moment)
 	}
 
-	err = s.SaveMicroservice(tenantID, input.ApplicationID, input.Environment, microservice.Dolittle.MicroserviceID, microservice)
+	err = s.SaveMicroservice(customerID, input.ApplicationID, input.Environment, microservice.Dolittle.MicroserviceID, microservice)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error":  err,
@@ -122,14 +122,14 @@ func (s *GitStorage) SaveBusinessMoment(tenantID string, input platform.HttpInpu
 }
 
 // TODO We do need to bubble up the microservices
-func (s *GitStorage) GetBusinessMoments(tenantID string, applicationID string, environment string) (platform.HttpResponseBusinessMoments, error) {
+func (s *GitStorage) GetBusinessMoments(customerID string, applicationID string, environment string) (platform.HttpResponseBusinessMoments, error) {
 	logContext := s.logContext.WithFields(logrus.Fields{
-		"tenat_id":       tenantID,
+		"customer_id":    customerID,
 		"application_id": applicationID,
 		"environment":    environment,
 	})
 
-	microservices, err := s.GetMicroservices(tenantID, applicationID)
+	microservices, err := s.GetMicroservices(customerID, applicationID)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
@@ -183,16 +183,16 @@ func (s *GitStorage) GetBusinessMoments(tenantID string, applicationID string, e
 	return data, nil
 }
 
-func (s *GitStorage) DeleteBusinessMoment(tenantID string, applicationID string, environment string, microserviceID string, momentID string) error {
+func (s *GitStorage) DeleteBusinessMoment(customerID string, applicationID string, environment string, microserviceID string, momentID string) error {
 	logContext := s.logContext.WithFields(logrus.Fields{
-		"tenat_id":        tenantID,
+		"customer_id":     customerID,
 		"application_id":  applicationID,
 		"environment":     environment,
 		"microservice_id": microserviceID,
 		"moment_id":       momentID,
 	})
 
-	rawBytes, err := s.GetMicroservice(tenantID, applicationID, environment, microserviceID)
+	rawBytes, err := s.GetMicroservice(customerID, applicationID, environment, microserviceID)
 	if err != nil {
 		return storage.ErrNotFound
 	}
@@ -224,7 +224,7 @@ func (s *GitStorage) DeleteBusinessMoment(tenantID string, applicationID string,
 	}
 
 	microservice.Extra.Moments = append(microservice.Extra.Moments[:index], microservice.Extra.Moments[index+1:]...)
-	err = s.SaveMicroservice(tenantID, applicationID, environment, microservice.Dolittle.MicroserviceID, microservice)
+	err = s.SaveMicroservice(customerID, applicationID, environment, microservice.Dolittle.MicroserviceID, microservice)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error":  err,
@@ -237,16 +237,16 @@ func (s *GitStorage) DeleteBusinessMoment(tenantID string, applicationID string,
 }
 
 // TODO this is not good enough
-func (s *GitStorage) DeleteBusinessMomentEntity(tenantID string, applicationID string, environment string, microserviceID string, entityID string) error {
+func (s *GitStorage) DeleteBusinessMomentEntity(customerID string, applicationID string, environment string, microserviceID string, entityID string) error {
 	logContext := s.logContext.WithFields(logrus.Fields{
-		"tenat_id":        tenantID,
+		"customer_id":     customerID,
 		"application_id":  applicationID,
 		"environment":     environment,
 		"microservice_id": microserviceID,
 		"entity_id":       entityID,
 	})
 
-	rawBytes, err := s.GetMicroservice(tenantID, applicationID, environment, microserviceID)
+	rawBytes, err := s.GetMicroservice(customerID, applicationID, environment, microserviceID)
 	if err != nil {
 		return storage.ErrNotFound
 	}
@@ -285,7 +285,7 @@ func (s *GitStorage) DeleteBusinessMomentEntity(tenantID string, applicationID s
 	// Remove from entity
 	microservice.Extra.Entities = append(microservice.Extra.Entities[:index], microservice.Extra.Entities[index+1:]...)
 
-	err = s.SaveMicroservice(tenantID, applicationID, environment, microservice.Dolittle.MicroserviceID, microservice)
+	err = s.SaveMicroservice(customerID, applicationID, environment, microservice.Dolittle.MicroserviceID, microservice)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error":  err,

@@ -1,3 +1,28 @@
+# [2.12.0] - 2022-2-22 [PR: #92](https://github.com/dolittle/platform-api/pull/92)
+## Summary
+
+- Moving mocks into own package and adding makefile command to make it easier to update interfaces `make build-mocks`.
+- Adding codeclimate yaml
+
+
+# [2.11.0] - 2022-2-22 [PR: #91](https://github.com/dolittle/platform-api/pull/91)
+## Summary
+
+Rebuilding application state, take status + welcomeMicroservice from storage if exists.
+
+
+# [2.10.3] - 2022-2-22 [PR: #89](https://github.com/dolittle/platform-api/pull/89)
+## Summary
+
+Reducing the mixture of tenantID and customerID
+
+
+# [2.10.2] - 2022-2-22 [PR: #88](https://github.com/dolittle/platform-api/pull/88)
+## Summary
+
+Rename from GetTenantDirectory to GetCustomerDirectory
+
+
 # [2.10.1] - 2022-2-18 [PR: #87](https://github.com/dolittle/platform-api/pull/87)
 ## Summary
 Fixing bug in delete microservice endpoint

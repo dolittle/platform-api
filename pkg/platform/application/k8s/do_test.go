@@ -30,7 +30,7 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform/microservice/welcome"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 
-	mockStorage "github.com/dolittle/platform-api/pkg/platform/storage/mocks"
+	mockStorage "github.com/dolittle/platform-api/mocks/pkg/platform/storage"
 
 	v1beta1 "k8s.io/api/batch/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -86,10 +86,10 @@ var _ = Describe("Repo", func() {
 		welcomeMicroserviceID = "fake-microservice-id"
 		environment = "Dev"
 		application = storage.JSONApplication{
-			ID:         terraformApplication.ApplicationID,
-			Name:       terraformApplication.Name,
-			TenantID:   terraformCustomer.GUID,
-			TenantName: terraformCustomer.Name,
+			ID:           terraformApplication.ApplicationID,
+			Name:         terraformApplication.Name,
+			CustomerID:   terraformCustomer.GUID,
+			CustomerName: terraformCustomer.Name,
 			Environments: []storage.JSONEnvironment{
 				{
 					Name: environment,
@@ -108,7 +108,7 @@ var _ = Describe("Repo", func() {
 
 		gitRepo.On(
 			"SaveMicroservice",
-			application.TenantID,
+			application.CustomerID,
 			application.ID,
 			environment,
 			welcomeMicroserviceID,
@@ -189,7 +189,7 @@ var _ = Describe("Repo", func() {
 						want := rbacv1.Subject{
 							Kind:     "Group",
 							APIGroup: "rbac.authorization.k8s.io",
-							Name:     platform.GetCustomerGroup(application.TenantID),
+							Name:     platform.GetCustomerGroup(application.CustomerID),
 						}
 						return equality.Semantic.DeepDerivative(subject, want)
 					})

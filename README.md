@@ -43,8 +43,7 @@ Run the tests:
 go test -v ./...
 ```
 
-For creating/updating the mocks you'll need [mockery](https://github.com/vektra/mockery). To create the mocks `cd` into the pkg of the interface you want to mock and run. Eg. for creating mocks for `storage.Repo`:
+For creating/updating the mocks you'll need [mockery](https://github.com/vektra/mockery).
 ```sh
-cd pkg/platform/storage
-mockery --all
+make build-mocks
 ```

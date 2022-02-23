@@ -10,10 +10,10 @@ import (
 
 func LogTenantUser(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tenantID := r.Header.Get("Tenant-ID")
+		customerID := r.Header.Get("Tenant-ID")
 		userID := r.Header.Get("User-ID")
 
-		fmt.Println(tenantID, userID)
+		fmt.Println(customerID, userID)
 		next.ServeHTTP(w, r)
 	})
 }
@@ -27,10 +27,10 @@ func RestrictHandlerWithSharedSecretAndIDS(secret string, name string) func(next
 				return
 			}
 
-			tenantID := r.Header.Get("Tenant-ID")
+			customerID := r.Header.Get("Tenant-ID")
 			userID := r.Header.Get("User-ID")
 
-			if tenantID == "" || userID == "" {
+			if customerID == "" || userID == "" {
 				utils.RespondWithError(w, http.StatusForbidden, "Tenant-ID or User-ID is missing")
 				return
 			}

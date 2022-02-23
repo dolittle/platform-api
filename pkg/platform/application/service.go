@@ -137,8 +137,8 @@ func (s *Service) Create(w http.ResponseWriter, r *http.Request) {
 	application := storage.JSONApplication{
 		ID:           input.ID,
 		Name:         input.Name,
-		TenantID:     customer.ID,
-		TenantName:   customer.Name,
+		CustomerID:   customer.ID,
+		CustomerName: customer.Name,
 		Environments: make([]storage.JSONEnvironment, 0),
 		Status: storage.JSONBuildStatus{
 			State:     storage.BuildStatusStateWaiting,
@@ -278,10 +278,10 @@ func (s *Service) GetByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := HttpResponseApplication{
-		Name:       application.Name,
-		ID:         application.ID,
-		TenantID:   studioInfo.TerraformCustomer.GUID,
-		TenantName: studioInfo.TerraformCustomer.Name,
+		Name:         application.Name,
+		ID:           application.ID,
+		CustomerID:   studioInfo.TerraformCustomer.GUID,
+		CustomerName: studioInfo.TerraformCustomer.Name,
 		Environments: funk.Map(application.Environments, func(environment storage.JSONEnvironment) HttpResponseEnvironment {
 			return HttpResponseEnvironment{
 				AutomationEnabled: s.gitRepo.IsAutomationEnabledWithStudioConfig(studioInfo.StudioConfig, applicationID, environment.Name),

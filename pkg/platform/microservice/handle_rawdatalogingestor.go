@@ -51,9 +51,9 @@ func (s *service) handleRawDataLogIngestor(
 	}
 	if !exists {
 		// Create in Kubernetes
-		err = s.rawDataLogIngestorRepo.Create(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, customerTenants, ms) //TODO:
+		err = s.rawDataLogIngestorRepo.Create(msK8sInfo.Namespace, msK8sInfo.Customer, msK8sInfo.Application, customerTenants, ms) //TODO:
 	} else {
-		err = s.rawDataLogIngestorRepo.Update(msK8sInfo.Namespace, msK8sInfo.Tenant, msK8sInfo.Application, ms) //TODO:
+		err = s.rawDataLogIngestorRepo.Update(msK8sInfo.Namespace, msK8sInfo.Customer, msK8sInfo.Application, ms) //TODO:
 	}
 
 	if err != nil {
@@ -65,7 +65,7 @@ func (s *service) handleRawDataLogIngestor(
 	// TODO this could be an event
 	// TODO this should be decoupled
 	err = s.gitRepo.SaveMicroservice(
-		ms.Dolittle.TenantID,
+		ms.Dolittle.CustomerID,
 		ms.Dolittle.ApplicationID,
 		ms.Environment,
 		ms.Dolittle.MicroserviceID,

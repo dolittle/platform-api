@@ -44,7 +44,7 @@ var _ = Describe("Repo", func() {
 	Describe("when creating RawDataLog", func() {
 		var (
 			namespace   string
-			tenant      k8s.Tenant
+			customer    k8s.Tenant
 			application k8s.Application
 			input       platform.HttpInputRawDataLogIngestorInfo
 			err         error
@@ -52,7 +52,7 @@ var _ = Describe("Repo", func() {
 
 		BeforeEach(func() {
 			namespace = "application-6db1278e-da39-481a-8474-e0ef6bdc2f6e"
-			tenant = k8s.Tenant{
+			customer = k8s.Tenant{
 				Name: "LydiaBall",
 				ID:   "c6c72dab-a770-47d5-b85d-2777d2ac0922",
 			}
@@ -66,7 +66,7 @@ var _ = Describe("Repo", func() {
 					Name:        "ErnestBush",
 					Dolittle: platform.HttpInputDolittle{
 						ApplicationID:  application.ID,
-						TenantID:       tenant.ID,
+						CustomerID:     customer.ID,
 						MicroserviceID: "b9a9211e-f118-4ea0-9eb9-8d0d8f33c753",
 					},
 					Kind: platform.MicroserviceKindRawDataLogIngestor,
@@ -83,7 +83,7 @@ var _ = Describe("Repo", func() {
 		Context("for an application that does not have any ingresses", func() {
 			BeforeEach(func() {
 				customerTenants := make([]platform.CustomerTenantInfo, 0)
-				err = rawDataLogRepo.Create(namespace, tenant, application, customerTenants, input)
+				err = rawDataLogRepo.Create(namespace, customer, application, customerTenants, input)
 			})
 
 			It("should fail with an error", func() {
@@ -120,7 +120,7 @@ var _ = Describe("Repo", func() {
 						},
 					},
 				}
-				err = rawDataLogRepo.Create(namespace, tenant, application, customerTenants, input)
+				err = rawDataLogRepo.Create(namespace, customer, application, customerTenants, input)
 			})
 
 			// NATS ConfigMap
@@ -136,13 +136,13 @@ var _ = Describe("Repo", func() {
 				Expect(natsConfigMap.Kind).To(Equal("ConfigMap"))
 			})
 			It("should create a configmap for nats with the correct tenant-id annotation", func() {
-				Expect(natsConfigMap.Annotations["dolittle.io/tenant-id"]).To(Equal(tenant.ID))
+				Expect(natsConfigMap.Annotations["dolittle.io/tenant-id"]).To(Equal(customer.ID))
 			})
 			It("should create a configmap for nats with the correct application-id annotation", func() {
 				Expect(natsConfigMap.Annotations["dolittle.io/application-id"]).To(Equal(application.ID))
 			})
 			It("should create a configmap for nats with the correct tenant label", func() {
-				Expect(natsConfigMap.Labels["tenant"]).To(Equal(tenant.Name))
+				Expect(natsConfigMap.Labels["tenant"]).To(Equal(customer.Name))
 			})
 			It("should create a configmap for nats with the correct application label", func() {
 				Expect(natsConfigMap.Labels["application"]).To(Equal(application.Name))
@@ -179,13 +179,13 @@ var _ = Describe("Repo", func() {
 				Expect(natsService.Spec.ClusterIP).To(Equal("None"))
 			})
 			It("should create a service for nats with the correct tenant-id annotation", func() {
-				Expect(natsService.Annotations["dolittle.io/tenant-id"]).To(Equal(tenant.ID))
+				Expect(natsService.Annotations["dolittle.io/tenant-id"]).To(Equal(customer.ID))
 			})
 			It("should create a service for nats with the correct application-id annotation", func() {
 				Expect(natsService.Annotations["dolittle.io/application-id"]).To(Equal(application.ID))
 			})
 			It("should create a service for nats with the correct tenant label", func() {
-				Expect(natsService.Labels["tenant"]).To(Equal(tenant.Name))
+				Expect(natsService.Labels["tenant"]).To(Equal(customer.Name))
 			})
 			It("should create a service for nats with the correct application label", func() {
 				Expect(natsService.Labels["application"]).To(Equal(application.Name))
@@ -200,7 +200,7 @@ var _ = Describe("Repo", func() {
 				Expect(natsService.Labels["microservice"]).To(Equal(""))
 			})
 			It("should create a service for nats with the correct tenant label selector", func() {
-				Expect(natsService.Spec.Selector["tenant"]).To(Equal(tenant.Name))
+				Expect(natsService.Spec.Selector["tenant"]).To(Equal(customer.Name))
 			})
 			It("should create a service for nats with the correct application label selector", func() {
 				Expect(natsService.Spec.Selector["application"]).To(Equal(application.Name))
@@ -257,13 +257,13 @@ var _ = Describe("Repo", func() {
 				Expect(natsStatefulSet.Kind).To(Equal("StatefulSet"))
 			})
 			It("should create a statefulset for nats with the correct tenant-id annotation", func() {
-				Expect(natsStatefulSet.Annotations["dolittle.io/tenant-id"]).To(Equal(tenant.ID))
+				Expect(natsStatefulSet.Annotations["dolittle.io/tenant-id"]).To(Equal(customer.ID))
 			})
 			It("should create a statefulset for nats with the correct application-id annotation", func() {
 				Expect(natsStatefulSet.Annotations["dolittle.io/application-id"]).To(Equal(application.ID))
 			})
 			It("should create a statefulset for nats with the correct tenant label", func() {
-				Expect(natsStatefulSet.Labels["tenant"]).To(Equal(tenant.Name))
+				Expect(natsStatefulSet.Labels["tenant"]).To(Equal(customer.Name))
 			})
 			It("should create a statefulset for nats with the correct application label", func() {
 				Expect(natsStatefulSet.Labels["application"]).To(Equal(application.Name))
@@ -278,7 +278,7 @@ var _ = Describe("Repo", func() {
 				Expect(natsStatefulSet.Labels["microservice"]).To(Equal(""))
 			})
 			It("should create a statefulset for nats with the correct tenant label selector", func() {
-				Expect(natsStatefulSet.Spec.Selector.MatchLabels["tenant"]).To(Equal(tenant.Name))
+				Expect(natsStatefulSet.Spec.Selector.MatchLabels["tenant"]).To(Equal(customer.Name))
 			})
 			It("should create a statefulset for nats with the correct application label selector", func() {
 				Expect(natsStatefulSet.Spec.Selector.MatchLabels["application"]).To(Equal(application.Name))
@@ -296,13 +296,13 @@ var _ = Describe("Repo", func() {
 				Expect(*natsStatefulSet.Spec.Replicas).To(Equal(int32(1)))
 			})
 			It("should create a pod template for nats with the correct tenant-id annotation", func() {
-				Expect(natsStatefulSet.Spec.Template.Annotations["dolittle.io/tenant-id"]).To(Equal(tenant.ID))
+				Expect(natsStatefulSet.Spec.Template.Annotations["dolittle.io/tenant-id"]).To(Equal(customer.ID))
 			})
 			It("should create a pod template for nats with the correct application-id annotation", func() {
 				Expect(natsStatefulSet.Spec.Template.Annotations["dolittle.io/application-id"]).To(Equal(application.ID))
 			})
 			It("should create a pod template for nats with the correct tenant label", func() {
-				Expect(natsStatefulSet.Spec.Template.Labels["tenant"]).To(Equal(tenant.Name))
+				Expect(natsStatefulSet.Spec.Template.Labels["tenant"]).To(Equal(customer.Name))
 			})
 			It("should create a pod template for nats with the correct application label", func() {
 				Expect(natsStatefulSet.Spec.Template.Labels["application"]).To(Equal(application.Name))
@@ -409,13 +409,13 @@ var _ = Describe("Repo", func() {
 				Expect(stanConfigMap.Kind).To(Equal("ConfigMap"))
 			})
 			It("should create a configmap for stan with the correct tenant-id annotation", func() {
-				Expect(stanConfigMap.Annotations["dolittle.io/tenant-id"]).To(Equal(tenant.ID))
+				Expect(stanConfigMap.Annotations["dolittle.io/tenant-id"]).To(Equal(customer.ID))
 			})
 			It("should create a configmap for stan with the correct application-id annotation", func() {
 				Expect(stanConfigMap.Annotations["dolittle.io/application-id"]).To(Equal(application.ID))
 			})
 			It("should create a configmap for stan with the correct tenant label", func() {
-				Expect(stanConfigMap.Labels["tenant"]).To(Equal(tenant.Name))
+				Expect(stanConfigMap.Labels["tenant"]).To(Equal(customer.Name))
 			})
 			It("should create a configmap for stan with the correct application label", func() {
 				Expect(stanConfigMap.Labels["application"]).To(Equal(application.Name))
@@ -459,13 +459,13 @@ var _ = Describe("Repo", func() {
 				Expect(stanService.Spec.ClusterIP).To(Equal("None"))
 			})
 			It("should create a service for stan with the correct tenant-id annotation", func() {
-				Expect(stanService.Annotations["dolittle.io/tenant-id"]).To(Equal(tenant.ID))
+				Expect(stanService.Annotations["dolittle.io/tenant-id"]).To(Equal(customer.ID))
 			})
 			It("should create a service for stan with the correct application-id annotation", func() {
 				Expect(stanService.Annotations["dolittle.io/application-id"]).To(Equal(application.ID))
 			})
 			It("should create a service for stan with the correct tenant label", func() {
-				Expect(stanService.Labels["tenant"]).To(Equal(tenant.Name))
+				Expect(stanService.Labels["tenant"]).To(Equal(customer.Name))
 			})
 			It("should create a service for stan with the correct application label", func() {
 				Expect(stanService.Labels["application"]).To(Equal(application.Name))
@@ -480,7 +480,7 @@ var _ = Describe("Repo", func() {
 				Expect(stanService.Labels["microservice"]).To(Equal(""))
 			})
 			It("should create a service for stan with the correct tenant label selector", func() {
-				Expect(stanService.Spec.Selector["tenant"]).To(Equal(tenant.Name))
+				Expect(stanService.Spec.Selector["tenant"]).To(Equal(customer.Name))
 			})
 			It("should create a service for stan with the correct application label selector", func() {
 				Expect(stanService.Spec.Selector["application"]).To(Equal(application.Name))
@@ -513,13 +513,13 @@ var _ = Describe("Repo", func() {
 				Expect(stanStatefulSet.Kind).To(Equal("StatefulSet"))
 			})
 			It("should create a statefulset for stan with the correct tenant-id annotation", func() {
-				Expect(stanStatefulSet.Annotations["dolittle.io/tenant-id"]).To(Equal(tenant.ID))
+				Expect(stanStatefulSet.Annotations["dolittle.io/tenant-id"]).To(Equal(customer.ID))
 			})
 			It("should create a statefulset for stan with the correct application-id annotation", func() {
 				Expect(stanStatefulSet.Annotations["dolittle.io/application-id"]).To(Equal(application.ID))
 			})
 			It("should create a statefulset for stan with the correct tenant label", func() {
-				Expect(stanStatefulSet.Labels["tenant"]).To(Equal(tenant.Name))
+				Expect(stanStatefulSet.Labels["tenant"]).To(Equal(customer.Name))
 			})
 			It("should create a statefulset for stan with the correct application label", func() {
 				Expect(stanStatefulSet.Labels["application"]).To(Equal(application.Name))
@@ -534,7 +534,7 @@ var _ = Describe("Repo", func() {
 				Expect(stanStatefulSet.Labels["microservice"]).To(Equal(""))
 			})
 			It("should create a statefulset for stan with the correct tenant label selector", func() {
-				Expect(stanStatefulSet.Spec.Selector.MatchLabels["tenant"]).To(Equal(tenant.Name))
+				Expect(stanStatefulSet.Spec.Selector.MatchLabels["tenant"]).To(Equal(customer.Name))
 			})
 			It("should create a statefulset for stan with the correct application label selector", func() {
 				Expect(stanStatefulSet.Spec.Selector.MatchLabels["application"]).To(Equal(application.Name))
@@ -552,13 +552,13 @@ var _ = Describe("Repo", func() {
 				Expect(*stanStatefulSet.Spec.Replicas).To(Equal(int32(1)))
 			})
 			It("should create a pod template for stan with the correct tenant-id annotation", func() {
-				Expect(stanStatefulSet.Spec.Template.Annotations["dolittle.io/tenant-id"]).To(Equal(tenant.ID))
+				Expect(stanStatefulSet.Spec.Template.Annotations["dolittle.io/tenant-id"]).To(Equal(customer.ID))
 			})
 			It("should create a pod template for stan with the correct application-id annotation", func() {
 				Expect(stanStatefulSet.Spec.Template.Annotations["dolittle.io/application-id"]).To(Equal(application.ID))
 			})
 			It("should create a pod template for stan with the correct tenant label", func() {
-				Expect(stanStatefulSet.Spec.Template.Labels["tenant"]).To(Equal(tenant.Name))
+				Expect(stanStatefulSet.Spec.Template.Labels["tenant"]).To(Equal(customer.Name))
 			})
 			It("should create a pod template for stan with the correct application label", func() {
 				Expect(stanStatefulSet.Spec.Template.Labels["application"]).To(Equal(application.Name))
@@ -655,7 +655,7 @@ var _ = Describe("Repo", func() {
 				Expect(rawDataLogDeployment.Kind).To(Equal("Deployment"))
 			})
 			It("should create a deployment for raw data log with the correct tenant-id annotation", func() {
-				Expect(rawDataLogDeployment.Annotations["dolittle.io/tenant-id"]).To(Equal(input.Dolittle.TenantID))
+				Expect(rawDataLogDeployment.Annotations["dolittle.io/tenant-id"]).To(Equal(input.Dolittle.CustomerID))
 			})
 			It("should create a deployment for raw data log with the correct application-id annotation", func() {
 				Expect(rawDataLogDeployment.Annotations["dolittle.io/application-id"]).To(Equal(input.Dolittle.ApplicationID))
@@ -667,7 +667,7 @@ var _ = Describe("Repo", func() {
 				Expect(rawDataLogDeployment.Annotations["dolittle.io/microservice-kind"]).To(Equal(string(input.Kind)))
 			})
 			It("should create a deployment for raw data log with the correct tenant label", func() {
-				Expect(rawDataLogDeployment.Labels["tenant"]).To(Equal(tenant.Name))
+				Expect(rawDataLogDeployment.Labels["tenant"]).To(Equal(customer.Name))
 			})
 			It("should create a deployment for raw data log with the correct application label", func() {
 				Expect(rawDataLogDeployment.Labels["application"]).To(Equal(application.Name))

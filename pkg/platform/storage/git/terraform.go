@@ -12,7 +12,7 @@ import (
 )
 
 func (s *GitStorage) SaveTerraformApplication(application platform.TerraformApplication) error {
-	tenantID := application.Customer.GUID
+	customerID := application.Customer.GUID
 	applicationID := application.GUID
 
 	data, _ := json.MarshalIndent(application, "", "  ")
@@ -25,7 +25,7 @@ func (s *GitStorage) SaveTerraformApplication(application platform.TerraformAppl
 		return err
 	}
 
-	dir := s.GetApplicationDirectory(tenantID, applicationID)
+	dir := s.GetApplicationDirectory(customerID, applicationID)
 	err := os.MkdirAll(dir, 0755)
 	if err != nil {
 		fmt.Println("MkdirAll")
@@ -39,7 +39,7 @@ func (s *GitStorage) SaveTerraformApplication(application platform.TerraformAppl
 		return err
 	}
 
-	err = s.CommitPathAndPush(filename, fmt.Sprintf("Adding application %s for customer %s", applicationID, tenantID))
+	err = s.CommitPathAndPush(filename, fmt.Sprintf("Adding application %s for customer %s", applicationID, customerID))
 
 	if err != nil {
 		return err
@@ -48,8 +48,8 @@ func (s *GitStorage) SaveTerraformApplication(application platform.TerraformAppl
 	return nil
 }
 
-func (s *GitStorage) GetTerraformApplication(tenantID string, applicationID string) (platform.TerraformApplication, error) {
-	dir := s.GetApplicationDirectory(tenantID, applicationID)
+func (s *GitStorage) GetTerraformApplication(customerID string, applicationID string) (platform.TerraformApplication, error) {
+	dir := s.GetApplicationDirectory(customerID, applicationID)
 	filename := filepath.Join(dir, "terraform.json")
 	b, err := ioutil.ReadFile(filename)
 
@@ -66,9 +66,9 @@ func (s *GitStorage) GetTerraformApplication(tenantID string, applicationID stri
 
 }
 
-func (s *GitStorage) SaveTerraformTenant(tenant platform.TerraformCustomer) error {
-	tenantID := tenant.GUID
-	data, _ := json.MarshalIndent(tenant, "", "  ")
+func (s *GitStorage) SaveTerraformTenant(customer platform.TerraformCustomer) error {
+	customerID := customer.GUID
+	data, _ := json.MarshalIndent(customer, "", "  ")
 
 	if err := s.Pull(); err != nil {
 		s.logContext.WithFields(logrus.Fields{
@@ -78,7 +78,7 @@ func (s *GitStorage) SaveTerraformTenant(tenant platform.TerraformCustomer) erro
 		return err
 	}
 
-	dir := s.GetTenantDirectory(tenantID)
+	dir := s.GetCustomerDirectory(customerID)
 	err := os.MkdirAll(dir, 0755)
 	if err != nil {
 		fmt.Println("MkdirAll")
@@ -92,7 +92,7 @@ func (s *GitStorage) SaveTerraformTenant(tenant platform.TerraformCustomer) erro
 		return err
 	}
 
-	err = s.CommitPathAndPush(filename, fmt.Sprintf("Adding customer %s", tenantID))
+	err = s.CommitPathAndPush(filename, fmt.Sprintf("Adding customer %s", customerID))
 
 	if err != nil {
 		return err
@@ -101,8 +101,8 @@ func (s *GitStorage) SaveTerraformTenant(tenant platform.TerraformCustomer) erro
 	return nil
 }
 
-func (s *GitStorage) GetTerraformTenant(tenantID string) (platform.TerraformCustomer, error) {
-	dir := s.GetTenantDirectory(tenantID)
+func (s *GitStorage) GetTerraformTenant(customerID string) (platform.TerraformCustomer, error) {
+	dir := s.GetCustomerDirectory(customerID)
 	filename := filepath.Join(dir, "tenant.json")
 	b, err := ioutil.ReadFile(filename)
 

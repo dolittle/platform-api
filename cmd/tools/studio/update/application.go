@@ -127,15 +127,15 @@ func processOne(
 		"application_id": application.ID,
 	})
 
-	customer, err := storageRepo.GetTerraformTenant(application.TenantID)
+	customer, err := storageRepo.GetTerraformTenant(application.CustomerID)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error":       err,
-			"customer_id": application.TenantID,
+			"customer_id": application.CustomerID,
 			"tip": fmt.Sprintf(
 				"didn't find a studio config for customer %s, create a config for this customer by running 'tools studio build-studio-info %s'",
-				application.TenantID,
-				application.TenantID,
+				application.CustomerID,
+				application.CustomerID,
 			),
 		}).Error("Failed to find customer terraform")
 		return
@@ -151,15 +151,15 @@ func processOne(
 		return
 	}
 
-	studioConfig, err := storageRepo.GetStudioConfig(application.TenantID)
+	studioConfig, err := storageRepo.GetStudioConfig(application.CustomerID)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error":       err,
-			"customer_id": application.TenantID,
+			"customer_id": application.CustomerID,
 			"tip": fmt.Sprintf(
 				"didn't find a studio config for customer %s, create a config for this customer by running 'tools studio build-studio-info %s'",
-				application.TenantID,
-				application.TenantID,
+				application.CustomerID,
+				application.CustomerID,
 			),
 		}).Error("Failed to find studio config")
 		return
@@ -168,10 +168,38 @@ func processOne(
 	if !studioConfig.BuildOverwrite {
 		logContext.WithFields(logrus.Fields{
 			"error":       "build-overwrite-set",
-			"customer_id": application.TenantID,
+			"customer_id": application.CustomerID,
 		}).Warn("Skipping")
 		return
 	}
+
+	// Check what is there?
+	currentApplicaiton, err := storageRepo.GetApplication(application.CustomerID, application.ID)
+	if err != nil {
+		if err != storage.ErrNotFound {
+			logContext.WithFields(logrus.Fields{
+				"error":     err,
+				"namespace": namespace,
+			}).Fatal("Failed to get application")
+		}
+	}
+
+	// Keep track of welcomeMicroserviceID
+	// Get currentEnvironmentWelcomeMicroservices
+	currentEnvironmentWelcomeMicroservices := make(map[string]string)
+	for _, environment := range currentApplicaiton.Environments {
+		currentEnvironmentWelcomeMicroservices[environment.Name] = environment.WelcomeMicroserviceID
+	}
+
+	for index, environment := range application.Environments {
+		if welcomeMicroserviceID, ok := currentEnvironmentWelcomeMicroservices[environment.Name]; ok {
+			environment.WelcomeMicroserviceID = welcomeMicroserviceID
+			application.Environments[index] = environment
+		}
+	}
+
+	// Set the status from what is already there
+	application.Status = currentApplicaiton.Status
 
 	if dryRun {
 		b, _ := json.Marshal(application)
