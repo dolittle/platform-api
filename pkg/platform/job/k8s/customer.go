@@ -86,7 +86,7 @@ func CreateCustomerResource(config CreateResourceConfig, customer dolittleK8s.Sh
 							"sh",
 							"-c",
 							fmt.Sprintf(`
-/app/bin/app tools terraform create-customer-hcl \
+/app/bin/app tools terraform template customer \
 --platform-environment="%s" \
 --name="%s" \
 --id="%s" \

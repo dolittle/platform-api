@@ -156,7 +156,7 @@ GIT_SSH_COMMAND="ssh -i /pod-data/.ssh/operations -o IdentitiesOnly=yes -o Stric
 
 func toolsStudioBuildTerraformInfo(platformImage string, platformEnvironment string, customerID string) corev1.Container {
 	return corev1.Container{
-		Name:            "tools-studio-build-terraform-info",
+		Name:            "tools-studio-update-terraform",
 		ImagePullPolicy: "Always",
 		Image:           platformImage,
 		Env:             envVarGitNotInUse(),
@@ -164,7 +164,7 @@ func toolsStudioBuildTerraformInfo(platformImage string, platformEnvironment str
 			"sh",
 			"-c",
 			fmt.Sprintf(`
-/app/bin/app tools studio build-terraform-info \
+/app/bin/app tools studio update terraform \
 --customer-id="%s" \
 --platform-environment="%s" \
 /pod-data/git/Source/V3/Azure/azure.json
@@ -213,7 +213,7 @@ func toolsStudioBuildStudioInfo(platformImage string, platformEnvironment string
 	envVars = append(envVars, envVarGitNotInUse()...)
 
 	return corev1.Container{
-		Name:            "tools-studio-build-studio-info",
+		Name:            "tools-studio-update-studio",
 		ImagePullPolicy: "Always",
 		Image:           platformImage,
 		Env:             envVars,
@@ -221,7 +221,7 @@ func toolsStudioBuildStudioInfo(platformImage string, platformEnvironment string
 			"sh",
 			"-c",
 			fmt.Sprintf(`
-/app/bin/app tools studio build-studio-info \
+/app/bin/app tools studio update studio \
 --platform-environment="%s" \
 --disable-environments=false %s
 `,
