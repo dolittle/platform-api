@@ -1,4 +1,4 @@
-package terraform
+package template
 
 import (
 	"fmt"
@@ -16,7 +16,7 @@ var applicationCMD = &cobra.Command{
 	Long: `
 	Outputs a new Dolittle platform application in hcl to stdout.
 
-	go run main.go tools helpers terraform application --application-name="Tree1" --application-id="fake-appliction-123" --customer="customer_test_marka"
+	go run main.go tools terraform template application --application-name="Tree1" --application-id="fake-appliction-123" --customer="customer_test_marka"
 
 	// Source/V3/Azure/{moduleName}.tf
 

@@ -1,4 +1,4 @@
-package commands
+package delete
 
 import (
 	"fmt"
@@ -10,8 +10,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var deleteApplicationCMD = &cobra.Command{
-	Use:   "delete-application",
+var applicationCMD = &cobra.Command{
+	Use:   "application",
 	Short: "Shows commands to aid in deleting an application from the cluster",
 	Long: `
 	go run main.go tools studio delete-application --directory="/Users/freshteapot/dolittle/git/Operations" 6677c2f0-9e2f-4d2b-beb5-50014fc8ad0c
@@ -88,8 +88,4 @@ var deleteApplicationCMD = &cobra.Command{
 		}
 
 	},
-}
-
-func init() {
-	deleteApplicationCMD.Flags().String("directory", "", "Path to git repo")
 }

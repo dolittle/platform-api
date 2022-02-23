@@ -1,4 +1,4 @@
-package terraform
+package template
 
 import (
 	"fmt"
@@ -25,7 +25,7 @@ var customerCMD = &cobra.Command{
 	Long: `
 	Outputs a new Dolittle platform customer in hcl to stdout.
 
-	go run main.go tools terraform create-customer-hcl --name="Test Marka" --platform-environment="dev"
+	go run main.go tools terraform template customer --name="Test Marka" --platform-environment="dev"
 	terraform init
 	terraform plan -target="module.customer_1266827b-51e6-4be6-ae18-a0ea4638c2ab"
 

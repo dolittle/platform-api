@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/dolittle/platform-api/cmd/api"
 	"github.com/dolittle/platform-api/cmd/rawdatalog"
+	"github.com/dolittle/platform-api/cmd/template"
 	"github.com/dolittle/platform-api/cmd/tools"
 	"github.com/spf13/cobra"
 
@@ -24,6 +25,7 @@ func init() {
 	rootCmd.AddCommand(api.RootCmd)
 	rootCmd.AddCommand(rawdatalog.RootCmd)
 	rootCmd.AddCommand(tools.RootCmd)
+	rootCmd.AddCommand(template.RootCMD)
 
 	viper.SetDefault("tools.server.platformEnvironment", "dev")
 	viper.BindEnv("tools.server.platformEnvironment", "PLATFORM_ENVIRONMENT")

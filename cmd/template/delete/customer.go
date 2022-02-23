@@ -1,4 +1,4 @@
-package commands
+package delete
 
 import (
 	"fmt"
@@ -10,8 +10,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var deleteCustomerCMD = &cobra.Command{
-	Use:   "delete-customer",
+var customerCMD = &cobra.Command{
+	Use:   "customer",
 	Short: "Shows commands to aid in deleting a customer from the cluster",
 	Long: `
 	go run main.go tools helpers commands delete-customer --directory="/Users/freshteapot/dolittle/git/Operations" 6677c2f0-9e2f-4d2b-beb5-50014fc8ad0c
@@ -91,8 +91,4 @@ var deleteCustomerCMD = &cobra.Command{
 			fmt.Println(output)
 		}
 	},
-}
-
-func init() {
-	deleteCustomerCMD.Flags().String("directory", "", "Path to git repo")
 }
