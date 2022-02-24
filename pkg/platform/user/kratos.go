@@ -88,29 +88,6 @@ func (c kratosClientV5) UpdateUser(user KratosUser) error {
 		Context: context.TODO(),
 	})
 	return err
-	//kratosConfig := kc.NewConfiguration()
-	//kratosConfig.Host = "localhost:4434"
-	//kratosConfig.Scheme = "http"
-	// Which means we cant use this
-	//api := kc.NewAPIClient(kratosConfig)
-
-	//body := kc.NewAdminUpdateIdentityBodyWithDefaults()
-	// We dont have this today
-	//body.State = kc.IDENTITYSTATE_ACTIVE
-	//body.Traits = map[string]interface{}{
-	//	"email":   traits.Email,
-	//	"tenants": traits.Tenants,
-	//}
-
-	//i, r, err := api.V0alpha2Api.
-	//	AdminUpdateIdentity(context.Background(), id).
-	//	AdminUpdateIdentityBody(*body).
-	//	Execute()
-
-	//fmt.Println(i)
-	//fmt.Println(r)
-	//fmt.Println(err)
-	//return err
 }
 
 func (c kratosClientV5) convertKratosUserModelPayloadToKratosUser(model *models.Identity) (KratosUser, error) {
@@ -189,25 +166,6 @@ func (c kratosClientV5) GetUserTraits(id string) (KratosUserTraits, error) {
 	}
 
 	return traits, nil
-
-	//kratosClient.NewHTTPClientWithConfig(nil, &kratosClient.TransportConfig{})
-	//kratosClient.DefaultTransportConfig().WithSchemes([]string{url.Scheme}).WithHost(url.Host).WithBasePath(url.Path)
-	//kratosConfig := kc.NewConfiguration()
-	//kratosConfig.Host = "localhost:4434"
-	//kratosConfig.Scheme = "http"
-	//api := kc.NewAPIClient(kratosConfig)
-	//i, r, err := api.V0alpha2Api.AdminGetIdentityExecute(api.V0alpha2Api.AdminGetIdentity(context.Background(), id))
-	//
-	//fmt.Println(i)
-	//fmt.Println(r)
-	//fmt.Println(err)
-	//
-	//traitsData := i.GetTraits()
-	//b, _ := json.Marshal(traitsData)
-
-	//var traits KratosUserTraits
-	//_ = json.Unmarshal(b, &traits)
-	//return traits
 }
 
 func GetUserFromListByEmail(users []KratosUser, email string) (KratosUser, error) {
