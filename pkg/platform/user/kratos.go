@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/url"
 	"strings"
 
@@ -145,27 +144,6 @@ func (c kratosClientV5) GetUsers() ([]KratosUser, error) {
 		kratosUsers = append(kratosUsers, kratosUser)
 	}
 	return kratosUsers, nil
-}
-
-func (c kratosClientV5) GetUserTraits(id string) (KratosUserTraits, error) {
-	var traits KratosUserTraits
-	i, err := c.client.Admin.GetIdentity(admin.NewGetIdentityParams().WithID(id))
-	if err != nil {
-		fmt.Println(err)
-		return traits, err
-	}
-	traitsData := i.GetPayload().Traits
-	b, err := json.Marshal(traitsData)
-	if err != nil {
-		return traits, err
-	}
-
-	err = json.Unmarshal(b, &traits)
-	if err != nil {
-		return traits, err
-	}
-
-	return traits, nil
 }
 
 func GetUserFromListByEmail(users []KratosUser, email string) (KratosUser, error) {
