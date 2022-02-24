@@ -11,9 +11,14 @@ var addUserToCustomerCMD = &cobra.Command{
 	Use:   "add-user-to-customer",
 	Short: "Add user to customer",
 	Long: `
-	Given an email add to a customerID
+	Connnect a user with a customer by email:
 
 	go run main.go tools users add-user-to-customer --email="human@dolittle.com" --customer-id="fake-customer-id"
+
+
+	Connnect a user with a customer by user-id:
+
+	go run main.go tools users add-user-to-customer --user-id="fake-user-id" --customer-id="fake-customer-id"
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		customerID, _ := cmd.Flags().GetString("customer-id")
@@ -81,5 +86,4 @@ func init() {
 	addUserToCustomerCMD.Flags().String("email", "", "Email address of the user")
 	addUserToCustomerCMD.Flags().String("user-id", "", "id of user")
 	addUserToCustomerCMD.Flags().String("customer-id", "", "Customer Id to give the email access too")
-	addUserToCustomerCMD.PersistentFlags().Bool("ouput-curl", false, "Don't add the user, but instead output the curl command to do it")
 }
