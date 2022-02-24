@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/dolittle/platform-api/pkg/platform/user"
+
 	"github.com/spf13/cobra"
 )
 
@@ -17,27 +18,30 @@ var getUserCMD = &cobra.Command{
 	go run main.go tools users get-user --email="human@dolittle.com"
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
+
 		email, _ := cmd.Flags().GetString("email")
 		if email == "" {
 			fmt.Println("An email is required")
 			return
 		}
 
-		url := "http://localhost:4434/identities"
-		// TODO look up users
-		kratosUsers, err := user.GetUsersFromKratos(url)
+		kratosUsers, err := kratosClient.GetUsers()
 		if err != nil {
 			fmt.Println("Failed to get users")
 			return
 		}
-		// Lookup email
 
-		found, err := user.GetUserFromListByEmail(kratosUsers, email)
+		kratosUser, err := user.GetUserFromListByEmail(kratosUsers, email)
 		if err != nil {
-			fmt.Println("Email not in system")
+			if err == user.ErrNotFound {
+				fmt.Println("Email could not be found")
+				return
+			}
+			fmt.Println("error", err)
 			return
 		}
-		b, _ := json.MarshalIndent(found, "", "  ")
+
+		b, _ := json.MarshalIndent(kratosUser, "", "  ")
 		fmt.Println(string(b))
 	},
 }

@@ -16,52 +16,70 @@ var addUserToCustomerCMD = &cobra.Command{
 	go run main.go tools users add-user-to-customer --email="human@dolittle.com" --customer-id="fake-customer-id"
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
-		email, _ := cmd.Flags().GetString("email")
-		if email == "" {
-			fmt.Println("An email is required")
-			return
-		}
-
 		customerID, _ := cmd.Flags().GetString("customer-id")
 		if customerID == "" {
 			fmt.Println("A customerID is required")
 			return
 		}
 
-		outputCurl, _ := cmd.Flags().GetBool("output-curl")
-		fmt.Println(outputCurl)
+		userID, _ := cmd.Flags().GetString("user-id")
+		email, _ := cmd.Flags().GetString("email")
 
-		url := "http://localhost:4434/identities"
-		// TODO look up users
-		kratosUsers, err := user.GetUsersFromKratos(url)
-		if err != nil {
-			fmt.Println("Failed to get users")
-			return
-		}
-		// Lookup email
-
-		found, err := user.GetUserFromListByEmail(kratosUsers, email)
-		if err != nil {
-			fmt.Println("Email not in system")
+		if userID == "" && email == "" {
+			fmt.Println("missing --email or --user-id")
 			return
 		}
 
-		exists := user.UserCustomersContains(found, customerID)
-
-		if exists {
-			fmt.Println("Email already has access to the customer id")
+		if userID != "" && email != "" {
+			fmt.Println("only --email or --user-id is allowed, not both")
 			return
 		}
 
-		// Add customer to Tenants
-		found.Traits.Tenants = append(found.Traits.Tenants, customerID)
-		// Print curl
-		fmt.Println(user.PrintPutUser(url, found, customerID))
+		if userID != "" {
+			err := kratosClient.AddCustomerToUserByUserID(userID, customerID)
+			if err != nil {
+				if err == user.ErrNotFound {
+					fmt.Println("User could not be found")
+					return
+				}
+
+				if err == user.ErrCustomerUserConnectionAlreadyExists {
+					fmt.Println("Customer and User already connected")
+					return
+				}
+				fmt.Println("error", err)
+				return
+			}
+
+			fmt.Println("User can now login and access this customer via kratos")
+			return
+		}
+
+		if email != "" {
+			err := kratosClient.AddCustomerToUserByEmail(email, customerID)
+			if err != nil {
+				if err == user.ErrNotFound {
+					fmt.Println("Email could not be found")
+					return
+				}
+
+				if err == user.ErrCustomerUserConnectionAlreadyExists {
+					fmt.Println("Customer and User already connected")
+					return
+				}
+				fmt.Println("error", err)
+				return
+			}
+
+			fmt.Println("User can now login and access this customer via kratos")
+			return
+		}
 	},
 }
 
 func init() {
 	addUserToCustomerCMD.Flags().String("email", "", "Email address of the user")
+	addUserToCustomerCMD.Flags().String("user-id", "", "id of user")
 	addUserToCustomerCMD.Flags().String("customer-id", "", "Customer Id to give the email access too")
 	addUserToCustomerCMD.PersistentFlags().Bool("ouput-curl", false, "Don't add the user, but instead output the curl command to do it")
 }
