@@ -1,4 +1,4 @@
-package terraform
+package template
 
 import (
 	"fmt"
@@ -19,13 +19,13 @@ type tfCustomer struct {
 	PlatformEnvironment string
 }
 
-var createCustomerHclCMD = &cobra.Command{
-	Use:   "create-customer-hcl",
+var customerCMD = &cobra.Command{
+	Use:   "customer",
 	Short: "Write terraform output for a customer",
 	Long: `
 	Outputs a new Dolittle platform customer in hcl to stdout.
 
-	go run main.go tools terraform create-customer-hcl --name="Test Marka" --platform-environment="dev"
+	go run main.go tools terraform template customer --name="Test Marka" --platform-environment="dev"
 	terraform init
 	terraform plan -target="module.customer_1266827b-51e6-4be6-ae18-a0ea4638c2ab"
 
@@ -101,8 +101,8 @@ func generateTerraformForCustomer(root *hclwrite.Body, customer tfCustomer) {
 }
 
 func init() {
-	createCustomerHclCMD.Flags().String("name", "", "Name of customer (readable)")
-	createCustomerHclCMD.Flags().String("id", "", "Specific customer id to use")
-	createCustomerHclCMD.Flags().String("source", "./modules/dolittle-customer-with-resources", "Override with specific source of the module")
-	createCustomerHclCMD.Flags().Bool("dry-run", false, "Will not write to disk")
+	customerCMD.Flags().String("name", "", "Name of customer (readable)")
+	customerCMD.Flags().String("id", "", "Specific customer id to use")
+	customerCMD.Flags().String("source", "./modules/dolittle-customer-with-resources", "Override with specific source of the module")
+	customerCMD.Flags().Bool("dry-run", false, "Will not write to disk")
 }

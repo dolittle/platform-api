@@ -86,7 +86,7 @@ func CreateCustomerResource(config CreateResourceConfig, customer dolittleK8s.Sh
 							"sh",
 							"-c",
 							fmt.Sprintf(`
-/app/bin/app tools terraform create-customer-hcl \
+/app/bin/app tools terraform template customer \
 --platform-environment="%s" \
 --name="%s" \
 --id="%s" \
@@ -107,9 +107,9 @@ func CreateCustomerResource(config CreateResourceConfig, customer dolittleK8s.Sh
 						terraformApply(terraformBaseContainer, terrformFileName),
 						// Terraform create azure.json
 						terraformOutputJSON(terraformBaseContainer),
-						toolsStudioBuildTerraformInfo(platformImage, platformEnvironment, customerID),
+						toolsStudioUpsertTerraform(platformImage, platformEnvironment, customerID),
 						gitUpdateStudioTerraformInfo(platformImage, platformEnvironment, customerID, branch),
-						toolsStudioBuildStudioInfo(platformImage, platformEnvironment, customerID),
+						toolsStudioUpsertStudio(platformImage, platformEnvironment, customerID),
 						gitUpdateStudioInfo(platformImage, platformEnvironment, customerID, branch),
 						terraformRemoveOutputJSON(platformImage),
 					},

@@ -1,4 +1,4 @@
-package microservice
+package api
 
 import (
 	"fmt"

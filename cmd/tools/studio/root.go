@@ -5,6 +5,9 @@ import (
 	"log"
 	"os"
 
+	"github.com/dolittle/platform-api/cmd/tools/studio/create"
+	"github.com/dolittle/platform-api/cmd/tools/studio/get"
+	"github.com/dolittle/platform-api/cmd/tools/studio/upsert"
 	"github.com/dolittle/platform-api/pkg/git"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -19,14 +22,10 @@ Tools to help create files needed for studio from kubernetes and / or terraform`
 }
 
 func init() {
-	RootCmd.AddCommand(getCustomersCMD)
-	RootCmd.AddCommand(createServiceAccountCMD)
-	RootCmd.AddCommand(buildStudioInfoCMD)
-	RootCmd.AddCommand(buildTerraformInfoCMD)
-	RootCmd.AddCommand(buildApplicationInfoCMD)
-	RootCmd.AddCommand(deleteApplicationCMD)
-	RootCmd.AddCommand(deleteCustomerCMD)
+	RootCmd.AddCommand(create.RootCMD)
+	RootCmd.AddCommand(get.RootCMD)
 	RootCmd.AddCommand(userAdminCMD)
+	RootCmd.AddCommand(upsert.RootCMD)
 
 	RootCmd.PersistentFlags().Bool("git-dry-run", false, "Don't commit and push changes")
 	viper.BindPFlag("tools.server.gitRepo.dryRun", RootCmd.PersistentFlags().Lookup("git-dry-run"))

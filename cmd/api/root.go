@@ -1,4 +1,4 @@
-package microservice
+package api
 
 import (
 	"fmt"
@@ -11,8 +11,8 @@ import (
 )
 
 var RootCmd = &cobra.Command{
-	Use:   "microservice",
-	Short: "Microservice tools",
+	Use:   "api",
+	Short: "api for controlling the platform",
 	Long:  ``,
 }
 

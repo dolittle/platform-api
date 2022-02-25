@@ -1,4 +1,4 @@
-package jobs
+package job
 
 import (
 	"context"
@@ -78,8 +78,4 @@ var statusCMD = &cobra.Command{
 			}
 		}
 	},
-}
-
-func init() {
-
 }

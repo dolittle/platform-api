@@ -1,4 +1,4 @@
-package studio
+package upsert
 
 import (
 	"os"
@@ -14,17 +14,17 @@ import (
 	"github.com/spf13/viper"
 )
 
-var buildStudioInfoCMD = &cobra.Command{
-	Use:   "build-studio-info [CUSTOMERID]... [FLAGS]",
-	Short: "Resets the specified customers studio configuration",
+var studioCMD = &cobra.Command{
+	Use:   "studio [CUSTOMERID]... [FLAGS]",
+	Short: "Upsert the specified customers studio configuration",
 	Long: `
-	It will attempt to update the git repo with resetted studio configurations (studio.json).
+	Will update the git repo with resetted Studio configurations (studio.json).
 
 	GIT_REPO_BRANCH=dev \
 	GIT_REPO_DRY_RUN=true \
 	GIT_REPO_DIRECTORY="/tmp/dolittle-local-dev" \
 	GIT_REPO_DIRECTORY_ONLY=true \
-	go run main.go tools studio build-studio-info
+	go run main.go tools studio upsert studio
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
@@ -128,7 +128,7 @@ func filterCustomers(repo storage.Repo, customers []string, platformEnvironment 
 }
 
 func init() {
-	buildStudioInfoCMD.Flags().Bool("disable-environments", false, "If flag set, Disable all environments")
-	buildStudioInfoCMD.Flags().Bool("disable-create-application", false, "If flag set, Disable ability to create application")
-	buildStudioInfoCMD.Flags().Bool("all", false, "Discovers all customers from the platform and resets all studio.json's to default state (everything allowed)")
+	studioCMD.Flags().Bool("disable-environments", false, "If flag set, Disable all environments")
+	studioCMD.Flags().Bool("disable-create-application", false, "If flag set, Disable ability to create application")
+	studioCMD.Flags().Bool("all", false, "Discovers all customers from the platform and resets all studio.json's to default state (everything allowed)")
 }

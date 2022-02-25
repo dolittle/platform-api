@@ -1,4 +1,4 @@
-package terraform
+package template
 
 import (
 	"fmt"
@@ -10,13 +10,13 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-var createCustomerApplicationHclCMD = &cobra.Command{
-	Use:   "create-customer-application-hcl",
+var applicationCMD = &cobra.Command{
+	Use:   "application",
 	Short: "Write terraform output for a customer application",
 	Long: `
-	Outputs a new Dolittle platform customer in hcl to stdout.
+	Outputs a new Dolittle platform application in hcl to stdout.
 
-	go run main.go tools terraform create-customer-application-hcl --application-name="Tree1" --application-id="fake-appliction-123" --customer="customer_test_marka"
+	go run main.go tools terraform template application --application-name="Tree1" --application-id="fake-appliction-123" --customer="customer_test_marka"
 
 	// Source/V3/Azure/{moduleName}.tf
 
@@ -124,8 +124,8 @@ func generateTerraformForCustomerApplication(root *hclwrite.Body, customerApplic
 }
 
 func init() {
-	createCustomerApplicationHclCMD.Flags().String("application-name", "", "Name of application (readable)")
-	createCustomerApplicationHclCMD.Flags().String("application-id", "", "Application ID to use")
-	createCustomerApplicationHclCMD.Flags().String("customer", "", "Customer module name (customer_XXX)")
-	createCustomerApplicationHclCMD.Flags().String("source", "./modules/dolittle-application", "Override with specific source of the module")
+	applicationCMD.Flags().String("application-name", "", "Name of application (readable)")
+	applicationCMD.Flags().String("application-id", "", "Application ID to use")
+	applicationCMD.Flags().String("customer", "", "Customer module name (customer_XXX)")
+	applicationCMD.Flags().String("source", "./modules/dolittle-application", "Override with specific source of the module")
 }

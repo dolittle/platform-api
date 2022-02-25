@@ -1,4 +1,4 @@
-package studio
+package upsert
 
 import (
 	"context"
@@ -20,17 +20,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var buildApplicationInfoCMD = &cobra.Command{
-	Use:   "build-application-info",
-	Short: "Write application info into the git repo",
+var applicationCMD = &cobra.Command{
+	Use:   "application",
+	Short: "Upsert the application.json",
 	Long: `
-	It will attempt to update the git repo with data from the cluster and skip those that have been setup.
+	Will upsert the application.json in the git repo with data from the cluster and skip those that have been setup.
 
 	GIT_REPO_BRANCH=dev \
 	GIT_REPO_DRY_RUN=true \
 	GIT_REPO_DIRECTORY="/tmp/dolittle-local-dev" \
 	GIT_REPO_DIRECTORY_ONLY=true \
-	go run main.go tools studio build-application-info
+	go run main.go tools studio upsert application
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
@@ -217,6 +217,6 @@ func processOne(
 }
 
 func init() {
-	buildApplicationInfoCMD.Flags().Bool("dry-run", true, "Will not write to disk")
-	buildApplicationInfoCMD.Flags().Bool("all", false, "Discovers all customers from the platform and resets all studio.json's to default state (everything allowed)")
+	applicationCMD.Flags().Bool("dry-run", true, "Will not write to disk")
+	applicationCMD.Flags().Bool("all", false, "Discovers all customers from the platform and resets all studio.json's to default state (everything allowed)")
 }

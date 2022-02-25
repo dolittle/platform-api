@@ -1,18 +1,16 @@
 package terraform
 
 import (
+	"github.com/dolittle/platform-api/cmd/tools/terraform/template"
 	"github.com/spf13/cobra"
 )
 
-var RootCmd = &cobra.Command{
+var RootCMD = &cobra.Command{
 	Use:   "terraform",
-	Short: "Platform tools",
-	Long: `
-
-Tools to interact with the platform`,
+	Short: "Manage Terraform",
+	Long:  ``,
 }
 
 func init() {
-	RootCmd.AddCommand(createCustomerHclCMD)
-	RootCmd.AddCommand(createCustomerApplicationHclCMD)
+	RootCMD.AddCommand(template.RootCMD)
 }

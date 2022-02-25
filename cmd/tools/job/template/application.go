@@ -1,4 +1,4 @@
-package jobs
+package template
 
 import (
 	"fmt"
@@ -15,13 +15,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-var createCustomerApplicationCMD = &cobra.Command{
-	Use:   "create-customer-application",
-	Short: "Create job to make customer application",
+var applicationCMD = &cobra.Command{
+	Use:   "application",
+	Short: "Create a k8s Job to make a customers application",
 	Long: `
-	Outputs a new Dolittle platform applicaiton in hcl to stdout.
+	Outputs a k8s job to create a customers application
 
-	go run main.go tools jobs create-customer-application \
+	go run main.go tools job template application \
 	--platform-environment="dev" \
 	--application-name="Tree1" \
 	--application-id="fake-appliction-123" \
@@ -83,8 +83,8 @@ var createCustomerApplicationCMD = &cobra.Command{
 }
 
 func init() {
-	createCustomerApplicationCMD.Flags().String("application-name", "", "Name of application (readable)")
-	createCustomerApplicationCMD.Flags().String("application-id", "", "Application ID to use")
-	createCustomerApplicationCMD.Flags().String("customer-id", "", "Customer ID")
-	createCustomerApplicationCMD.Flags().Bool("is-production", false, "Signal this is in production mode")
+	applicationCMD.Flags().String("application-name", "", "Name of application (readable)")
+	applicationCMD.Flags().String("application-id", "", "Application ID to use")
+	applicationCMD.Flags().String("customer-id", "", "Customer ID")
+	applicationCMD.Flags().Bool("is-production", false, "Signal this is in production mode")
 }
