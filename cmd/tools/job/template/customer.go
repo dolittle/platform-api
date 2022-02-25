@@ -18,7 +18,7 @@ var customerCMD = &cobra.Command{
 	Use:   "customer",
 	Short: "Create a k8s Job to make customer",
 	Long: `
-	Outputs a k8s job to create a customers application
+	Outputs a k8s job to create a customer
 
 
 	go run main.go tools jobs create-customer \
