@@ -21,7 +21,7 @@ var applicationCMD = &cobra.Command{
 	Long: `
 	Outputs a k8s job to create a customers application
 
-	go run main.go tools helpers kubernetes application-job \
+	go run main.go tools job template application \
 	--platform-environment="dev" \
 	--application-name="Tree1" \
 	--application-id="fake-appliction-123" \
