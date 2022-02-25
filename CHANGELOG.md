@@ -1,3 +1,36 @@
+# [3.0.0] - 2022-2-25 [PR: #90](https://github.com/dolittle/platform-api/pull/90)
+## Summary
+
+Changed the CLI commands:
+- New root command `platform template`.
+	- `delete` for creating templates that delete things platform wide. Replaces old `platform tools studio delete-*` commands:
+		- `application`
+		- `customer`
+- Refactored `platform tools studio` command:
+  - `upsert` as all of these commands are about upsert the existing `*.json` files.
+    - `terraform`
+    - `studio`
+    - `application`
+  - `create` for creating new resources
+    - `service-account`
+  - `get` for getting Studio specific resources
+    - `customers`
+- Refactor `platform tools job` command:
+	- `status` get's the job status
+	- `template` for creating the pre-filled k8s Jobs
+		- `customer`
+		- `application`
+- Refactor `platform tools terraform` command:
+	- `template` for creating the pre-filled Terraform HCL
+		- `customer`
+		- `application`
+- Moved `platform tools automate get-microservice-metadata` command to `platform tools explore microservices`
+
+## Ref
+- [Brainstorming Miro board](https://miro.com/app/board/uXjVOKmmIm4=/)
+- [Asana ticket](https://app.asana.com/0/home/1142702759924347/1201235587155608)
+
+
 # [2.12.0] - 2022-2-22 [PR: #92](https://github.com/dolittle/platform-api/pull/92)
 ## Summary
 
