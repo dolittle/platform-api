@@ -1,4 +1,4 @@
-package update
+package upsert
 
 import (
 	"encoding/json"
@@ -20,7 +20,7 @@ import (
 
 var terraformCMD = &cobra.Command{
 	Use:   "terraform",
-	Short: "Update the terraform.json",
+	Short: "Upsert the terraform.json",
 	Long: `
 	You need the output from terraform
 
@@ -31,7 +31,7 @@ var terraformCMD = &cobra.Command{
 	GIT_REPO_DRY_RUN=true \
 	GIT_REPO_DIRECTORY="/tmp/dolittle-local-dev" \
 	GIT_REPO_DIRECTORY_ONLY=true \
-	go run main.go tools studio update terraform ~/Dolittle/Operations/Source/V3/Azure/azure.json
+	go run main.go tools studio upsert terraform ~/Dolittle/Operations/Source/V3/Azure/azure.json
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 

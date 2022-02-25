@@ -7,7 +7,7 @@ import (
 
 	"github.com/dolittle/platform-api/cmd/tools/studio/create"
 	"github.com/dolittle/platform-api/cmd/tools/studio/get"
-	"github.com/dolittle/platform-api/cmd/tools/studio/update"
+	"github.com/dolittle/platform-api/cmd/tools/studio/upsert"
 	"github.com/dolittle/platform-api/pkg/git"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -25,7 +25,7 @@ func init() {
 	RootCmd.AddCommand(create.RootCMD)
 	RootCmd.AddCommand(get.RootCMD)
 	RootCmd.AddCommand(userAdminCMD)
-	RootCmd.AddCommand(update.RootCMD)
+	RootCmd.AddCommand(upsert.RootCMD)
 
 	RootCmd.PersistentFlags().Bool("git-dry-run", false, "Don't commit and push changes")
 	viper.BindPFlag("tools.server.gitRepo.dryRun", RootCmd.PersistentFlags().Lookup("git-dry-run"))

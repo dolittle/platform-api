@@ -154,9 +154,9 @@ GIT_SSH_COMMAND="ssh -i /pod-data/.ssh/operations -o IdentitiesOnly=yes -o Stric
 	return gitUpdate(image, "terraform", commands)
 }
 
-func toolsStudioUpdateTerraform(platformImage string, platformEnvironment string, customerID string) corev1.Container {
+func toolsStudioUpsertTerraform(platformImage string, platformEnvironment string, customerID string) corev1.Container {
 	return corev1.Container{
-		Name:            "tools-studio-update-terraform",
+		Name:            "tools-studio-upsert-terraform",
 		ImagePullPolicy: "Always",
 		Image:           platformImage,
 		Env:             envVarGitNotInUse(),
@@ -164,7 +164,7 @@ func toolsStudioUpdateTerraform(platformImage string, platformEnvironment string
 			"sh",
 			"-c",
 			fmt.Sprintf(`
-/app/bin/app tools studio update terraform \
+/app/bin/app tools studio upsert terraform \
 --customer-id="%s" \
 --platform-environment="%s" \
 /pod-data/git/Source/V3/Azure/azure.json
@@ -203,7 +203,7 @@ GIT_SSH_COMMAND="ssh -i /pod-data/.ssh/operations -o IdentitiesOnly=yes -o Stric
 	return gitUpdate(platformImage, "studio-terraform", commands)
 }
 
-func toolsStudioUpdateStudio(platformImage string, platformEnvironment string, customerID string) corev1.Container {
+func toolsStudioUpsertStudio(platformImage string, platformEnvironment string, customerID string) corev1.Container {
 	envVars := []corev1.EnvVar{
 		{
 			Name:  "KUBECONFIG",
@@ -221,7 +221,7 @@ func toolsStudioUpdateStudio(platformImage string, platformEnvironment string, c
 			"sh",
 			"-c",
 			fmt.Sprintf(`
-/app/bin/app tools studio update studio \
+/app/bin/app tools studio upsert studio \
 --platform-environment="%s" \
 --disable-environments=false %s
 `,

@@ -1,4 +1,4 @@
-package update
+package upsert
 
 import (
 	"context"
@@ -22,15 +22,15 @@ import (
 
 var applicationCMD = &cobra.Command{
 	Use:   "application",
-	Short: "Update the application.json",
+	Short: "Upsert the application.json",
 	Long: `
-	It will update the application.json in the git repo with data from the cluster and skip those that have been setup.
+	Will upsert the application.json in the git repo with data from the cluster and skip those that have been setup.
 
 	GIT_REPO_BRANCH=dev \
 	GIT_REPO_DRY_RUN=true \
 	GIT_REPO_DIRECTORY="/tmp/dolittle-local-dev" \
 	GIT_REPO_DIRECTORY_ONLY=true \
-	go run main.go tools studio update application
+	go run main.go tools studio upsert application
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.SetFormatter(&logrus.JSONFormatter{})

@@ -1,4 +1,4 @@
-package update
+package upsert
 
 import (
 	"os"
@@ -16,15 +16,15 @@ import (
 
 var studioCMD = &cobra.Command{
 	Use:   "studio [CUSTOMERID]... [FLAGS]",
-	Short: "Update the specified customers studio configuration",
+	Short: "Upsert the specified customers studio configuration",
 	Long: `
-	It will update the git repo with resetted studio configurations (studio.json).
+	Will update the git repo with resetted Studio configurations (studio.json).
 
 	GIT_REPO_BRANCH=dev \
 	GIT_REPO_DRY_RUN=true \
 	GIT_REPO_DIRECTORY="/tmp/dolittle-local-dev" \
 	GIT_REPO_DIRECTORY_ONLY=true \
-	go run main.go tools studio update studio
+	go run main.go tools studio upsert studio
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
