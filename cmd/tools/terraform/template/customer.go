@@ -20,7 +20,7 @@ type tfCustomer struct {
 }
 
 var customerCMD = &cobra.Command{
-	Use:   "create-customer-hcl",
+	Use:   "customer",
 	Short: "Write terraform output for a customer",
 	Long: `
 	Outputs a new Dolittle platform customer in hcl to stdout.
