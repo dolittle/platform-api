@@ -31,6 +31,7 @@ func CreateApplicationAndEnvironmentAndWelcomeMicroservice(
 	azureStorageAccountName := terraformCustomer.AzureStorageAccountName
 	azureStorageAccountKey := terraformCustomer.AzureStorageAccountKey
 
+	// TODO change to customerInfo?
 	tenantInfo := dolittleK8s.Tenant{
 		Name: application.CustomerName,
 		ID:   application.CustomerID,
