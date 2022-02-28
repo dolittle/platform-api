@@ -29,6 +29,7 @@ var microserviceCMD = &cobra.Command{
 	go run main.go tools studio create microservice -f microservice.json
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
+
 		logrus.SetFormatter(&logrus.JSONFormatter{})
 		logrus.SetOutput(os.Stdout)
 
@@ -36,7 +37,6 @@ var microserviceCMD = &cobra.Command{
 
 		platformEnvironment := viper.GetString("tools.server.platformEnvironment")
 		isProduction := viper.GetBool("tools.server.isProduction")
-		dryRun, _ := cmd.Flags().GetBool("dry-run")
 
 		gitRepoConfig := git.InitGit(logger, platformEnvironment)
 		// TODO until we fix the git pull issue, I am not sure this will work without a restart.
@@ -132,24 +132,21 @@ var microserviceCMD = &cobra.Command{
 			}
 
 			newMicroservice.Environment = environment.Name
-			// We could output?
-			// resources := NewResources(r.isProduction, namespace, tenant, application, customerTenants, input)
-			resources := k8sSimple.NewResources(isProduction, namesapce, tenantInfo, applicationInfo, environment.CustomerTenants, newMicroservice)
-
-			if dryRun {
-				// How to write this to disk?
-				// I can't fully as somethings change the rbac
-				fmt.Println("Write to disk?", resources.ConfigEnvironmentVariables)
-				fmt.Println("Write to disk?", resources.SecretEnvironmentVariables)
-				fmt.Println("Write to disk?", resources.ConfigFiles)
-				fmt.Println("Write to disk?", resources.Deployment)
-				fmt.Println("Write to disk?", resources.Ingresses)
-				fmt.Println("Write to disk?", resources.Service)
-				fmt.Println("Write to disk?", resources.DolittleConfig)
-				fmt.Println("Write to disk?", resources.NetworkPolicy)
-				fmt.Println("Write to disk?", resources.RbacPolicyRules)
-				continue
-			}
+			//if dryRun {
+			//  resources := k8sSimple.NewResources(isProduction, namesapce, tenantInfo, applicationInfo, environment.CustomerTenants, newMicroservice)
+			//	// How to write this to disk?
+			//	// I can't fully as somethings change the rbac
+			//	fmt.Println("Write to disk?", resources.ConfigEnvironmentVariables)
+			//	fmt.Println("Write to disk?", resources.SecretEnvironmentVariables)
+			//	fmt.Println("Write to disk?", resources.ConfigFiles)
+			//	fmt.Println("Write to disk?", resources.Deployment)
+			//	fmt.Println("Write to disk?", resources.Ingresses)
+			//	fmt.Println("Write to disk?", resources.Service)
+			//	fmt.Println("Write to disk?", resources.DolittleConfig)
+			//	fmt.Println("Write to disk?", resources.NetworkPolicy)
+			//	fmt.Println("Write to disk?", resources.RbacPolicyRules)
+			//	continue
+			//}
 
 			err = microserviceSimpleRepo.Create(namesapce, tenantInfo, applicationInfo, environment.CustomerTenants, newMicroservice)
 			if err != nil {
@@ -168,5 +165,5 @@ var microserviceCMD = &cobra.Command{
 
 func init() {
 	//microserviceCMD.Flags().Bool("all", false, "Add a devops serviceaccount for all customers")
-	microserviceCMD.Flags().Bool("dry-run", false, "Will not write to disk")
+	//microserviceCMD.Flags().Bool("dry-run", false, "Will not write to disk")
 }
