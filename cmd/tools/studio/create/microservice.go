@@ -1,6 +1,7 @@
 package create
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	k8sSimple "github.com/dolittle/platform-api/pkg/platform/microservice/simple/k8s"
+	"github.com/dolittle/platform-api/pkg/platform/microservice/welcome"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
 	"github.com/sirupsen/logrus"
@@ -19,12 +21,23 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 )
 
-// TODO should we deprecate this? or make it reusable in terms of add the "name" and it will hook up the developer rbac
+// TODO
+// - file is not in use yet
 var microserviceCMD = &cobra.Command{
 	Use:   "microservice",
 	Short: "Create a microservice",
 	Long: `
 	Create a micorservice via the command line.
+
+	Stub a template:
+
+	go run main.go tools studio create microservice --template
+	go run main.go tools studio create microservice --template --customer-id="66587d28-d14c-424a-b3dd-f24a22f586bf" --application-id="not-real" --environment="Dev" --microservice-id="fake-ms"
+
+
+	go run main.go tools studio create microservice --template 66587d28-d14c-424a-b3dd-f24a22f586bf/not-real/Dev/new
+	go run main.go tools studio create microservice --template 66587d28-d14c-424a-b3dd-f24a22f586bf/not-real/Dev/fake-ms
+
 
 	go run main.go tools studio create microservice -f microservice.json
 	`,
@@ -35,12 +48,29 @@ var microserviceCMD = &cobra.Command{
 
 		logger := logrus.StandardLogger()
 
+		customerID, _ := cmd.Flags().GetString("customer-id")
+		applicationID, _ := cmd.Flags().GetString("application-id")
+		environment, _ := cmd.Flags().GetString("environment")
+		microserviceID, _ := cmd.Flags().GetString("microservice-id")
+
+		template, _ := cmd.Flags().GetBool("template")
+		if template {
+			printMicoserviceJSON(customerID, applicationID, environment, microserviceID)
+			return
+		}
+
+		pathToFile, _ := cmd.Flags().GetString("f")
+		if pathToFile == "" {
+			fmt.Println("-f is empty")
+			return
+		}
+
 		platformEnvironment := viper.GetString("tools.server.platformEnvironment")
 		isProduction := viper.GetBool("tools.server.isProduction")
 
 		gitRepoConfig := git.InitGit(logger, platformEnvironment)
 		// TODO until we fix the git pull issue, I am not sure this will work without a restart.
-		gitRepo := gitStorage.NewGitStorage(
+		storageRepo := gitStorage.NewGitStorage(
 			logger.WithField("context", "git-repo"),
 			gitRepoConfig,
 		)
@@ -50,9 +80,6 @@ var microserviceCMD = &cobra.Command{
 		// What environment?
 		// Or import and override?
 
-		customerID := "TODO"
-		microserviceID := "TODO"
-		applicationID := "TODO"
 		headImage := "welcome"
 		// This might need to be the same in the application?
 		microserviceName := ""
@@ -61,7 +88,7 @@ var microserviceCMD = &cobra.Command{
 		namesapce := "TODO"
 
 		// Simpler with one for now
-		environment := "TODO"
+
 		environments := []string{
 			environment,
 		}
@@ -83,7 +110,7 @@ var microserviceCMD = &cobra.Command{
 		// Not sold on this approach, but its the code that exists now
 		// requestBytes, microserviceBase, err := s.readMicroserviceBase(request, logContext)
 		// Confirm application exists
-		studioInfo, err := storage.GetStudioInfo(gitRepo, customerID, applicationID, logContext)
+		studioInfo, err := storage.GetStudioInfo(storageRepo, customerID, applicationID, logContext)
 		if err != nil {
 			fmt.Println(err.Error())
 			return
@@ -99,7 +126,7 @@ var microserviceCMD = &cobra.Command{
 			ID:   studioInfo.TerraformApplication.ApplicationID,
 		}
 
-		application, err := gitRepo.GetApplication(customerID, applicationInfo.ID)
+		application, err := storageRepo.GetApplication(customerID, applicationInfo.ID)
 		if err != nil {
 			panic(err.Error())
 		}
@@ -148,6 +175,22 @@ var microserviceCMD = &cobra.Command{
 			//	continue
 			//}
 
+			// TODO write to disk
+			err = storageRepo.SaveMicroservice(
+				newMicroservice.Dolittle.CustomerID,
+				newMicroservice.Dolittle.ApplicationID,
+				newMicroservice.Environment,
+				newMicroservice.Dolittle.MicroserviceID,
+				newMicroservice,
+			)
+
+			if err != nil {
+				fmt.Println("Failed to save to disk")
+				fmt.Println(err.Error())
+				return
+			}
+
+			// TODO build
 			err = microserviceSimpleRepo.Create(namesapce, tenantInfo, applicationInfo, environment.CustomerTenants, newMicroservice)
 			if err != nil {
 				fmt.Println(err.Error())
@@ -164,6 +207,37 @@ var microserviceCMD = &cobra.Command{
 }
 
 func init() {
-	//microserviceCMD.Flags().Bool("all", false, "Add a devops serviceaccount for all customers")
-	//microserviceCMD.Flags().Bool("dry-run", false, "Will not write to disk")
+	microserviceCMD.Flags().Bool("template", false, "Print microservice json template")
+	microserviceCMD.Flags().String("f", "", "path to microservice json file")
+	microserviceCMD.Flags().String("customer-id", "", "customer id")
+	microserviceCMD.Flags().String("application-id", "", "application id")
+	microserviceCMD.Flags().String("environment", "", "environment")
+	microserviceCMD.Flags().String("microservice-id", "", "microservice id")
+}
+
+func printMicoserviceJSON(customerID string, applicationID string, environment string, microserviceID string) {
+	headImage := welcome.Image
+	runtimeImage := "dolittle/runtime:7.8.0"
+	sample := platform.HttpInputSimpleInfo{
+		MicroserviceBase: platform.MicroserviceBase{
+			Dolittle: platform.HttpInputDolittle{
+				ApplicationID:  applicationID,
+				CustomerID:     customerID,
+				MicroserviceID: microserviceID,
+			},
+			Name:        "microserviceName",
+			Environment: environment,
+			Kind:        platform.MicroserviceKindSimple,
+		},
+		Extra: platform.HttpInputSimpleExtra{
+			Headimage:    headImage,
+			Runtimeimage: runtimeImage,
+			Ingress: platform.HttpInputSimpleIngress{
+				Path:     "/change",
+				Pathtype: string(networkingv1.PathTypePrefix),
+			},
+		},
+	}
+	b, _ := json.MarshalIndent(sample, "", "  ")
+	fmt.Println(string(b))
 }
