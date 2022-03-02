@@ -38,6 +38,7 @@ jobs:
           tags: dolittle/platform-api:${{ github.head_ref }}
 
   build-operations:
+    runs-on: ubuntu-latest
     name: Build and Deploy platform-operations
     needs:
       - pull-request
