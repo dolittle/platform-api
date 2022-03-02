@@ -42,6 +42,7 @@ type MicroserviceEndpointsV6_1_0 struct {
 	Public  MicroserviceEndpointPort `json:"public"`
 	Private MicroserviceEndpointPort `json:"private"`
 }
+
 type MicroserviceEndpoints struct {
 	Public     MicroserviceEndpointPort `json:"public"`
 	Private    MicroserviceEndpointPort `json:"private"`
