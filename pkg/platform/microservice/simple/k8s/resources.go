@@ -32,8 +32,6 @@ func NewResources(
 		Kind:        input.Kind,
 	}
 
-	// TODO I wonder if this is enough?
-	// TODO if runtimeImage = none, do we need dolittleConfig? might not be any harm in keeping it around
 	var dolittleConfig *corev1.ConfigMap
 	switch runtimeImage {
 	case "dolittle/runtime:6.1.0":
