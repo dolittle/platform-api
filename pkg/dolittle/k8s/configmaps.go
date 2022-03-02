@@ -198,10 +198,7 @@ func NewMicroserviceConfigMapPlatformData(microservice Microservice) Microservic
 	}
 }
 
-// TODO map runtime to New configmap
-// "6.1.0": NewMicroserviceConfigmapV6_1_0
-// version: 6.1.0
-// NewConfigMap : "NewMicroserviceConfigmapV6_1_0"
+// NewMicroserviceConfigmap create dolittle-config configmap specific for dolittle/runtime:6.1.0
 func NewMicroserviceConfigmapV6_1_0(microservice Microservice, customersTenants []platform.CustomerTenantInfo) *corev1.ConfigMap {
 	configmap := NewMicroserviceConfigmap(microservice, customersTenants)
 
@@ -221,6 +218,7 @@ func NewMicroserviceConfigmapV6_1_0(microservice Microservice, customersTenants 
 	return configmap
 }
 
+// NewMicroserviceConfigmap create dolittle-config configmap
 func NewMicroserviceConfigmap(microservice Microservice, customersTenants []platform.CustomerTenantInfo) *corev1.ConfigMap {
 	name := fmt.Sprintf("%s-%s-dolittle",
 		microservice.Environment,
