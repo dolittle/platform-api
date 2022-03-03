@@ -1,3 +1,10 @@
+# [3.1.0] - 2022-3-3 [PR: #96](https://github.com/dolittle/platform-api/pull/96)
+## Summary
+
+- job to build platform-api
+- job to build platform-operations
+
+
 # [3.0.0] - 2022-2-25 [PR: #90](https://github.com/dolittle/platform-api/pull/90)
 ## Summary
 
