@@ -37,11 +37,18 @@ type MicroserviceResourceStore struct {
 	Servers  []string `json:"servers"`
 	Database string   `json:"database"`
 }
+
+type MicroserviceEndpointsV6_1_0 struct {
+	Public  MicroserviceEndpointPort `json:"public"`
+	Private MicroserviceEndpointPort `json:"private"`
+}
+
 type MicroserviceEndpoints struct {
 	Public     MicroserviceEndpointPort `json:"public"`
 	Private    MicroserviceEndpointPort `json:"private"`
 	Management MicroserviceEndpointPort `json:"management"`
 }
+
 type MicroserviceEndpointPort struct {
 	Port int `json:"port"`
 }
@@ -191,6 +198,27 @@ func NewMicroserviceConfigMapPlatformData(microservice Microservice) Microservic
 	}
 }
 
+// NewMicroserviceConfigmap create dolittle-config configmap specific for dolittle/runtime:6.1.0
+func NewMicroserviceConfigmapV6_1_0(microservice Microservice, customersTenants []platform.CustomerTenantInfo) *corev1.ConfigMap {
+	configmap := NewMicroserviceConfigmap(microservice, customersTenants)
+
+	endpoints := MicroserviceEndpointsV6_1_0{
+		Public: MicroserviceEndpointPort{
+			Port: 50052,
+		},
+		Private: MicroserviceEndpointPort{
+			Port: 50053,
+		},
+	}
+
+	b, _ := json.MarshalIndent(endpoints, "", "  ")
+	endpointsJSON := string(b)
+
+	configmap.Data["endpoints.json"] = endpointsJSON
+	return configmap
+}
+
+// NewMicroserviceConfigmap create dolittle-config configmap
 func NewMicroserviceConfigmap(microservice Microservice, customersTenants []platform.CustomerTenantInfo) *corev1.ConfigMap {
 	name := fmt.Sprintf("%s-%s-dolittle",
 		microservice.Environment,

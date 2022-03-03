@@ -2,6 +2,7 @@ package k8s_test
 
 import (
 	"fmt"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -14,7 +15,8 @@ import (
 )
 
 var _ = Describe("Configmaps", func() {
-	Describe("when creating a NewMicroserviceConfigmap", func() {
+
+	When("creating a NewMicroserviceConfigmap", func() {
 		var (
 			microservice     Microservice
 			customerTenantID string
@@ -50,50 +52,64 @@ var _ = Describe("Configmaps", func() {
 					Name: "AlejandroRiley",
 				},
 			}
-			// TODO do we test for dolittle resources?
-			resource = NewMicroserviceConfigmap(microservice, customerTenants)
 		})
 
-		It("should create a configmap with the correct ApiVersion", func() {
-			Expect(resource.APIVersion).To(Equal("v1"))
+		Context("Creating NewMicroserviceConfigmap for 6.1.0", func() {
+			BeforeEach(func() {
+				resource = NewMicroserviceConfigmapV6_1_0(microservice, customerTenants)
+			})
+
+			It("Confirm no management", func() {
+				Expect(strings.Contains(resource.Data["endpoints.json"], "management")).To(BeFalse())
+			})
 		})
 
-		It("should create a configmap with the correct Kind", func() {
-			Expect(resource.Kind).To(Equal("ConfigMap"))
-		})
+		Context("Creating NewMicroserviceConfigmap for latest", func() {
+			BeforeEach(func() {
+				resource = NewMicroserviceConfigmap(microservice, customerTenants)
+			})
 
-		It("should create a configmap with the correct Namespace", func() {
-			Expect(resource.Namespace).To(Equal(fmt.Sprintf("application-%s", microservice.Application.ID)))
-		})
+			It("should create a configmap with the correct ApiVersion", func() {
+				Expect(resource.APIVersion).To(Equal("v1"))
+			})
 
-		It("should create a configmap with the correct tenant-id annotation", func() {
-			Expect(resource.Annotations["dolittle.io/tenant-id"]).To(Equal(microservice.Tenant.ID))
-		})
-		It("should create a configmap with the correct application-id annotation", func() {
-			Expect(resource.Annotations["dolittle.io/application-id"]).To(Equal(microservice.Application.ID))
-		})
-		It("should create a configmap with the correct microservice-id annotation", func() {
-			Expect(resource.Annotations["dolittle.io/microservice-id"]).To(Equal(microservice.ID))
-		})
+			It("should create a configmap with the correct Kind", func() {
+				Expect(resource.Kind).To(Equal("ConfigMap"))
+			})
 
-		It("should create a configmap with the correct tenant label", func() {
-			Expect(resource.Labels["tenant"]).To(Equal(microservice.Tenant.Name))
-		})
-		It("should create a configmap with the correct application label", func() {
-			Expect(resource.Labels["application"]).To(Equal(microservice.Application.Name))
-		})
-		It("should create a configmap with the correct environment label", func() {
-			Expect(resource.Labels["environment"]).To(Equal(microservice.Environment))
-		})
-		It("should create a configmap with the correct microservice label", func() {
-			Expect(resource.Labels["microservice"]).To(Equal(microservice.Name))
-		})
+			It("should create a configmap with the correct Namespace", func() {
+				Expect(resource.Namespace).To(Equal(fmt.Sprintf("application-%s", microservice.Application.ID)))
+			})
 
-		It("should create a configmap with data attribute metrics.json", func() {
-			want := `{
+			It("should create a configmap with the correct tenant-id annotation", func() {
+				Expect(resource.Annotations["dolittle.io/tenant-id"]).To(Equal(microservice.Tenant.ID))
+			})
+			It("should create a configmap with the correct application-id annotation", func() {
+				Expect(resource.Annotations["dolittle.io/application-id"]).To(Equal(microservice.Application.ID))
+			})
+			It("should create a configmap with the correct microservice-id annotation", func() {
+				Expect(resource.Annotations["dolittle.io/microservice-id"]).To(Equal(microservice.ID))
+			})
+
+			It("should create a configmap with the correct tenant label", func() {
+				Expect(resource.Labels["tenant"]).To(Equal(microservice.Tenant.Name))
+			})
+			It("should create a configmap with the correct application label", func() {
+				Expect(resource.Labels["application"]).To(Equal(microservice.Application.Name))
+			})
+			It("should create a configmap with the correct environment label", func() {
+				Expect(resource.Labels["environment"]).To(Equal(microservice.Environment))
+			})
+			It("should create a configmap with the correct microservice label", func() {
+				Expect(resource.Labels["microservice"]).To(Equal(microservice.Name))
+			})
+
+			It("should create a configmap with data attribute metrics.json", func() {
+				want := `{
 				"port": 9700
 			  }`
-			testutils.CheckJSONPrettyPrint(resource.Data["metrics.json"], want)
+				testutils.CheckJSONPrettyPrint(resource.Data["metrics.json"], want)
+			})
 		})
 	})
 
