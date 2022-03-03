@@ -1,6 +1,7 @@
 package studio
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,6 +15,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	logrusTest "github.com/sirupsen/logrus/hooks/test"
+	"github.com/stretchr/testify/mock"
 )
 
 var _ = Describe("Studio service", func() {
@@ -25,6 +27,7 @@ var _ = Describe("Studio service", func() {
 		router       *mux.Router
 		studioConfig platform.StudioConfig
 		customerID   string
+		customerUrl  string
 	)
 
 	BeforeEach(func() {
@@ -33,31 +36,27 @@ var _ = Describe("Studio service", func() {
 		service = NewService(mockRepo, logger)
 		recorder = httptest.NewRecorder()
 		router = mux.NewRouter()
-		router.HandleFunc("/studio/customer/{customerID}", service.Get)
-		studioConfig = platform.StudioConfig{
-			BuildOverwrite:       false,
-			DisabledEnvironments: []string{"*"},
-			CanCreateApplication: false,
-		}
 		customerID = "4fd6927e-f5cf-44f8-9252-4058f5f24d6d"
-
+		customerUrl = fmt.Sprintf("/studio/customer/%s", customerID)
 	})
 
 	When("getting a single customers studio configuration", func() {
+		BeforeEach(func() {
+			router.HandleFunc("/studio/customer/{customerID}", service.Get)
+			studioConfig = platform.StudioConfig{
+				BuildOverwrite:       false,
+				DisabledEnvironments: []string{"*"},
+				CanCreateApplication: false,
+			}
+		})
+
 		It("returns a single studio configuration", func() {
-			request, _ := http.NewRequest("GET", fmt.Sprintf("/studio/customer/%s", customerID), nil)
+			request, _ := http.NewRequest("GET", customerUrl, nil)
 
 			mockRepo.On(
 				"GetStudioConfig",
 				customerID,
-			).Return(
-				func(customerID string) platform.StudioConfig {
-					return studioConfig
-				},
-				func(customerID string) error {
-					return nil
-				},
-			)
+			).Return(studioConfig, nil)
 
 			router.ServeHTTP(recorder, request)
 
@@ -65,25 +64,84 @@ var _ = Describe("Studio service", func() {
 
 			bytes, _ := json.Marshal(studioConfig)
 			Expect(recorder.Body.String()).To(Equal(string(bytes)))
+			mock.AssertExpectationsForObjects(GinkgoT(), mockRepo)
 		})
 
 		It("returns a 500 if it fails to get the configuration", func() {
-			request, _ := http.NewRequest("GET", fmt.Sprintf("/studio/customer/%s", customerID), nil)
+			request, _ := http.NewRequest("GET", customerUrl, nil)
 
 			mockRepo.On(
 				"GetStudioConfig",
 				customerID,
-			).Return(
-				func(customerID string) platform.StudioConfig {
-					return platform.StudioConfig{}
-				},
-				func(customerID string) error {
-					return errors.New("oh nyo something went ^w^ tewwibwy wwong")
-				},
-			)
+			).Return(platform.StudioConfig{}, errors.New("oh nyo something went ^w^ tewwibwy wwong"))
 
 			router.ServeHTTP(recorder, request)
 			Expect(recorder.Code).To(Equal(http.StatusInternalServerError))
+			mock.AssertExpectationsForObjects(GinkgoT(), mockRepo)
+		})
+	})
+
+	When("saving a studio config", func() {
+		BeforeEach(func() {
+			router.HandleFunc("/studio/customer/{customerID}", service.Save)
+			studioConfig = platform.StudioConfig{
+				BuildOverwrite:       false,
+				DisabledEnvironments: []string{"*"},
+				CanCreateApplication: false,
+			}
+			customerID = "4fd6927e-f5cf-44f8-9252-4058f5f24d6d"
+
+		})
+
+		It("should save the given studio config", func() {
+			jsonPayload, _ := json.Marshal(studioConfig)
+
+			request, _ := http.NewRequest("POST", customerUrl, bytes.NewBuffer(jsonPayload))
+
+			mockRepo.On(
+				"SaveStudioConfig",
+				customerID,
+				studioConfig,
+			).Return(nil)
+
+			router.ServeHTTP(recorder, request)
+
+			Expect(recorder.Code).To(Equal(http.StatusOK))
+			mock.AssertExpectationsForObjects(GinkgoT(), mockRepo)
+		})
+
+		It("should return a 400 if the given config payload is wrong", func() {
+			wrongPayload := []byte(`{"imnot": "studioconfig"}`)
+
+			request, _ := http.NewRequest("POST", customerUrl, bytes.NewBuffer(wrongPayload))
+
+			mockRepo.On(
+				"SaveStudioConfig",
+				customerID,
+				mock.Anything,
+			).Return(nil)
+
+			router.ServeHTTP(recorder, request)
+
+			Expect(recorder.Code).To(Equal(http.StatusBadRequest))
+			mockRepo.AssertNotCalled(GinkgoT(), "SaveStudioConfig", mock.Anything, mock.Anything)
+		})
+
+		It("should return a 500 if the config saving fails", func() {
+			jsonPayload, _ := json.Marshal(studioConfig)
+
+			request, _ := http.NewRequest("POST", customerUrl, bytes.NewBuffer(jsonPayload))
+
+			mockRepo.On(
+				"SaveStudioConfig",
+				customerID,
+				studioConfig,
+			).Return(errors.New("expect THIS!"))
+
+			router.ServeHTTP(recorder, request)
+
+			Expect(recorder.Code).To(Equal(http.StatusInternalServerError))
+			mock.AssertExpectationsForObjects(GinkgoT(), mockRepo)
 		})
 	})
 })
