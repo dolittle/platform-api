@@ -26,6 +26,14 @@ func NewService(
 	}
 }
 
+// HTTPStudioConfig is the model of data coming from/to Studio. It's different from
+// StudioConfig as the properties use camelCasing, which is nicer to use in TypeScript
+type HTTPStudioConfig struct {
+	BuildOverwrite       bool     `json:"buildOverwrite"`
+	DisabledEnvironments []string `json:"disabledEnvironments"`
+	CanCreateApplication bool     `json:"canCreateApplication"`
+}
+
 func (s *service) Get(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	customerID := vars["customerID"]
@@ -43,8 +51,12 @@ func (s *service) Get(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-
-	utils.RespondWithJSON(w, http.StatusOK, studioConfig)
+	httpConfig := HTTPStudioConfig{
+		BuildOverwrite:       studioConfig.BuildOverwrite,
+		DisabledEnvironments: studioConfig.DisabledEnvironments,
+		CanCreateApplication: studioConfig.CanCreateApplication,
+	}
+	utils.RespondWithJSON(w, http.StatusOK, httpConfig)
 }
 
 func (s *service) Save(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +67,7 @@ func (s *service) Save(w http.ResponseWriter, r *http.Request) {
 		"method":      "Get",
 	})
 
-	var config platform.StudioConfig
+	var config HTTPStudioConfig
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 
@@ -67,7 +79,13 @@ func (s *service) Save(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := s.storageRepo.SaveStudioConfig(customerID, config)
+	studioConfig := platform.StudioConfig{
+		BuildOverwrite:       config.BuildOverwrite,
+		DisabledEnvironments: config.DisabledEnvironments,
+		CanCreateApplication: config.CanCreateApplication,
+	}
+
+	err := s.storageRepo.SaveStudioConfig(customerID, studioConfig)
 
 	if err != nil {
 		logContext.WithFields(logrus.Fields{

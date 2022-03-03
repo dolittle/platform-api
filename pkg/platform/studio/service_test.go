@@ -28,6 +28,7 @@ var _ = Describe("Studio service", func() {
 		studioConfig platform.StudioConfig
 		customerID   string
 		customerUrl  string
+		jsonConfig   HTTPStudioConfig
 	)
 
 	BeforeEach(func() {
@@ -48,6 +49,11 @@ var _ = Describe("Studio service", func() {
 				DisabledEnvironments: []string{"*"},
 				CanCreateApplication: false,
 			}
+			jsonConfig = HTTPStudioConfig{
+				BuildOverwrite:       false,
+				DisabledEnvironments: []string{"*"},
+				CanCreateApplication: false,
+			}
 		})
 
 		It("returns a single studio configuration", func() {
@@ -62,7 +68,7 @@ var _ = Describe("Studio service", func() {
 
 			Expect(recorder.Code).To(Equal(http.StatusOK))
 
-			bytes, _ := json.Marshal(studioConfig)
+			bytes, _ := json.Marshal(jsonConfig)
 			Expect(recorder.Body.String()).To(Equal(string(bytes)))
 			mock.AssertExpectationsForObjects(GinkgoT(), mockRepo)
 		})
@@ -89,12 +95,16 @@ var _ = Describe("Studio service", func() {
 				DisabledEnvironments: []string{"*"},
 				CanCreateApplication: false,
 			}
+			jsonConfig = HTTPStudioConfig{
+				BuildOverwrite:       false,
+				DisabledEnvironments: []string{"*"},
+				CanCreateApplication: false,
+			}
 			customerID = "4fd6927e-f5cf-44f8-9252-4058f5f24d6d"
-
 		})
 
 		It("should save the given studio config", func() {
-			jsonPayload, _ := json.Marshal(studioConfig)
+			jsonPayload, _ := json.Marshal(jsonConfig)
 
 			request, _ := http.NewRequest("POST", customerUrl, bytes.NewBuffer(jsonPayload))
 
@@ -128,7 +138,7 @@ var _ = Describe("Studio service", func() {
 		})
 
 		It("should return a 500 if the config saving fails", func() {
-			jsonPayload, _ := json.Marshal(studioConfig)
+			jsonPayload, _ := json.Marshal(jsonConfig)
 
 			request, _ := http.NewRequest("POST", customerUrl, bytes.NewBuffer(jsonPayload))
 
