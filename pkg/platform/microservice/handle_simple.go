@@ -6,7 +6,6 @@ import (
 
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/utils"
-	"github.com/thoas/go-funk"
 )
 
 func (s *service) handleSimpleMicroservice(
@@ -25,11 +24,7 @@ func (s *service) handleSimpleMicroservice(
 		return
 	}
 
-	pathExists := funk.Contains(applicationInfo.Ingresses, func(info platform.Ingress) bool {
-		return info.Path == ms.Extra.Ingress.Path
-	})
-
-	if pathExists {
+	if CheckIfIngressPathInUseInEnvironment(applicationInfo.Ingresses, ms.Environment, ms.Extra.Ingress.Path) {
 		utils.RespondWithError(w, http.StatusBadRequest, "ms.Extra.Ingress.Path The path is already in use")
 		return
 	}
