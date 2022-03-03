@@ -367,6 +367,11 @@ var serverCMD = &cobra.Command{
 			stdChainBase.ThenFunc(studioService.Get),
 		).Methods(http.MethodGet, http.MethodOptions)
 
+		router.Handle(
+			"/studio/customer/{customerID}",
+			stdChainBase.ThenFunc(studioService.Save),
+		).Methods(http.MethodPost, http.MethodOptions)
+
 		srv := &http.Server{
 			Handler:      router,
 			Addr:         listenOn,
