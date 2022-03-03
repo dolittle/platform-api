@@ -1,3 +1,9 @@
+# [3.3.0] - 2022-3-3 [PR: #97](https://github.com/dolittle/platform-api/pull/97)
+## Summary
+
+Bug creating a microservice, is rejecting if the ingressPath is used in a different environment
+
+
 # [3.2.0] - 2022-3-3 [PR: #94](https://github.com/dolittle/platform-api/pull/94)
 ## Summary
 
