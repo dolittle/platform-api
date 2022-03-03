@@ -29,10 +29,17 @@ func NewService(
 func (s *service) Get(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	customerID := vars["customerID"]
+	logContext := s.logContext.WithFields(logrus.Fields{
+		"customer_id": customerID,
+		"method":      "Get",
+	})
 
 	studioConfig, err := s.storageRepo.GetStudioConfig(customerID)
 
 	if err != nil {
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("failed to get the studio config")
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -43,12 +50,19 @@ func (s *service) Get(w http.ResponseWriter, r *http.Request) {
 func (s *service) Save(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	customerID := vars["customerID"]
+	logContext := s.logContext.WithFields(logrus.Fields{
+		"customer_id": customerID,
+		"method":      "Get",
+	})
 
 	var config platform.StudioConfig
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 
 	if err := decoder.Decode(&config); err != nil {
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("failed to decode the request body to a studio config")
 		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -56,6 +70,9 @@ func (s *service) Save(w http.ResponseWriter, r *http.Request) {
 	err := s.storageRepo.SaveStudioConfig(customerID, config)
 
 	if err != nil {
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("failed to save the studio config")
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
