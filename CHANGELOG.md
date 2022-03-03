@@ -1,3 +1,9 @@
+# [3.2.0] - 2022-3-3 [PR: #94](https://github.com/dolittle/platform-api/pull/94)
+## Summary
+
+- Adding dolittle-config configmap specific for dolittle/runtime:6.1.0.
+
+
 # [3.1.0] - 2022-3-3 [PR: #96](https://github.com/dolittle/platform-api/pull/96)
 ## Summary
 
