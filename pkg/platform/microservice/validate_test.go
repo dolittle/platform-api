@@ -27,6 +27,18 @@ var _ = Describe("Validate microservice", func() {
 			found := microservice.CheckIfIngressPathInUseInEnvironment(ingresses, "Dev", "/")
 			Expect(found).To(BeFalse())
 		})
+
+		It("Ingress path found in Dev", func() {
+			ingresses := []platform.Ingress{
+				{
+					Host:        "test",
+					Environment: "Dev",
+					Path:        "/",
+				},
+			}
+			found := microservice.CheckIfIngressPathInUseInEnvironment(ingresses, "Dev", "/")
+			Expect(found).To(BeTrue())
+		})
 	})
 
 })
