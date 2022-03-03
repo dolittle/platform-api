@@ -22,6 +22,7 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform/microservice"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/environmentVariables"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/purchaseorderapi"
+	"github.com/dolittle/platform-api/pkg/platform/studio"
 
 	k8sSimple "github.com/dolittle/platform-api/pkg/platform/microservice/simple/k8s"
 	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
@@ -156,6 +157,12 @@ var serverCMD = &cobra.Command{
 			logrus.WithField("context", "cicd-service"),
 			k8sRepo,
 		)
+
+		studioService := studio.NewService(
+			gitRepo,
+			logrus.WithField("context", "studio-service"),
+		)
+
 		c := cors.New(cors.Options{
 			OptionsPassthrough: false,
 			Debug:              true,
@@ -353,6 +360,11 @@ var serverCMD = &cobra.Command{
 		router.Handle(
 			"/application/{applicationID}/cicd/credentials/container-registry",
 			stdChainBase.ThenFunc(cicdService.GetContainerRegistryCredentials),
+		).Methods(http.MethodGet, http.MethodOptions)
+
+		router.Handle(
+			"/studio/customer/{customerID}",
+			stdChainBase.ThenFunc(studioService.Get),
 		).Methods(http.MethodGet, http.MethodOptions)
 
 		srv := &http.Server{
