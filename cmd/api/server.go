@@ -127,6 +127,7 @@ var serverCMD = &cobra.Command{
 			gitRepo,
 			jobResourceConfig,
 			logrus.WithField("context", "customer-service"),
+			k8sRepoV2,
 		)
 		businessMomentsService := businessmoment.NewService(
 			logrus.WithField("context", "business-moments-service"),
@@ -161,6 +162,7 @@ var serverCMD = &cobra.Command{
 		studioService := studio.NewService(
 			gitRepo,
 			logrus.WithField("context", "studio-service"),
+			k8sRepoV2,
 		)
 
 		c := cors.New(cors.Options{

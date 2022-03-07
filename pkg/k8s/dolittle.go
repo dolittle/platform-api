@@ -11,6 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -31,7 +32,7 @@ type RepoIngress interface {
 	GetIngressesByEnvironmentWithMicoservice(namespace string, environment string) ([]networkingv1.Ingress, error)
 }
 
-type RepoNamspace interface {
+type RepoNamespace interface {
 	GetNamespaces() ([]corev1.Namespace, error)
 	GetNamespacesWithOptions(opts metav1.ListOptions) ([]corev1.Namespace, error)
 	GetNamespacesWithApplication() ([]corev1.Namespace, error)
@@ -50,10 +51,11 @@ type RepoRoleBinding interface {
 	AddSubjectToRoleBinding(namespace string, name string, subject rbacv1.Subject) error
 	RemoveSubjectToRoleBinding(namespace string, name string, subject rbacv1.Subject) error
 	GetRoleBinding(namespace string, name string) (rbacv1.RoleBinding, error)
+	HasUserAdminAccess(userID string) (bool, error)
 }
 type Repo interface {
 	RepoIngress
-	RepoNamspace
+	RepoNamespace
 	RepoDeployment
 	RepoRoleBinding
 }
@@ -201,4 +203,27 @@ func (r repo) GetRoleBinding(namespace string, name string) (rbacv1.RoleBinding,
 	ctx := context.TODO()
 	resource, err := r.client.RbacV1().RoleBindings(namespace).Get(ctx, name, metav1.GetOptions{})
 	return *resource, err
+}
+
+// HasUserAdminAccess poormans security to lock down the endpoints, based on if the userID is in the rolebinding
+// rolebinding is hardcoded to platform-admin
+func (r repo) HasUserAdminAccess(userID string) (bool, error) {
+	namespace := "system-api"
+	name := "platform-admin"
+
+	roleBinding, err := r.GetRoleBinding(namespace, name)
+	if err != nil {
+		return false, err
+	}
+
+	access := funk.Contains(roleBinding.Subjects, func(subject rbacv1.Subject) bool {
+		want := rbacv1.Subject{
+			Kind:     "User",
+			APIGroup: "rbac.authorization.k8s.io",
+			Name:     userID,
+		}
+		return equality.Semantic.DeepDerivative(subject, want)
+	})
+
+	return access, nil
 }

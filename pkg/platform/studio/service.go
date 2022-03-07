@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/dolittle/platform-api/pkg/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	"github.com/dolittle/platform-api/pkg/utils"
@@ -12,17 +13,20 @@ import (
 )
 
 type service struct {
-	storageRepo storage.Repo
-	logContext  logrus.FieldLogger
+	storageRepo     storage.Repo
+	logContext      logrus.FieldLogger
+	roleBindingRepo k8s.RepoRoleBinding
 }
 
 func NewService(
 	storageRepo storage.Repo,
 	logContext logrus.FieldLogger,
+	roleBindingRepo k8s.RepoRoleBinding,
 ) service {
 	return service{
-		storageRepo: storageRepo,
-		logContext:  logContext,
+		storageRepo:     storageRepo,
+		logContext:      logContext,
+		roleBindingRepo: roleBindingRepo,
 	}
 }
 
@@ -35,12 +39,24 @@ type HTTPStudioConfig struct {
 }
 
 func (s *service) Get(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("User-ID")
 	vars := mux.Vars(r)
 	customerID := vars["customerID"]
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"customer_id": customerID,
 		"method":      "Get",
 	})
+
+	hasAccess, err := s.roleBindingRepo.HasUserAdminAccess(userID)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to check if user has access")
+		return
+	}
+
+	if !hasAccess {
+		utils.RespondWithError(w, http.StatusForbidden, "You do not have access")
+		return
+	}
 
 	studioConfig, err := s.storageRepo.GetStudioConfig(customerID)
 
@@ -60,12 +76,24 @@ func (s *service) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *service) Save(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("User-ID")
 	vars := mux.Vars(r)
 	customerID := vars["customerID"]
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"customer_id": customerID,
 		"method":      "Get",
 	})
+
+	hasAccess, err := s.roleBindingRepo.HasUserAdminAccess(userID)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to check if user has access")
+		return
+	}
+
+	if !hasAccess {
+		utils.RespondWithError(w, http.StatusForbidden, "You do not have access")
+		return
+	}
 
 	var config HTTPStudioConfig
 	decoder := json.NewDecoder(r.Body)
@@ -85,7 +113,7 @@ func (s *service) Save(w http.ResponseWriter, r *http.Request) {
 		CanCreateApplication: config.CanCreateApplication,
 	}
 
-	err := s.storageRepo.SaveStudioConfig(customerID, studioConfig)
+	err = s.storageRepo.SaveStudioConfig(customerID, studioConfig)
 
 	if err != nil {
 		logContext.WithFields(logrus.Fields{

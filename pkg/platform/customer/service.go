@@ -1,23 +1,19 @@
 package customer
 
 import (
-	"context"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
 
 	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
+	"github.com/dolittle/platform-api/pkg/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
 	jobK8s "github.com/dolittle/platform-api/pkg/platform/job/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	"github.com/dolittle/platform-api/pkg/utils"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
-	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/validation"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -26,6 +22,7 @@ type service struct {
 	storageRepo       storage.RepoCustomer
 	jobResourceConfig jobK8s.CreateResourceConfig
 	logContext        logrus.FieldLogger
+	roleBindingRepo   k8s.RepoRoleBinding
 }
 
 type HttpCustomersResponse []platform.Customer
@@ -39,18 +36,24 @@ func NewService(
 	storageRepo storage.RepoCustomer,
 	jobResourceConfig jobK8s.CreateResourceConfig,
 	logContext logrus.FieldLogger,
+	roleBindingRepo k8s.RepoRoleBinding,
 ) service {
 	return service{
 		k8sclient:         k8sclient,
 		storageRepo:       storageRepo,
 		jobResourceConfig: jobResourceConfig,
 		logContext:        logContext,
+		roleBindingRepo:   roleBindingRepo,
 	}
 }
 
 func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get("User-ID")
-	hasAccess := s.hasAccess(userID)
+	hasAccess, err := s.roleBindingRepo.HasUserAdminAccess(userID)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to check if user has access")
+		return
+	}
 
 	if !hasAccess {
 		utils.RespondWithError(w, http.StatusForbidden, "You do not have access")
@@ -122,7 +125,11 @@ func (s *service) Create(w http.ResponseWriter, r *http.Request) {
 
 func (s *service) GetAll(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get("User-ID")
-	hasAccess := s.hasAccess(userID)
+	hasAccess, err := s.roleBindingRepo.HasUserAdminAccess(userID)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to check if user has access")
+		return
+	}
 
 	if !hasAccess {
 		utils.RespondWithError(w, http.StatusForbidden, "You do not have access")
@@ -135,26 +142,6 @@ func (s *service) GetAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	utils.RespondWithJSON(w, http.StatusOK, customers)
-}
-
-// hasAccess poormans security to lock down the endpoints, based on if the userID is in the rolebinding
-// rolebinding is hardcoded to platform-admin
-func (s *service) hasAccess(userID string) bool {
-	ctx := context.TODO()
-	client := s.k8sclient
-	namespace := "system-api"
-	roleBinding, _ := client.RbacV1().RoleBindings(namespace).Get(ctx, "platform-admin", metav1.GetOptions{})
-
-	access := funk.Contains(roleBinding.Subjects, func(subject rbacv1.Subject) bool {
-		want := rbacv1.Subject{
-			Kind:     "User",
-			APIGroup: "rbac.authorization.k8s.io",
-			Name:     userID,
-		}
-		return equality.Semantic.DeepDerivative(subject, want)
-	})
-
-	return access
 }
 
 func IsCustomerNameValid(name string) bool {
