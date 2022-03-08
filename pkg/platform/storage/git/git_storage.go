@@ -67,6 +67,7 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *G
 			}).Fatal("repo doesn't exist")
 		}
 		s.Repo = r
+		go s.watchAndPull()
 		return s
 	}
 
@@ -97,9 +98,6 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *G
 		URL:           gitConfig.URL,
 		Progress:      os.Stdout,
 		ReferenceName: branch,
-		// Using the below might speed things up
-		//SingleBranch:  true,
-		//Depth:         1,
 	})
 
 	if err != nil {
@@ -117,6 +115,7 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *G
 	}
 
 	s.Repo = r
+	go s.watchAndPull()
 	return s
 }
 
@@ -224,6 +223,7 @@ func (s *GitStorage) Pull() error {
 		Auth:          s.publicKeys,
 		ReferenceName: branchReference,
 	})
+
 	if err != nil && err != git.NoErrAlreadyUpToDate {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
@@ -248,4 +248,42 @@ func (s *GitStorage) IsAutomationEnabledWithStudioConfig(studioConfig platform.S
 
 func (s *GitStorage) GetRoot() string {
 	return filepath.Join(s.Directory, s.config.PlatformEnvironment)
+}
+
+func (s *GitStorage) watchAndPull() {
+	watchFile := "/tmp/trigger-git-pull"
+
+	// Remove it
+	os.Remove(watchFile)
+
+	for {
+		time.Sleep(1 * time.Second)
+		_, err := os.Stat(watchFile)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			} else {
+				s.logContext.WithFields(logrus.Fields{
+					"error": err,
+				}).Fatal("error whilst starting to watch file change")
+			}
+		}
+		s.logContext.Info("file written")
+		// Pull repo
+		err = s.Pull()
+		if err != nil {
+			s.logContext.WithFields(logrus.Fields{
+				"error": err,
+			}).Fatal("error whilst pulling after watch file change")
+		}
+
+		// Delete full file
+		err = os.Remove(watchFile)
+		if err != nil {
+			s.logContext.WithFields(logrus.Fields{
+				"error": err,
+			}).Fatal("error whilst removing file")
+		}
+	}
+
 }
