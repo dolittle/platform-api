@@ -60,7 +60,9 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *G
 	}
 
 	if directoryOnly {
-		r, err := git.PlainOpen(gitConfig.RepoRoot)
+		r, err := git.PlainOpenWithOptions(gitConfig.RepoRoot, &git.PlainOpenOptions{
+			EnableDotGitCommonDir: true,
+		})
 		if err != nil {
 			s.logContext.WithFields(logrus.Fields{
 				"error": err,
@@ -98,6 +100,11 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *G
 		URL:           gitConfig.URL,
 		Progress:      os.Stdout,
 		ReferenceName: branch,
+		// Neither of the below work
+		//Depth:         1,
+		// err object not found (doesnt work with either approach)
+		//SingleBranch: true,
+		// err empty git-upload-pack given
 	})
 
 	if err != nil {
@@ -106,7 +113,9 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *G
 				"error": err,
 			}).Fatal("cloning repo")
 		}
-		r, err = git.PlainOpen(gitConfig.RepoRoot)
+		r, err = git.PlainOpenWithOptions(gitConfig.RepoRoot, &git.PlainOpenOptions{
+			EnableDotGitCommonDir: true,
+		})
 		if err != nil {
 			s.logContext.WithFields(logrus.Fields{
 				"error": err,
@@ -251,6 +260,23 @@ func (s *GitStorage) GetRoot() string {
 }
 
 func (s *GitStorage) watchAndPull() {
+	ticker := time.NewTicker(30 * time.Second)
+	quit := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				// do stuff
+				err := s.Pull()
+				fmt.Println("err", err)
+			case <-quit:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+
+	return
 	watchFile := "/tmp/trigger-git-pull"
 
 	// Remove it
