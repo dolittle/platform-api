@@ -5,6 +5,7 @@ import (
 	"os"
 
 	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
+	"github.com/dolittle/platform-api/pkg/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/private"
@@ -38,13 +39,13 @@ go run main.go tools microservice create private
 		// @joel maybe we don't allow the user to set their own microserviceID. But it makes importing
 		// already existing microservices in another cluster harder as they already have an established microserviceID
 		// but we also then should check for conflicts with existing microserviceIDs
-		microserviceID := viper.GetString("tools.microservice.create.microservice.id")
+		microserviceID := viper.GetString("tools.microservice.microserviceId")
 
 		applicationName := viper.GetString("tools.microservice.create.application.name")
 		if applicationName == "" {
 			logContext.Fatal("no application name defined")
 		}
-		applicationID := viper.GetString("tools.microservice.create.application.id")
+		applicationID := viper.GetString("tools.microservice.applicationId")
 		if applicationID == "" {
 			logContext.Fatal("no application ID defined")
 		}
@@ -54,7 +55,7 @@ go run main.go tools microservice create private
 		}
 		namespace := fmt.Sprintf("application-%s", applicationID)
 
-		environment := viper.GetString("tools.microservice.create.environment")
+		environment := viper.GetString("tools.microservice.environment")
 		if environment == "" {
 			logContext.Fatal("no environment defined")
 		}
@@ -129,8 +130,9 @@ go run main.go tools microservice create private
 
 		k8sClient, k8sConfig := platformK8s.InitKubernetesClient()
 		k8sRepo := platformK8s.NewK8sRepo(k8sClient, k8sConfig, logContext.WithField("context", "k8s-repo"))
+		k8sRepoV2 := k8s.NewRepo(k8sClient, logContext.WithField("context", "k8s-repo-v2"))
 
-		repo := private.NewPrivateRepo(k8sClient, k8sRepo)
+		repo := private.NewPrivateRepo(k8sClient, k8sRepo, k8sRepoV2)
 
 		err := repo.Create(namespace, tenant, application, customerTenants, input)
 		if err != nil {

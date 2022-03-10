@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
+	"github.com/dolittle/platform-api/pkg/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	microserviceK8s "github.com/dolittle/platform-api/pkg/platform/microservice/k8s"
@@ -15,6 +16,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 type PrivateMicroserviceResources struct {
@@ -31,12 +33,14 @@ type PrivateMicroserviceResources struct {
 type privateRepo struct {
 	k8sClient       kubernetes.Interface
 	k8sDolittleRepo platformK8s.K8sRepo
+	k8sRepoV2       k8s.Repo
 }
 
-func NewPrivateRepo(k8sClient kubernetes.Interface, k8sDolittleRepo platformK8s.K8sRepo) privateRepo {
+func NewPrivateRepo(k8sClient kubernetes.Interface, k8sDolittleRepo platformK8s.K8sRepo, k8sRepoV2 k8s.Repo) privateRepo {
 	return privateRepo{
 		k8sClient:       k8sClient,
 		k8sDolittleRepo: k8sDolittleRepo,
+		k8sRepoV2:       k8sRepoV2,
 	}
 }
 
@@ -100,6 +104,56 @@ func (r privateRepo) Create(
 		}
 	}
 
+	return nil
+}
+
+// Delete is copied from SimpleRepo's Delete, except without the ingress part
+func (r privateRepo) Delete(applicationID, environment, microserviceID string) error {
+	ctx := context.TODO()
+	namespace := platformK8s.GetApplicationNamespace(applicationID)
+
+	deployment, err := r.k8sRepoV2.GetDeployment(namespace, environment, microserviceID)
+	if err != nil {
+		return err
+	}
+
+	microserviceName := deployment.Labels["Microservice"]
+	policyRules := microserviceK8s.NewMicroservicePolicyRules(microserviceName, environment)
+
+	if err = microserviceK8s.K8sStopDeployment(r.k8sClient, ctx, namespace, &deployment); err != nil {
+		return err
+	}
+
+	listOpts := metav1.ListOptions{
+		LabelSelector: labels.FormatLabels(deployment.GetObjectMeta().GetLabels()),
+	}
+
+	if err = microserviceK8s.K8sDeleteConfigmaps(r.k8sClient, ctx, namespace, listOpts); err != nil {
+		return err
+	}
+
+	if err = microserviceK8s.K8sDeleteSecrets(r.k8sClient, ctx, namespace, listOpts); err != nil {
+		return err
+	}
+
+	if err = microserviceK8s.K8sDeleteNetworkPolicies(r.k8sClient, ctx, namespace, listOpts); err != nil {
+		return err
+	}
+
+	if err = microserviceK8s.K8sDeleteServices(r.k8sClient, ctx, namespace, listOpts); err != nil {
+		return err
+	}
+
+	for _, policyRule := range policyRules {
+		err := r.k8sDolittleRepo.RemovePolicyRule("developer", applicationID, policyRule)
+		if err != nil {
+			return err
+		}
+	}
+
+	if err = microserviceK8s.K8sDeleteDeployment(r.k8sClient, ctx, namespace, &deployment); err != nil {
+		return err
+	}
 	return nil
 }
 
