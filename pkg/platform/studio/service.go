@@ -81,7 +81,7 @@ func (s *service) Save(w http.ResponseWriter, r *http.Request) {
 	customerID := vars["customerID"]
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"customer_id": customerID,
-		"method":      "Get",
+		"method":      "Save",
 	})
 
 	hasAccess, err := s.roleBindingRepo.HasUserAdminAccess(userID)
