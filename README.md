@@ -47,3 +47,4 @@ For creating/updating the mocks you'll need [mockery](https://github.com/vektra/
 ```sh
 make build-mocks
 ```
+
