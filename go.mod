@@ -18,7 +18,7 @@ require (
 	github.com/nats-io/nats.go v1.11.0
 	github.com/nats-io/stan.go v0.9.0
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.17.0
+	github.com/onsi/gomega v1.18.1
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.0.2 // indirect
 	github.com/rs/cors v1.7.0
@@ -32,7 +32,6 @@ require (
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
 	golang.org/x/net v0.0.0-20210903162142-ad29c8ab022f // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20210906170528-6f6e22806c34 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	gotest.tools/v3 v3.0.3 // indirect
 	k8s.io/api v0.20.4

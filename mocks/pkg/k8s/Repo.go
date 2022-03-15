@@ -306,6 +306,27 @@ func (_m *Repo) GetRoleBinding(namespace string, name string) (v1.RoleBinding, e
 	return r0, r1
 }
 
+// HasUserAdminAccess provides a mock function with given fields: userID
+func (_m *Repo) HasUserAdminAccess(userID string) (bool, error) {
+	ret := _m.Called(userID)
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(string) bool); ok {
+		r0 = rf(userID)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // RemoveSubjectToRoleBinding provides a mock function with given fields: namespace, name, subject
 func (_m *Repo) RemoveSubjectToRoleBinding(namespace string, name string, subject v1.Subject) error {
 	ret := _m.Called(namespace, name, subject)
