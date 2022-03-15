@@ -1,5 +1,5 @@
 module github.com/dolittle/platform-api
-
+// 
 go 1.16
 
 require (
