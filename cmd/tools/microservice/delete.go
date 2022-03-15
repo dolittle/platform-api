@@ -20,6 +20,7 @@ var deleteCMD = &cobra.Command{
 		applicationID := viper.GetString("tools.microservice.application.id")
 		environment := viper.GetString("tools.microservice.environment")
 		microserviceID := viper.GetString("tools.microservice.id")
+
 		logContext.Info(applicationID, environment, microserviceID)
 	},
 }

@@ -340,6 +340,13 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get("User-ID")
 	customerID := r.Header.Get("Tenant-ID")
 
+	logContext = logContext.WithFields(logrus.Fields{
+		"application_id":  applicationID,
+		"environment":     environment,
+		"microservice_id": microserviceID,
+		"namespace":       namespace,
+	})
+
 	studioInfo, err := storage.GetStudioInfo(s.gitRepo, customerID, applicationID, logContext)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -372,7 +379,7 @@ func (s *service) Delete(w http.ResponseWriter, r *http.Request) {
 	msData, err := s.gitRepo.GetMicroservice(customerID, applicationID, environment, microserviceID)
 
 	if err == nil {
-		// LOG THIS
+		logContext.Debug("attempting to delete microservice")
 		var whatKind platform.HttpInputMicroserviceKind
 		err = json.Unmarshal(msData, &whatKind)
 		if err == nil {

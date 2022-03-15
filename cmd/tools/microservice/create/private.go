@@ -5,10 +5,12 @@ import (
 	"os"
 
 	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
+	"github.com/dolittle/platform-api/pkg/git"
 	"github.com/dolittle/platform-api/pkg/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/private"
+	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -134,7 +136,20 @@ go run main.go tools microservice create private
 
 		repo := private.NewPrivateRepo(k8sClient, k8sRepo, k8sRepoV2)
 
+		platformEnvironment := viper.GetString("tools.server.platformEnvironment")
+		gitRepoConfig := git.InitGit(logContext, platformEnvironment)
+
+		gitRepo := gitStorage.NewGitStorage(
+			logrus.WithField("context", "git-repo"),
+			gitRepoConfig,
+		)
+
 		err := repo.Create(namespace, tenant, application, customerTenants, input)
+		if err != nil {
+			logContext.Panic(err)
+		}
+
+		err = gitRepo.SaveMicroservice(customerID, applicationID, environment, microserviceID, input)
 		if err != nil {
 			logContext.Panic(err)
 		}

@@ -3,6 +3,7 @@ package microservice
 import (
 	"github.com/dolittle/platform-api/cmd/tools/microservice/create"
 	"github.com/dolittle/platform-api/pkg/cmd"
+	"github.com/dolittle/platform-api/pkg/git"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
@@ -18,4 +19,6 @@ func init() {
 	cmd.SetupStringConfiguration(RootCMD, "tools.microservice.microserviceId", "microservice-id", "MICROSERVICE_ID", uuid.New().String(), "Microservices ID")
 	cmd.SetupStringConfiguration(RootCMD, "tools.microservice.applicationID", "application-id", "APPLICATION_ID", "", "Microservcies applications ID")
 	cmd.SetupStringConfiguration(RootCMD, "tools.microservice.environment", "environment", "ENVIRONMNET", "", "Microservcies environment")
+
+	git.SetupViper()
 }
