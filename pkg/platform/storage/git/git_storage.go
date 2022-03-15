@@ -60,7 +60,9 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *G
 	}
 
 	if directoryOnly {
-		r, err := git.PlainOpen(gitConfig.RepoRoot)
+		r, err := git.PlainOpenWithOptions(gitConfig.RepoRoot, &git.PlainOpenOptions{
+			EnableDotGitCommonDir: true,
+		})
 		if err != nil {
 			s.logContext.WithFields(logrus.Fields{
 				"error": err,
@@ -97,9 +99,11 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *G
 		URL:           gitConfig.URL,
 		Progress:      os.Stdout,
 		ReferenceName: branch,
-		// Using the below might speed things up
-		//SingleBranch:  true,
+		// Neither of the below work
 		//Depth:         1,
+		// err object not found (doesnt work with either approach)
+		//SingleBranch: true,
+		// err empty git-upload-pack given
 	})
 
 	if err != nil {
@@ -108,7 +112,9 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *G
 				"error": err,
 			}).Fatal("cloning repo")
 		}
-		r, err = git.PlainOpen(gitConfig.RepoRoot)
+		r, err = git.PlainOpenWithOptions(gitConfig.RepoRoot, &git.PlainOpenOptions{
+			EnableDotGitCommonDir: true,
+		})
 		if err != nil {
 			s.logContext.WithFields(logrus.Fields{
 				"error": err,
@@ -224,6 +230,7 @@ func (s *GitStorage) Pull() error {
 		Auth:          s.publicKeys,
 		ReferenceName: branchReference,
 	})
+
 	if err != nil && err != git.NoErrAlreadyUpToDate {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
