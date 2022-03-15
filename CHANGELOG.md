@@ -1,3 +1,9 @@
+# [3.5.0] - 2022-3-15 [PR: #98](https://github.com/dolittle/platform-api/pull/98)
+## Summary
+
+Fix bug when running "api update-repo".
+
+
 # [3.4.0] - 2022-3-15 [PR: #95](https://github.com/dolittle/platform-api/pull/95)
 ## Summary
 
