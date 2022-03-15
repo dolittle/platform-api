@@ -1,3 +1,33 @@
+# [3.4.0] - 2022-3-15 [PR: #95](https://github.com/dolittle/platform-api/pull/95)
+## Summary
+
+Adds new endpoints:
+- GET `/studio/customer/{customerID}` for fetching a single customer's `studio.json` file. The configuration in the response is camelCased so that it's nicer to consume in JavaScript/TypeScript.
+- POST `/studio/customer/{customerID}` for updating a single customer's `studio.json` file. The request should be camelCased.
+
+Example request payload for disabling all environments:
+```json
+{"buildOverwrite":true,"disabledEnvironments":["*"],"canCreateApplication":true}
+```
+
+Curl example:
+```sh
+echo -n '{"buildOverwrite":true,"disabledEnvironments":[],"canCreateApplication":true}' \ 
+| curl -X POST localhost:8081/studio/customer/CUSTOMER_ID \
+ -H "x-shared-secret: FAKE" \
+ -H "user-id: DEVELOPMENT_USER_ID" \
+ -H "tenant-id: DEVELOPMENT_CUSTOMER_ID" \
+ -H "Content-Type: application/json" \
+ --data-binary @-
+```
+
+These endpoints enable us to modify the `studio.json`, so that we can enable or disable the creation of microservices per customer more easily.
+
+## Reference
+- [Related Studio PR](https://github.com/dolittle/Studio/pull/159)
+- [Asana](https://app.asana.com/0/1201885260673030/1201894099742054)
+
+
 # [3.3.0] - 2022-3-3 [PR: #97](https://github.com/dolittle/platform-api/pull/97)
 ## Summary
 
