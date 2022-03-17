@@ -10,7 +10,7 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-func (s *service) handleRawDataLogIngestor(
+func (s *handler) handleRawDataLogIngestor(
 	responseWriter http.ResponseWriter,
 	r *http.Request,
 	inputBytes []byte,

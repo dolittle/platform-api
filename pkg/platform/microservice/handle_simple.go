@@ -8,7 +8,7 @@ import (
 	"github.com/dolittle/platform-api/pkg/utils"
 )
 
-func (s *service) handleSimpleMicroservice(
+func (s *handler) handleSimpleMicroservice(
 	w http.ResponseWriter,
 	r *http.Request,
 	inputBytes []byte,

@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func (s *service) handleBusinessMomentsAdaptor(responseWriter http.ResponseWriter, r *http.Request, inputBytes []byte, applicationInfo platform.Application, customerTenants []platform.CustomerTenantInfo) {
+func (s *handler) handleBusinessMomentsAdaptor(responseWriter http.ResponseWriter, r *http.Request, inputBytes []byte, applicationInfo platform.Application, customerTenants []platform.CustomerTenantInfo) {
 	// Function assumes access check has taken place
 	var ms platform.HttpInputBusinessMomentAdaptorInfo
 	msK8sInfo, statusErr := s.parser.Parse(inputBytes, &ms, applicationInfo)
@@ -45,7 +45,7 @@ func (s *service) handleBusinessMomentsAdaptor(responseWriter http.ResponseWrite
 
 // TODO notes from talking with Gøran
 // acl stuff later look more at CanModifyApplication
-func (s *service) BusinessMomentsAdaptorSave(w http.ResponseWriter, r *http.Request) {
+func (s *handler) BusinessMomentsAdaptorSave(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
 	microserviceID := vars["microserviceID"]
@@ -70,7 +70,7 @@ func (s *service) BusinessMomentsAdaptorSave(w http.ResponseWriter, r *http.Requ
 	})
 }
 
-func (s *service) BusinessMomentsAdaptorRawData(w http.ResponseWriter, r *http.Request) {
+func (s *handler) BusinessMomentsAdaptorRawData(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
 	microserviceID := vars["microserviceID"]
@@ -95,7 +95,7 @@ func (s *service) BusinessMomentsAdaptorRawData(w http.ResponseWriter, r *http.R
 	})
 }
 
-func (s *service) BusinessMomentsAdaptorSync(w http.ResponseWriter, r *http.Request) {
+func (s *handler) BusinessMomentsAdaptorSync(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
 	microserviceID := vars["microserviceID"]
