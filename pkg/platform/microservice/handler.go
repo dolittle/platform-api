@@ -8,13 +8,9 @@ import (
 	"strings"
 
 	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
-	"github.com/dolittle/platform-api/pkg/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/parser"
-	"github.com/dolittle/platform-api/pkg/platform/microservice/purchaseorderapi"
-	"github.com/dolittle/platform-api/pkg/platform/microservice/rawdatalog"
-	"github.com/dolittle/platform-api/pkg/platform/microservice/simple"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	"github.com/dolittle/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
@@ -22,19 +18,19 @@ import (
 	"github.com/thoas/go-funk"
 	authv1 "k8s.io/api/authorization/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/yaml"
 )
 
 type handler struct {
-	simpleRepo                 simple.Repo
-	businessMomentsAdaptorRepo businessMomentsAdaptorRepo
-	rawDataLogIngestorRepo     rawdatalog.RawDataLogIngestorRepo
-	purchaseOrderHandler       *purchaseorderapi.Handler
-	k8sDolittleRepo            platformK8s.K8sRepo
-	gitRepo                    storage.Repo
-	parser                     parser.Parser
-	logContext                 logrus.FieldLogger
+	// simpleRepo                 simple.Repo
+	// businessMomentsAdaptorRepo businessMomentsAdaptorRepo
+	// rawDataLogIngestorRepo     rawdatalog.RawDataLogIngestorRepo
+	// purchaseOrderHandler       *purchaseorderapi.Handler
+	// k8sDolittleRepo            platformK8s.K8sRepo
+	// gitRepo                    storage.Repo
+	microserviceProvider MicroserviceProvider
+	parser               parser.Parser
+	logContext           logrus.FieldLogger
 }
 
 type MicroserviceProvider interface {
@@ -52,34 +48,37 @@ type MicroserviceProvider interface {
 	Update()
 }
 
+// @joel move isProduction to the service
 func NewHandler(
 	isProduction bool,
-	gitRepo storage.Repo,
-	k8sDolittleRepo platformK8s.K8sRepo,
-	k8sClient kubernetes.Interface,
-	simpleRepo simple.Repo,
+	microserviceProvider MicroserviceProvider,
 	logContext logrus.FieldLogger,
 ) handler {
 	parser := parser.NewJsonParser()
-	rawDataLogRepo := rawdatalog.NewRawDataLogIngestorRepo(isProduction, k8sDolittleRepo, k8sClient, logContext)
-	specFactory := purchaseorderapi.NewK8sResourceSpecFactory()
-	k8sResources := purchaseorderapi.NewK8sResource(k8sClient, specFactory)
-	k8sRepoV2 := k8s.NewRepo(k8sClient, logContext.WithField("context", "k8s-repo-v2"))
+	// rawDataLogRepo := rawdatalog.NewRawDataLogIngestorRepo(isProduction, k8sDolittleRepo, k8sClient, logContext)
+	// specFactory := purchaseorderapi.NewK8sResourceSpecFactory()
+	// k8sResources := purchaseorderapi.NewK8sResource(k8sClient, specFactory)
+	// k8sRepoV2 := k8s.NewRepo(k8sClient, logContext.WithField("context", "k8s-repo-v2"))
 
+	// return handler{
+	// 	gitRepo:                    gitRepo,
+	// 	simpleRepo:                 simpleRepo,
+	// 	businessMomentsAdaptorRepo: NewBusinessMomentsAdaptorRepo(k8sClient, isProduction),
+	// 	rawDataLogIngestorRepo:     rawDataLogRepo,
+	// 	k8sDolittleRepo:            k8sDolittleRepo,
+	// 	parser:                     parser,
+	// 	purchaseOrderHandler: purchaseorderapi.NewHandler(
+	// 		parser,
+	// 		purchaseorderapi.NewRepo(k8sResources, specFactory, k8sClient, k8sRepoV2),
+	// 		gitRepo,
+	// 		rawDataLogRepo,
+	// 		logContext),
+	// 	logContext: logContext,
+	// }
 	return handler{
-		gitRepo:                    gitRepo,
-		simpleRepo:                 simpleRepo,
-		businessMomentsAdaptorRepo: NewBusinessMomentsAdaptorRepo(k8sClient, isProduction),
-		rawDataLogIngestorRepo:     rawDataLogRepo,
-		k8sDolittleRepo:            k8sDolittleRepo,
-		parser:                     parser,
-		purchaseOrderHandler: purchaseorderapi.NewHandler(
-			parser,
-			purchaseorderapi.NewRepo(k8sResources, specFactory, k8sClient, k8sRepoV2),
-			gitRepo,
-			rawDataLogRepo,
-			logContext),
-		logContext: logContext,
+		parser:               parser,
+		microserviceProvider: microserviceProvider,
+		logContext:           logContext,
 	}
 }
 
@@ -99,6 +98,11 @@ func (s *handler) Create(w http.ResponseWriter, request *http.Request) {
 	// Confirm customer exists
 	customerID := request.Header.Get("Tenant-ID")
 	applicationID := microserviceBase.Dolittle.ApplicationID
+	userID := request.Header.Get("User-ID")
+
+	// @joel this is where we delegate to the provider
+	s.microserviceProvider.Create(customerID, applicationID, microserviceBase, userID)
+
 	studioInfo, err := storage.GetStudioInfo(s.gitRepo, customerID, applicationID, logContext)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -123,7 +127,6 @@ func (s *handler) Create(w http.ResponseWriter, request *http.Request) {
 	// - is it being made
 
 	// Confirm user has access to this application + customer
-	userID := request.Header.Get("User-ID")
 	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customer.ID, applicationID, userID)
 	if !allowed {
 		return

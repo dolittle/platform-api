@@ -330,7 +330,7 @@ func (r *K8sRepo) GetLogs(applicationID string, containerName string, podName st
 func (r *K8sRepo) CanModifyApplicationWithResponse(w http.ResponseWriter, customerID string, applicationID string, userID string) bool {
 	if customerID == "" || userID == "" {
 		// If the middleware is enabled this shouldn't happen
-		utils.RespondWithError(w, http.StatusForbidden, "Tenant-ID and User-ID is missing from the headers")
+		utils.RespondWithError(w, http.StatusForbidden, "Tenant-ID or User-ID is missing from the headers")
 		return false
 	}
 
