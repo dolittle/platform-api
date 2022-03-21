@@ -24,9 +24,11 @@ func (s *service) handleSimpleMicroservice(
 		return
 	}
 
-	if CheckIfIngressPathInUseInEnvironment(applicationInfo.Ingresses, ms.Environment, ms.Extra.Ingress.Path) {
-		utils.RespondWithError(w, http.StatusBadRequest, "ms.Extra.Ingress.Path The path is already in use")
-		return
+	if ms.Extra.Ispublic {
+		if CheckIfIngressPathInUseInEnvironment(applicationInfo.Ingresses, ms.Environment, ms.Extra.Ingress.Path) {
+			utils.RespondWithError(w, http.StatusBadRequest, "ms.Extra.Ingress.Path The path is already in use")
+			return
+		}
 	}
 
 	err := s.simpleRepo.Create(msK8sInfo.Namespace, msK8sInfo.Customer, msK8sInfo.Application, customerTenants, ms)

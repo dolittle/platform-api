@@ -15,7 +15,7 @@ func NewResources(
 	application k8s.Application,
 	customerTenants []platform.CustomerTenantInfo,
 	input platform.HttpInputSimpleInfo,
-) SimpleMicroserviceResources {
+) MicroserviceResources {
 	environment := input.Environment
 
 	microserviceID := input.Dolittle.MicroserviceID
@@ -45,7 +45,6 @@ func NewResources(
 	deployment := k8s.NewDeployment(microservice, headImage, runtimeImage)
 	service := k8s.NewService(microservice)
 
-	networkPolicy := k8s.NewNetworkPolicy(microservice)
 	configEnvVariables := k8s.NewEnvVariablesConfigmap(microservice)
 	configFiles := k8s.NewConfigFilesConfigmap(microservice)
 	secretEnvVariables := k8s.NewEnvVariablesSecret(microservice)
@@ -53,18 +52,46 @@ func NewResources(
 	// Return policyRules for use with "developer"
 	policyRules := microserviceK8s.NewMicroservicePolicyRules(microservice.Name, environment)
 
-	// Ingress section
-	ingresses := customertenant.CreateIngresses(isProduction, customerTenants, microservice, service.Name, input.Extra.Ingress)
-
-	return SimpleMicroserviceResources{
+	return MicroserviceResources{
 		Service:                    service,
 		ConfigFiles:                configFiles,
 		ConfigEnvironmentVariables: configEnvVariables,
 		SecretEnvironmentVariables: secretEnvVariables,
 		Deployment:                 deployment,
 		DolittleConfig:             dolittleConfig,
-		NetworkPolicy:              networkPolicy,
-		Ingresses:                  ingresses,
 		RbacPolicyRules:            policyRules,
+	}
+}
+
+func NewPublicResources(
+	isProduction bool,
+	namespace string,
+	tenant k8s.Tenant,
+	application k8s.Application,
+	customerTenants []platform.CustomerTenantInfo,
+	input platform.HttpInputSimpleInfo,
+) PublicMicroserviceResources {
+	environment := input.Environment
+	microserviceID := input.Dolittle.MicroserviceID
+	microserviceName := input.Name
+
+	microservice := k8s.Microservice{
+		ID:          microserviceID,
+		Name:        microserviceName,
+		Tenant:      tenant,
+		Application: application,
+		Environment: environment,
+		Kind:        input.Kind,
+	}
+
+	resources := NewResources(isProduction, namespace, tenant, application, customerTenants, input)
+
+	networkPolicy := k8s.NewNetworkPolicy(microservice)
+	ingresses := customertenant.CreateIngresses(isProduction, customerTenants, microservice, resources.Service.Name, input.Extra.Ingress)
+
+	return PublicMicroserviceResources{
+		MicroserviceResources: resources,
+		NetworkPolicy:         networkPolicy,
+		Ingresses:             ingresses,
 	}
 }

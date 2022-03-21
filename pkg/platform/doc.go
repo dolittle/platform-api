@@ -153,6 +153,7 @@ type HttpInputSimpleExtra struct {
 	Headimage    string                 `json:"headImage"`
 	Runtimeimage string                 `json:"runtimeImage"`
 	Ingress      HttpInputSimpleIngress `json:"ingress"`
+	Ispublic     bool                   `json:"isPublic"`
 }
 
 type HttpInputBusinessMomentAdaptorInfo struct {

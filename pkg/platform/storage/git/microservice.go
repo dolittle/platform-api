@@ -30,8 +30,8 @@ func (s *GitStorage) DeleteMicroservice(customerID string, applicationID string,
 			"error": err,
 		}).Error("Pull")
 		return err
-	}
 
+	}
 	dir := s.GetMicroserviceDirectory(customerID, applicationID, environment)
 	filename := filepath.Join(dir, fmt.Sprintf("ms_%s.json", microserviceID))
 	err := os.Remove(filename)
