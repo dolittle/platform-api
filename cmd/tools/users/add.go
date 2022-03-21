@@ -7,20 +7,22 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var addUserToCustomerCMD = &cobra.Command{
-	Use:   "add-user-to-customer",
-	Short: "Add user to customer",
+var addCMD = &cobra.Command{
+	Use:   "add",
+	Short: "Add user to a customer",
 	Long: `
+
 	Connnect a user with a customer by email:
 
-	go run main.go tools users add-user-to-customer --email="human@dolittle.com" --customer-id="fake-customer-id"
+	go run main.go tools users add --email="human@dolittle.com" --customer-id="fake-customer-id"
 
 
 	Connnect a user with a customer by user-id:
 
-	go run main.go tools users add-user-to-customer --user-id="fake-user-id" --customer-id="fake-customer-id"
+	go run main.go tools users add --user-id="fake-user-id" --customer-id="fake-customer-id"
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
+
 		customerID, _ := cmd.Flags().GetString("customer-id")
 		if customerID == "" {
 			fmt.Println("A customerID is required")
@@ -79,11 +81,12 @@ var addUserToCustomerCMD = &cobra.Command{
 			fmt.Println("User can now login and access this customer via kratos")
 			return
 		}
+
 	},
 }
 
 func init() {
-	addUserToCustomerCMD.Flags().String("email", "", "Email address of the user")
-	addUserToCustomerCMD.Flags().String("user-id", "", "id of user")
-	addUserToCustomerCMD.Flags().String("customer-id", "", "Customer Id to give the email access too")
+	addCMD.Flags().String("email", "", "Email address of the user")
+	addCMD.Flags().String("user-id", "", "id of user")
+	addCMD.Flags().String("customer-id", "", "Customer Id to give the email access too")
 }

@@ -21,6 +21,7 @@ type KratosClientV5 interface {
 	AddCustomerToUser(user KratosUser, customerID string) error
 	AddCustomerToUserByUserID(userID string, customerID string) error
 	AddCustomerToUserByEmail(email string, customerID string) error
+	RemoveCustomerToUserByEmail(email string, customerID string) error
 }
 
 var (
@@ -48,6 +49,20 @@ func (c kratosClientV5) AddCustomerToUserByUserID(userID string, customerID stri
 	return c.AddCustomerToUser(kratosUser, customerID)
 }
 
+func (c kratosClientV5) RemoveCustomerToUserByEmail(email string, customerID string) error {
+	kratosUsers, err := c.GetUsers()
+	if err != nil {
+		return err
+	}
+
+	kratosUser, err := GetUserFromListByEmail(kratosUsers, email)
+	if err != nil {
+		return err
+	}
+
+	return c.DeleteCustomerToUser(kratosUser, customerID)
+}
+
 func (c kratosClientV5) AddCustomerToUserByEmail(email string, customerID string) error {
 	kratosUsers, err := c.GetUsers()
 	if err != nil {
@@ -71,6 +86,29 @@ func (c kratosClientV5) AddCustomerToUser(kratosUser KratosUser, customerID stri
 
 	kratosUser.Traits.Tenants = append(kratosUser.Traits.Tenants, customerID)
 
+	err := c.UpdateUser(kratosUser)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c kratosClientV5) DeleteCustomerToUser(kratosUser KratosUser, customerID string) error {
+	exists := UserCustomersContains(kratosUser, customerID)
+
+	if !exists {
+		return ErrNotFound
+	}
+
+	newCustomers := make([]string, 0)
+	for _, currentCustomerId := range kratosUser.Traits.Tenants {
+		if currentCustomerId == customerID {
+			continue
+		}
+		newCustomers = append(newCustomers, currentCustomerId)
+	}
+
+	kratosUser.Traits.Tenants = newCustomers
 	err := c.UpdateUser(kratosUser)
 	if err != nil {
 		return err

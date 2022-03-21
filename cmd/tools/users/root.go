@@ -17,15 +17,20 @@ var RootCMD = &cobra.Command{
 
 Tools to interact with the users in the platform`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		kratosURL, _ := cmd.Flags().GetString("kratos-url")
+
 		kratosClient = user.NewKratosClientV5(&url.URL{
 			Scheme: "http",
-			Host:   "localhost:4434",
+			Host:   kratosURL,
 		})
 	},
 }
 
 func init() {
-	RootCMD.AddCommand(addUserToCustomerCMD)
 	RootCMD.AddCommand(listEmailsCMD)
 	RootCMD.AddCommand(getUserCMD)
+	RootCMD.AddCommand(addCMD)
+	RootCMD.AddCommand(removeCMD)
+
+	RootCMD.PersistentFlags().String("kratos-url", "localhost:4434", "Url to kratos")
 }
