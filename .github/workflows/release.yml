@@ -1,11 +1,13 @@
 name: Release
 
 on:
-  pull_request:
-    types: [closed]
+  pull_request_target:
+    types:
+      - closed
 
 jobs:
   setup:
+    if: github.event.pull_request_target.merged == true
     name: Setup
     runs-on: ubuntu-latest
     outputs:
