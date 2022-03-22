@@ -17,7 +17,7 @@ import (
 func CreateApplicationAndEnvironmentAndWelcomeMicroservice(
 	client kubernetes.Interface,
 	storageRepo storage.RepoMicroservice,
-	simplRepo simple.Repo,
+	simpleRepo simple.Repo,
 	k8sDolittleRepo platformK8s.K8sRepo,
 	application storage.JSONApplication,
 	terraformCustomer platform.TerraformCustomer,
@@ -58,6 +58,7 @@ func CreateApplicationAndEnvironmentAndWelcomeMicroservice(
 				Path:     "/welcome-to-dolittle",
 				Pathtype: string(networkingv1.PathTypePrefix),
 			},
+			Ispublic: true,
 		},
 	}
 
@@ -96,7 +97,7 @@ func CreateApplicationAndEnvironmentAndWelcomeMicroservice(
 	}
 
 	// Create welcome microservice
-	namesapce := r.Namespace.Name
+	namespace := r.Namespace.Name
 	for _, environment := range application.Environments {
 		customerTenants := environment.CustomerTenants
 
@@ -117,7 +118,7 @@ func CreateApplicationAndEnvironmentAndWelcomeMicroservice(
 			return err
 		}
 
-		err := simplRepo.Create(namesapce, tenantInfo, applicationInfo, customerTenants, microservice)
+		err := simpleRepo.Create(namespace, tenantInfo, applicationInfo, customerTenants, microservice)
 		if err != nil {
 			return err
 		}
