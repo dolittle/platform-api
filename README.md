@@ -12,6 +12,8 @@
 <p align="center">
     <a href="https://hub.docker.com/r/dolittle/platform-api"><img src="https://img.shields.io/docker/v/dolittle/platform-api/latest?label=dolittle%2Fplatform-api&logo=docker" alt="Latest Docker image"></a>
     <a href="https://github.com/dolittle/platform-api/actions/workflows/ci.yml"><img src="https://github.com/dolittle/platform-api/actions/workflows/ci.yml/badge.svg" alt="Build status"></a>
+    <a href="https://codeclimate.com/github/dolittle/platform-api/maintainability"><img src="https://api.codeclimate.com/v1/badges/ca8fcdc442c82f0e0982/maintainability" /></a>
+    <a href="https://codeclimate.com/github/dolittle/platform-api/test_coverage"><img src="https://api.codeclimate.com/v1/badges/ca8fcdc442c82f0e0982/test_coverage" /></a>
 </p>
 
 # platform-api
