@@ -1,7 +1,6 @@
 name: Pull request build and push
 
-on:
-  pull_request
+on: pull_request
 
 jobs:
   pull-request:
@@ -26,8 +25,30 @@ jobs:
       - name: Build
         run: go build .
 
-      - name: Test
-        run: go test -v ./...
+      - name: Make output dir
+        working-directory: ${{ env.SOURCE_PATH }}
+        run: mkdir output
+
+      - name: Run tests
+        working-directory: ${{ env.SOURCE_PATH }}
+        run: |
+          go test ./... --coverprofile output/test-codecoverage.cov
+
+      - name: Install Code Climate
+        working-directory: ${{ env.SOURCE_PATH }}
+        run: |
+          curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-0.10.1-linux-amd64 > ./cc-test-reporter
+          chmod +x ./cc-test-reporter
+
+      - name: Report code coverage to Code Climate
+        working-directory: ${{ env.SOURCE_PATH }}
+        run: |
+          ./cc-test-reporter format-coverage output/test-codecoverage.cov -t gocov -o output/test-codecoverage-codeclimate.json -p github.com/dolittle/platform-api
+          CC_TEST_REPORTER_ID=${{ secrets.CC_TEST_REPORTER_ID }} \
+          GIT_BRANCH=${{ env.GITHUB_REF }} \
+          GIT_COMMIT=${{ env.GITHUB_SHA }} \
+          ./cc-test-reporter \
+          upload-coverage -i output/test-codecoverage-codeclimate.json
 
       - name: Push PR Docker image
         uses: docker/build-push-action@v2
