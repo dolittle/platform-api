@@ -342,22 +342,6 @@ var _ = Describe("Repo", func() {
 				},
 			},
 			{
-				Kind: "Ingress",
-				Name: "dev-welcome-445f8ea", // THIS MIGHT CHANGE
-				Expect: func(ret runtime.Object) {
-					ingress := ret.(*networkingv1.Ingress)
-					Expect(ingress.Name).To(Equal("dev-welcome-445f8ea"))
-				},
-			},
-			{
-				Kind: "Ingress",
-				Name: "dev-welcome-ingress",
-				Expect: func(ret runtime.Object) {
-					networkPolicy := ret.(*networkingv1.NetworkPolicy)
-					Expect(networkPolicy.Name).To(Equal("dev-welcome-ingress"))
-				},
-			},
-			{
 				Kind: "Service",
 				Name: "dev-welcome",
 				Expect: func(ret runtime.Object) {
@@ -389,17 +373,33 @@ var _ = Describe("Repo", func() {
 					Expect(role.Name).To(Equal("developer"))
 				},
 			},
+			{
+				Kind: "Ingress",
+				Name: "dev-welcome-445f8ea", // THIS MIGHT CHANGE
+				Expect: func(ret runtime.Object) {
+					ingress := ret.(*networkingv1.Ingress)
+					Expect(ingress.Name).To(Equal("dev-welcome-445f8ea"))
+				},
+			},
+			{
+				Kind: "Ingress",
+				Name: "dev-welcome-ingress",
+				Expect: func(ret runtime.Object) {
+					networkPolicy := ret.(*networkingv1.NetworkPolicy)
+					Expect(networkPolicy.Name).To(Equal("dev-welcome-ingress"))
+				},
+			},
 		}
 
 		// TODO bring back
 		createActions := getCreateActions(clientSet)
-		Expect(len(createActions)).To(Equal(len(tests)))
 
 		for index, test := range tests {
 			ret := createActions[index].GetObject()
 			Expect(ret).ToNot(BeNil())
 			test.Expect(createActions[index].GetObject())
 		}
+		Expect(len(createActions)).To(Equal(len(tests)))
 	})
 })
 
