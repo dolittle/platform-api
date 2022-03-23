@@ -9,9 +9,9 @@ curl -XPOST \
 localhost:8081/application -d '
 {
   "id": "fake-application-123",
-  "name": "Taco2",
+  "name": "taco2",
   "customerId": "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3",
-  "environments": ["Dev", "Test", "Prod"]
+  "environments": ["Dev"]
 }'
 ```
 
