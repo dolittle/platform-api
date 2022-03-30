@@ -6,6 +6,7 @@ import (
 
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/utils"
+	"k8s.io/apimachinery/pkg/util/validation"
 )
 
 func (s *service) handleSimpleMicroservice(
@@ -29,6 +30,11 @@ func (s *service) handleSimpleMicroservice(
 			utils.RespondWithError(w, http.StatusBadRequest, "ms.Extra.Ingress.Path The path is already in use")
 			return
 		}
+	}
+
+	if validation.IsValidPortNum(int(ms.Extra.HeadPort)) != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, "ms.Extra.HeadPort not a valid port number")
+		return
 	}
 
 	err := s.simpleRepo.Create(msK8sInfo.Namespace, msK8sInfo.Customer, msK8sInfo.Application, customerTenants, ms)
