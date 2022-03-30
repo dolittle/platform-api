@@ -8,7 +8,7 @@ import (
 
 var listEmailsCMD = &cobra.Command{
 	Use:   "list-emails",
-	Short: "List emails",
+	Short: "List emails in kratos",
 	Long: `
 	Given an email get user
 

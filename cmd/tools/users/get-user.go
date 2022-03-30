@@ -11,7 +11,7 @@ import (
 
 var getUserCMD = &cobra.Command{
 	Use:   "get-user",
-	Short: "Get user by email",
+	Short: "Get user by email in kratos",
 	Long: `
 	Given an email get user
 

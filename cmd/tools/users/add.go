@@ -9,7 +9,7 @@ import (
 
 var addCMD = &cobra.Command{
 	Use:   "add",
-	Short: "Add user to a customer",
+	Short: "Add user to a customer in kratos",
 	Long: `
 
 	Connnect a user with a customer by email:

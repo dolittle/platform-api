@@ -9,7 +9,7 @@ import (
 
 var removeCMD = &cobra.Command{
 	Use:   "remove",
-	Short: "Remove a user from a customer",
+	Short: "Remove a user from a customer in kratos",
 	Long: `
 	Remove a user with a customer by email:
 	(Today this does not remove access to kubernetes, just Studio)
