@@ -32,6 +32,11 @@ func (s *service) handleSimpleMicroservice(
 		}
 	}
 
+	// If 0, let it default to port 80
+	if ms.Extra.HeadPort == 0 {
+		ms.Extra.HeadPort = 80
+	}
+
 	if validation.IsValidPortNum(int(ms.Extra.HeadPort)) != nil {
 		utils.RespondWithError(w, http.StatusBadRequest, "ms.Extra.HeadPort not a valid port number")
 		return
