@@ -1,3 +1,11 @@
+# [3.5.1] - 2022-3-30 [PR: #66](https://github.com/dolittle/platform-api/pull/66)
+## Summary
+- Able to list-emails in the user system
+- Able to link a customer to a user by email
+- Able to link a customer to a user by user id
+- Able to remove link from customer to user
+
+
 # [3.5.0] - 2022-3-15 [PR: #98](https://github.com/dolittle/platform-api/pull/98)
 ## Summary
 
