@@ -41,16 +41,6 @@ curl -XPOST localhost:8081/microservice \
 }'
 ```
 
-```sh
-echo -n '{"buildOverwrite":true,"disabledEnvironments":[],"canCreateApplication":true}' | curl -X POST localhost:8081/studio/customer/CUSTOMER_ID \
- -H "x-shared-secret: FAKE" \
- -H "user-id: DEVELOPMENT_USER_ID" \
- -H "tenant-id: DEVELOPMENT_CUSTOMER_ID" \
- -H "Content-Type: application/json" \
- --data-binary @-
-```
-
-
 ## Business Moments Adaptor
 
 {
@@ -102,8 +92,14 @@ curl -XPOST localhost:8080/microservice -d '
 ```
 
 # Delete microservice
+
+The `environment` URL parameter is case sensitive.
+
 ```sh
-curl -XDELETE localhost:8080/application/11b6cf47-5d9f-438f-8116-0d9828654657/microservice/9f6a613f-d969-4938-a1ac-5b7df199bc40
+curl -X DELETE -i localhost:8081/application/11b6cf47-5d9f-438f-8116-0d9828654657/environment/Dev/microservice/9f6a613f-d969-4938-a1ac-5b7df199bc40 \
+-H 'x-shared-secret: FAKE' \
+-H 'Tenant-ID: 453e04a7-4f9d-42f2-b36c-d51fa2c83fa3' \
+-H 'User-ID: local-dev'
 ```
 
 # Not done
