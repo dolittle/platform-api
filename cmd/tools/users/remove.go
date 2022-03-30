@@ -14,7 +14,7 @@ var removeCMD = &cobra.Command{
 	Remove a user with a customer by email:
 	(Today this does not remove access to kubernetes, just Studio)
 
-	go run main.go tools users remove --email="human@dolittle.com" --customer-id="fake-customer-id"
+	go run main.go tools users remove --email="human@dolittle.com" --customer-id="fake-customer-id" --kratos-url="localhost:4434"
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		customerID, _ := cmd.Flags().GetString("customer-id")

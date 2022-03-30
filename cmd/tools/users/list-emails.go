@@ -12,7 +12,7 @@ var listEmailsCMD = &cobra.Command{
 	Long: `
 	Given an email get user
 
-	go run main.go tools users list-emails
+	go run main.go tools users list-emails --kratos-url="localhost:4434"
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		kratosUsers, err := kratosClient.GetUsers()

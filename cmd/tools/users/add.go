@@ -14,12 +14,12 @@ var addCMD = &cobra.Command{
 
 	Connnect a user with a customer by email:
 
-	go run main.go tools users add --email="human@dolittle.com" --customer-id="fake-customer-id"
+	go run main.go tools users add --email="human@dolittle.com" --customer-id="fake-customer-id" --kratos-url="localhost:4434"
 
 
 	Connnect a user with a customer by user-id:
 
-	go run main.go tools users add --user-id="fake-user-id" --customer-id="fake-customer-id"
+	go run main.go tools users add --user-id="fake-user-id" --customer-id="fake-customer-id" --kratos-url="localhost:4434"
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 
