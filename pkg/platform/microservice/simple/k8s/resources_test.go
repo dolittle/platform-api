@@ -101,6 +101,11 @@ var _ = Describe("Resources", func() {
 			Expect(resources.SecretEnvironmentVariables).ToNot(BeNil())
 			Expect(resources.RbacPolicyRules).ToNot(BeNil())
 		})
+
+		It("should not have an ingress or a network policy set", func() {
+			resources := k8s.NewResources(isProduction, namespace, tenant, application, customerTenants, input)
+			Expect(resources.IngressResources).To(BeNil())
+		})
 	})
 
 	When("creating public microservice resources", func() {
@@ -109,7 +114,7 @@ var _ = Describe("Resources", func() {
 		})
 
 		It("should have the resources set", func() {
-			resources := k8s.NewPublicResources(isProduction, namespace, tenant, application, customerTenants, input)
+			resources := k8s.NewResources(isProduction, namespace, tenant, application, customerTenants, input)
 			Expect(resources.Service).ToNot(BeNil())
 			Expect(resources.Deployment).ToNot(BeNil())
 			Expect(resources.DolittleConfig).ToNot(BeNil())
@@ -120,9 +125,9 @@ var _ = Describe("Resources", func() {
 		})
 
 		It("should have an ingress and network policy set", func() {
-			resources := k8s.NewPublicResources(isProduction, namespace, tenant, application, customerTenants, input)
-			Expect(resources.NetworkPolicy).ToNot(BeNil())
-			Expect(resources.Ingresses).ToNot(BeNil())
+			resources := k8s.NewResources(isProduction, namespace, tenant, application, customerTenants, input)
+			Expect(resources.IngressResources.NetworkPolicy).ToNot(BeNil())
+			Expect(resources.IngressResources.Ingresses).ToNot(BeNil())
 		})
 	})
 })

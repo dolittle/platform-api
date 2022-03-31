@@ -28,10 +28,10 @@ type MicroserviceResources struct {
 	ConfigEnvironmentVariables *corev1.ConfigMap
 	SecretEnvironmentVariables *corev1.Secret
 	RbacPolicyRules            []rbacv1.PolicyRule
+	IngressResources           *IngressResources
 }
 
-type PublicMicroserviceResources struct {
-	MicroserviceResources
+type IngressResources struct {
 	NetworkPolicy *networkingv1.NetworkPolicy
 	Ingresses     []*networkingv1.Ingress
 }
@@ -104,16 +104,14 @@ func (r k8sRepo) Create(namespace string, tenant dolittleK8s.Tenant, application
 	}
 
 	if input.Extra.Ispublic {
-		publicResources := NewPublicResources(r.isProduction, namespace, tenant, application, customerTenants, input)
-
-		for _, ingress := range publicResources.Ingresses {
+		for _, ingress := range resources.IngressResources.Ingresses {
 			_, err = client.NetworkingV1().Ingresses(namespace).Create(ctx, ingress, metav1.CreateOptions{})
 			if microserviceK8s.K8sHandleResourceCreationError(err, func() { microserviceK8s.K8sPrintAlreadyExists("ingress") }) != nil {
 				return err
 			}
 		}
 
-		_, err = client.NetworkingV1().NetworkPolicies(namespace).Create(ctx, publicResources.NetworkPolicy, metav1.CreateOptions{})
+		_, err = client.NetworkingV1().NetworkPolicies(namespace).Create(ctx, resources.IngressResources.NetworkPolicy, metav1.CreateOptions{})
 		if microserviceK8s.K8sHandleResourceCreationError(err, func() { microserviceK8s.K8sPrintAlreadyExists("network policy") }) != nil {
 			return err
 		}
