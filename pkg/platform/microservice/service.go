@@ -93,9 +93,7 @@ func (s *service) Create(w http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	// @joel I guess this comment is about if immediately trying to create a new microservice while the application
-	// is still being created? It's just exactly the same as the comment above
-	// TODO Confirm the application exists
+	// TODO Confirm the application exists in case it's being built currently
 	// storedApplication.Status.State == storage.BuildStatusStateFinishedSuccess
 	// - is it in terraform?
 	// - is it being made

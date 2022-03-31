@@ -119,7 +119,7 @@ var _ = Describe("Resources", func() {
 			Expect(resources.RbacPolicyRules).ToNot(BeNil())
 		})
 
-		It("should have an ingress and network policy", func() {
+		It("should have an ingress and network policy set", func() {
 			resources := k8s.NewPublicResources(isProduction, namespace, tenant, application, customerTenants, input)
 			Expect(resources.NetworkPolicy).ToNot(BeNil())
 			Expect(resources.Ingresses).ToNot(BeNil())
