@@ -14,23 +14,29 @@ cat azure.json | jq -r '[.|to_entries | .[] | select(.value.value.customer).valu
 # Create microservice
 ## Base / Simple
 ```sh
-curl -XPOST localhost:8080/microservice -d '
+curl -XPOST localhost:8081/microservice \
+-H 'x-shared-secret: FAKE' \
+-H 'Tenant-ID: 453e04a7-4f9d-42f2-b36c-d51fa2c83fa3' \
+-H 'User-ID: local-dev' \
+-H "Content-Type: application/json" \
+-d '
 {
   "dolittle": {
     "applicationId": "11b6cf47-5d9f-438f-8116-0d9828654657",
     "customerId": "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3",
-    "microserviceId": "9f6a613f-d969-4938-a1ac-5b7df199bc40"
+    "microserviceId": "c96ab893-7df5-4065-a105-930c2c264ac2"
   },
-  "name": "Order",
+  "name": "Order1",
   "kind": "simple",
   "environment": "Dev",
   "extra": {
-    "headImage": "453e04a74f9d42f2b36cd51fa2c83fa3.azurecr.io/taco/order:1.0.6",
-    "runtimeImage": "dolittle/runtime:5.6.0",
+    "headImage": "nginxdemos/hello:latest",
+    "runtimeImage": "dolittle/runtime:7.6.0",
     "ingress": {
       "path": "/",
       "pathType": "Prefix"
-    }
+    },
+    "isPublic": true
   }
 }'
 ```
@@ -86,8 +92,14 @@ curl -XPOST localhost:8080/microservice -d '
 ```
 
 # Delete microservice
+
+The `environment` URL parameter is case sensitive.
+
 ```sh
-curl -XDELETE localhost:8080/application/11b6cf47-5d9f-438f-8116-0d9828654657/microservice/9f6a613f-d969-4938-a1ac-5b7df199bc40
+curl -X DELETE -i localhost:8081/application/11b6cf47-5d9f-438f-8116-0d9828654657/environment/Dev/microservice/9f6a613f-d969-4938-a1ac-5b7df199bc40 \
+-H 'x-shared-secret: FAKE' \
+-H 'Tenant-ID: 453e04a7-4f9d-42f2-b36c-d51fa2c83fa3' \
+-H 'User-ID: local-dev'
 ```
 
 # Not done
