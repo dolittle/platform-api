@@ -43,6 +43,10 @@ func NewResources(
 		dolittleConfig = dolittleK8s.NewMicroserviceConfigmap(microservice, customerTenants)
 	}
 
+	if input.Extra.HeadPort == 0 {
+		input.Extra.HeadPort = 80
+	}
+
 	deployment := NewDeployment(microservice, input.Extra)
 	service := NewService(microservice, input.Extra)
 

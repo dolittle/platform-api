@@ -76,6 +76,7 @@ var _ = Describe("Resources", func() {
 			},
 			Extra: platform.HttpInputSimpleExtra{
 				Headimage:    "test-image",
+				HeadPort:     80,
 				Runtimeimage: "dolittle/runtime:7.7.1",
 				Ingress: platform.HttpInputSimpleIngress{
 					Path:     "/",
@@ -134,15 +135,23 @@ var _ = Describe("Resources", func() {
 	})
 
 	Context("Testing headPort logic", func() {
+
 		It("Confirm when HeadPort is set in extra the port propagates thru deployment and service", func() {
 			tests := []struct {
 				headPort int32
+				expected int32
 			}{
 				{
 					headPort: 80,
+					expected: 80,
 				},
 				{
 					headPort: 1234,
+					expected: 1234,
+				},
+				{
+					headPort: 0,
+					expected: 80,
 				},
 			}
 
@@ -151,11 +160,11 @@ var _ = Describe("Resources", func() {
 				resources := k8s.NewResources(true, "test", customer, application, customerTenants, input)
 
 				Expect(resources.Service.Spec.Ports[0].Name).To(Equal("http"), "If this changes, the ingress might be broken")
-				Expect(resources.Service.Spec.Ports[0].Port).To(Equal(test.headPort))
-				Expect(resources.Service.Spec.Ports[0].TargetPort.IntVal).To(Equal(test.headPort))
+				Expect(resources.Service.Spec.Ports[0].Port).To(Equal(test.expected))
+				Expect(resources.Service.Spec.Ports[0].TargetPort.IntVal).To(Equal(test.expected))
 
 				Expect(resources.Deployment.Spec.Template.Spec.Containers[0].Ports[0].Name).To(Equal("http"), "If this changes, the ingress might be broken")
-				Expect(resources.Deployment.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort).To(Equal(test.headPort))
+				Expect(resources.Deployment.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort).To(Equal(test.expected))
 			}
 		})
 	})
