@@ -20,7 +20,7 @@ var _ = Describe("Resources", func() {
 		customerTenantID string
 		environment      string
 		namespace        string
-		tenant           dolittleK8s.Tenant
+		customer         dolittleK8s.Tenant
 		application      dolittleK8s.Application
 		customerTenants  []platform.CustomerTenantInfo
 		input            platform.HttpInputSimpleInfo
@@ -35,7 +35,7 @@ var _ = Describe("Resources", func() {
 		environment = "Test"
 
 		namespace = fmt.Sprintf("application-%s", applicationID)
-		tenant = dolittleK8s.Tenant{
+		customer = dolittleK8s.Tenant{
 			Name: "Test-Name",
 			ID:   customerID,
 		}
@@ -86,48 +86,77 @@ var _ = Describe("Resources", func() {
 		}
 	})
 
-	When("creating private microservice resources", func() {
-		BeforeEach(func() {
-			input.Extra.Ispublic = false
+	Context("Confirming the logic around setting private microservice", func() {
+		When("creating private microservice resources", func() {
+			BeforeEach(func() {
+				input.Extra.Ispublic = false
+			})
+
+			It("should have the resources set", func() {
+				resources := k8s.NewResources(isProduction, namespace, customer, application, customerTenants, input)
+				Expect(resources.Service).ToNot(BeNil())
+				Expect(resources.Deployment).ToNot(BeNil())
+				Expect(resources.DolittleConfig).ToNot(BeNil())
+				Expect(resources.ConfigFiles).ToNot(BeNil())
+				Expect(resources.ConfigEnvironmentVariables).ToNot(BeNil())
+				Expect(resources.SecretEnvironmentVariables).ToNot(BeNil())
+				Expect(resources.RbacPolicyRules).ToNot(BeNil())
+			})
+
+			It("should not have an ingress or a network policy set", func() {
+				resources := k8s.NewResources(isProduction, namespace, customer, application, customerTenants, input)
+				Expect(resources.IngressResources).To(BeNil())
+			})
 		})
 
-		It("should have the resources set", func() {
-			resources := k8s.NewResources(isProduction, namespace, tenant, application, customerTenants, input)
-			Expect(resources.Service).ToNot(BeNil())
-			Expect(resources.Deployment).ToNot(BeNil())
-			Expect(resources.DolittleConfig).ToNot(BeNil())
-			Expect(resources.ConfigFiles).ToNot(BeNil())
-			Expect(resources.ConfigEnvironmentVariables).ToNot(BeNil())
-			Expect(resources.SecretEnvironmentVariables).ToNot(BeNil())
-			Expect(resources.RbacPolicyRules).ToNot(BeNil())
-		})
+		When("creating public microservice resources", func() {
+			BeforeEach(func() {
+				input.Extra.Ispublic = true
+			})
 
-		It("should not have an ingress or a network policy set", func() {
-			resources := k8s.NewResources(isProduction, namespace, tenant, application, customerTenants, input)
-			Expect(resources.IngressResources).To(BeNil())
+			It("should have the resources set", func() {
+				resources := k8s.NewResources(isProduction, namespace, customer, application, customerTenants, input)
+				Expect(resources.Service).ToNot(BeNil())
+				Expect(resources.Deployment).ToNot(BeNil())
+				Expect(resources.DolittleConfig).ToNot(BeNil())
+				Expect(resources.ConfigFiles).ToNot(BeNil())
+				Expect(resources.ConfigEnvironmentVariables).ToNot(BeNil())
+				Expect(resources.SecretEnvironmentVariables).ToNot(BeNil())
+				Expect(resources.RbacPolicyRules).ToNot(BeNil())
+			})
+
+			It("should have an ingress and network policy set", func() {
+				resources := k8s.NewResources(isProduction, namespace, customer, application, customerTenants, input)
+				Expect(resources.IngressResources.NetworkPolicy).ToNot(BeNil())
+				Expect(resources.IngressResources.Ingresses).ToNot(BeNil())
+			})
 		})
 	})
 
-	When("creating public microservice resources", func() {
-		BeforeEach(func() {
-			input.Extra.Ispublic = true
-		})
+	Context("Testing headPort logic", func() {
+		It("Confirm when HeadPort is set in extra the port propagates thru deployment and service", func() {
+			tests := []struct {
+				headPort int32
+			}{
+				{
+					headPort: 80,
+				},
+				{
+					headPort: 1234,
+				},
+			}
 
-		It("should have the resources set", func() {
-			resources := k8s.NewResources(isProduction, namespace, tenant, application, customerTenants, input)
-			Expect(resources.Service).ToNot(BeNil())
-			Expect(resources.Deployment).ToNot(BeNil())
-			Expect(resources.DolittleConfig).ToNot(BeNil())
-			Expect(resources.ConfigFiles).ToNot(BeNil())
-			Expect(resources.ConfigEnvironmentVariables).ToNot(BeNil())
-			Expect(resources.SecretEnvironmentVariables).ToNot(BeNil())
-			Expect(resources.RbacPolicyRules).ToNot(BeNil())
-		})
+			for _, test := range tests {
+				input.Extra.HeadPort = test.headPort
+				resources := k8s.NewResources(true, "test", customer, application, customerTenants, input)
 
-		It("should have an ingress and network policy set", func() {
-			resources := k8s.NewResources(isProduction, namespace, tenant, application, customerTenants, input)
-			Expect(resources.IngressResources.NetworkPolicy).ToNot(BeNil())
-			Expect(resources.IngressResources.Ingresses).ToNot(BeNil())
+				Expect(resources.Service.Spec.Ports[0].Name).To(Equal("http"), "If this changes, the ingress might be broken")
+				Expect(resources.Service.Spec.Ports[0].Port).To(Equal(test.headPort))
+				Expect(resources.Service.Spec.Ports[0].TargetPort.IntVal).To(Equal(test.headPort))
+
+				Expect(resources.Deployment.Spec.Template.Spec.Containers[0].Ports[0].Name).To(Equal("http"), "If this changes, the ingress might be broken")
+				Expect(resources.Deployment.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort).To(Equal(test.headPort))
+			}
 		})
 	})
 })
