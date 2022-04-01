@@ -1,3 +1,9 @@
+# [4.1.0] - 2022-4-1 [PR: #105](https://github.com/dolittle/platform-api/pull/105)
+## Summary
+
+Able to define the port that the head container will listen on, applied to service and deployment
+
+
 # [4.0.0] - 2022-3-31 [PR: #102](https://github.com/dolittle/platform-api/pull/102)
 ## Summary
 
