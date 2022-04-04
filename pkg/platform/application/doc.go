@@ -4,6 +4,18 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform"
 )
 
+type HttpResponseAccessUsers struct {
+	Users []HttpResponseAccessUser `json:"users"`
+}
+
+type HttpResponseAccessUser struct {
+	Email string `json:"email"`
+}
+
+type HttpInputAccessUser struct {
+	Email string `json:"email"`
+}
+
 type HttpInputApplication struct {
 	ID           string   `json:"id"`
 	Name         string   `json:"name"`

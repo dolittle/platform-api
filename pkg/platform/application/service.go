@@ -8,6 +8,7 @@ import (
 	"time"
 
 	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
+	"github.com/dolittle/platform-api/pkg/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
 	jobK8s "github.com/dolittle/platform-api/pkg/platform/job/k8s"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
@@ -22,6 +23,12 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+type UserAccess interface {
+	GetUsers(applicationID string) ([]string, error)
+	AddUser(customerID string, applicationID string, email string) error
+	RemoveUser(applicationID string, email string) error
+}
+
 type Service struct {
 	subscriptionID      string
 	externalClusterHost string
@@ -30,6 +37,8 @@ type Service struct {
 	k8sDolittleRepo     platformK8s.K8sRepo
 	k8sClient           kubernetes.Interface
 	jobResourceConfig   jobK8s.CreateResourceConfig
+	roleBindingRepo     k8s.RepoRoleBinding
+	userAccess          UserAccess
 	logContext          logrus.FieldLogger
 }
 
@@ -41,6 +50,8 @@ func NewService(
 	k8sDolittleRepo platformK8s.K8sRepo,
 	jobResourceConfig jobK8s.CreateResourceConfig,
 	simpleRepo simple.Repo,
+	userAccess UserAccess,
+	roleBindingRepo k8s.RepoRoleBinding,
 	logContext logrus.FieldLogger) Service {
 	return Service{
 		subscriptionID:      subscriptionID,
@@ -50,6 +61,8 @@ func NewService(
 		simpleRepo:          simpleRepo,
 		k8sDolittleRepo:     k8sDolittleRepo,
 		k8sClient:           k8sClient,
+		userAccess:          userAccess,
+		roleBindingRepo:     roleBindingRepo,
 		logContext:          logContext,
 	}
 }

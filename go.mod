@@ -4,7 +4,6 @@ go 1.16
 
 require (
 	github.com/Azure/azure-sdk-for-go v63.0.0+incompatible
-	github.com/Azure/azure-sdk-for-go/sdk/azidentity v0.13.2
 	github.com/Azure/azure-storage-file-go v0.8.0
 	github.com/Azure/go-autorest/autorest v0.11.24
 	github.com/Azure/go-autorest/autorest/adal v0.9.18
@@ -23,6 +22,7 @@ require (
 	github.com/itchyny/gojq v0.12.3
 	github.com/justinas/alice v1.2.0
 	github.com/kevinburke/ssh_config v1.1.0 // indirect
+	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/nats-io/nats-streaming-server v0.22.0 // indirect
 	github.com/nats-io/nats.go v1.11.0
 	github.com/nats-io/stan.go v0.9.0

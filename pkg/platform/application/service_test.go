@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	mockApplication "github.com/dolittle/platform-api/mocks/pkg/platform/application"
 	mockStorage "github.com/dolittle/platform-api/mocks/pkg/platform/storage"
 	"github.com/dolittle/platform-api/pkg/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
@@ -59,6 +60,7 @@ var _ = Describe("Testing endpoints", func() {
 		k8sRepo = platformK8s.NewK8sRepo(clientSet, config, logger)
 		k8sRepoV2 := k8s.NewRepo(clientSet, logger.WithField("context", "k8s-repo-v2"))
 		microserviceSimpleRepo := k8sSimple.NewSimpleRepo(clientSet, k8sRepo, k8sRepoV2, isProduction)
+		userAccessRepo := &mockApplication.UserAccess{}
 
 		gitRepo = &mockStorage.Repo{}
 
@@ -70,6 +72,8 @@ var _ = Describe("Testing endpoints", func() {
 			k8sRepo,
 			jobK8s.CreateResourceConfig{},
 			microserviceSimpleRepo,
+			userAccessRepo,
+			k8sRepoV2,
 			logger.WithField("context", "application-service"),
 		)
 	})

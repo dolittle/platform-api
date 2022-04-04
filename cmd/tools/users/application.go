@@ -46,7 +46,7 @@ var applicationCMD = &cobra.Command{
 		}
 
 		if do == "list" {
-			getUsersByApplication(args[1], activeDirectoryClient)
+			getUsersByApplication(applicationID, activeDirectoryClient)
 			return
 		}
 
