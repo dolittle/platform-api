@@ -82,6 +82,30 @@ type AppsettingsLogging struct {
 	Console       AppsettingsConsole  `json:"Console"`
 }
 
+type AppsettingsV8_0_0 struct {
+	Appsettings
+	dolittle dolittle `json:"dolittle"`
+}
+type dolittle struct {
+	runtime runtime `json:"runtime"`
+}
+type runtime struct {
+	eventStore eventStore `json:"eventstore"`
+}
+type eventStore struct {
+	backwardsCompatibility backwardsCompatibility `json:"backwardscompatibility"`
+}
+type backwardsCompatibility struct {
+	version BackwardsCompatibilityVersion `json:"version"`
+}
+
+type BackwardsCompatibilityVersion string
+
+const (
+	V6BackwardsCompatibility BackwardsCompatibilityVersion = "V6"
+	V7BackwardsCompatibility BackwardsCompatibilityVersion = "V7"
+)
+
 func NewConfigFilesConfigmap(microservice Microservice) *corev1.ConfigMap {
 	name := fmt.Sprintf("%s-%s-config-files",
 		microservice.Environment,
@@ -310,4 +334,41 @@ func NewMicroserviceConfigmap(microservice Microservice, customersTenants []plat
 			"platform.json":               platformJSON,
 		},
 	}
+}
+
+// NewMicroserviceConfigmap create dolittle-config configmap specific for dolittle/runtime:8.0.0
+func NewMicroserviceConfigmapV8_0_0(microservice Microservice, customersTenants []platform.CustomerTenantInfo) *corev1.ConfigMap {
+	configmap := NewMicroserviceConfigmap(microservice, customersTenants)
+
+	appsettings := AppsettingsV8_0_0{
+		Appsettings: Appsettings{
+			Logging: AppsettingsLogging{
+				Includescopes: false,
+				Loglevel: AppsettingsLoglevel{
+					Default:   "Debug",
+					System:    "Information",
+					Microsoft: "Information",
+				},
+				Console: AppsettingsConsole{
+					Includescopes:   true,
+					Timestampformat: "[yyyy-MM-dd HH:mm:ss] ",
+				},
+			},
+		},
+		dolittle: dolittle{
+			runtime: runtime{
+				eventStore: eventStore{
+					backwardsCompatibility: backwardsCompatibility{
+						version: V7BackwardsCompatibility,
+					},
+				},
+			},
+		},
+	}
+
+	b, _ := json.MarshalIndent(appsettings, "", "  ")
+	appsettingsJSON := string(b)
+
+	configmap.Data["appsettings.json"] = appsettingsJSON
+	return configmap
 }

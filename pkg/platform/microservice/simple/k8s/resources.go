@@ -37,6 +37,8 @@ func NewResources(
 	switch runtimeImage {
 	case "dolittle/runtime:6.1.0":
 		dolittleConfig = dolittleK8s.NewMicroserviceConfigmapV6_1_0(microservice, customerTenants)
+	case "dolittle/runtime:8.0.0":
+		dolittleConfig = 
 	case "none":
 		fallthrough
 	default:
