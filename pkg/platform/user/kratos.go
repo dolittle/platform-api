@@ -51,12 +51,7 @@ func (c kratosClientV5) AddCustomerToUserByUserID(userID string, customerID stri
 }
 
 func (c kratosClientV5) RemoveCustomerToUserByEmail(email string, customerID string) error {
-	kratosUsers, err := c.GetUsers()
-	if err != nil {
-		return err
-	}
-
-	kratosUser, err := GetUserFromListByEmail(kratosUsers, email)
+	kratosUser, err := c.GetUserByEmail(email)
 	if err != nil {
 		return err
 	}
@@ -65,12 +60,7 @@ func (c kratosClientV5) RemoveCustomerToUserByEmail(email string, customerID str
 }
 
 func (c kratosClientV5) AddCustomerToUserByEmail(email string, customerID string) error {
-	kratosUsers, err := c.GetUsers()
-	if err != nil {
-		return err
-	}
-
-	kratosUser, err := GetUserFromListByEmail(kratosUsers, email)
+	kratosUser, err := c.GetUserByEmail(email)
 	if err != nil {
 		return err
 	}
