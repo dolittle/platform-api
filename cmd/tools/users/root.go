@@ -31,6 +31,7 @@ func init() {
 	RootCMD.AddCommand(getUserCMD)
 	RootCMD.AddCommand(addCMD)
 	RootCMD.AddCommand(removeCMD)
+	RootCMD.AddCommand(applicationCMD)
 
 	RootCMD.PersistentFlags().String("kratos-url", "localhost:4434", "Url to kratos")
 }

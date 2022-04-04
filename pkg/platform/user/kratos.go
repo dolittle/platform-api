@@ -15,6 +15,7 @@ import (
 )
 
 type KratosClientV5 interface {
+	GetUserByEmail(email string) (KratosUser, error)
 	GetUsers() ([]KratosUser, error)
 	GetUser(id string) (KratosUser, error)
 	UpdateUser(user KratosUser) error
@@ -182,6 +183,20 @@ func (c kratosClientV5) GetUsers() ([]KratosUser, error) {
 		kratosUsers = append(kratosUsers, kratosUser)
 	}
 	return kratosUsers, nil
+}
+
+func (c kratosClientV5) GetUserByEmail(email string) (KratosUser, error) {
+	kratosUsers, err := c.GetUsers()
+	if err != nil {
+		return KratosUser{}, err
+	}
+
+	kratosUser, err := GetUserFromListByEmail(kratosUsers, email)
+	if err != nil {
+		return KratosUser{}, err
+	}
+
+	return kratosUser, nil
 }
 
 func GetUserFromListByEmail(users []KratosUser, email string) (KratosUser, error) {
