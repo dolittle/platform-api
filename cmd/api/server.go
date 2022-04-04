@@ -117,7 +117,7 @@ var serverCMD = &cobra.Command{
 			})
 			userAccessRepo = application.NewUserAccessRepo(kratosClient, activeDirectoryClient)
 		} else {
-			userAccessRepo = application.NewUserAccessRepoEmpty()
+			userAccessRepo = application.NewUserAccessRepoInMemory()
 		}
 
 		// TODO I wonder how this works when both are in the same cluster,
@@ -247,6 +247,11 @@ var serverCMD = &cobra.Command{
 			"/customer",
 			stdChainWithJSON.ThenFunc(customerService.Create),
 		).Methods(http.MethodPost, http.MethodOptions)
+
+		router.Handle(
+			"/customer/{customerID}",
+			stdChainWithJSON.ThenFunc(customerService.GetOne),
+		).Methods(http.MethodGet, http.MethodOptions)
 
 		router.Handle(
 			"/application/{applicationID}/microservices",

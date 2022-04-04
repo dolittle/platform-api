@@ -76,23 +76,3 @@ func (r UserAccessRepo) RemoveUser(applicationID string, email string) error {
 
 	return r.azureActiveDirectory.RemoveUserFromGroupByEmail(email, groupID)
 }
-
-type UserAccessRepoEmpty struct {
-}
-
-func NewUserAccessRepoEmpty() UserAccessRepoEmpty {
-	return UserAccessRepoEmpty{}
-}
-
-func (r UserAccessRepoEmpty) GetUsers(applicationID string) ([]string, error) {
-	users := make([]string, 0)
-	return users, nil
-}
-
-func (r UserAccessRepoEmpty) AddUser(customerID string, applicationID string, email string) error {
-	return nil
-}
-
-func (r UserAccessRepoEmpty) RemoveUser(applicationID string, email string) error {
-	return nil
-}
