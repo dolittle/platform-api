@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/dolittle/platform-api/pkg/platform"
+	"github.com/dolittle/platform-api/pkg/platform/storage"
 	"github.com/dolittle/platform-api/pkg/platform/user"
 	"github.com/dolittle/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
@@ -36,6 +38,17 @@ func (s *Service) UserList(w http.ResponseWriter, r *http.Request) {
 	applicationID := vars["applicationID"]
 	logContext = logContext.WithField("application_id", applicationID)
 
+	application, err := s.gitRepo.GetApplication(customerID, applicationID)
+	if err != nil {
+		if err != storage.ErrNotFound {
+			logContext.WithFields(logrus.Fields{
+				"error": err,
+			}).Error("Storage has failed")
+			utils.RespondWithError(w, http.StatusInternalServerError, platform.ErrStudioInfoMissing.Error())
+			return
+		}
+	}
+
 	currentUsers, err := s.userAccess.GetUsers(applicationID)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
@@ -47,6 +60,8 @@ func (s *Service) UserList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	users := HttpResponseAccessUsers{
+		ID:    application.ID,
+		Name:  application.Name,
 		Users: make([]HttpResponseAccessUser, 0),
 	}
 
