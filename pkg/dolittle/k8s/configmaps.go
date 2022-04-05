@@ -82,6 +82,8 @@ type AppsettingsLogging struct {
 	Console       AppsettingsConsole  `json:"Console"`
 }
 
+// AppsettingsV8_0_0 follows the structure of DOLITTLE__RUNTIME__EVENTSTORE__BACKWARDSCOMPATIBILITY__VERSION env variable
+// so that the ASP.NET configuration system will pick this setting in appsettings.json as that env variable
 type AppsettingsV8_0_0 struct {
 	Appsettings
 	Dolittle dolittle `json:"dolittle"`
