@@ -1,6 +1,8 @@
 package application
 
-import "github.com/dolittle/platform-api/pkg/platform/user"
+import (
+	"github.com/dolittle/platform-api/pkg/platform/user"
+)
 
 type UserAccessRepo struct {
 	azureActiveDirectory user.UserActiveDirectory
@@ -16,7 +18,13 @@ func NewUserAccessRepo(kratos user.KratosClientV5, azureActiveDirectory user.Use
 
 func (r UserAccessRepo) GetUsers(applicationID string) ([]string, error) {
 	users := make([]string, 0)
-	currentUsers, err := r.azureActiveDirectory.GetUsersInApplication(applicationID)
+
+	groupID, err := r.azureActiveDirectory.GetGroupIDByApplicationID(applicationID)
+	if err != nil {
+		return users, err
+	}
+
+	currentUsers, err := r.azureActiveDirectory.GetUsersInApplication(groupID)
 
 	if err != nil {
 		return users, err
