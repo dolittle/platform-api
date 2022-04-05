@@ -1,5 +1,7 @@
 package user
 
+import "errors"
+
 type KratosUser struct {
 	ID        string           `json:"id"`
 	SchemaID  string           `json:"schema_id"`
@@ -11,3 +13,9 @@ type KratosUserTraits struct {
 	Email   string   `json:"email"`
 	Tenants []string `json:"tenants"`
 }
+
+var (
+	ErrCustomerUserConnectionAlreadyExists = errors.New("customer-user-connection-already-exists")
+	ErrNotFound                            = errors.New("not-found")
+	ErrTooManyResults                      = errors.New("too-many-results")
+)

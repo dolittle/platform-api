@@ -136,6 +136,7 @@ GIT_SSH_COMMAND="ssh -i /pod-data/.ssh/operations -o IdentitiesOnly=yes -o Stric
 							),
 						}),
 						terraformRemoveOutputJSON(platformImage),
+						// TODO add logged in user to newly created application
 					},
 					Containers: []corev1.Container{
 						{

@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/dolittle/platform-api/pkg/platform/user"
 	"github.com/dolittle/platform-api/pkg/utils"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
@@ -109,6 +110,16 @@ func (s *Service) UserAdd(w http.ResponseWriter, r *http.Request) {
 	// Add to Active Azure Directory
 	err = s.userAccess.AddUser(customerID, applicationID, input.Email)
 	if err != nil {
+		if err == user.ErrNotFound {
+			utils.RespondWithError(w, http.StatusNotFound, "Email not found, unable to add to application")
+			return
+		}
+
+		if err == user.ErrTooManyResults {
+			utils.RespondWithError(w, http.StatusUnprocessableEntity, "More than one email found, unable to add to application")
+			return
+		}
+
 		logContext.WithFields(logrus.Fields{
 			"error": err,
 		}).Error("adding.user")
@@ -169,10 +180,18 @@ func (s *Service) UserRemove(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
 
-	// Add to Kratos
-	// Add to Active Azure Directory
 	err = s.userAccess.RemoveUser(applicationID, input.Email)
 	if err != nil {
+		if err == user.ErrNotFound {
+			utils.RespondWithError(w, http.StatusNotFound, "Email not found, unable to remove from application")
+			return
+		}
+
+		if err == user.ErrTooManyResults {
+			utils.RespondWithError(w, http.StatusUnprocessableEntity, "More than one email found, unable to remove from application")
+			return
+		}
+
 		logContext.WithFields(logrus.Fields{
 			"error": err,
 		}).Error("remove.user")

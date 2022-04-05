@@ -79,23 +79,24 @@ func (c activeDirectoryClient) GetGroupIDByApplicationID(applicationID string) (
 
 	if err != nil {
 		fmt.Println("err looking up", err)
-		return "", errors.New("issue.connecting")
+		// issue.connecting
+		return "", err
 	}
 
 	items := r.Values()
 	size := len(items)
 
 	if size == 0 {
-		return "", errors.New("not.found")
+		return "", ErrNotFound
 	}
 
 	if size != 1 {
-		return "", errors.New("too.many")
+		return "", ErrTooManyResults
 	}
 
 	aGroup, success := items[0].AsADGroup()
 	if !success {
-		return "", errors.New("not.found")
+		return "", ErrNotFound
 	}
 
 	return *aGroup.ObjectID, nil
@@ -107,24 +108,24 @@ func (c activeDirectoryClient) GetUserIDByEmail(email string) (string, error) {
 	r, err := c.userClient.List(ctx, filter, "")
 
 	if err != nil {
-		fmt.Println("err looking up", err)
-		return "", errors.New("issue.connecting")
+		// issue.connecting
+		return "", err
 	}
 
 	items := r.Values()
 	size := len(items)
 
 	if size == 0 {
-		return "", errors.New("not.found")
+		return "", ErrNotFound
 	}
 
 	if size != 1 {
-		return "", errors.New("too.many")
+		return "", ErrTooManyResults
 	}
 
 	user, success := items[0].AsUser()
 	if !success {
-		return "", errors.New("not.found")
+		return "", ErrNotFound
 	}
 
 	return *user.ObjectID, nil
@@ -173,7 +174,7 @@ func (c activeDirectoryClient) AddUserToGroup(userID string, groupID string) err
 	}
 	bodyString := string(bodyBytes)
 	fmt.Println(bodyString)
-
+	// TODO these errors need more work
 	return errors.New("failed to add")
 }
 
@@ -206,7 +207,7 @@ func (c activeDirectoryClient) RemoveUserFromGroup(userID string, groupID string
 	}
 	bodyString := string(bodyBytes)
 	fmt.Println(bodyString)
-
+	// TODO these errors need more work
 	return errors.New("failed to remove")
 }
 

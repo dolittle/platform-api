@@ -3,7 +3,6 @@ package user
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net/url"
 	"strings"
 
@@ -24,11 +23,6 @@ type KratosClientV5 interface {
 	AddCustomerToUserByEmail(email string, customerID string) error
 	RemoveCustomerToUserByEmail(email string, customerID string) error
 }
-
-var (
-	ErrCustomerUserConnectionAlreadyExists = errors.New("customer-user-connection-already-exists")
-	ErrNotFound                            = errors.New("not-found")
-)
 
 type kratosClientV5 struct {
 	client *kratosClient.OryKratos
