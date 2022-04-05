@@ -18,4 +18,5 @@ var (
 	ErrCustomerUserConnectionAlreadyExists = errors.New("customer-user-connection-already-exists")
 	ErrNotFound                            = errors.New("not-found")
 	ErrTooManyResults                      = errors.New("too-many-results")
+	ErrEmailAlreadyExists                  = errors.New("application-email-already-exists")
 )

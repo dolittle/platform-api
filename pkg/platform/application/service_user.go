@@ -135,6 +135,11 @@ func (s *Service) UserAdd(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if err == user.ErrEmailAlreadyExists {
+			utils.RespondWithError(w, http.StatusUnprocessableEntity, "Email already has access to this application")
+			return
+		}
+
 		logContext.WithFields(logrus.Fields{
 			"error": err,
 		}).Error("adding.user")

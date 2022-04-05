@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/graphrbac/graphrbac"
 	"github.com/Azure/go-autorest/autorest"
@@ -173,6 +174,13 @@ func (c activeDirectoryClient) AddUserToGroup(userID string, groupID string) err
 		log.Fatal(err)
 	}
 	bodyString := string(bodyBytes)
+
+	if result.Response.StatusCode == http.StatusBadRequest {
+		if strings.Contains(bodyString, "One or more added object references already exist for the following modified properties") {
+			return ErrEmailAlreadyExists
+		}
+	}
+
 	fmt.Println(bodyString)
 	// TODO these errors need more work
 	return errors.New("failed to add")
