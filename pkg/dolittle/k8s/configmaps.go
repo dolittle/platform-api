@@ -84,19 +84,19 @@ type AppsettingsLogging struct {
 
 type AppsettingsV8_0_0 struct {
 	Appsettings
-	dolittle dolittle `json:"dolittle"`
+	Dolittle dolittle `json:"dolittle"`
 }
 type dolittle struct {
-	runtime runtime `json:"runtime"`
+	Runtime runtime `json:"runtime"`
 }
 type runtime struct {
-	eventStore eventStore `json:"eventstore"`
+	EventStore eventStore `json:"eventstore"`
 }
 type eventStore struct {
-	backwardsCompatibility backwardsCompatibility `json:"backwardscompatibility"`
+	BackwardsCompatibility backwardsCompatibility `json:"backwardscompatibility"`
 }
 type backwardsCompatibility struct {
-	version BackwardsCompatibilityVersion `json:"version"`
+	Version BackwardsCompatibilityVersion `json:"version"`
 }
 
 type BackwardsCompatibilityVersion string
@@ -336,7 +336,12 @@ func NewMicroserviceConfigmap(microservice Microservice, customersTenants []plat
 	}
 }
 
-// NewMicroserviceConfigmap create dolittle-config configmap specific for dolittle/runtime:8.0.0
+// NewMicroserviceConfigmap creates dolittle-config configmap specific for dolittle/runtime:8.0.0
+// where the backwardsCompatibility is set to V7. The backwardsCompatibility is set in the Runtime
+// with the DOLITTLE__RUNTIME__EVENTSTORE__BACKWARDSCOMPATIBILITY__VERSION env variable, but instead
+// of using an environment variable we can leverage ASP.NET appsettings.json file to set it.
+// We set it to V7 by default as the V6 option should only be used when upgrading the Runtime, while this deals
+// with only creating a new one. https://github.com/dolittle/Runtime/releases/tag/v8.0.0
 func NewMicroserviceConfigmapV8_0_0(microservice Microservice, customersTenants []platform.CustomerTenantInfo) *corev1.ConfigMap {
 	configmap := NewMicroserviceConfigmap(microservice, customersTenants)
 
@@ -355,11 +360,11 @@ func NewMicroserviceConfigmapV8_0_0(microservice Microservice, customersTenants 
 				},
 			},
 		},
-		dolittle: dolittle{
-			runtime: runtime{
-				eventStore: eventStore{
-					backwardsCompatibility: backwardsCompatibility{
-						version: V7BackwardsCompatibility,
+		Dolittle: dolittle{
+			Runtime: runtime{
+				EventStore: eventStore{
+					BackwardsCompatibility: backwardsCompatibility{
+						Version: V7BackwardsCompatibility,
 					},
 				},
 			},
