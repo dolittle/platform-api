@@ -14,19 +14,8 @@ func NewUserAccessRepo(kratos user.KratosClientV5, azureActiveDirectory user.Use
 	}
 }
 
-func (r UserAccessRepo) skip() bool {
-	if r.kratos == nil || r.azureActiveDirectory == nil {
-		return true
-	}
-	return false
-}
-
 func (r UserAccessRepo) GetUsers(applicationID string) ([]string, error) {
 	users := make([]string, 0)
-	if r.skip() {
-		return users, nil
-	}
-
 	currentUsers, err := r.azureActiveDirectory.GetUsersInApplication(applicationID)
 
 	if err != nil {
@@ -41,9 +30,6 @@ func (r UserAccessRepo) GetUsers(applicationID string) ([]string, error) {
 }
 
 func (r UserAccessRepo) AddUser(customerID string, applicationID string, email string) error {
-	if r.skip() {
-		return nil
-	}
 	// Add to kratos, fail silently if already there
 
 	err := r.kratos.AddCustomerToUserByEmail(email, customerID)
@@ -64,10 +50,6 @@ func (r UserAccessRepo) AddUser(customerID string, applicationID string, email s
 }
 
 func (r UserAccessRepo) RemoveUser(applicationID string, email string) error {
-	if r.skip() {
-		return nil
-	}
-
 	// Remove from azure
 	groupID, err := r.azureActiveDirectory.GetGroupIDByApplicationID(applicationID)
 	if err != nil {

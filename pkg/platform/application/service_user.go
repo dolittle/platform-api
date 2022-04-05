@@ -35,6 +35,14 @@ func (s *Service) UserList(w http.ResponseWriter, r *http.Request) {
 	applicationID := vars["applicationID"]
 
 	currentUsers, err := s.userAccess.GetUsers(applicationID)
+	if err != nil {
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("get.users")
+
+		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to get users")
+		return
+	}
 
 	users := HttpResponseAccessUsers{
 		Users: make([]HttpResponseAccessUser, 0),
@@ -100,6 +108,9 @@ func (s *Service) UserAdd(w http.ResponseWriter, r *http.Request) {
 	// Add to Active Azure Directory
 	err = s.userAccess.AddUser(customerID, applicationID, input.Email)
 	if err != nil {
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("adding.user")
 		// TODO do we want something better here
 		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to add user")
 		return
@@ -161,6 +172,9 @@ func (s *Service) UserRemove(w http.ResponseWriter, r *http.Request) {
 	// Add to Active Azure Directory
 	err = s.userAccess.RemoveUser(applicationID, input.Email)
 	if err != nil {
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("remove.user")
 		// TODO do we want something better here
 		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to remove user")
 		return
