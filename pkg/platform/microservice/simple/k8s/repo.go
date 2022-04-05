@@ -20,16 +20,20 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
-type SimpleMicroserviceResources struct {
+type MicroserviceResources struct {
 	Service                    *corev1.Service
 	Deployment                 *appsv1.Deployment
 	DolittleConfig             *corev1.ConfigMap
 	ConfigFiles                *corev1.ConfigMap
 	ConfigEnvironmentVariables *corev1.ConfigMap
 	SecretEnvironmentVariables *corev1.Secret
-	NetworkPolicy              *networkingv1.NetworkPolicy
-	Ingresses                  []*networkingv1.Ingress
 	RbacPolicyRules            []rbacv1.PolicyRule
+	IngressResources           *IngressResources
+}
+
+type IngressResources struct {
+	NetworkPolicy *networkingv1.NetworkPolicy
+	Ingresses     []*networkingv1.Ingress
 }
 
 type k8sRepo struct {
@@ -55,6 +59,7 @@ func (r k8sRepo) Create(namespace string, tenant dolittleK8s.Tenant, application
 
 	client := r.k8sClient
 	ctx := context.TODO()
+
 	applicationID := application.ID
 
 	resources := NewResources(r.isProduction, namespace, tenant, application, customerTenants, input)
@@ -79,18 +84,6 @@ func (r k8sRepo) Create(namespace string, tenant dolittleK8s.Tenant, application
 		return err
 	}
 
-	for _, ingress := range resources.Ingresses {
-		_, err = client.NetworkingV1().Ingresses(namespace).Create(ctx, ingress, metav1.CreateOptions{})
-		if microserviceK8s.K8sHandleResourceCreationError(err, func() { microserviceK8s.K8sPrintAlreadyExists("ingress") }) != nil {
-			return err
-		}
-	}
-
-	_, err = client.NetworkingV1().NetworkPolicies(namespace).Create(ctx, resources.NetworkPolicy, metav1.CreateOptions{})
-	if microserviceK8s.K8sHandleResourceCreationError(err, func() { microserviceK8s.K8sPrintAlreadyExists("network policy") }) != nil {
-		return err
-	}
-
 	_, err = client.CoreV1().Services(namespace).Create(ctx, resources.Service, metav1.CreateOptions{})
 	if microserviceK8s.K8sHandleResourceCreationError(err, func() { microserviceK8s.K8sPrintAlreadyExists("service") }) != nil {
 		return err
@@ -106,6 +99,20 @@ func (r k8sRepo) Create(namespace string, tenant dolittleK8s.Tenant, application
 		err = r.k8sDolittleRepo.AddPolicyRule("developer", applicationID, policyRule)
 		// Not sure this is the best error checking
 		if microserviceK8s.K8sHandleResourceCreationError(err, func() { microserviceK8s.K8sPrintAlreadyExists("policy rule") }) != nil {
+			return err
+		}
+	}
+
+	if input.Extra.Ispublic {
+		for _, ingress := range resources.IngressResources.Ingresses {
+			_, err = client.NetworkingV1().Ingresses(namespace).Create(ctx, ingress, metav1.CreateOptions{})
+			if microserviceK8s.K8sHandleResourceCreationError(err, func() { microserviceK8s.K8sPrintAlreadyExists("ingress") }) != nil {
+				return err
+			}
+		}
+
+		_, err = client.NetworkingV1().NetworkPolicies(namespace).Create(ctx, resources.IngressResources.NetworkPolicy, metav1.CreateOptions{})
+		if microserviceK8s.K8sHandleResourceCreationError(err, func() { microserviceK8s.K8sPrintAlreadyExists("network policy") }) != nil {
 			return err
 		}
 	}

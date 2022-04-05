@@ -6,6 +6,7 @@ import (
 
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/utils"
+	"k8s.io/apimachinery/pkg/util/validation"
 )
 
 func (s *service) handleSimpleMicroservice(
@@ -24,8 +25,20 @@ func (s *service) handleSimpleMicroservice(
 		return
 	}
 
-	if CheckIfIngressPathInUseInEnvironment(applicationInfo.Ingresses, ms.Environment, ms.Extra.Ingress.Path) {
-		utils.RespondWithError(w, http.StatusBadRequest, "ms.Extra.Ingress.Path The path is already in use")
+	if ms.Extra.Ispublic {
+		if CheckIfIngressPathInUseInEnvironment(applicationInfo.Ingresses, ms.Environment, ms.Extra.Ingress.Path) {
+			utils.RespondWithError(w, http.StatusBadRequest, "ms.Extra.Ingress.Path The path is already in use")
+			return
+		}
+	}
+
+	// If 0, let it default to port 80
+	if ms.Extra.HeadPort == 0 {
+		ms.Extra.HeadPort = 80
+	}
+
+	if validation.IsValidPortNum(int(ms.Extra.HeadPort)) != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, "ms.Extra.HeadPort not a valid port number")
 		return
 	}
 

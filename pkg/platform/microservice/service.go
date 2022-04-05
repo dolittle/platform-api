@@ -65,40 +65,41 @@ func (s *service) Create(w http.ResponseWriter, request *http.Request) {
 	// Parse JSON
 	requestBytes, microserviceBase, err := s.readMicroserviceBase(request, logContext)
 	if err != nil {
-		utils.RespondWithError(w, http.StatusBadRequest, fmt.Errorf("Invalid request payload: %w", err).Error())
+		utils.RespondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid request payload: %w", err).Error())
 		return
 	}
 	defer request.Body.Close()
 
-	// Confirm customer exists
+	userID := request.Header.Get("User-ID")
 	customerID := request.Header.Get("Tenant-ID")
 	applicationID := microserviceBase.Dolittle.ApplicationID
+	logContext = logContext.WithFields(logrus.Fields{
+		"customer_id":    customerID,
+		"application_id": applicationID,
+		"user_id":        userID,
+	})
+
+	// Confirm customer exists
 	studioInfo, err := storage.GetStudioInfo(s.gitRepo, customerID, applicationID, logContext)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	customer := dolittleK8s.Tenant{
-		ID:   studioInfo.TerraformCustomer.GUID,
-		Name: studioInfo.TerraformCustomer.Name,
-	}
-
 	// Confirm application exists
-	storedApplication, err := s.gitRepo.GetApplication(customer.ID, applicationID)
+	storedApplication, err := s.gitRepo.GetApplication(customerID, applicationID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusBadRequest, "Not able to find application in the storage")
 		return
 	}
 
-	// TODO Confirm the application exists
+	// TODO Confirm the application exists in case it's being built currently
 	// storedApplication.Status.State == storage.BuildStatusStateFinishedSuccess
 	// - is it in terraform?
 	// - is it being made
 
 	// Confirm user has access to this application + customer
-	userID := request.Header.Get("User-ID")
-	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customer.ID, applicationID, userID)
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
 	if !allowed {
 		return
 	}
@@ -118,7 +119,7 @@ func (s *service) Create(w http.ResponseWriter, request *http.Request) {
 			http.StatusBadRequest,
 			fmt.Sprintf(
 				"Customer %s with application %s in environment %s does not allow changes via Studio",
-				customer.ID,
+				customerID,
 				applicationID,
 				environment,
 			),

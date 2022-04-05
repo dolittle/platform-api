@@ -1,3 +1,61 @@
+# [4.1.0] - 2022-4-1 [PR: #105](https://github.com/dolittle/platform-api/pull/105)
+## Summary
+
+Able to define the port that the head container will listen on, applied to service and deployment
+
+
+# [4.0.0] - 2022-3-31 [PR: #102](https://github.com/dolittle/platform-api/pull/102)
+## Summary
+
+It's now possible to create _private microservices_, aka microservices that don't have an ingress and a domain. These microservices can only be accessed from inside the platform through their k8s Services DNS name.
+
+To create a private microservice, the payload to send to the `/microservice` endpoint has a new `isPublic` property. Here's an example of such a request:
+```sh
+curl -X POST localhost:8081/microservice \
+-H 'x-shared-secret: FAKE' \
+-H 'Tenant-ID: 9049c278-7f6b-4fb9-a36e-c5223ca42fb5' \
+-H 'User-ID: local-dev' \
+-H "Content-Type: application/json" \
+-d '
+{
+  "dolittle": {
+    "applicationId": "286ee5a3-a41a-44b2-8f4f-bef9e61fe30b",
+    "customerId": "e38dc77b-cf71-4e84-a361-28ab0de36ca7",
+    "microserviceId": "1938f34a-ad5e-4de1-8196-bd3aab6f4954"
+  },
+  "name": "PrivateTest",
+  "kind": "simple",
+  "environment": "Dev",
+  "extra": {
+    "headImage": "nginxdemos/hello:latest",
+    "runtimeImage": "dolittle/runtime:7.7.1",
+    "ingress": {
+      "path": "/",
+      "pathType": "Prefix"
+    },
+    "isPublic": false
+  }
+}'
+``` 
+
+This is a breaking change as the default behaviour of creating a microservice has changed. If you don't supply the `isPublic` property in your request, platform-api will create a private microservice by default. 
+
+The information saved to the git repo for the microservices `ms_*.json` file also includes the `isPublic` field, as the data is based of the changed `HttpInputSimpleInfo` struct. This means that requests to fetch a microservices data might also include the `isPublic` field in them, depending if they were created by platform-api before or after this change (unless a migration script is made). If microservice doesn't include an `isPublic` field it should be treated as if it were public with an ingress and a domain.
+
+## Reference
+- https://github.com/dolittle-platform/Operations/pull/192
+- For my testing steps see https://github.com/dolittle-platform/Operations/pull/192#issuecomment-1077587867
+- https://app.asana.com/0/1201955720774352/1201993650094129/f
+
+
+# [3.5.1] - 2022-3-30 [PR: #66](https://github.com/dolittle/platform-api/pull/66)
+## Summary
+- Able to list-emails in the user system
+- Able to link a customer to a user by email
+- Able to link a customer to a user by user id
+- Able to remove link from customer to user
+
+
 # [3.5.0] - 2022-3-15 [PR: #98](https://github.com/dolittle/platform-api/pull/98)
 ## Summary
 
