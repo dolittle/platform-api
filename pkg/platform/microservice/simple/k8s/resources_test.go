@@ -1,6 +1,7 @@
 package k8s_test
 
 import (
+	"encoding/json"
 	"fmt"
 
 	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
@@ -130,6 +131,21 @@ var _ = Describe("Resources", func() {
 				resources := k8s.NewResources(isProduction, namespace, customer, application, customerTenants, input)
 				Expect(resources.IngressResources.NetworkPolicy).ToNot(BeNil())
 				Expect(resources.IngressResources.Ingresses).ToNot(BeNil())
+			})
+		})
+	})
+
+	Describe("Creating resources", func() {
+		Context("for v8.0.0 Runtime", func() {
+			It("should set backwardsCompatibility to V7 in appsettings.json", func() {
+				input.Extra.Runtimeimage = "dolittle/runtime:8.0.0"
+				resources := k8s.NewResources(isProduction, namespace, customer, application, customerTenants, input)
+
+				appsettingsString := resources.DolittleConfig.Data["appsettings.json"]
+				var appsettings dolittleK8s.AppsettingsV8_0_0
+				json.Unmarshal([]byte(appsettingsString), &appsettings)
+
+				Expect(appsettings.Dolittle.Runtime.EventStore.BackwardsCompatibility.Version).To(Equal(dolittleK8s.V7BackwardsCompatibility))
 			})
 		})
 	})
