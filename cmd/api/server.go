@@ -70,7 +70,7 @@ var serverCMD = &cobra.Command{
 		subscriptionID := viper.GetString("tools.server.azure.subscriptionId")
 		isProduction := viper.GetBool("tools.server.isProduction")
 
-		userAzureEnabled := viper.GetBool("tools.server.user.azureEnabled")
+		userThirdPartyEnabled := viper.GetBool("tools.server.user.thirdPartyEnabled")
 		kratosURL := viper.GetString("tools.server.kratos.url")
 		// Hide secret
 		serverSettings := viper.Get("tools.server").(map[string]interface{})
@@ -93,10 +93,8 @@ var serverCMD = &cobra.Command{
 
 		microserviceSimpleRepo := k8sSimple.NewSimpleRepo(k8sClient, k8sRepo, k8sRepoV2, isProduction)
 
-		// TODO make this third party
 		var userAccessRepo application.UserAccess
-		if userAzureEnabled {
-			//
+		if userThirdPartyEnabled {
 			settings, err := auth.GetSettingsFromEnvironment()
 			if err != nil {
 				// TODO running this locally is now even worse with this
@@ -448,7 +446,7 @@ func init() {
 	viper.SetDefault("tools.server.isProduction", false)
 	viper.SetDefault("tools.server.azure.subscriptionId", "")
 	viper.SetDefault("tools.server.kubernetes.externalClusterHost", defaultExternalClusterHost)
-	viper.SetDefault("tools.server.user.azureEnabled", false)
+	viper.SetDefault("tools.server.user.thirdPartyEnabled", false)
 
 	viper.BindEnv("tools.server.secret", "HEADER_SECRET")
 	viper.BindEnv("tools.server.listenOn", "LISTEN_ON")
@@ -456,7 +454,7 @@ func init() {
 	viper.BindEnv("tools.server.azure.subscriptionId", "AZURE_SUBSCRIPTION_ID")
 	viper.BindEnv("tools.server.kubernetes.externalClusterHost", "AZURE_EXTERNAL_CLUSTER_HOST")
 	viper.BindEnv("tools.server.kratos.url", "KRATOS_URL")
-	viper.BindEnv("tools.server.user.azureEnabled", "USER_AZURE_ENABLED")
+	viper.BindEnv("tools.server.user.thirdPartyEnabled", "USER_THIRD_PARTY_ENABLED")
 }
 
 // getExternalClusterHost Return externalHost if set, otherwise fall back to the internalHost
