@@ -33,6 +33,7 @@ func (s *Service) UserList(w http.ResponseWriter, r *http.Request) {
 	logContext.Info("List Access in active directory and kratos")
 	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
+	logContext = logContext.WithField("application_id", applicationID)
 
 	currentUsers, err := s.userAccess.GetUsers(applicationID)
 	if err != nil {
