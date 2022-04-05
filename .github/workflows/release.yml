@@ -72,7 +72,6 @@ jobs:
           ./cc-test-reporter \
           upload-coverage -i output/test-codecoverage-codeclimate.json
 
-
   release:
     runs-on: ubuntu-latest
     needs:
@@ -111,7 +110,6 @@ jobs:
           build-args: |
             BASE_IMAGE=dolittle/platform-api:${{ needs.setup.outputs.next-version }}
           tags: dolittle/platform-operations:${{ needs.setup.outputs.next-version }},dolittle/platform-operations:latest
-
 
       - name: Prepend to Changelog
         if: ${{ needs.setup.outputs.release-type != 'prerelease' }}
