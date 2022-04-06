@@ -97,9 +97,7 @@ var serverCMD = &cobra.Command{
 		if userThirdPartyEnabled {
 			settings, err := auth.GetSettingsFromEnvironment()
 			if err != nil {
-				// TODO running this locally is now even worse with this
-				// TODO maybe stub it?
-				panic(err)
+				logContext.WithField("error", err).Fatal("Missing AZURE_XXX settings")
 			}
 
 			tenantID := settings.Values[auth.TenantID]
