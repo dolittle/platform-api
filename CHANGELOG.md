@@ -1,3 +1,15 @@
+# [4.2.0] - 2022-4-6 [PR: #107](https://github.com/dolittle/platform-api/pull/107)
+## Summary
+
+When creating a new microservice that uses the [V8.0.0](https://github.com/dolittle/Runtime/releases/tag/v8.0.0) Runtime, we default to setting the `DOLITTLE__RUNTIME__EVENTSTORE__BACKWARDSCOMPATIBILITY__VERSION` env variable to `V7`. This is set through the `appsettings.json`, where the ASP.NET configuration system will pick it up just like it would be set in the env variable.
+We default to `V7`, because to `V6` should only be used when upgrading a V6 Runtime to V8 and we don't currently support upgrading of the Runtime in the platform.
+
+## Reference
+- https://app.asana.com/0/1202023614957161/1202062723906543
+- https://github.com/dolittle/Runtime/releases/tag/v8.0.0
+- https://github.com/dolittle/Studio/pull/170
+
+
 # [4.1.0] - 2022-4-1 [PR: #105](https://github.com/dolittle/platform-api/pull/105)
 ## Summary
 
