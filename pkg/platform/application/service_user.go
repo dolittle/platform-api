@@ -47,6 +47,8 @@ func (s *Service) UserList(w http.ResponseWriter, r *http.Request) {
 			utils.RespondWithError(w, http.StatusInternalServerError, platform.ErrStudioInfoMissing.Error())
 			return
 		}
+		utils.RespondWithError(w, http.StatusNotFound, "Application not found for this customer")
+		return
 	}
 
 	currentUsers, err := s.userAccess.GetUsers(applicationID)
@@ -59,14 +61,14 @@ func (s *Service) UserList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	users := HttpResponseAccessUsers{
+	response := HttpResponseAccessUsers{
 		ID:    application.ID,
 		Name:  application.Name,
 		Users: make([]HttpResponseAccessUser, 0),
 	}
 
 	for _, currentUser := range currentUsers {
-		users.Users = append(users.Users, HttpResponseAccessUser{
+		response.Users = append(response.Users, HttpResponseAccessUser{
 			Email: currentUser,
 		})
 	}
@@ -74,7 +76,7 @@ func (s *Service) UserList(w http.ResponseWriter, r *http.Request) {
 	utils.RespondWithJSON(
 		w,
 		http.StatusOK,
-		users,
+		response,
 	)
 }
 

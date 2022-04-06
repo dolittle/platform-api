@@ -49,8 +49,6 @@ var _ = Describe("Testing endpoints", func() {
 		applicationID = "fake-application-123"
 		subscriptionID := "TODO"
 		externalClusterHost := "TODO"
-		//platformOperationsImage := "TODO"
-		//platformEnvironment := "dev"
 		isProduction := false
 
 		logger, _ = logrusTest.NewNullLogger()
