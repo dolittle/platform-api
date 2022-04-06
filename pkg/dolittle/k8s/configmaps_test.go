@@ -1,6 +1,7 @@
 package k8s_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -61,6 +62,25 @@ var _ = Describe("Configmaps", func() {
 
 			It("Confirm no management", func() {
 				Expect(strings.Contains(resource.Data["endpoints.json"], "management")).To(BeFalse())
+			})
+		})
+
+		Context("Creating NewMicroserviceConfigmap for 8.0.0", func() {
+			BeforeEach(func() {
+				resource = NewMicroserviceConfigmapV8_0_0(microservice, customerTenants)
+			})
+
+			It("should have it's appsettings.json follow the structure of DOLITTLE__RUNTIME__EVENTSTORE__BACKWARDSCOMPATIBILITY__VERSION", func() {
+				appsettingsString := resource.Data["appsettings.json"]
+				var appsettings AppsettingsV8_0_0
+				json.Unmarshal([]byte(appsettingsString), &appsettings)
+
+				// this shows that the unmarshaling worked in the correct structure
+				Expect(appsettings.Dolittle.Runtime.EventStore.BackwardsCompatibility.Version).To(Equal(V7BackwardsCompatibility))
+			})
+
+			It("should have backwardsCompatibility set to V7", func() {
+				Expect(strings.Contains(resource.Data["appsettings.json"], "V7")).To(BeTrue())
 			})
 		})
 

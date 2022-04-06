@@ -82,6 +82,32 @@ type AppsettingsLogging struct {
 	Console       AppsettingsConsole  `json:"Console"`
 }
 
+// AppsettingsV8_0_0 follows the structure of DOLITTLE__RUNTIME__EVENTSTORE__BACKWARDSCOMPATIBILITY__VERSION env variable
+// so that the ASP.NET configuration system will pick this setting in appsettings.json as that env variable
+type AppsettingsV8_0_0 struct {
+	Appsettings
+	Dolittle dolittle `json:"dolittle"`
+}
+type dolittle struct {
+	Runtime runtime `json:"runtime"`
+}
+type runtime struct {
+	EventStore eventStore `json:"eventstore"`
+}
+type eventStore struct {
+	BackwardsCompatibility backwardsCompatibility `json:"backwardscompatibility"`
+}
+type backwardsCompatibility struct {
+	Version BackwardsCompatibilityVersion `json:"version"`
+}
+
+type BackwardsCompatibilityVersion string
+
+const (
+	V6BackwardsCompatibility BackwardsCompatibilityVersion = "V6"
+	V7BackwardsCompatibility BackwardsCompatibilityVersion = "V7"
+)
+
 func NewConfigFilesConfigmap(microservice Microservice) *corev1.ConfigMap {
 	name := fmt.Sprintf("%s-%s-config-files",
 		microservice.Environment,
@@ -310,4 +336,46 @@ func NewMicroserviceConfigmap(microservice Microservice, customersTenants []plat
 			"platform.json":               platformJSON,
 		},
 	}
+}
+
+// NewMicroserviceConfigmap creates dolittle-config configmap specific for dolittle/runtime:8.0.0
+// where the backwardsCompatibility is set to V7. The backwardsCompatibility is set in the Runtime
+// with the DOLITTLE__RUNTIME__EVENTSTORE__BACKWARDSCOMPATIBILITY__VERSION env variable, but instead
+// of using an environment variable we can leverage ASP.NET appsettings.json file to set it.
+// We set it to V7 by default as the V6 option should only be used when upgrading the Runtime, while this deals
+// with only creating a new one. https://github.com/dolittle/Runtime/releases/tag/v8.0.0
+func NewMicroserviceConfigmapV8_0_0(microservice Microservice, customersTenants []platform.CustomerTenantInfo) *corev1.ConfigMap {
+	configmap := NewMicroserviceConfigmap(microservice, customersTenants)
+
+	appsettings := AppsettingsV8_0_0{
+		Appsettings: Appsettings{
+			Logging: AppsettingsLogging{
+				Includescopes: false,
+				Loglevel: AppsettingsLoglevel{
+					Default:   "Debug",
+					System:    "Information",
+					Microsoft: "Information",
+				},
+				Console: AppsettingsConsole{
+					Includescopes:   true,
+					Timestampformat: "[yyyy-MM-dd HH:mm:ss] ",
+				},
+			},
+		},
+		Dolittle: dolittle{
+			Runtime: runtime{
+				EventStore: eventStore{
+					BackwardsCompatibility: backwardsCompatibility{
+						Version: V7BackwardsCompatibility,
+					},
+				},
+			},
+		},
+	}
+
+	b, _ := json.MarshalIndent(appsettings, "", "  ")
+	appsettingsJSON := string(b)
+
+	configmap.Data["appsettings.json"] = appsettingsJSON
+	return configmap
 }
