@@ -1,4 +1,4 @@
-package users
+package application
 
 import (
 	"fmt"
@@ -9,25 +9,27 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-// TODO not sure of the name here
-var applicationCMD = &cobra.Command{
-	Use:   "application",
-	Short: "Interact with the application",
+var accessCMD = &cobra.Command{
+	Use:   "access",
+	Short: "Access to the application",
 	Long: `
+	(Requires AZURE_XXX environment variables to be set)
 
 	List users who have access to the application
 
-	go run main.go tools users application {applicationID} list
+	go run main.go tools application access {applicationID} list
 
 	Add user who have access to the application
 
-	go run main.go tools users application {applicationID} add human@dolittle.com
+	go run main.go tools application access {applicationID} add human@dolittle.com
 	`,
 	Args: cobra.RangeArgs(2, 3),
 	Run: func(cmd *cobra.Command, args []string) {
 		settings, err := auth.GetSettingsFromEnvironment()
 		if err != nil {
-			panic(err)
+			fmt.Println(err.Error())
+			fmt.Println("Missing AZURE_XXX settings")
+			return
 		}
 
 		tenantID := settings.Values[auth.TenantID]
@@ -65,7 +67,6 @@ var applicationCMD = &cobra.Command{
 }
 
 func getUsersByApplication(applicationID string, client user.UserActiveDirectory) {
-	// We could lookup the applicationID via "Application-XXX"
 	groupID, err := client.GetGroupIDByApplicationID(applicationID)
 	if err != nil {
 		fmt.Println("Failed to find application")
