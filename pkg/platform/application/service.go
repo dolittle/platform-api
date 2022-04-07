@@ -149,14 +149,31 @@ func (s *Service) Create(w http.ResponseWriter, r *http.Request) {
 	environments := input.Environments
 
 	for _, environment := range environments {
-		// TODO this could development microserviceID const (ask @joel)
 		welcomeMicroserviceID := uuid.New().String()
-		customerTenant := dolittleK8s.NewDevelopmentCustomerTenantInfo(environment, welcomeMicroserviceID)
+
+		customerTenants := make([]platform.CustomerTenantInfo, 0)
+
+		if len(environment.CustomerTenant) > 0 {
+			for _, customerTenant := range environment.CustomerTenant {
+				var customerTenantInfo platform.CustomerTenantInfo
+
+				if customerTenant.ID != "" {
+					customerTenantInfo = dolittleK8s.NewCustomerTenantInfo(environment.Name, welcomeMicroserviceID, customerTenant.ID)
+				} else {
+					customerTenantInfo = dolittleK8s.NewDevelopmentCustomerTenantInfo(environment.Name, welcomeMicroserviceID)
+				}
+
+				customerTenants = append(customerTenants, customerTenantInfo)
+			}
+		} else {
+			// Create one
+			customerTenantInfo := dolittleK8s.NewDevelopmentCustomerTenantInfo(environment.Name, welcomeMicroserviceID)
+			customerTenants = append(customerTenants, customerTenantInfo)
+		}
+
 		environmentInfo := storage.JSONEnvironment{
-			Name: environment,
-			CustomerTenants: []platform.CustomerTenantInfo{
-				customerTenant,
-			},
+			Name:                  environment.Name,
+			CustomerTenants:       customerTenants,
 			WelcomeMicroserviceID: welcomeMicroserviceID,
 		}
 		application.Environments = append(application.Environments, environmentInfo)

@@ -127,5 +127,5 @@ func init() {
 	applicationCMD.Flags().String("application-name", "", "Name of application (readable)")
 	applicationCMD.Flags().String("application-id", "", "Application ID to use")
 	applicationCMD.Flags().String("customer", "", "Customer module name (customer_XXX)")
-	applicationCMD.Flags().String("source", "./modules/dolittle-application", "Override with specific source of the module")
+	applicationCMD.Flags().String("source", "./modules/dolittle-application-with-resources", "Override with specific source of the module")
 }

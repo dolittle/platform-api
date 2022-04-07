@@ -5,9 +5,18 @@ import (
 )
 
 type HttpInputApplication struct {
-	ID           string   `json:"id"`
-	Name         string   `json:"name"`
-	Environments []string `json:"environments"`
+	ID           string                            `json:"id"`
+	Name         string                            `json:"name"`
+	Environments []HttpInputApplicationEnvironment `json:"environments"`
+}
+
+type HttpInputApplicationEnvironmentCustomerTenant struct {
+	ID string `json:"id"`
+}
+
+type HttpInputApplicationEnvironment struct {
+	Name           string                                          `json:"name"`
+	CustomerTenant []HttpInputApplicationEnvironmentCustomerTenant `json:"customerTenants"`
 }
 
 type HttpResponseApplication struct {
