@@ -31,7 +31,7 @@ jobs:
         uses: dolittle/increment-version-action@v2
         with:
           version: ${{ steps.context.outputs.current-version }}
-          release-type: ${{ stept.context.outputs.release-type }}
+          release-type: ${{ steps.context.outputs.release-type }}
 
   test:
     if: github.event.pull_request.merged == true
