@@ -150,18 +150,26 @@ func (s *Service) Create(w http.ResponseWriter, r *http.Request) {
 
 	for _, environment := range environments {
 
+		// TODO need logic if empty
 		welcomeMicroserviceID := uuid.New().String()
 
 		customerTenants := make([]platform.CustomerTenantInfo, 0)
-		for _, customerTenant := range environment.CustomerTenant {
-			var customerTenantInfo platform.CustomerTenantInfo
 
-			if customerTenant.ID != "" {
-				customerTenantInfo = dolittleK8s.NewCustomerTenantInfo(environment.Name, welcomeMicroserviceID, customerTenant.ID)
-			} else {
-				customerTenantInfo = dolittleK8s.NewDevelopmentCustomerTenantInfo(environment.Name, welcomeMicroserviceID)
+		if len(environment.CustomerTenant) > 0 {
+			for _, customerTenant := range environment.CustomerTenant {
+				var customerTenantInfo platform.CustomerTenantInfo
+
+				if customerTenant.ID != "" {
+					customerTenantInfo = dolittleK8s.NewCustomerTenantInfo(environment.Name, welcomeMicroserviceID, customerTenant.ID)
+				} else {
+					customerTenantInfo = dolittleK8s.NewDevelopmentCustomerTenantInfo(environment.Name, welcomeMicroserviceID)
+				}
+
+				customerTenants = append(customerTenants, customerTenantInfo)
 			}
-
+		} else {
+			// Create one
+			customerTenantInfo := dolittleK8s.NewDevelopmentCustomerTenantInfo(environment.Name, welcomeMicroserviceID)
 			customerTenants = append(customerTenants, customerTenantInfo)
 		}
 
