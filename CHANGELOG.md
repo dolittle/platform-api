@@ -1,3 +1,12 @@
+# [4.3.0] - 2022-4-7 [PR: #110](https://github.com/dolittle/platform-api/pull/110)
+## Summary
+
+- When creating an application, it is possible to define customTenants per environment
+- Creating applications uses ./modules/dolittle-application-with-resources.
+- Fixes the workflow
+- Retrigger release for https://github.com/dolittle/platform-api/pull/109
+
+
 # [4.2.0] - 2022-4-6 [PR: #107](https://github.com/dolittle/platform-api/pull/107)
 ## Summary
 
