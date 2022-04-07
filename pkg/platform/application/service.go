@@ -149,8 +149,6 @@ func (s *Service) Create(w http.ResponseWriter, r *http.Request) {
 	environments := input.Environments
 
 	for _, environment := range environments {
-
-		// TODO need logic if empty
 		welcomeMicroserviceID := uuid.New().String()
 
 		customerTenants := make([]platform.CustomerTenantInfo, 0)
