@@ -101,6 +101,11 @@ func CreateApplicationAndEnvironmentAndWelcomeMicroservice(
 	for _, environment := range application.Environments {
 		customerTenants := environment.CustomerTenants
 
+		skipMicroserviceCreation := len(customerTenants) == 0
+		if skipMicroserviceCreation {
+			continue
+		}
+
 		microservice := welcomeMicroservice
 		microservice.Dolittle.MicroserviceID = customerTenants[0].MicroservicesRel[0].MicroserviceID
 		microservice.Environment = environment.Name
