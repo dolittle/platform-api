@@ -105,8 +105,8 @@ func (s *Service) UserAdd(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
-		}).Error("Bad input")
-		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		}).Error("failed to read")
+		utils.RespondWithError(w, http.StatusBadRequest, "Failed to read payload")
 		return
 	}
 	defer r.Body.Close()
@@ -114,6 +114,9 @@ func (s *Service) UserAdd(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(b, &input)
 
 	if err != nil {
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("Bad input")
 		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
@@ -123,8 +126,6 @@ func (s *Service) UserAdd(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
 
-	// Add to Kratos
-	// Add to Active Azure Directory
 	err = s.userAccess.AddUser(customerID, applicationID, input.Email)
 	if err != nil {
 		if err == user.ErrNotFound {
@@ -145,7 +146,6 @@ func (s *Service) UserAdd(w http.ResponseWriter, r *http.Request) {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
 		}).Error("adding.user")
-		// TODO do we want something better here
 		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to add user")
 		return
 	}
@@ -184,8 +184,8 @@ func (s *Service) UserRemove(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
-		}).Error("Bad input")
-		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		}).Error("failed to read")
+		utils.RespondWithError(w, http.StatusBadRequest, "Failed to read payload")
 		return
 	}
 	defer r.Body.Close()
@@ -193,6 +193,9 @@ func (s *Service) UserRemove(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(b, &input)
 
 	if err != nil {
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("Bad input")
 		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}

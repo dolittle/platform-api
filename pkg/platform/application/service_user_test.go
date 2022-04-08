@@ -1,12 +1,14 @@
 package application_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 
 	mockK8s "github.com/dolittle/platform-api/mocks/pkg/k8s"
 	mockApplication "github.com/dolittle/platform-api/mocks/pkg/platform/application"
@@ -17,6 +19,7 @@ import (
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	k8sSimple "github.com/dolittle/platform-api/pkg/platform/microservice/simple/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
+	"github.com/dolittle/platform-api/pkg/platform/user"
 	"github.com/gorilla/mux"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -87,7 +90,7 @@ var _ = Describe("Testing Application user endpoints", func() {
 			testURL := fmt.Sprintf("/application/%s/access/users", applicationID)
 			router.HandleFunc("/application/{applicationID}/access/users", service.UserList)
 
-			request = httptest.NewRequest("GET", testURL, nil)
+			request = httptest.NewRequest(http.MethodGet, testURL, nil)
 			request.Header.Add("User-ID", userID)
 			request.Header.Add("Tenant-ID", customerID)
 		})
@@ -229,14 +232,213 @@ var _ = Describe("Testing Application user endpoints", func() {
 	})
 
 	When("Adding a user to an application", func() {
+
 		BeforeEach(func() {
+			testURL := fmt.Sprintf("/application/%s/access/user", applicationID)
 			router.HandleFunc("/application/{applicationID}/access/user", service.UserAdd)
+			request = httptest.NewRequest(http.MethodPost, testURL, nil)
+			request.Header.Add("User-ID", userID)
+			request.Header.Add("Tenant-ID", customerID)
+		})
+
+		It("Failed to look up access due to error", func() {
+			roleBindingRepo.On(
+				"HasUserAdminAccess",
+				userID,
+			).Return(false, errors.New("fail"))
+
+			router.ServeHTTP(recorder, request)
+			Expect(recorder.Code).To(Equal(http.StatusInternalServerError))
+		})
+
+		It("Failed to look up access due to error", func() {
+			roleBindingRepo.On(
+				"HasUserAdminAccess",
+				userID,
+			).Return(false, nil)
+
+			router.ServeHTTP(recorder, request)
+			Expect(recorder.Code).To(Equal(http.StatusForbidden))
+		})
+
+		It("Bad payload", func() {
+			r := io.NopCloser(strings.NewReader("hello world"))
+			request.Body = r
+
+			roleBindingRepo.On(
+				"HasUserAdminAccess",
+				userID,
+			).Return(true, nil)
+
+			router.ServeHTTP(recorder, request)
+			Expect(recorder.Code).To(Equal(http.StatusBadRequest))
+		})
+
+		Context("Adding user", func() {
+			var (
+				email string
+			)
+			BeforeEach(func() {
+				email = "human@dolittle.com"
+				input := application.HttpInputAccessUser{
+					Email: email,
+				}
+
+				jsonPayload, _ := json.Marshal(input)
+				r := io.NopCloser(bytes.NewBuffer(jsonPayload))
+				request.Body = r
+
+				roleBindingRepo.On(
+					"HasUserAdminAccess",
+					userID,
+				).Return(true, nil)
+			})
+
+			It("Email not found", func() {
+				userAccessRepo.On(
+					"AddUser",
+					customerID,
+					applicationID,
+					email,
+				).Return(user.ErrNotFound)
+
+				router.ServeHTTP(recorder, request)
+				Expect(recorder.Code).To(Equal(http.StatusNotFound))
+			})
+
+			It("Too many results (azure specific)", func() {
+				userAccessRepo.On(
+					"AddUser",
+					customerID,
+					applicationID,
+					email,
+				).Return(user.ErrTooManyResults)
+
+				router.ServeHTTP(recorder, request)
+				Expect(recorder.Code).To(Equal(http.StatusUnprocessableEntity))
+			})
+
+			It("Email already in the application group", func() {
+				userAccessRepo.On(
+					"AddUser",
+					customerID,
+					applicationID,
+					email,
+				).Return(user.ErrEmailAlreadyExists)
+
+				router.ServeHTTP(recorder, request)
+				Expect(recorder.Code).To(Equal(http.StatusUnprocessableEntity))
+			})
+
+			It("Success", func() {
+				userAccessRepo.On(
+					"AddUser",
+					customerID,
+					applicationID,
+					email,
+				).Return(nil)
+
+				router.ServeHTTP(recorder, request)
+				Expect(recorder.Code).To(Equal(http.StatusOK))
+			})
+
 		})
 	})
 
 	When("Removing a user from an application", func() {
 		BeforeEach(func() {
+			testURL := fmt.Sprintf("/application/%s/access/user", applicationID)
 			router.HandleFunc("/application/{applicationID}/access/user", service.UserRemove)
+			request = httptest.NewRequest(http.MethodDelete, testURL, nil)
+			request.Header.Add("User-ID", userID)
+			request.Header.Add("Tenant-ID", customerID)
+		})
+
+		It("Failed to look up access due to error", func() {
+			roleBindingRepo.On(
+				"HasUserAdminAccess",
+				userID,
+			).Return(false, errors.New("fail"))
+
+			router.ServeHTTP(recorder, request)
+			Expect(recorder.Code).To(Equal(http.StatusInternalServerError))
+		})
+
+		It("Failed to look up access due to error", func() {
+			roleBindingRepo.On(
+				"HasUserAdminAccess",
+				userID,
+			).Return(false, nil)
+
+			router.ServeHTTP(recorder, request)
+			Expect(recorder.Code).To(Equal(http.StatusForbidden))
+		})
+
+		It("Bad payload", func() {
+			r := io.NopCloser(strings.NewReader("hello world"))
+			request.Body = r
+
+			roleBindingRepo.On(
+				"HasUserAdminAccess",
+				userID,
+			).Return(true, nil)
+
+			router.ServeHTTP(recorder, request)
+			Expect(recorder.Code).To(Equal(http.StatusBadRequest))
+		})
+
+		Context("Removing user", func() {
+			var (
+				email string
+			)
+			BeforeEach(func() {
+				email = "human@dolittle.com"
+				input := application.HttpInputAccessUser{
+					Email: email,
+				}
+
+				jsonPayload, _ := json.Marshal(input)
+				r := io.NopCloser(bytes.NewBuffer(jsonPayload))
+				request.Body = r
+
+				roleBindingRepo.On(
+					"HasUserAdminAccess",
+					userID,
+				).Return(true, nil)
+			})
+
+			It("Email not found", func() {
+				userAccessRepo.On(
+					"RemoveUser",
+					applicationID,
+					email,
+				).Return(user.ErrNotFound)
+
+				router.ServeHTTP(recorder, request)
+				Expect(recorder.Code).To(Equal(http.StatusNotFound))
+			})
+
+			It("Too many results (azure specific)", func() {
+				userAccessRepo.On(
+					"RemoveUser",
+					applicationID,
+					email,
+				).Return(user.ErrTooManyResults)
+
+				router.ServeHTTP(recorder, request)
+				Expect(recorder.Code).To(Equal(http.StatusUnprocessableEntity))
+			})
+
+			It("Success", func() {
+				userAccessRepo.On(
+					"RemoveUser",
+					applicationID,
+					email,
+				).Return(nil)
+
+				router.ServeHTTP(recorder, request)
+				Expect(recorder.Code).To(Equal(http.StatusOK))
+			})
 		})
 	})
 })
