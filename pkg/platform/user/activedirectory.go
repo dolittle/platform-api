@@ -140,7 +140,6 @@ func (c activeDirectoryClient) AddUserToGroupByEmail(email string, groupID strin
 	return c.AddUserToGroup(userID, groupID)
 }
 
-// TODO I might need to talk email, as today its the only connection between kratos + AAD
 // AddUserToGroup
 func (c activeDirectoryClient) AddUserToGroup(userID string, groupID string) error {
 	groupObjectID := groupID
@@ -150,7 +149,7 @@ func (c activeDirectoryClient) AddUserToGroup(userID string, groupID string) err
 	tenantID := client.TenantID
 	memberObjectID := userID
 	ctx := context.Background()
-	result, err := client.AddMember(ctx, groupObjectID, graphrbac.GroupAddMemberParameters{
+	result, responseError := client.AddMember(ctx, groupObjectID, graphrbac.GroupAddMemberParameters{
 		URL: to.StringPtr(fmt.Sprintf(
 			"https://graph.microsoft.com/%s/users/%s",
 			tenantID,
@@ -166,7 +165,7 @@ func (c activeDirectoryClient) AddUserToGroup(userID string, groupID string) err
 		return nil
 	}
 
-	fmt.Println(result.Response.StatusCode, err)
+	fmt.Println(result.Response.StatusCode, responseError)
 	defer result.Response.Body.Close()
 
 	bodyBytes, err := io.ReadAll(result.Response.Body)
@@ -182,7 +181,6 @@ func (c activeDirectoryClient) AddUserToGroup(userID string, groupID string) err
 	}
 
 	fmt.Println(bodyString)
-	// TODO these errors need more work
 	return errors.New("failed to add")
 }
 
@@ -206,16 +204,8 @@ func (c activeDirectoryClient) RemoveUserFromGroup(userID string, groupID string
 	if result.Response.StatusCode == http.StatusNoContent {
 		return nil
 	}
-	fmt.Println(result.Response.StatusCode, err)
-	defer result.Response.Body.Close()
 
-	bodyBytes, err := io.ReadAll(result.Response.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-	bodyString := string(bodyBytes)
-	fmt.Println(bodyString)
-	// TODO these errors need more work
+	debugResponseFromAzure(result.Response, err)
 	return errors.New("failed to remove")
 }
 
@@ -253,4 +243,16 @@ func NewGroupsClient(tenantID string, authorizer *autorest.BearerAuthorizer) gra
 	groupsClient.Authorizer = authorizer
 	groupsClient.AddToUserAgent("dolittle")
 	return groupsClient
+}
+
+func debugResponseFromAzure(response *http.Response, err error) {
+	fmt.Println(response.StatusCode, err)
+	defer response.Body.Close()
+
+	bodyBytes, err := io.ReadAll(response.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	bodyString := string(bodyBytes)
+	fmt.Println(bodyString)
 }

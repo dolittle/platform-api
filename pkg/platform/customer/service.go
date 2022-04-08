@@ -181,6 +181,7 @@ func (s *service) GetOne(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	customerID := vars["customerID"]
 
+	// TODO https://app.asana.com/0/0/1202088245934608/f
 	studioConfig, err := s.storageRepo.GetStudioConfig(customerID)
 
 	if err != nil {

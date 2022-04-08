@@ -1,8 +1,6 @@
 package user
 
 import (
-	"fmt"
-
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 )
 
@@ -27,7 +25,6 @@ func (r UserRepository) GetUsersInApplication(customerID string, applicationID s
 	return r.activeDirectoryClient.GetUsersInApplication(terraformApplication.GroupID)
 }
 
-// TODO: Do we need kratos in this at all?
 // AddUserToApplication
 // Assumes email is in kratos.
 // Assumes email is in activedirectory
@@ -49,8 +46,6 @@ func (r UserRepository) AddUserToApplication(customerID string, applicationID st
 		return err
 	}
 
-	fmt.Printf("Add user %s to active directory %s\n", userID, terraformApplication.GroupID)
-
 	err = r.activeDirectoryClient.AddUserToGroup(userID, terraformApplication.GroupID)
 	if err != nil {
 		return err
@@ -70,8 +65,6 @@ func (r UserRepository) RemoveUserFromApplication(customerID string, application
 	if err != nil {
 		return err
 	}
-
-	fmt.Printf("Remove user %s to active directory %s\n", userID, terraformApplication.GroupID)
 
 	err = r.activeDirectoryClient.RemoveUserFromGroup(userID, terraformApplication.GroupID)
 	if err != nil {
