@@ -14,8 +14,11 @@ import (
 )
 
 func (s *Service) UserList(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	applicationID := vars["applicationID"]
+	customerID := vars["customerID"]
 	userID := r.Header.Get("User-ID")
-	customerID := r.Header.Get("Tenant-ID")
+
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"method":      "UserList",
 		"customer_id": customerID,
@@ -34,8 +37,6 @@ func (s *Service) UserList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logContext.Info("List Access in active directory and kratos")
-	vars := mux.Vars(r)
-	applicationID := vars["applicationID"]
 	logContext = logContext.WithField("application_id", applicationID)
 
 	application, err := s.gitRepo.GetApplication(customerID, applicationID)
@@ -81,8 +82,11 @@ func (s *Service) UserList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) UserAdd(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	applicationID := vars["applicationID"]
+	customerID := vars["customerID"]
 	userID := r.Header.Get("User-ID")
-	customerID := r.Header.Get("Tenant-ID")
+
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"method":      "UserAdd",
 		"customer_id": customerID,
@@ -123,9 +127,6 @@ func (s *Service) UserAdd(w http.ResponseWriter, r *http.Request) {
 
 	logContext.Info("Add user access to application in active directory and kratos")
 
-	vars := mux.Vars(r)
-	applicationID := vars["applicationID"]
-
 	err = s.userAccess.AddUser(customerID, applicationID, input.Email)
 	if err != nil {
 		if err == user.ErrNotFound {
@@ -160,8 +161,11 @@ func (s *Service) UserAdd(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) UserRemove(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	applicationID := vars["applicationID"]
+	customerID := vars["customerID"]
 	userID := r.Header.Get("User-ID")
-	customerID := r.Header.Get("Tenant-ID")
+
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"method":      "UserAdd",
 		"customer_id": customerID,
@@ -201,9 +205,6 @@ func (s *Service) UserRemove(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logContext.Info("Remove user access to application in active directory")
-
-	vars := mux.Vars(r)
-	applicationID := vars["applicationID"]
 
 	err = s.userAccess.RemoveUser(applicationID, input.Email)
 	if err != nil {

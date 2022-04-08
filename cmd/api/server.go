@@ -411,17 +411,17 @@ var serverCMD = &cobra.Command{
 		).Methods(http.MethodPost, http.MethodOptions)
 
 		router.Handle(
-			"/application/{applicationID}/access/users",
+			"/admin/customer/{customerID}/application/{applicationID}/access/users",
 			stdChainBase.ThenFunc(applicationService.UserList),
 		).Methods(http.MethodGet, http.MethodOptions)
 
 		router.Handle(
-			"/application/{applicationID}/access/user",
+			"/admin/customer/{customerID}/application/{applicationID}/access/user",
 			stdChainBase.ThenFunc(applicationService.UserAdd),
 		).Methods(http.MethodPost, http.MethodOptions)
 
 		router.Handle(
-			"/application/{applicationID}/access/user",
+			"/admin/customer/{customerID}/application/{applicationID}/access/user",
 			stdChainBase.ThenFunc(applicationService.UserRemove),
 		).Methods(http.MethodDelete, http.MethodOptions)
 

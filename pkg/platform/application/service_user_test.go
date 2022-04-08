@@ -29,7 +29,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-var _ = Describe("Testing Application user endpoints", func() {
+var _ = Describe("Testing Admin Application user endpoints", func() {
 	var (
 		request  *http.Request
 		recorder *httptest.ResponseRecorder
@@ -87,12 +87,11 @@ var _ = Describe("Testing Application user endpoints", func() {
 
 	When("Listing user access", func() {
 		BeforeEach(func() {
-			testURL := fmt.Sprintf("/application/%s/access/users", applicationID)
-			router.HandleFunc("/application/{applicationID}/access/users", service.UserList)
+			testURL := fmt.Sprintf("/admin/customer/%s/application/%s/access/users", customerID, applicationID)
+			router.HandleFunc("/admin/customer/{customerID}/application/{applicationID}/access/users", service.UserList)
 
 			request = httptest.NewRequest(http.MethodGet, testURL, nil)
 			request.Header.Add("User-ID", userID)
-			request.Header.Add("Tenant-ID", customerID)
 		})
 
 		It("Failed to look up access due to error", func() {
@@ -232,13 +231,11 @@ var _ = Describe("Testing Application user endpoints", func() {
 	})
 
 	When("Adding a user to an application", func() {
-
 		BeforeEach(func() {
-			testURL := fmt.Sprintf("/application/%s/access/user", applicationID)
-			router.HandleFunc("/application/{applicationID}/access/user", service.UserAdd)
+			testURL := fmt.Sprintf("/admin/customer/%s/application/%s/access/user", customerID, applicationID)
+			router.HandleFunc("/admin/customer/{customerID}/application/{applicationID}/access/user", service.UserAdd)
 			request = httptest.NewRequest(http.MethodPost, testURL, nil)
 			request.Header.Add("User-ID", userID)
-			request.Header.Add("Tenant-ID", customerID)
 		})
 
 		It("Failed to look up access due to error", func() {
@@ -347,11 +344,10 @@ var _ = Describe("Testing Application user endpoints", func() {
 
 	When("Removing a user from an application", func() {
 		BeforeEach(func() {
-			testURL := fmt.Sprintf("/application/%s/access/user", applicationID)
-			router.HandleFunc("/application/{applicationID}/access/user", service.UserRemove)
+			testURL := fmt.Sprintf("/admin/customer/%s/application/%s/access/user", customerID, applicationID)
+			router.HandleFunc("/admin/customer/{customerID}/application/{applicationID}/access/user", service.UserRemove)
 			request = httptest.NewRequest(http.MethodDelete, testURL, nil)
 			request.Header.Add("User-ID", userID)
-			request.Header.Add("Tenant-ID", customerID)
 		})
 
 		It("Failed to look up access due to error", func() {
