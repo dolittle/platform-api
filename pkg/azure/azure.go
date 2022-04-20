@@ -94,8 +94,8 @@ func LatestX(accountName string, accountKey string, shareName string) (ListRespo
 	}, nil
 }
 
-// EnsureFileShareExists tries to create a fileshare with a default quota in the given storage account.
-// If the fileshare already exists it returns nil.
+// EnsureFileShareExists creates a fileshare with the provided name with a default quota in the given storage account if
+// it does not already exist.
 func EnsureFileShareExists(accountName, accountKey, shareName string) error {
 	// Use your Storage account's name and key to create a credential object; this is used to access your account.
 	credential, err := azfile.NewSharedKeyCredential(accountName, accountKey)
