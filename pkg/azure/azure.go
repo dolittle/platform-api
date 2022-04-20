@@ -92,3 +92,34 @@ func LatestX(accountName string, accountKey string, shareName string) (ListRespo
 		Files:       latest,
 	}, nil
 }
+
+// EnsureFileShareExists tries to create a fileshare with a default quota in the given storage account.
+// If the fileshare already exists it returns nil.
+func EnsureFileShareExists(accountName, accountKey, shareName string) error {
+	// Use your Storage account's name and key to create a credential object; this is used to access your account.
+	credential, err := azfile.NewSharedKeyCredential(accountName, accountKey)
+
+	if err != nil {
+		return err
+	}
+
+	pipeline := azfile.NewPipeline(credential, azfile.PipelineOptions{})
+	u, err := url.Parse(fmt.Sprintf("https://%s.file.core.windows.net/%s", accountName, shareName))
+	if err != nil {
+		return err
+	}
+
+	shareURL := azfile.NewShareURL(*u, pipeline)
+	ctx := context.Background()
+
+	// NOTE: Metadata key names are always converted to lowercase before being sent to the Storage Service.
+	// Therefore, you should always use lowercase letters; especially when querying a map for a metadata key.
+	if _, err := shareURL.Create(ctx, azfile.Metadata{}, 0); err != nil {
+		if storageErr, ok := err.(azfile.StorageError); ok && storageErr.ServiceCode() == "ShareAlreadyExists" {
+			return nil
+		}
+		return err
+	}
+
+	return nil
+}

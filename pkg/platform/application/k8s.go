@@ -2,7 +2,9 @@ package application
 
 import (
 	"fmt"
+	"strings"
 
+	"github.com/dolittle/platform-api/pkg/azure"
 	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/platform/application/k8s"
@@ -74,8 +76,14 @@ func CreateApplicationAndEnvironmentAndWelcomeMicroservice(
 	// Create rbac
 	// Create environments
 	for _, environment := range application.Environments {
+		shareName := fmt.Sprintf("%s-%s-backup", strings.ToLower(application.Name), strings.ToLower(environment.Name))
+		err := azure.EnsureFileShareExists(azureStorageAccountName, azureStorageAccountKey, shareName)
+		if err != nil {
+			return err
+		}
+
 		mongoSettings := k8s.MongoSettings{
-			ShareName:       azureStorageAccountName,
+			ShareName:       shareName,
 			CronJobSchedule: fmt.Sprintf("%d * * * *", GetRandomMinutes()),
 			VolumeSize:      "8Gi",
 		}
