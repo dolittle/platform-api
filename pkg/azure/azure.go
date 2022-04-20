@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/Azure/azure-storage-file-go/azfile"
@@ -122,4 +123,9 @@ func EnsureFileShareExists(accountName, accountKey, shareName string) error {
 	}
 
 	return nil
+}
+
+// CreateBackupFileShareName creates a standard name for an environments fileshare in Azure.
+func CreateBackupFileShareName(application, environment string) string {
+	return fmt.Sprintf("%s-%s-backup", strings.ToLower(application), strings.ToLower(environment))
 }

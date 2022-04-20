@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	"github.com/dolittle/platform-api/pkg/azure"
 	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle/platform-api/pkg/k8s"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
@@ -127,6 +128,18 @@ In kubernetes, create application
 		k8sDolittleRepo := platformK8s.NewK8sRepo(k8sClient, k8sConfig, logContext.WithField("context", "k8s-repo"))
 		k8sRepoV2 := k8s.NewRepo(k8sClient, logContext.WithField("context", "k8s-repo-v2"))
 		simpleRepo := k8sSimple.NewSimpleRepo(k8sClient, k8sDolittleRepo, k8sRepoV2, isProduction)
+
+		azureStorageAccountName := terraformCustomer.AzureStorageAccountName
+		azureStorageAccountKey := terraformCustomer.AzureStorageAccountKey
+		// ensure that the fileshares exist before creating the k8s resources
+		for _, environment := range application.Environments {
+			fileShare := azure.CreateBackupFileShareName(application.Name, environment.Name)
+
+			err := azure.EnsureFileShareExists(azureStorageAccountName, azureStorageAccountKey, fileShare)
+			if err != nil {
+				panic(err.Error())
+			}
+		}
 
 		err = platformApplication.CreateApplicationAndEnvironmentAndWelcomeMicroservice(
 			k8sClient,
