@@ -3,6 +3,7 @@ package application
 import (
 	"fmt"
 
+	"github.com/dolittle/platform-api/pkg/azure"
 	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/platform/application/k8s"
@@ -74,8 +75,10 @@ func CreateApplicationAndEnvironmentAndWelcomeMicroservice(
 	// Create rbac
 	// Create environments
 	for _, environment := range application.Environments {
+		shareName := azure.CreateBackupFileShareName(application.Name, environment.Name)
+
 		mongoSettings := k8s.MongoSettings{
-			ShareName:       azureStorageAccountName,
+			ShareName:       shareName,
 			CronJobSchedule: fmt.Sprintf("%d * * * *", GetRandomMinutes()),
 			VolumeSize:      "8Gi",
 		}

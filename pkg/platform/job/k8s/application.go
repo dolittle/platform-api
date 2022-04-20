@@ -172,7 +172,7 @@ func buildApplicationInCluster(platformImage string, platformEnvironment string,
 	envVars = append(envVars, envVarGitNotInUse()...)
 
 	return corev1.Container{
-		Name:            "build-application-in-cluster",
+		Name:            "create-application",
 		ImagePullPolicy: "Always",
 		Image:           platformImage,
 		Env:             envVars,

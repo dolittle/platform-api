@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/Azure/azure-storage-file-go/azfile"
@@ -91,4 +92,40 @@ func LatestX(accountName string, accountKey string, shareName string) (ListRespo
 		Prefix:      serviceURL.String(),
 		Files:       latest,
 	}, nil
+}
+
+// EnsureFileShareExists creates a fileshare with the provided name with a default quota in the given storage account if
+// it does not already exist.
+func EnsureFileShareExists(accountName, accountKey, shareName string) error {
+	// Use your Storage account's name and key to create a credential object; this is used to access your account.
+	credential, err := azfile.NewSharedKeyCredential(accountName, accountKey)
+
+	if err != nil {
+		return err
+	}
+
+	pipeline := azfile.NewPipeline(credential, azfile.PipelineOptions{})
+	u, err := url.Parse(fmt.Sprintf("https://%s.file.core.windows.net/%s", accountName, shareName))
+	if err != nil {
+		return err
+	}
+
+	shareURL := azfile.NewShareURL(*u, pipeline)
+	ctx := context.Background()
+
+	// NOTE: Metadata key names are always converted to lowercase before being sent to the Storage Service.
+	// Therefore, you should always use lowercase letters; especially when querying a map for a metadata key.
+	if _, err := shareURL.Create(ctx, azfile.Metadata{}, 0); err != nil {
+		if storageErr, ok := err.(azfile.StorageError); ok && storageErr.ServiceCode() == "ShareAlreadyExists" {
+			return nil
+		}
+		return err
+	}
+
+	return nil
+}
+
+// CreateBackupFileShareName creates a standard name for an environments fileshare in Azure.
+func CreateBackupFileShareName(application, environment string) string {
+	return fmt.Sprintf("%s-%s-backup", strings.ToLower(application), strings.ToLower(environment))
 }
