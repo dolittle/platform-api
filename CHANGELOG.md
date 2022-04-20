@@ -1,3 +1,9 @@
+# [4.3.1] - 2022-4-20 [PR: #111](https://github.com/dolittle/platform-api/pull/111)
+## Summary
+
+Creating a new application and it's environments now also ensures that the fileshares exist in Azure. Also fixes that the fileshares are correctly named in the `<application>-<environment>-backup` format.
+
+
 # [4.3.0] - 2022-4-7 [PR: #110](https://github.com/dolittle/platform-api/pull/110)
 ## Summary
 
