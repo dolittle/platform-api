@@ -27,7 +27,8 @@ var createApplicationCMD = &cobra.Command{
 	Use:   "create-application",
 	Short: "Create Application in kubernetes",
 	Long: `
-In kubernetes, create application
+Creates an applications kubernetes parts and sets up it's Azure FileShare's.
+
 	--with-environments 
 		include environments
 	

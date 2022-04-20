@@ -40,7 +40,7 @@ var applicationCMD = &cobra.Command{
 		resetAll, _ := cmd.Flags().GetBool("all")
 
 		logContext := logger.WithFields(logrus.Fields{
-			"cmd": "build-application-info",
+			"cmd": "tools studio upsert application",
 		})
 
 		platformEnvironment := viper.GetString("tools.server.platformEnvironment")
