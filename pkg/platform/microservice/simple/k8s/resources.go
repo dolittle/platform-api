@@ -83,9 +83,12 @@ func NewResources(
 func NewDeployment(microservice dolittleK8s.Microservice, extra platform.HttpInputSimpleExtra) *appsv1.Deployment {
 	headImage := extra.Headimage
 	runtimeImage := extra.Runtimeimage
+	headCommand := extra.Headcommand
 
 	deployment := dolittleK8s.NewDeployment(microservice, headImage, runtimeImage)
 
+	deployment.Spec.Template.Spec.Containers[0].Command = headCommand.Commands
+	deployment.Spec.Template.Spec.Containers[0].Args = headCommand.Args
 	deployment.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort = extra.HeadPort
 	return deployment
 }

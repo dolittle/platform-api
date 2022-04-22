@@ -9,6 +9,7 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform/microservice/simple/k8s"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	v1 "k8s.io/api/core/v1"
 )
 
 var _ = Describe("Resources", func() {
@@ -135,7 +136,7 @@ var _ = Describe("Resources", func() {
 		})
 	})
 
-	Describe("Creating resources", func() {
+	Describe("Creating new resources", func() {
 		Context("for v8.0.0 Runtime", func() {
 			It("should set backwardsCompatibility to V7 in appsettings.json", func() {
 				input.Extra.Runtimeimage = "dolittle/runtime:8.0.0"
@@ -146,6 +147,46 @@ var _ = Describe("Resources", func() {
 				json.Unmarshal([]byte(appsettingsString), &appsettings)
 
 				Expect(appsettings.Dolittle.Runtime.EventStore.BackwardsCompatibility.Version).To(Equal(dolittleK8s.V7BackwardsCompatibility))
+			})
+		})
+
+		Context("with CLI arguments for the head container", func() {
+			When("the CLI arguments are empty", func() {
+				It("should default to empty arguments", func() {
+					resources := k8s.NewResources(isProduction, namespace, customer, application, customerTenants, input)
+
+					var headContainer v1.Container
+					for _, container := range resources.Deployment.Spec.Template.Spec.Containers {
+						if container.Name == "head" {
+							headContainer = container
+						}
+					}
+
+					Expect(headContainer.Command).To(BeNil())
+					Expect(headContainer.Args).To(BeEmpty())
+				})
+			})
+
+			When("the CLI arguments are set", func() {
+				It("should set them", func() {
+					headCommand := platform.HttpInputSimpleCommand{
+						Commands: []string{"/bin/sh", "-c"},
+						Args:     []string{"echo", "-n", "im a test string"},
+					}
+
+					input.Extra.Headcommand = headCommand
+					resources := k8s.NewResources(isProduction, namespace, customer, application, customerTenants, input)
+
+					var headContainer v1.Container
+					for _, container := range resources.Deployment.Spec.Template.Spec.Containers {
+						if container.Name == "head" {
+							headContainer = container
+						}
+					}
+
+					Expect(headContainer.Command).To(Equal(headCommand.Commands))
+					Expect(headContainer.Args).To(Equal(headCommand.Args))
+				})
 			})
 		})
 	})

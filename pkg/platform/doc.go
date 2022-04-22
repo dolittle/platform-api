@@ -155,6 +155,13 @@ type HttpInputSimpleExtra struct {
 	Runtimeimage string                 `json:"runtimeImage"`
 	Ingress      HttpInputSimpleIngress `json:"ingress"`
 	Ispublic     bool                   `json:"isPublic"`
+	Headcommand  HttpInputSimpleCommand `json:"headCommand"`
+}
+
+// @joel check and think about this https://stackoverflow.com/a/66078726/5806412
+type HttpInputSimpleCommand struct {
+	Commands []string `json:"command"`
+	Args     []string `json:"args"`
 }
 
 type HttpInputBusinessMomentAdaptorInfo struct {
