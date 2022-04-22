@@ -9,7 +9,6 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform/microservice/simple/k8s"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
 )
 
 var _ = Describe("Resources", func() {
@@ -151,18 +150,14 @@ var _ = Describe("Resources", func() {
 		})
 
 		Context("with CLI arguments for the head container", func() {
-			When("the CLI arguments are empty", func() {
+			When("the CLI arguments are not set", func() {
 				It("should default to empty arguments", func() {
 					resources := k8s.NewResources(isProduction, namespace, customer, application, customerTenants, input)
 
-					var headContainer v1.Container
-					for _, container := range resources.Deployment.Spec.Template.Spec.Containers {
-						if container.Name == "head" {
-							headContainer = container
-						}
-					}
+					headContainer := resources.Deployment.Spec.Template.Spec.Containers[0]
 
-					Expect(headContainer.Command).To(BeNil())
+					Expect(headContainer).ToNot(BeNil())
+					Expect(headContainer.Command).To(BeEmpty())
 					Expect(headContainer.Args).To(BeEmpty())
 				})
 			})
@@ -177,13 +172,9 @@ var _ = Describe("Resources", func() {
 					input.Extra.Headcommand = headCommand
 					resources := k8s.NewResources(isProduction, namespace, customer, application, customerTenants, input)
 
-					var headContainer v1.Container
-					for _, container := range resources.Deployment.Spec.Template.Spec.Containers {
-						if container.Name == "head" {
-							headContainer = container
-						}
-					}
+					headContainer := resources.Deployment.Spec.Template.Spec.Containers[0]
 
+					Expect(headContainer).ToNot(BeNil())
 					Expect(headContainer.Command).To(Equal(headCommand.Commands))
 					Expect(headContainer.Args).To(Equal(headCommand.Args))
 				})
