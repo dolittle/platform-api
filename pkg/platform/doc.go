@@ -158,9 +158,8 @@ type HttpInputSimpleExtra struct {
 	Headcommand  HttpInputSimpleCommand `json:"headCommand"`
 }
 
-// @joel check and think about this https://stackoverflow.com/a/66078726/5806412
 type HttpInputSimpleCommand struct {
-	Commands []string `json:"command"`
+	Commands []string `json:"commands"`
 	Args     []string `json:"args"`
 }
 

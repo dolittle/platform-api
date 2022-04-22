@@ -87,10 +87,12 @@ func NewDeployment(microservice dolittleK8s.Microservice, extra platform.HttpInp
 
 	deployment := dolittleK8s.NewDeployment(microservice, headImage, runtimeImage)
 
-	// the head container should always be the first container
-	deployment.Spec.Template.Spec.Containers[0].Command = headCommand.Commands
-	deployment.Spec.Template.Spec.Containers[0].Args = headCommand.Args
+	// the head container should always be the first container so we can trust in that for now
 	deployment.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort = extra.HeadPort
+	// the Command property is equal to Dockers ENTRYPOINT, check https://stackoverflow.com/a/66078726/5806412
+	deployment.Spec.Template.Spec.Containers[0].Command = headCommand.Commands
+	// the Args property is equal to Dockers CMD
+	deployment.Spec.Template.Spec.Containers[0].Args = headCommand.Args
 	return deployment
 }
 

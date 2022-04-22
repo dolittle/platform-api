@@ -18,7 +18,7 @@ curl -XPOST localhost:8081/microservice \
 -H 'x-shared-secret: FAKE' \
 -H 'Tenant-ID: 453e04a7-4f9d-42f2-b36c-d51fa2c83fa3' \
 -H 'User-ID: local-dev' \
--H "Content-Type: application/json" \
+-H 'Content-Type: application/json' \
 -d '
 {
   "dolittle": {
@@ -26,17 +26,21 @@ curl -XPOST localhost:8081/microservice \
     "customerId": "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3",
     "microserviceId": "c96ab893-7df5-4065-a105-930c2c264ac2"
   },
-  "name": "Order1",
+  "name": "Test",
   "kind": "simple",
   "environment": "Dev",
   "extra": {
     "headImage": "nginxdemos/hello:latest",
-    "runtimeImage": "dolittle/runtime:7.6.0",
+    "runtimeImage": "dolittle/runtime:8.0.0",
     "ingress": {
       "path": "/",
       "pathType": "Prefix"
     },
-    "isPublic": true
+    "isPublic": true,
+    "headCommand": {
+      "commands": [""],
+      "args": [""]
+    }
   }
 }'
 ```
