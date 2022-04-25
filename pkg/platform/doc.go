@@ -159,8 +159,8 @@ type HttpInputSimpleExtra struct {
 }
 
 type HttpInputSimpleCommand struct {
-	Commands []string `json:"commands"`
-	Args     []string `json:"args"`
+	Command []string `json:"command"`
+	Args    []string `json:"args"`
 }
 
 type HttpInputBusinessMomentAdaptorInfo struct {
