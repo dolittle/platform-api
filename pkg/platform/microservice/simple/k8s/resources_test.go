@@ -165,8 +165,8 @@ var _ = Describe("Resources", func() {
 			When("the CLI arguments are set", func() {
 				It("should set them", func() {
 					headCommand := platform.HttpInputSimpleCommand{
-						Commands: []string{"/bin/sh", "-c"},
-						Args:     []string{"echo", "-n", "im a test string"},
+						Command: []string{"/bin/sh", "-c"},
+						Args:    []string{"echo", "-n", "im a test string"},
 					}
 
 					input.Extra.Headcommand = headCommand
@@ -175,7 +175,7 @@ var _ = Describe("Resources", func() {
 					headContainer := resources.Deployment.Spec.Template.Spec.Containers[0]
 
 					Expect(headContainer).ToNot(BeNil())
-					Expect(headContainer.Command).To(Equal(headCommand.Commands))
+					Expect(headContainer.Command).To(Equal(headCommand.Command))
 					Expect(headContainer.Args).To(Equal(headCommand.Args))
 				})
 			})
