@@ -33,11 +33,6 @@ var removeCMD = &cobra.Command{
 		err := kratosClient.RemoveCustomerToUserByEmail(email, customerID)
 		if err != nil {
 			if err == user.ErrNotFound {
-				fmt.Println("Email could not be found")
-				return
-			}
-
-			if err == user.ErrNotFound {
 				fmt.Println("Customer and User are not connected")
 				return
 			}

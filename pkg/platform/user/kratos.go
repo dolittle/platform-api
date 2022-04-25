@@ -3,7 +3,6 @@ package user
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net/url"
 	"strings"
 
@@ -15,6 +14,7 @@ import (
 )
 
 type KratosClientV5 interface {
+	GetUserByEmail(email string) (KratosUser, error)
 	GetUsers() ([]KratosUser, error)
 	GetUser(id string) (KratosUser, error)
 	UpdateUser(user KratosUser) error
@@ -23,11 +23,6 @@ type KratosClientV5 interface {
 	AddCustomerToUserByEmail(email string, customerID string) error
 	RemoveCustomerToUserByEmail(email string, customerID string) error
 }
-
-var (
-	ErrCustomerUserConnectionAlreadyExists = errors.New("customer-user-connection-already-exists")
-	ErrNotFound                            = errors.New("not-found")
-)
 
 type kratosClientV5 struct {
 	client *kratosClient.OryKratos
@@ -50,12 +45,7 @@ func (c kratosClientV5) AddCustomerToUserByUserID(userID string, customerID stri
 }
 
 func (c kratosClientV5) RemoveCustomerToUserByEmail(email string, customerID string) error {
-	kratosUsers, err := c.GetUsers()
-	if err != nil {
-		return err
-	}
-
-	kratosUser, err := GetUserFromListByEmail(kratosUsers, email)
+	kratosUser, err := c.GetUserByEmail(email)
 	if err != nil {
 		return err
 	}
@@ -64,12 +54,7 @@ func (c kratosClientV5) RemoveCustomerToUserByEmail(email string, customerID str
 }
 
 func (c kratosClientV5) AddCustomerToUserByEmail(email string, customerID string) error {
-	kratosUsers, err := c.GetUsers()
-	if err != nil {
-		return err
-	}
-
-	kratosUser, err := GetUserFromListByEmail(kratosUsers, email)
+	kratosUser, err := c.GetUserByEmail(email)
 	if err != nil {
 		return err
 	}
@@ -182,6 +167,20 @@ func (c kratosClientV5) GetUsers() ([]KratosUser, error) {
 		kratosUsers = append(kratosUsers, kratosUser)
 	}
 	return kratosUsers, nil
+}
+
+func (c kratosClientV5) GetUserByEmail(email string) (KratosUser, error) {
+	kratosUsers, err := c.GetUsers()
+	if err != nil {
+		return KratosUser{}, err
+	}
+
+	kratosUser, err := GetUserFromListByEmail(kratosUsers, email)
+	if err != nil {
+		return KratosUser{}, err
+	}
+
+	return kratosUser, nil
 }
 
 func GetUserFromListByEmail(users []KratosUser, email string) (KratosUser, error) {

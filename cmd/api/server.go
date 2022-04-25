@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 
+	"github.com/Azure/go-autorest/autorest/azure/auth"
 	"github.com/dolittle/platform-api/pkg/git"
 	"github.com/dolittle/platform-api/pkg/k8s"
 	"github.com/dolittle/platform-api/pkg/middleware"
@@ -23,6 +25,7 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform/microservice/environmentVariables"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/purchaseorderapi"
 	"github.com/dolittle/platform-api/pkg/platform/studio"
+	"github.com/dolittle/platform-api/pkg/platform/user"
 
 	k8sSimple "github.com/dolittle/platform-api/pkg/platform/microservice/simple/k8s"
 	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
@@ -66,6 +69,9 @@ var serverCMD = &cobra.Command{
 		sharedSecret := viper.GetString("tools.server.secret")
 		subscriptionID := viper.GetString("tools.server.azure.subscriptionId")
 		isProduction := viper.GetBool("tools.server.isProduction")
+
+		userThirdPartyEnabled := viper.GetBool("tools.server.user.thirdPartyEnabled")
+		kratosURL := viper.GetString("tools.server.kratos.url")
 		// Hide secret
 		serverSettings := viper.Get("tools.server").(map[string]interface{})
 		serverSettings["secret"] = fmt.Sprintf("%s***", sharedSecret[:3])
@@ -86,6 +92,29 @@ var serverCMD = &cobra.Command{
 		jobResourceConfig := jobK8s.CreateResourceConfigFromViper(viper.GetViper())
 
 		microserviceSimpleRepo := k8sSimple.NewSimpleRepo(k8sClient, k8sRepo, k8sRepoV2, isProduction)
+
+		var userAccessRepo application.UserAccess
+		if userThirdPartyEnabled {
+			settings, err := auth.GetSettingsFromEnvironment()
+			if err != nil {
+				logContext.WithField("error", err).Fatal("Missing AZURE_XXX settings")
+			}
+
+			tenantID := settings.Values[auth.TenantID]
+			authorizer := user.NewBearerAuthorizerFromEnvironmentVariables(settings)
+
+			userClient := user.NewUserClient(tenantID, authorizer)
+			groupClient := user.NewGroupsClient(tenantID, authorizer)
+			activeDirectoryClient := user.NewUserActiveDirectory(groupClient, userClient)
+
+			kratosClient := user.NewKratosClientV5(&url.URL{
+				Scheme: "http",
+				Host:   kratosURL,
+			})
+			userAccessRepo = application.NewUserAccessRepo(kratosClient, activeDirectoryClient)
+		} else {
+			userAccessRepo = application.NewUserAccessRepoInMemory()
+		}
 
 		// TODO I wonder how this works when both are in the same cluster,
 		// today via the resources, it is not clear which is which "platform-environment".
@@ -119,6 +148,8 @@ var serverCMD = &cobra.Command{
 			k8sRepo,
 			jobResourceConfig,
 			microserviceSimpleRepo,
+			userAccessRepo,
+			k8sRepoV2,
 			logrus.WithField("context", "application-service"),
 		)
 
@@ -212,6 +243,11 @@ var serverCMD = &cobra.Command{
 			"/customer",
 			stdChainWithJSON.ThenFunc(customerService.Create),
 		).Methods(http.MethodPost, http.MethodOptions)
+
+		router.Handle(
+			"/customer/{customerID}",
+			stdChainWithJSON.ThenFunc(customerService.GetOne),
+		).Methods(http.MethodGet, http.MethodOptions)
 
 		router.Handle(
 			"/application/{applicationID}/microservices",
@@ -374,6 +410,21 @@ var serverCMD = &cobra.Command{
 			stdChainBase.ThenFunc(studioService.Save),
 		).Methods(http.MethodPost, http.MethodOptions)
 
+		router.Handle(
+			"/admin/customer/{customerID}/application/{applicationID}/access/users",
+			stdChainBase.ThenFunc(applicationService.UserList),
+		).Methods(http.MethodGet, http.MethodOptions)
+
+		router.Handle(
+			"/admin/customer/{customerID}/application/{applicationID}/access/user",
+			stdChainBase.ThenFunc(applicationService.UserAdd),
+		).Methods(http.MethodPost, http.MethodOptions)
+
+		router.Handle(
+			"/admin/customer/{customerID}/application/{applicationID}/access/user",
+			stdChainBase.ThenFunc(applicationService.UserRemove),
+		).Methods(http.MethodDelete, http.MethodOptions)
+
 		srv := &http.Server{
 			Handler:      router,
 			Addr:         listenOn,
@@ -393,12 +444,15 @@ func init() {
 	viper.SetDefault("tools.server.isProduction", false)
 	viper.SetDefault("tools.server.azure.subscriptionId", "")
 	viper.SetDefault("tools.server.kubernetes.externalClusterHost", defaultExternalClusterHost)
+	viper.SetDefault("tools.server.user.thirdPartyEnabled", false)
 
 	viper.BindEnv("tools.server.secret", "HEADER_SECRET")
 	viper.BindEnv("tools.server.listenOn", "LISTEN_ON")
 	viper.BindEnv("tools.server.isProduction", "IS_PRODUCTION")
 	viper.BindEnv("tools.server.azure.subscriptionId", "AZURE_SUBSCRIPTION_ID")
 	viper.BindEnv("tools.server.kubernetes.externalClusterHost", "AZURE_EXTERNAL_CLUSTER_HOST")
+	viper.BindEnv("tools.server.kratos.url", "KRATOS_URL")
+	viper.BindEnv("tools.server.user.thirdPartyEnabled", "USER_THIRD_PARTY_ENABLED")
 }
 
 // getExternalClusterHost Return externalHost if set, otherwise fall back to the internalHost
