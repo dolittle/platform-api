@@ -1,3 +1,12 @@
+# [4.4.0] - 2022-4-25 [PR: #106](https://github.com/dolittle/platform-api/pull/106)
+## Summary
+
+- List emails in an application in Azure
+- Add email to an application in Azure
+- Remove email from an application in Azure
+- New endpoint to get customer details for one customer
+
+
 # [4.3.1] - 2022-4-20 [PR: #111](https://github.com/dolittle/platform-api/pull/111)
 ## Summary
 
