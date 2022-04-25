@@ -88,7 +88,7 @@ func NewDeployment(microservice dolittleK8s.Microservice, extra platform.HttpInp
 	deployment := dolittleK8s.NewDeployment(microservice, headImage, runtimeImage)
 
 	// the head container should always be the first container so we can trust in that for now
-	headContainer := deployment.Spec.Template.Spec.Containers[0]
+	headContainer := &deployment.Spec.Template.Spec.Containers[0]
 
 	headContainer.Ports[0].ContainerPort = extra.HeadPort
 	headContainer.Command = headCommand.Command
