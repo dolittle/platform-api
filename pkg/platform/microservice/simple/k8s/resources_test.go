@@ -135,7 +135,7 @@ var _ = Describe("Resources", func() {
 		})
 	})
 
-	Describe("Creating resources", func() {
+	Describe("Creating new resources", func() {
 		Context("for v8.0.0 Runtime", func() {
 			It("should set backwardsCompatibility to V7 in appsettings.json", func() {
 				input.Extra.Runtimeimage = "dolittle/runtime:8.0.0"
@@ -146,6 +146,38 @@ var _ = Describe("Resources", func() {
 				json.Unmarshal([]byte(appsettingsString), &appsettings)
 
 				Expect(appsettings.Dolittle.Runtime.EventStore.BackwardsCompatibility.Version).To(Equal(dolittleK8s.V7BackwardsCompatibility))
+			})
+		})
+
+		Context("with CLI arguments for the head container", func() {
+			When("the CLI arguments are not set", func() {
+				It("should default to empty arguments", func() {
+					resources := k8s.NewResources(isProduction, namespace, customer, application, customerTenants, input)
+
+					headContainer := resources.Deployment.Spec.Template.Spec.Containers[0]
+
+					Expect(headContainer).ToNot(BeNil())
+					Expect(headContainer.Command).To(BeEmpty())
+					Expect(headContainer.Args).To(BeEmpty())
+				})
+			})
+
+			When("the CLI arguments are set", func() {
+				It("should set them", func() {
+					headCommand := platform.HttpInputSimpleCommand{
+						Command: []string{"/bin/sh", "-c"},
+						Args:    []string{"echo", "-n", "im a test string"},
+					}
+
+					input.Extra.Headcommand = headCommand
+					resources := k8s.NewResources(isProduction, namespace, customer, application, customerTenants, input)
+
+					headContainer := resources.Deployment.Spec.Template.Spec.Containers[0]
+
+					Expect(headContainer).ToNot(BeNil())
+					Expect(headContainer.Command).To(Equal(headCommand.Command))
+					Expect(headContainer.Args).To(Equal(headCommand.Args))
+				})
 			})
 		})
 	})

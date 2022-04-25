@@ -83,10 +83,16 @@ func NewResources(
 func NewDeployment(microservice dolittleK8s.Microservice, extra platform.HttpInputSimpleExtra) *appsv1.Deployment {
 	headImage := extra.Headimage
 	runtimeImage := extra.Runtimeimage
+	headCommand := extra.Headcommand
 
 	deployment := dolittleK8s.NewDeployment(microservice, headImage, runtimeImage)
 
-	deployment.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort = extra.HeadPort
+	// the head container should always be the first container so we can trust in that for now
+	headContainer := &deployment.Spec.Template.Spec.Containers[0]
+
+	headContainer.Ports[0].ContainerPort = extra.HeadPort
+	headContainer.Command = headCommand.Command
+	headContainer.Args = headCommand.Args
 	return deployment
 }
 
