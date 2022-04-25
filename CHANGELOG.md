@@ -1,3 +1,13 @@
+# [4.5.0] - 2022-4-25 [PR: #112](https://github.com/dolittle/platform-api/pull/112)
+## Summary
+
+Adds a new `HttpInputSimpleCommand` struct to the `Extra` field on the request for microservice creation. If the fields aren't specified the `command` and `args` fields will be emitted from the created deployment as the properties have the `omitempty` tag.
+
+## Reference
+- https://github.com/dolittle-platform/Operations/pull/209
+- https://app.asana.com/0/1202121266838773/1202159723413336
+
+
 # [4.4.0] - 2022-4-25 [PR: #106](https://github.com/dolittle/platform-api/pull/106)
 ## Summary
 
