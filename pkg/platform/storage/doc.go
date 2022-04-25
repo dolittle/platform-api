@@ -76,8 +76,14 @@ type JSONApplication struct {
 	CustomerID   string `json:"customerId"`
 	CustomerName string `json:"customerName"`
 
-	Environments []JSONEnvironment `json:"environments"`
-	Status       JSONBuildStatus   `json:"status"`
+	Environments []JSONEnvironment          `json:"environments"`
+	Status       JSONBuildStatus            `json:"status"`
+	Connections  JSONApplicationConnections `json:"connections"`
+}
+
+// TODO I wonder where best to store this
+type JSONApplicationConnections struct {
+	Kafka bool `json:"kafka"`
 }
 
 type JSONEnvironment struct {

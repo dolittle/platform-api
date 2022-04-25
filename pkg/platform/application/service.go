@@ -319,6 +319,7 @@ func (s *Service) GetByID(w http.ResponseWriter, r *http.Request) {
 			}
 		}).([]HttpResponseEnvironment),
 		Microservices: microservices,
+		Connections:   ApplicationConnections(application.Connections),
 	}
 	utils.RespondWithJSON(w, http.StatusOK, response)
 }

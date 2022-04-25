@@ -33,6 +33,10 @@ type HttpInputApplicationEnvironment struct {
 	CustomerTenant []HttpInputApplicationEnvironmentCustomerTenant `json:"customerTenants"`
 }
 
+type ApplicationConnections struct {
+	Kafka bool `json:"kafka"`
+}
+
 type HttpResponseApplication struct {
 	ID            string                          `json:"id"`
 	Name          string                          `json:"name"`
@@ -40,6 +44,7 @@ type HttpResponseApplication struct {
 	CustomerName  string                          `json:"customerName"`
 	Environments  []HttpResponseEnvironment       `json:"environments"`
 	Microservices []platform.HttpMicroserviceBase `json:"microservices,omitempty"`
+	Connections   ApplicationConnections          `json:"connections"`
 }
 
 type HttpResponseEnvironment struct {
