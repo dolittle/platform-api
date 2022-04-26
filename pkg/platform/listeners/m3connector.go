@@ -79,6 +79,8 @@ func (c *m3ConnectorController) saveEnvironment(resource *corev1.ConfigMap, envi
 }
 
 func (c *m3ConnectorController) upsert(resource *corev1.ConfigMap) {
+	// TODO this should be revisited when we look at rebuilding an empty cluster
+	// Having the source of truth, mixed with listening for changes will need more logic
 	environment, err := c.getEnvironment(resource)
 	if err != nil {
 		// This can be noisy due to the plaftform environment :(
