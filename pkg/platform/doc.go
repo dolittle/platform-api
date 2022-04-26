@@ -369,11 +369,22 @@ type StudioEnvironmentVariable struct {
 	Value    string `json:"value"`
 	IsSecret bool   `json:"isSecret"`
 }
+
+type StudioConfigFile struct {
+	Name     string `json:"name"`
+	Value    string `json:"value"`
+}
 type HttpResponseEnvironmentVariables struct {
 	ApplicationID  string                      `json:"applicationId"`
 	MicroserviceID string                      `json:"microserviceId"`
 	Environment    string                      `json:"environment"`
 	Data           []StudioEnvironmentVariable `json:"data"`
+}
+type HttpResponseConfigFiles struct {
+	ApplicationID  string                      `json:"applicationId"`
+	MicroserviceID string                      `json:"microserviceId"`
+	Environment    string                      `json:"environment"`
+	Data           []StudioConfigFile `json:"data"` //this will need to be treofitted
 }
 type MicroserviceMetadataShortInfo struct {
 	CustomerID       string `json:"customerId"`
