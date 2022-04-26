@@ -21,6 +21,7 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform/job"
 	jobK8s "github.com/dolittle/platform-api/pkg/platform/job/k8s"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
+	"github.com/dolittle/platform-api/pkg/platform/listeners"
 	"github.com/dolittle/platform-api/pkg/platform/microservice"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/environmentVariables"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/purchaseorderapi"
@@ -120,6 +121,8 @@ var serverCMD = &cobra.Command{
 		// today via the resources, it is not clear which is which "platform-environment".
 		go job.NewCustomerJobListener(k8sClient, gitRepo, logContext.WithField("context", "listener-job-customer"))
 		go job.NewApplicationJobListener(k8sClient, gitRepo, logContext.WithField("context", "listener-job-application"))
+
+		go listeners.NewM3ConnectorConfigmapListener(k8sClient, gitRepo, gitRepo, logContext.WithField("context", "listener-m3connector-kafka-files"))
 
 		microserviceService := microservice.NewService(
 			isProduction,

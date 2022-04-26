@@ -33,7 +33,7 @@ type HttpInputApplicationEnvironment struct {
 	CustomerTenant []HttpInputApplicationEnvironmentCustomerTenant `json:"customerTenants"`
 }
 
-type ApplicationConnections struct {
+type EnvironmentConnections struct {
 	Kafka       bool `json:"kafka"`
 	M3Connector bool `json:"m3Connector"`
 }
@@ -50,7 +50,7 @@ type HttpResponseApplication struct {
 type HttpResponseEnvironment struct {
 	AutomationEnabled bool                   `json:"automationEnabled"`
 	Name              string                 `json:"name"`
-	Connections       ApplicationConnections `json:"connections"`
+	Connections       EnvironmentConnections `json:"connections"`
 }
 
 type HttpResponseApplications struct {

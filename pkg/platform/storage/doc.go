@@ -81,15 +81,16 @@ type JSONApplication struct {
 }
 
 // TODO I wonder where best to store this
-type JSONApplicationConnections struct {
-	Kafka bool `json:"kafka"`
+type JSONEnvironmentConnections struct {
+	Kafka       bool `json:"kafka"`
+	M3Connector bool `json:"m3Connector"`
 }
 
 type JSONEnvironment struct {
 	Name                  string                        `json:"name"`
 	CustomerTenants       []platform.CustomerTenantInfo `json:"customerTenants"`
 	WelcomeMicroserviceID string                        `json:"welcomeMicroserviceID"`
-	Connections           JSONApplicationConnections    `json:"connections"`
+	Connections           JSONEnvironmentConnections    `json:"connections"`
 }
 
 type JSONCustomer struct {
