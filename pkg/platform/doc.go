@@ -165,7 +165,6 @@ type HttpInputSimpleCommand struct {
 }
 
 type HttpEnvironmentConnections struct {
-	Kafka       bool `json:"kafka"`
 	M3Connector bool `json:"m3Connector"`
 }
 

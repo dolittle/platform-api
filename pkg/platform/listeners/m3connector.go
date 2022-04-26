@@ -1,8 +1,5 @@
 package listeners
 
-// Inspired by https://github.com/feiskyer/kubernetes-handbook/blob/master/examples/client/informer/informer.go
-// Inspired by https://github.com/heptiolabs/eventrouter/blob/master/main.go
-
 import (
 	"errors"
 	"fmt"
@@ -39,6 +36,10 @@ func (c *m3ConnectorController) Run(stopCh chan struct{}) error {
 func (c *m3ConnectorController) getEnvironment(resource *corev1.ConfigMap) (storage.JSONEnvironment, error) {
 	customerID := resource.Annotations["dolittle.io/tenant-id"]
 	applicationID := resource.Annotations["dolittle.io/application-id"]
+
+	if customerID == "" || applicationID == "" {
+		return storage.JSONEnvironment{}, storage.ErrNotFound
+	}
 
 	application, err := c.repo.GetApplication(customerID, applicationID)
 	if err != nil {
@@ -94,7 +95,6 @@ func (c *m3ConnectorController) upsert(resource *corev1.ConfigMap) {
 		return
 	}
 
-	environment.Connections.Kafka = true
 	environment.Connections.M3Connector = true
 
 	err = c.saveEnvironment(resource, environment)
@@ -117,7 +117,6 @@ func (c *m3ConnectorController) update(old, new interface{}) {
 
 func (c *m3ConnectorController) delete(obj interface{}) {
 	resource := obj.(*corev1.ConfigMap)
-	c.logContext.Infof("DELETED: %s %s/%s", resource.APIVersion, resource.Namespace, resource.Name)
 
 	environment, err := c.getEnvironment(resource)
 	if err != nil {
@@ -128,7 +127,6 @@ func (c *m3ConnectorController) delete(obj interface{}) {
 		return
 	}
 
-	environment.Connections.Kafka = false
 	environment.Connections.M3Connector = false
 	err = c.saveEnvironment(resource, environment)
 	if err != nil {

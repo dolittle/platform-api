@@ -79,10 +79,7 @@ type JSONApplication struct {
 	Environments []JSONEnvironment `json:"environments"`
 	Status       JSONBuildStatus   `json:"status"`
 }
-
-// TODO I wonder where best to store this
 type JSONEnvironmentConnections struct {
-	Kafka       bool `json:"kafka"`
 	M3Connector bool `json:"m3Connector"`
 }
 
