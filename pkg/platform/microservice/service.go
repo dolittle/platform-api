@@ -146,7 +146,9 @@ func (s *service) Create(w http.ResponseWriter, request *http.Request) {
 	// TODO check path
 	switch microserviceBase.Kind {
 	case platform.MicroserviceKindSimple:
-		s.handleSimpleMicroservice(w, request, requestBytes, applicationInfo, customerTenants)
+		// TODO need to pass in storageEnvironment :(
+		environmentInfo, _ := storage.GetEnvironment(storedApplication.Environments, environment)
+		s.handleSimpleMicroservice(w, request, requestBytes, applicationInfo, environmentInfo, customerTenants)
 	// TODO let us get simple to work and we can come back to these others.
 	//case platform.MicroserviceKindBusinessMomentsAdaptor:
 	//	s.handleBusinessMomentsAdaptor(w, request, requestBytes, applicationInfo, customerTenants)

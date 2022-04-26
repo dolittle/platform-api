@@ -1,6 +1,9 @@
 package k8s
 
 import (
+	"fmt"
+	"strings"
+
 	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/platform/customertenant"
@@ -93,6 +96,51 @@ func NewDeployment(microservice dolittleK8s.Microservice, extra platform.HttpInp
 	headContainer.Ports[0].ContainerPort = extra.HeadPort
 	headContainer.Command = headCommand.Command
 	headContainer.Args = headCommand.Args
+
+	if extra.Connections.M3Connector {
+		// Add m3connector
+		deployment = AddM3ConnectorToDeployment(microservice.Environment, deployment)
+	}
+
+	return deployment
+}
+
+func AddM3ConnectorToDeployment(environment string, deployment *appsv1.Deployment) *appsv1.Deployment {
+	name := strings.ToLower(fmt.Sprintf("%s-kafka-files", environment))
+
+	volume := corev1.Volume{
+		Name: name,
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: name,
+				},
+			},
+		},
+	}
+
+	volumeMounts := []corev1.VolumeMount{
+		{
+			MountPath: "/app/connection/kafka/ca.pem",
+			SubPath:   "ca.pem",
+			Name:      name,
+		},
+		{
+			MountPath: "/app/connection/kafka/certificate.pem",
+			SubPath:   "certificate.pem",
+			Name:      name,
+		},
+		{
+			MountPath: "/app/connection/kafka/accessKey.pem",
+			SubPath:   "accessKey.pem",
+			Name:      name,
+		},
+	}
+
+	deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes, volume)
+
+	deployment.Spec.Template.Spec.Containers[0].VolumeMounts = append(deployment.Spec.Template.Spec.Containers[0].VolumeMounts, volumeMounts...)
+
 	return deployment
 }
 

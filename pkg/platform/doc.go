@@ -150,17 +150,23 @@ type HttpInputSimpleInfo struct {
 }
 
 type HttpInputSimpleExtra struct {
-	Headimage    string                 `json:"headImage"`
-	HeadPort     int32                  `json:"headPort"`
-	Runtimeimage string                 `json:"runtimeImage"`
-	Ingress      HttpInputSimpleIngress `json:"ingress"`
-	Ispublic     bool                   `json:"isPublic"`
-	Headcommand  HttpInputSimpleCommand `json:"headCommand"`
+	Headimage    string                     `json:"headImage"`
+	HeadPort     int32                      `json:"headPort"`
+	Runtimeimage string                     `json:"runtimeImage"`
+	Ingress      HttpInputSimpleIngress     `json:"ingress"`
+	Ispublic     bool                       `json:"isPublic"`
+	Headcommand  HttpInputSimpleCommand     `json:"headCommand"`
+	Connections  HttpEnvironmentConnections `json:"connections"`
 }
 
 type HttpInputSimpleCommand struct {
 	Command []string `json:"command"`
 	Args    []string `json:"args"`
+}
+
+type HttpEnvironmentConnections struct {
+	Kafka       bool `json:"kafka"`
+	M3Connector bool `json:"m3Connector"`
 }
 
 type HttpInputBusinessMomentAdaptorInfo struct {

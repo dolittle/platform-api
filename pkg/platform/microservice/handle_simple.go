@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/dolittle/platform-api/pkg/platform"
+	"github.com/dolittle/platform-api/pkg/platform/storage"
 	"github.com/dolittle/platform-api/pkg/utils"
 	"k8s.io/apimachinery/pkg/util/validation"
 )
@@ -14,6 +15,7 @@ func (s *service) handleSimpleMicroservice(
 	r *http.Request,
 	inputBytes []byte,
 	applicationInfo platform.Application,
+	environmentInfo storage.JSONEnvironment,
 	customerTenants []platform.CustomerTenantInfo,
 ) {
 	// Function assumes access check has taken place
@@ -40,6 +42,11 @@ func (s *service) handleSimpleMicroservice(
 	if validation.IsValidPortNum(int(ms.Extra.HeadPort)) != nil {
 		utils.RespondWithError(w, http.StatusBadRequest, "ms.Extra.HeadPort not a valid port number")
 		return
+	}
+
+	// Force to false
+	if !environmentInfo.Connections.M3Connector {
+		ms.Extra.Connections.M3Connector = false
 	}
 
 	err := s.simpleRepo.Create(msK8sInfo.Namespace, msK8sInfo.Customer, msK8sInfo.Application, customerTenants, ms)

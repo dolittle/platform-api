@@ -12,7 +12,6 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
 	coreinformers "k8s.io/client-go/informers/core/v1"
@@ -50,17 +49,14 @@ func (c *m3ConnectorController) getEnvironment(resource *corev1.ConfigMap) (stor
 		return storage.JSONEnvironment{}, storage.ErrNotFound
 	}
 
-	// Find environment
-	found := funk.Find(application.Environments, func(environment storage.JSONEnvironment) bool {
-		return environment.Name == resource.Labels["environment"]
-	})
+	environment, err := storage.GetEnvironment(application.Environments, resource.Labels["environment"])
 
-	if found == nil {
+	if err != nil {
 		c.logContext.WithField("environment", resource.Labels["environment"]).Error("environment not found")
 		return storage.JSONEnvironment{}, storage.ErrNotFound
 	}
 
-	return found.(storage.JSONEnvironment), nil
+	return environment, nil
 }
 
 func (c *m3ConnectorController) saveEnvironment(resource *corev1.ConfigMap, environment storage.JSONEnvironment) error {
