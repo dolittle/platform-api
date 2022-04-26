@@ -282,6 +282,11 @@ var serverCMD = &cobra.Command{
 		).Methods(http.MethodGet, http.MethodOptions)
 
 		router.Handle(
+			"/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/environment-variables",
+			stdChainWithJSON.ThenFunc(microserviceEnvironmentVariablesService.UpdateEnvironmentVariables),
+		).Methods(http.MethodPut, http.MethodOptions)
+
+		router.Handle(
 			"/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/config-files",
 			stdChainWithJSON.ThenFunc(microserviceConfigFilesService.UpdateConfigFiles),
 		).Methods(http.MethodPut, http.MethodOptions)
@@ -290,11 +295,6 @@ var serverCMD = &cobra.Command{
 			"/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/config-files",
 			stdChainWithJSON.ThenFunc(microserviceConfigFilesService.GetConfigFiles),
 		).Methods(http.MethodGet, http.MethodOptions)
-
-		router.Handle(
-			"/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/environment-variables",
-			stdChainWithJSON.ThenFunc(microserviceEnvironmentVariablesService.UpdateEnvironmentVariables),
-		).Methods(http.MethodPut, http.MethodOptions)
 
 		router.Handle(
 			"/live/application/{applicationID}/pod/{podName}/logs",
