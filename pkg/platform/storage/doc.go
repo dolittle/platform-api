@@ -76,9 +76,8 @@ type JSONApplication struct {
 	CustomerID   string `json:"customerId"`
 	CustomerName string `json:"customerName"`
 
-	Environments []JSONEnvironment          `json:"environments"`
-	Status       JSONBuildStatus            `json:"status"`
-	Connections  JSONApplicationConnections `json:"connections"`
+	Environments []JSONEnvironment `json:"environments"`
+	Status       JSONBuildStatus   `json:"status"`
 }
 
 // TODO I wonder where best to store this
@@ -90,6 +89,7 @@ type JSONEnvironment struct {
 	Name                  string                        `json:"name"`
 	CustomerTenants       []platform.CustomerTenantInfo `json:"customerTenants"`
 	WelcomeMicroserviceID string                        `json:"welcomeMicroserviceID"`
+	Connections           JSONApplicationConnections    `json:"connections"`
 }
 
 type JSONCustomer struct {

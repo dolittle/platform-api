@@ -34,7 +34,8 @@ type HttpInputApplicationEnvironment struct {
 }
 
 type ApplicationConnections struct {
-	Kafka bool `json:"kafka"`
+	Kafka       bool `json:"kafka"`
+	M3Connector bool `json:"m3Connector"`
 }
 
 type HttpResponseApplication struct {
@@ -44,12 +45,12 @@ type HttpResponseApplication struct {
 	CustomerName  string                          `json:"customerName"`
 	Environments  []HttpResponseEnvironment       `json:"environments"`
 	Microservices []platform.HttpMicroserviceBase `json:"microservices,omitempty"`
-	Connections   ApplicationConnections          `json:"connections"`
 }
 
 type HttpResponseEnvironment struct {
-	AutomationEnabled bool   `json:"automationEnabled"`
-	Name              string `json:"name"`
+	AutomationEnabled bool                   `json:"automationEnabled"`
+	Name              string                 `json:"name"`
+	Connections       ApplicationConnections `json:"connections"`
 }
 
 type HttpResponseApplications struct {
