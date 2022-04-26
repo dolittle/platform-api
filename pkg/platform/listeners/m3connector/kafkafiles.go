@@ -1,4 +1,4 @@
-package listeners
+package m3connector
 
 import (
 	"errors"
@@ -16,7 +16,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-type m3ConnectorController struct {
+type kafkaFilesController struct {
 	informerFactory   informers.SharedInformerFactory
 	configMapInformer coreinformers.ConfigMapInformer
 	logContext        logrus.FieldLogger
@@ -24,7 +24,7 @@ type m3ConnectorController struct {
 	repo              storage.RepoApplication
 }
 
-func (c *m3ConnectorController) Run(stopCh chan struct{}) error {
+func (c *kafkaFilesController) Run(stopCh chan struct{}) error {
 	c.informerFactory.Start(stopCh)
 	// wait for the initial synchronization of the local cache.
 	if !cache.WaitForCacheSync(stopCh, c.configMapInformer.Informer().HasSynced) {
@@ -33,7 +33,7 @@ func (c *m3ConnectorController) Run(stopCh chan struct{}) error {
 	return nil
 }
 
-func (c *m3ConnectorController) getEnvironment(resource *corev1.ConfigMap) (storage.JSONEnvironment, error) {
+func (c *kafkaFilesController) getEnvironment(resource *corev1.ConfigMap) (storage.JSONEnvironment, error) {
 	customerID := resource.Annotations["dolittle.io/tenant-id"]
 	applicationID := resource.Annotations["dolittle.io/application-id"]
 
@@ -43,24 +43,19 @@ func (c *m3ConnectorController) getEnvironment(resource *corev1.ConfigMap) (stor
 
 	application, err := c.repo.GetApplication(customerID, applicationID)
 	if err != nil {
-		// This can be noisy due to the plaftform environment :(
-		if !errors.Is(err, storage.ErrNotFound) {
-			c.logContext.WithField("error", err).Error("error loading GetApplication")
-		}
-		return storage.JSONEnvironment{}, storage.ErrNotFound
+		return storage.JSONEnvironment{}, err
 	}
 
 	environment, err := storage.GetEnvironment(application.Environments, resource.Labels["environment"])
 
 	if err != nil {
-		c.logContext.WithField("environment", resource.Labels["environment"]).Error("environment not found")
-		return storage.JSONEnvironment{}, storage.ErrNotFound
+		return storage.JSONEnvironment{}, err
 	}
 
 	return environment, nil
 }
 
-func (c *m3ConnectorController) saveEnvironment(resource *corev1.ConfigMap, environment storage.JSONEnvironment) error {
+func (c *kafkaFilesController) saveEnvironment(resource *corev1.ConfigMap, environment storage.JSONEnvironment) error {
 	customerID := resource.Annotations["dolittle.io/tenant-id"]
 	applicationID := resource.Annotations["dolittle.io/application-id"]
 
@@ -79,14 +74,14 @@ func (c *m3ConnectorController) saveEnvironment(resource *corev1.ConfigMap, envi
 	return c.repo.SaveApplication(application)
 }
 
-func (c *m3ConnectorController) upsert(resource *corev1.ConfigMap) {
+func (c *kafkaFilesController) upsert(resource *corev1.ConfigMap) {
 	// TODO this should be revisited when we look at rebuilding an empty cluster
 	// Having the source of truth, mixed with listening for changes will need more logic
 	environment, err := c.getEnvironment(resource)
 	if err != nil {
-		// This can be noisy due to the plaftform environment :(
+		// This can be noisy due to the platform environment :(
 		if !errors.Is(err, storage.ErrNotFound) {
-			c.logContext.WithField("error", err).Error("error loading GetApplication")
+			c.logContext.WithField("error", err).Error("error getting environment info")
 		}
 		return
 	}
@@ -105,24 +100,24 @@ func (c *m3ConnectorController) upsert(resource *corev1.ConfigMap) {
 	c.logContext.Info("application is m3connector aware")
 }
 
-func (c *m3ConnectorController) add(obj interface{}) {
+func (c *kafkaFilesController) add(obj interface{}) {
 	resource := obj.(*corev1.ConfigMap)
 	c.upsert(resource)
 }
 
-func (c *m3ConnectorController) update(old, new interface{}) {
+func (c *kafkaFilesController) update(old, new interface{}) {
 	resource := new.(*corev1.ConfigMap)
 	c.upsert(resource)
 }
 
-func (c *m3ConnectorController) delete(obj interface{}) {
+func (c *kafkaFilesController) delete(obj interface{}) {
 	resource := obj.(*corev1.ConfigMap)
 
 	environment, err := c.getEnvironment(resource)
 	if err != nil {
-		// This can be noisy due to the plaftform environment :(
+		// This can be noisy due to the platform environment :(
 		if !errors.Is(err, storage.ErrNotFound) {
-			c.logContext.WithField("error", err).Error("error loading GetApplication")
+			c.logContext.WithField("error", err).Error("error getting environment info")
 		}
 		return
 	}
@@ -137,15 +132,15 @@ func (c *m3ConnectorController) delete(obj interface{}) {
 
 }
 
-func NewM3ConnectorConfigmapListenerController(
+func NewKafkaFilesConfigmapListenerController(
 	informerFactory informers.SharedInformerFactory,
 	gitSync gitStorage.GitSync,
 	repo storage.RepoApplication,
 	logContext logrus.FieldLogger,
-) *m3ConnectorController {
+) *kafkaFilesController {
 	configMapInformer := informerFactory.Core().V1().ConfigMaps()
 
-	c := &m3ConnectorController{
+	c := &kafkaFilesController{
 		informerFactory:   informerFactory,
 		configMapInformer: configMapInformer,
 		logContext:        logContext,
@@ -178,7 +173,7 @@ func NewM3ConnectorConfigmapListenerController(
 	return c
 }
 
-func NewM3ConnectorConfigmapListener(
+func NewKafkaFilesConfigmapListener(
 	client kubernetes.Interface,
 	gitSync gitStorage.GitSync,
 	repo storage.RepoApplication,
@@ -186,7 +181,7 @@ func NewM3ConnectorConfigmapListener(
 ) {
 	// TODO do I need a name space?
 	factory := informers.NewSharedInformerFactoryWithOptions(client, time.Hour*24)
-	controller := NewM3ConnectorConfigmapListenerController(factory, gitSync, repo, logContext)
+	controller := NewKafkaFilesConfigmapListenerController(factory, gitSync, repo, logContext)
 	stop := make(chan struct{})
 	defer close(stop)
 	err := controller.Run(stop)
