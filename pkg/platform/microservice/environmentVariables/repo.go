@@ -76,24 +76,24 @@ func (r k8sRepo) UpdateEnvironmentVariables(applicationID string, environment st
 	uniqueNames := make([]string, 0)
 	for _, item := range data {
 		if item.Name == "" {
-			return err
+			return errors.New("Empty environment variable name in existing configmap")
 		}
 
 		if strings.TrimSpace(item.Name) != item.Name {
-			return err
+			return errors.New("No spaces allowed in environment variable name in existing configmap")
 		}
 
 		if item.Value == "" {
-			return err
+			return errors.New("No empty value allowed in environment variable value in existing configmap")
 		}
 
 		if strings.TrimSpace(item.Value) != item.Value {
-			return err
+			return errors.New("TrimSpace validation failed in environment variable value in existing configmap")
 		}
 
 		// Check for duplicate keys
 		if funk.ContainsString(uniqueNames, item.Name) {
-			return err
+			return errors.New("No duplicate keys allowed in environment variable in existing configmap")
 		}
 
 		uniqueNames = append(uniqueNames, item.Name)

@@ -89,7 +89,7 @@ func (r k8sRepo) UpdateConfigFiles(applicationID string, environment string, mic
 		}
 
 		if strings.TrimSpace(value) != value {
-			return errors.New("No spaces allowed in config file value in config file in existing configmap")
+			return errors.New("TrimSpace validation failed in config file value in config file in existing configmap")
 		}
 
 		// Check for duplicate keys
