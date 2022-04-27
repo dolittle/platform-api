@@ -293,7 +293,7 @@ var serverCMD = &cobra.Command{
 
 		router.Handle(
 			"/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/config-files",
-			stdChainWithJSON.ThenFunc(microserviceConfigFilesService.GetConfigFiles),
+			stdChainWithJSON.ThenFunc(microserviceConfigFilesService.GetConfigFile),
 		).Methods(http.MethodGet, http.MethodOptions)
 
 		router.Handle(
