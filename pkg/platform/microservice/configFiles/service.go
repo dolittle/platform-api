@@ -14,15 +14,15 @@ import (
 
 type service struct {
 	configFilesRepo ConfigFilesRepo
-	k8sDolittleRepo          platformK8s.K8sRepo
-	logContext               logrus.FieldLogger
+	k8sDolittleRepo platformK8s.K8sRepo
+	logContext      logrus.FieldLogger
 }
 
 func NewService(configFilesRepo ConfigFilesRepo, k8sDolittleRepo platformK8s.K8sRepo, logContext logrus.FieldLogger) service {
 	return service{
 		configFilesRepo: configFilesRepo,
-		k8sDolittleRepo:          k8sDolittleRepo,
-		logContext:               logContext,
+		k8sDolittleRepo: k8sDolittleRepo,
+		logContext:      logContext,
 	}
 }
 

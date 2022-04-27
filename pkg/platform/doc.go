@@ -384,7 +384,7 @@ type HttpResponseConfigFiles struct {
 	ApplicationID  string                      `json:"applicationId"`
 	MicroserviceID string                      `json:"microserviceId"`
 	Environment    string                      `json:"environment"`
-	Data           []StudioConfigFile `json:"data"` //this will need to be treofitted
+	Data           []StudioConfigFile          `json:"data"` //: this will need to be retrofitted
 }
 type MicroserviceMetadataShortInfo struct {
 	CustomerID       string `json:"customerId"`

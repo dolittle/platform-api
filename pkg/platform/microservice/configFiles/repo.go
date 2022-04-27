@@ -37,7 +37,7 @@ func (r k8sRepo) GetConfigFiles(applicationID string, environment string, micros
 		return data, errors.New("unable to find microservice")
 	}
 
-	configmapName := platformK8s.GetMicroserviceEnvironmentVariableConfigmapName(name)
+	configmapName := platformK8s.GetMicroserviceConfigFilesConfigmapName(name)
 
 	configMap, err := r.k8sDolittleRepo.GetConfigMap(applicationID, configmapName)
 	if err != nil {
@@ -93,7 +93,7 @@ func (r k8sRepo) UpdateConfigFiles(applicationID string, environment string, mic
 		return errors.New("unable to find microservice")
 	}
 
-	configmapName := platformK8s.GetMicroserviceEnvironmentVariableConfigmapName(name)
+	configmapName := platformK8s.GetMicroserviceConfigFilesConfigmapName(name)
 	configMap, err := r.k8sDolittleRepo.GetConfigMap(applicationID, configmapName)
 	if err != nil {
 		return errors.New("unable to load data from configmap")
