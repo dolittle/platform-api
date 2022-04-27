@@ -82,7 +82,7 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 		Data:           data,
 	}
 
-	s.logContext.Info("Update environment variables")
+	s.logContext.Info("Update config files")
 
 	var input platform.HttpResponseConfigFile
 	b, err := ioutil.ReadAll(r.Body)

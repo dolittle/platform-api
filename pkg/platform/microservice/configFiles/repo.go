@@ -56,8 +56,11 @@ func (r k8sRepo) GetConfigFile(applicationID string, environment string, microse
 }
 
 func (r k8sRepo) UpdateConfigFiles(applicationID string, environment string, microserviceID string, data platform.StudioConfigFile) error {
-	// err := errors.New("bad data")
+	err := errors.New("bad data")
+
+	// VICTOR TODO: Replace this validaton with correct validation
 	// uniqueNames := make([]string, 0)
+
 	// for _, item := range data {
 	// 	if item.Name == "" {
 	// 		return err
@@ -83,32 +86,29 @@ func (r k8sRepo) UpdateConfigFiles(applicationID string, environment string, mic
 	// 	uniqueNames = append(uniqueNames, item.Name)
 	// }
 
-	// // Get name of microservice
-	// name, err := r.k8sDolittleRepo.GetMicroserviceName(applicationID, environment, microserviceID)
-	// if err != nil {
-	// 	return errors.New("unable to find microservice")
-	// }
+	// Get name of microservice
+	name, err := r.k8sDolittleRepo.GetMicroserviceName(applicationID, environment, microserviceID)
+	if err != nil {
+		return errors.New("unable to find microservice")
+	}
 
-	// configmapName := platformK8s.GetMicroserviceConfigFilesConfigmapName(name)
-	// configMap, err := r.k8sDolittleRepo.GetConfigMap(applicationID, configmapName)
-	// if err != nil {
-	// 	return errors.New("unable to load data from configmap")
-	// }
+	configmapName := platformK8s.GetMicroserviceConfigFilesConfigmapName(name)
+	configMap, err := r.k8sDolittleRepo.GetConfigMap(applicationID, configmapName)
+	if err != nil {
+		return errors.New("unable to load data from configmap")
+	}
 
-	// // TODO would be nice to use a resource (application-namespace branch)
-	// //r.k8sDolittleRepo.WriteConfigMap
-	// // Update data
-	// configMap.Data = make(map[string]string)
+	// TODO would be nice to use a resource (application-namespace branch)
+	//r.k8sDolittleRepo.WriteConfigMap
+	// Update data
 
-	// for _, item := range data {
-	// 	configMap.Data[item.Name] = item.Value
-	// }
+	configMap.Data[data.Name] = data.Value
 
-	// // Write configmap and secret
-	// _, err = r.k8sDolittleRepo.WriteConfigMap(configMap)
-	// if err != nil {
-	// 	return errors.New("failed to update configmap")
-	// }
+	// Write configmap and secret
+	_, err = r.k8sDolittleRepo.WriteConfigMap(configMap)
+	if err != nil {
+		return errors.New("failed to update configmap")
+	}
 
 	return nil
 }
