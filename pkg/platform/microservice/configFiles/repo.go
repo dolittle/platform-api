@@ -3,9 +3,12 @@ package configFiles
 import (
 	"errors"
 
+	"strings"
+
 	"github.com/dolittle/platform-api/pkg/platform"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -56,35 +59,6 @@ func (r k8sRepo) GetConfigFile(applicationID string, environment string, microse
 }
 
 func (r k8sRepo) UpdateConfigFiles(applicationID string, environment string, microserviceID string, data platform.StudioConfigFile) error {
-	err := errors.New("bad data")
-
-	// VICTOR TODO: Replace this validaton with correct validation
-	// uniqueNames := make([]string, 0)
-
-	// for _, item := range data {
-	// 	if item.Name == "" {
-	// 		return err
-	// 	}
-
-	// 	if strings.TrimSpace(item.Name) != item.Name {
-	// 		return err
-	// 	}
-
-	// 	if item.Value == "" {
-	// 		return err
-	// 	}
-
-	// 	if strings.TrimSpace(item.Value) != item.Value {
-	// 		return err
-	// 	}
-
-	// 	// Check for duplicate keys
-	// 	if funk.ContainsString(uniqueNames, item.Name) {
-	// 		return err
-	// 	}
-
-	// 	uniqueNames = append(uniqueNames, item.Name)
-	// }
 
 	// Get name of microservice
 	name, err := r.k8sDolittleRepo.GetMicroserviceName(applicationID, environment, microserviceID)
@@ -98,11 +72,39 @@ func (r k8sRepo) UpdateConfigFiles(applicationID string, environment string, mic
 		return errors.New("unable to load data from configmap")
 	}
 
+	// VICTOR TODO: Replace this validaton with correct validation
+	uniqueNames := make([]string, 0)
+
+	for name, value := range configMap.Data {
+		if name == "" {
+			return errors.New("Empty config file name in existing configmap")
+		}
+
+		if strings.TrimSpace(name) != name {
+			return errors.New("No spaces allowed in config file name in existing configmap")
+		}
+
+		if value == "" {
+			return errors.New("No empty value allowed in config file in existing configmap")
+		}
+
+		if strings.TrimSpace(value) != value {
+			return errors.New("No spaces allowed in config file value in config file in existing configmap")
+		}
+
+		// Check for duplicate keys
+		if funk.ContainsString(uniqueNames, name) {
+			return errors.New("No duplicate keys allowed in config file in existing configmap")
+		}
+
+		uniqueNames = append(uniqueNames, name)
+	}
+
 	// TODO would be nice to use a resource (application-namespace branch)
 	//r.k8sDolittleRepo.WriteConfigMap
 	// Update data
 
-	configMap.Data[data.Name] = data.Value
+	configMap.Data[data.Name] = " | \n" + data.Value
 
 	// Write configmap and secret
 	_, err = r.k8sDolittleRepo.WriteConfigMap(configMap)
