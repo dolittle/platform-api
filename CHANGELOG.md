@@ -1,3 +1,11 @@
+# [4.6.0] - 2022-4-28 [PR: #113](https://github.com/dolittle/platform-api/pull/113)
+## Summary
+
+- Listen for changes on where we will write connection details for m3connector and update the application
+- Within application a new connection object exists in environment, this is used by the frontend today to provide a simple user experience
+- When creating a microservice we will now add the m3connector volumes to the deployment
+
+
 # [4.5.0] - 2022-4-25 [PR: #112](https://github.com/dolittle/platform-api/pull/112)
 ## Summary
 
