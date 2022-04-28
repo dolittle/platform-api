@@ -1,7 +1,7 @@
 package configFiles
 
 import (
-	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -68,9 +68,12 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get("User-ID")
 	customerID := r.Header.Get("Tenant-ID")
 
+	r.ParseForm()
+
 	var data platform.StudioConfigFile
 
 	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
+
 	if !allowed {
 		return
 	}
@@ -85,31 +88,36 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 	s.logContext.Info("Update config files")
 
 	var input platform.HttpResponseConfigFile
-	b, err := ioutil.ReadAll(r.Body)
+
+	body, err := ioutil.ReadAll(r.Body)
+
 	if err != nil {
+		fmt.Println(err)
 		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 	defer r.Body.Close()
 
-	err = json.Unmarshal(b, &input)
-	if err != nil {
-		utils.RespondWithError(w, http.StatusUnprocessableEntity, err.Error())
-		return
-	}
+	bodyAsString := string(body)
 
 	// We are onnly interested in the Data
 	err = s.configFilesRepo.UpdateConfigFiles(applicationID, environment, microserviceID, input.Data)
 	if err != nil {
+		fmt.Println(err)
+
 		utils.RespondWithError(w, http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 
 	data, err = s.configFilesRepo.GetConfigFile(applicationID, environment, microserviceID)
 	if err != nil {
+
+
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
 	response.Data = data
+	fmt.Println(bodyAsString)
 	utils.RespondWithJSON(w, http.StatusOK, response)
 }

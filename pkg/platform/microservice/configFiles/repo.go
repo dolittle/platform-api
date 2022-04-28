@@ -72,7 +72,6 @@ func (r k8sRepo) UpdateConfigFiles(applicationID string, environment string, mic
 		return errors.New("unable to load data from configmap")
 	}
 
-	// VICTOR TODO: Replace this validaton with correct validation
 	uniqueNames := make([]string, 0)
 
 	for name, value := range configMap.Data {
@@ -88,9 +87,10 @@ func (r k8sRepo) UpdateConfigFiles(applicationID string, environment string, mic
 			return errors.New("No empty value allowed in config file in existing configmap")
 		}
 
-		if strings.TrimSpace(value) != value {
-			return errors.New("TrimSpace validation failed in config file value in config file in existing configmap")
-		}
+		// FLAGGED FOR REMOVAL
+		// if strings.TrimSpace(value) != value {
+		// 	return errors.New("TrimSpace validation failed in config file value in existing configmap")
+		// }
 
 		// Check for duplicate keys
 		if funk.ContainsString(uniqueNames, name) {
@@ -104,7 +104,7 @@ func (r k8sRepo) UpdateConfigFiles(applicationID string, environment string, mic
 	//r.k8sDolittleRepo.WriteConfigMap
 	// Update data
 
-	configMap.Data[data.Name] = " | \n" + data.Value
+	configMap.Data[data.Name] = " | \n" + string(data.Value)
 
 	// Write configmap and secret
 	_, err = r.k8sDolittleRepo.WriteConfigMap(configMap)
