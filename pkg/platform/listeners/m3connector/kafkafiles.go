@@ -95,6 +95,7 @@ func (c *kafkaFilesController) upsert(resource *corev1.ConfigMap) {
 	err = c.saveEnvironment(resource, environment)
 	if err != nil {
 		c.logContext.WithField("error", err).Error("failed to save environment")
+		return
 	}
 
 	c.logContext.Info("application is m3connector aware")
@@ -126,10 +127,10 @@ func (c *kafkaFilesController) delete(obj interface{}) {
 	err = c.saveEnvironment(resource, environment)
 	if err != nil {
 		c.logContext.WithField("error", err).Error("failed to save environment")
+		return
 	}
 
 	c.logContext.Info("application updated, m3connector no longer enabled for this environment")
-
 }
 
 func NewKafkaFilesConfigmapListenerController(
