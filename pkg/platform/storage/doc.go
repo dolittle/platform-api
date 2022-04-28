@@ -79,11 +79,15 @@ type JSONApplication struct {
 	Environments []JSONEnvironment `json:"environments"`
 	Status       JSONBuildStatus   `json:"status"`
 }
+type JSONEnvironmentConnections struct {
+	M3Connector bool `json:"m3Connector"`
+}
 
 type JSONEnvironment struct {
 	Name                  string                        `json:"name"`
 	CustomerTenants       []platform.CustomerTenantInfo `json:"customerTenants"`
 	WelcomeMicroserviceID string                        `json:"welcomeMicroserviceID"`
+	Connections           JSONEnvironmentConnections    `json:"connections"`
 }
 
 type JSONCustomer struct {

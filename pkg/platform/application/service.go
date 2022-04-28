@@ -316,6 +316,7 @@ func (s *Service) GetByID(w http.ResponseWriter, r *http.Request) {
 			return HttpResponseEnvironment{
 				AutomationEnabled: s.gitRepo.IsAutomationEnabledWithStudioConfig(studioInfo.StudioConfig, applicationID, environment.Name),
 				Name:              environment.Name,
+				Connections:       platform.HttpEnvironmentConnections(environment.Connections),
 			}
 		}).([]HttpResponseEnvironment),
 		Microservices: microservices,

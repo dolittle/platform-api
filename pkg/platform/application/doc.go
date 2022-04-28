@@ -43,8 +43,9 @@ type HttpResponseApplication struct {
 }
 
 type HttpResponseEnvironment struct {
-	AutomationEnabled bool   `json:"automationEnabled"`
-	Name              string `json:"name"`
+	AutomationEnabled bool                                `json:"automationEnabled"`
+	Name              string                              `json:"name"`
+	Connections       platform.HttpEnvironmentConnections `json:"connections"`
 }
 
 type HttpResponseApplications struct {

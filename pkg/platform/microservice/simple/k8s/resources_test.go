@@ -3,12 +3,15 @@ package k8s_test
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/simple/k8s"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/thoas/go-funk"
+	corev1 "k8s.io/api/core/v1"
 )
 
 var _ = Describe("Resources", func() {
@@ -215,5 +218,34 @@ var _ = Describe("Resources", func() {
 				Expect(resources.Deployment.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort).To(Equal(test.expected))
 			}
 		})
+	})
+
+	Context("Connecting a microservice to known connections", func() {
+		It("Create a microservice with m3connector connection enabled", func() {
+			input.Extra.Connections.M3Connector = true
+			resources := k8s.NewResources(true, "test", customer, application, customerTenants, input)
+			volumeMounts := funk.Filter(resources.Deployment.Spec.Template.Spec.Containers[0].VolumeMounts, func(volumeMount corev1.VolumeMount) bool {
+				return strings.HasSuffix(volumeMount.Name, "-kafka-files")
+			}).([]corev1.VolumeMount)
+
+			Expect(len(volumeMounts)).To(Equal(3), "Missing volume mount for m3 connector")
+			Expect(volumeMounts[0].MountPath).To(Equal("/app/connection/kafka/ca.pem"))
+			Expect(volumeMounts[0].SubPath).To(Equal("ca.pem"))
+
+			Expect(volumeMounts[1].MountPath).To(Equal("/app/connection/kafka/certificate.pem"))
+			Expect(volumeMounts[1].SubPath).To(Equal("certificate.pem"))
+
+			Expect(volumeMounts[2].MountPath).To(Equal("/app/connection/kafka/accessKey.pem"))
+			Expect(volumeMounts[2].SubPath).To(Equal("accessKey.pem"))
+
+			volumes := funk.Filter(resources.Deployment.Spec.Template.Spec.Volumes, func(volume corev1.Volume) bool {
+				return volume.Name == "test-kafka-files"
+			}).([]corev1.Volume)
+
+			Expect(len(volumes)).To(Equal(1), "1 volume mount required")
+			Expect(volumes[0].Name).To(Equal("test-kafka-files"))
+			Expect(volumes[0].VolumeSource.ConfigMap.LocalObjectReference.Name).To(Equal("test-kafka-files"))
+		})
+
 	})
 })
