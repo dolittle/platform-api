@@ -122,7 +122,7 @@ var serverCMD = &cobra.Command{
 		go job.NewCustomerJobListener(k8sClient, gitRepo, logContext.WithField("context", "listener-job-customer"))
 		go job.NewApplicationJobListener(k8sClient, gitRepo, logContext.WithField("context", "listener-job-application"))
 
-		go m3ConnectorListeners.NewKafkaFilesConfigmapListener(k8sClient, gitRepo, gitRepo, logContext.WithField("context", "listener-m3connector-kafka-files"))
+		go m3ConnectorListeners.NewKafkaFilesConfigmapListener(k8sClient, gitRepo, logContext.WithField("context", "listener-m3connector-kafka-files"))
 
 		microserviceService := microservice.NewService(
 			isProduction,

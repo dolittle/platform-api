@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/dolittle/platform-api/pkg/platform/storage"
-	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
@@ -20,7 +19,6 @@ type kafkaFilesController struct {
 	informerFactory   informers.SharedInformerFactory
 	configMapInformer coreinformers.ConfigMapInformer
 	logContext        logrus.FieldLogger
-	gitSync           gitStorage.GitSync
 	repo              storage.RepoApplication
 }
 
@@ -31,6 +29,37 @@ func (c *kafkaFilesController) Run(stopCh chan struct{}) error {
 		return fmt.Errorf("failed to sync")
 	}
 	return nil
+}
+
+func (c *kafkaFilesController) hasCorrectAnnotationsOrLabelsMissing(resource *corev1.ConfigMap) bool {
+	logContext := c.logContext.WithField("namespace", resource.Namespace)
+
+	if _, ok := resource.Annotations["dolittle.io/tenant-id"]; !ok {
+		logContext.WithFields(logrus.Fields{
+			"missing": "annotations",
+			"key":     "dolittle.io/tenant-id",
+		}).Warn("missing annotation")
+		return false
+	}
+
+	if _, ok := resource.Annotations["dolittle.io/application-id"]; !ok {
+		logContext.WithFields(logrus.Fields{
+			"missing": "annotations",
+			"key":     "dolittle.io/application-id",
+		}).Warn("missing annotation")
+		return false
+	}
+
+	if _, ok := resource.Labels["environment"]; !ok {
+		logContext.Warn("missing label environment")
+		logContext.WithFields(logrus.Fields{
+			"missing": "label",
+			"key":     "environment",
+		}).Warn("missing label")
+		return false
+	}
+
+	return true
 }
 
 func (c *kafkaFilesController) getEnvironment(resource *corev1.ConfigMap) (storage.JSONEnvironment, error) {
@@ -75,6 +104,10 @@ func (c *kafkaFilesController) saveEnvironment(resource *corev1.ConfigMap, envir
 }
 
 func (c *kafkaFilesController) upsert(resource *corev1.ConfigMap) {
+	if !c.hasCorrectAnnotationsOrLabelsMissing(resource) {
+		return
+	}
+
 	// TODO this should be revisited when we look at rebuilding an empty cluster
 	// Having the source of truth, mixed with listening for changes will need more logic
 	environment, err := c.getEnvironment(resource)
@@ -137,7 +170,6 @@ func (c *kafkaFilesController) delete(obj interface{}) {
 
 func NewKafkaFilesConfigmapListenerController(
 	informerFactory informers.SharedInformerFactory,
-	gitSync gitStorage.GitSync,
 	repo storage.RepoApplication,
 	logContext logrus.FieldLogger,
 ) *kafkaFilesController {
@@ -147,7 +179,6 @@ func NewKafkaFilesConfigmapListenerController(
 		informerFactory:   informerFactory,
 		configMapInformer: configMapInformer,
 		logContext:        logContext,
-		gitSync:           gitSync,
 		repo:              repo,
 	}
 
@@ -155,11 +186,12 @@ func NewKafkaFilesConfigmapListenerController(
 	handler := cache.FilteringResourceEventHandler{
 		FilterFunc: func(obj interface{}) bool {
 			resource := obj.(*corev1.ConfigMap)
-
+			// Only focus on application namespaces
 			if !strings.HasPrefix(resource.Namespace, "application-") {
 				return false
 			}
 
+			// Only focus on the file linked to m3connector
 			if !strings.HasSuffix(resource.Name, "-kafka-files") {
 				return false
 			}
@@ -178,13 +210,12 @@ func NewKafkaFilesConfigmapListenerController(
 
 func NewKafkaFilesConfigmapListener(
 	client kubernetes.Interface,
-	gitSync gitStorage.GitSync,
 	repo storage.RepoApplication,
 	logContext logrus.FieldLogger,
 ) {
 	// TODO do I need a name space?
 	factory := informers.NewSharedInformerFactoryWithOptions(client, time.Hour*24)
-	controller := NewKafkaFilesConfigmapListenerController(factory, gitSync, repo, logContext)
+	controller := NewKafkaFilesConfigmapListenerController(factory, repo, logContext)
 	stop := make(chan struct{})
 	defer close(stop)
 	err := controller.Run(stop)
