@@ -44,9 +44,9 @@ func (s *service) handleSimpleMicroservice(
 		return
 	}
 
-	// Force to false
 	if !environmentInfo.Connections.M3Connector {
-		ms.Extra.Connections.M3Connector = false
+		utils.RespondWithError(w, http.StatusBadRequest, "m3connector connection is not enabled")
+		return
 	}
 
 	err := s.simpleRepo.Create(msK8sInfo.Namespace, msK8sInfo.Customer, msK8sInfo.Application, customerTenants, ms)
