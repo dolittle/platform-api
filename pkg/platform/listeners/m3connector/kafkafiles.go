@@ -79,7 +79,8 @@ func (c *kafkaFilesController) upsert(resource *corev1.ConfigMap) {
 	// Having the source of truth, mixed with listening for changes will need more logic
 	environment, err := c.getEnvironment(resource)
 	if err != nil {
-		// This can be noisy due to the platform environment :(
+		// This can be noisy due to the platform environment :(, if we were to move
+		// to dev cluster for dev, this becomes less noisy :)
 		if !errors.Is(err, storage.ErrNotFound) {
 			c.logContext.WithField("error", err).Error("error getting environment info")
 		}
@@ -116,7 +117,8 @@ func (c *kafkaFilesController) delete(obj interface{}) {
 
 	environment, err := c.getEnvironment(resource)
 	if err != nil {
-		// This can be noisy due to the platform environment :(
+		// This can be noisy due to the platform environment :(, if we were to move
+		// to dev cluster for dev, this becomes less noisy :)
 		if !errors.Is(err, storage.ErrNotFound) {
 			c.logContext.WithField("error", err).Error("error getting environment info")
 		}
