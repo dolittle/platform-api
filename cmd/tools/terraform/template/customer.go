@@ -104,5 +104,4 @@ func init() {
 	customerCMD.Flags().String("name", "", "Name of customer (readable)")
 	customerCMD.Flags().String("id", "", "Specific customer id to use")
 	customerCMD.Flags().String("source", "./modules/dolittle-customer-with-resources", "Override with specific source of the module")
-	customerCMD.Flags().Bool("dry-run", false, "Will not write to disk")
 }

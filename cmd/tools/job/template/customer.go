@@ -20,8 +20,7 @@ var customerCMD = &cobra.Command{
 	Long: `
 	Outputs a k8s job to create a customer
 
-
-	go run main.go tools jobs create-customer \
+	go run main.go tools job template customer \
 	--customer-name="Test1"
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
