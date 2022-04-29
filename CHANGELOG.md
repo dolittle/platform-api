@@ -1,3 +1,10 @@
+# [4.6.1] - 2022-4-29 [PR: #114](https://github.com/dolittle/platform-api/pull/114)
+## Summary
+
+- Remove unused flag
+- Fix command description
+
+
 # [4.6.0] - 2022-4-28 [PR: #113](https://github.com/dolittle/platform-api/pull/113)
 ## Summary
 
