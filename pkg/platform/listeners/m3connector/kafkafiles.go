@@ -51,7 +51,6 @@ func (c *kafkaFilesController) hasCorrectAnnotationsOrLabelsMissing(resource *co
 	}
 
 	if _, ok := resource.Labels["environment"]; !ok {
-		logContext.Warn("missing label environment")
 		logContext.WithFields(logrus.Fields{
 			"missing": "label",
 			"key":     "environment",
