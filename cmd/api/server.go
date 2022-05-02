@@ -426,7 +426,7 @@ var serverCMD = &cobra.Command{
 		).Methods(http.MethodGet, http.MethodOptions)
 
 		router.Handle(
-			"/containerregistry/image/{imageName}/tags",
+			"/containerregistry/tags/{imageName:.*}",
 			stdChainBase.ThenFunc(containerRegistryService.GetTags),
 		).Methods(http.MethodGet, http.MethodOptions)
 
