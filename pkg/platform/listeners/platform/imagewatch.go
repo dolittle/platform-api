@@ -104,6 +104,7 @@ func (c *imageWatchController) upsert(resource *appsv1.Deployment) {
 		// to dev cluster for dev, this becomes less noisy :)
 		if !errors.Is(err, storage.ErrNotFound) {
 			// TODO I wonder if this should be ErrNotFound in GetMicroservice
+			// TODO this doesn't work well as we don't have current microservices in the storage
 			if !strings.Contains(err.Error(), "no such file or directory") {
 				logContext.WithField("error", err).Error("error getting microservice info")
 			}
