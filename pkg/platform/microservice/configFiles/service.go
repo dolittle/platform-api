@@ -75,8 +75,6 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 
 	file, handler, err := r.FormFile("file")
 
-	fmt.Println(handler.Filename)
-	fmt.Println(file)
 
 	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
 
@@ -107,8 +105,6 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 
 	input.BinaryData = body
 	input.Name = handler.Filename
-
-	fmt.Println("bodyAsString", bodyAsString)
 
 	// We are onnly interested in the Data
 	err = s.configFilesRepo.UpdateConfigFiles(applicationID, environment, microserviceID, input)
