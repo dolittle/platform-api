@@ -14,6 +14,7 @@ import (
 
 type ConfigFilesRepo interface {
 	GetConfigFile(applicationID string, environment string, microserviceID string) (platform.StudioConfigFile, error)
+	GetConfigFilesNamesList(applicationID string, environment string, microserviceID string) ([]string, error)
 	UpdateConfigFiles(applicationID string, environment string, microserviceID string, data platform.StudioConfigFile) error
 }
 
@@ -53,6 +54,32 @@ func (r k8sRepo) GetConfigFile(applicationID string, environment string, microse
 	for name, value := range configMap.BinaryData {
 		data.Name = name
 		data.BinaryData = value
+	}
+
+	return data, nil
+}
+
+func (r k8sRepo) GetConfigFilesNamesList(applicationID string, environment string, microserviceID string) ([]string, error) {
+	data := []string{}
+
+	name, err := r.k8sDolittleRepo.GetMicroserviceName(applicationID, environment, microserviceID)
+	if err != nil {
+		return data, errors.New("unable to find microservice")
+	}
+
+	configmapName := platformK8s.GetMicroserviceConfigFilesConfigmapName(name)
+
+	configMap, err := r.k8sDolittleRepo.GetConfigMap(applicationID, configmapName)
+	if err != nil {
+		return data, errors.New("unable to load data from configmap")
+	}
+
+	if err != nil {
+		return data, errors.New("unable to load data from configmap")
+	}
+
+	for name := range configMap.BinaryData {
+		data = append(data, name)
 	}
 
 	return data, nil

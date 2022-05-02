@@ -380,11 +380,11 @@ type HttpResponseEnvironmentVariables struct {
 	Environment    string                      `json:"environment"`
 	Data           []StudioEnvironmentVariable `json:"data"`
 }
-type HttpResponseConfigFile struct {
+type HttpResponseConfigFilesNamesList struct {
 	ApplicationID  string                      `json:"applicationId"`
 	MicroserviceID string                      `json:"microserviceId"`
 	Environment    string                      `json:"environment"`
-	Data           StudioConfigFile            `json:"data"` //: this will need to be retrofitted
+	Data           []string                    `json:"data"` //: this will need to be retrofitted
 }
 type MicroserviceMetadataShortInfo struct {
 	CustomerID       string `json:"customerId"`

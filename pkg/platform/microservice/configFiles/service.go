@@ -26,7 +26,7 @@ func NewService(configFilesRepo ConfigFilesRepo, k8sDolittleRepo platformK8s.K8s
 	}
 }
 
-func (s *service) GetConfigFile(w http.ResponseWriter, r *http.Request) {
+func (s *service) GetConfigFilesNamesList(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
 	microserviceID := vars["microserviceID"]
@@ -35,25 +35,28 @@ func (s *service) GetConfigFile(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get("User-ID")
 	customerID := r.Header.Get("Tenant-ID")
 
-	var data platform.StudioConfigFile
-
 	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
 	if !allowed {
 		return
 	}
 
-	response := platform.HttpResponseConfigFile{
+	response := platform.HttpResponseConfigFilesNamesList{
 		ApplicationID:  applicationID,
 		Environment:    environment,
 		MicroserviceID: microserviceID,
-		Data:           data,
+		Data:           []string{},
 	}
 
-	data, err := s.configFilesRepo.GetConfigFile(applicationID, environment, microserviceID)
+	data, err := s.configFilesRepo.GetConfigFilesNamesList(applicationID, environment, microserviceID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	for _, name := range data {
+		response.Data = append(response.Data, name)
+	}
+
 	response.Data = data
 	utils.RespondWithJSON(w, http.StatusOK, response)
 }
@@ -75,19 +78,16 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(handler.Filename)
 	fmt.Println(file)
 
-	var data platform.StudioConfigFile
-
 	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
 
 	if !allowed {
 		return
 	}
 
-	response := platform.HttpResponseConfigFile{
+	response := platform.HttpResponseConfigFilesNamesList{
 		ApplicationID:  applicationID,
 		Environment:    environment,
 		MicroserviceID: microserviceID,
-		Data:           data,
 	}
 
 	s.logContext.Info("Update config files")
@@ -110,7 +110,6 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("bodyAsString", bodyAsString)
 
-
 	// We are onnly interested in the Data
 	err = s.configFilesRepo.UpdateConfigFiles(applicationID, environment, microserviceID, input)
 	if err != nil {
@@ -119,13 +118,6 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err = s.configFilesRepo.GetConfigFile(applicationID, environment, microserviceID)
-	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	response.Data = data
 	fmt.Println(bodyAsString)
 	utils.RespondWithJSON(w, http.StatusOK, response)
 }
