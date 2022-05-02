@@ -20,8 +20,8 @@ import (
 	jobK8s "github.com/dolittle/platform-api/pkg/platform/job/k8s"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/microservice"
-	"github.com/dolittle/platform-api/pkg/platform/microservice/environmentVariables"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/configFiles"
+	"github.com/dolittle/platform-api/pkg/platform/microservice/environmentVariables"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/purchaseorderapi"
 	"github.com/dolittle/platform-api/pkg/platform/studio"
 
@@ -290,6 +290,11 @@ var serverCMD = &cobra.Command{
 			"/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/config-files",
 			stdChainBase.ThenFunc(microserviceConfigFilesService.UpdateConfigFiles),
 		).Methods(http.MethodPut, http.MethodOptions)
+
+		router.Handle(
+			"/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/config-files",
+			stdChainBase.ThenFunc(microserviceConfigFilesService.DeleteConfigFile),
+		).Methods(http.MethodDelete, http.MethodOptions)
 
 		router.Handle(
 			"/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/config-files/list",

@@ -91,6 +91,7 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// move this down
 	response := platform.HttpResponseConfigFilesNamesList{
 		ApplicationID:  applicationID,
 		Environment:    environment,
@@ -117,6 +118,61 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 	err = s.configFilesRepo.UpdateConfigFiles(applicationID, environment, microserviceID, input)
 	if err != nil {
 		fmt.Println("UpdateConfigFiles ERROR: " + err.Error())
+		utils.RespondWithError(w, http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+
+	utils.RespondWithJSON(w, http.StatusOK, response)
+}
+
+func (s *service) DeleteConfigFile(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	applicationID := vars["applicationID"]
+	microserviceID := vars["microserviceID"]
+	environment := vars["environment"]
+	fileName := vars["config-file"]
+
+	userID := r.Header.Get("User-ID")
+	customerID := r.Header.Get("Tenant-ID")
+
+	r.ParseForm()
+
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
+
+	if !allowed {
+		return
+	}
+
+	// move this down
+	response := platform.HttpResponseConfigFilesNamesList{
+		ApplicationID:  applicationID,
+		Environment:    environment,
+		MicroserviceID: microserviceID,
+	}
+
+	s.logContext.Info("Update config files")
+
+	var input platform.StudioConfigFile
+
+	defer r.Body.Close()
+
+	// Get name of microservice
+	name, err := s.k8sDolittleRepo.GetMicroserviceName(applicationID, environment, microserviceID)
+	if err != nil {
+		utils.RespondWithJSON(w, http.StatusBadRequest, "DeleteConfigFile ERROR: unable to find microservice")
+		return
+	}
+
+	configmapName := platformK8s.GetMicroserviceConfigFilesConfigmapName(name)
+	configMap, err := s.k8sDolittleRepo.GetConfigMap(applicationID, configmapName)
+
+	configMap.BinaryData[fileName] = []byte{}
+
+	// We are onnly interested in the Data
+	err = s.configFilesRepo.UpdateConfigFiles(applicationID, environment, microserviceID, input)
+	if err != nil {
+		fmt.Println("DeleteConfigFile ERROR: " + err.Error())
 		utils.RespondWithError(w, http.StatusUnprocessableEntity, err.Error())
 		return
 	}
