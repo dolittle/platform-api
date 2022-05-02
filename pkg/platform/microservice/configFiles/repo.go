@@ -142,6 +142,7 @@ func (r k8sRepo) UpdateConfigFiles(applicationID string, environment string, mic
 	// Write configmap and secret
 	_, err = r.k8sDolittleRepo.WriteConfigMap(configMap)
 	if err != nil {
+		fmt.Println(err.Error())
 		return errors.New("failed to update configmap")
 	}
 
