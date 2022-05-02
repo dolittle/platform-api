@@ -15,7 +15,7 @@ import (
 type ConfigFilesRepo interface {
 	GetConfigFile(applicationID string, environment string, microserviceID string) (platform.StudioConfigFile, error)
 	GetConfigFilesNamesList(applicationID string, environment string, microserviceID string) ([]string, error)
-	UpdateConfigFiles(applicationID string, environment string, microserviceID string, data platform.StudioConfigFile) error
+	AppendEntryToConfigFiles(applicationID string, environment string, microserviceID string, data platform.StudioConfigFile) error
 }
 
 type k8sRepo struct {
@@ -85,7 +85,7 @@ func (r k8sRepo) GetConfigFilesNamesList(applicationID string, environment strin
 	return data, nil
 }
 
-func (r k8sRepo) UpdateConfigFiles(applicationID string, environment string, microserviceID string, data platform.StudioConfigFile) error {
+func (r k8sRepo) AppendEntryToConfigFiles(applicationID string, environment string, microserviceID string, data platform.StudioConfigFile) error {
 
 	// Get name of microservice
 	name, err := r.k8sDolittleRepo.GetMicroserviceName(applicationID, environment, microserviceID)
@@ -110,6 +110,7 @@ func (r k8sRepo) UpdateConfigFiles(applicationID string, environment string, mic
 
 	uniqueNames := make([]string, 0)
 
+	// TODO: Reconsider why this is here
 	for name, value := range configMap.BinaryData {
 		if name == "" {
 			return errors.New("Empty config file name in existing configmap")
