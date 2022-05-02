@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 
 	"github.com/dolittle/platform-api/pkg/platform"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
@@ -81,6 +82,15 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	validFilename, err := regexp.MatchString(`^[0-9a-zA-Z_\-. åÅæÆøØ]+$`, handler.Filename)
+
+	if !validFilename {
+		errMsg := "UpdateConfigFiles ERROR: Invalid new file name"
+		fmt.Println(errMsg)
+		utils.RespondWithError(w, http.StatusBadRequest, errMsg)
+		return
+	}
+
 	response := platform.HttpResponseConfigFilesNamesList{
 		ApplicationID:  applicationID,
 		Environment:    environment,
@@ -94,7 +104,7 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(file)
 
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("UpdateConfigFiles ERROR: " + err.Error())
 		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
@@ -106,7 +116,7 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 	// We are onnly interested in the Data
 	err = s.configFilesRepo.UpdateConfigFiles(applicationID, environment, microserviceID, input)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("UpdateConfigFiles ERROR: " + err.Error())
 		utils.RespondWithError(w, http.StatusUnprocessableEntity, err.Error())
 		return
 	}

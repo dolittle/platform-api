@@ -96,8 +96,6 @@ func (r k8sRepo) UpdateConfigFiles(applicationID string, environment string, mic
 	configmapName := platformK8s.GetMicroserviceConfigFilesConfigmapName(name)
 	configMap, err := r.k8sDolittleRepo.GetConfigMap(applicationID, configmapName)
 
-	fmt.Println("data", data)
-
 	if len(configMap.Data) == 0 {
 		configMap.Data = map[string]string{}
 	}
