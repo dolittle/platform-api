@@ -75,7 +75,6 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 
 	file, handler, err := r.FormFile("file")
 
-
 	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
 
 	if !allowed {
@@ -101,8 +100,6 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	bodyAsString := string(body)
-
 	input.BinaryData = body
 	input.Name = handler.Filename
 
@@ -114,6 +111,5 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(bodyAsString)
 	utils.RespondWithJSON(w, http.StatusOK, response)
 }
