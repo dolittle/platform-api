@@ -371,8 +371,8 @@ type StudioEnvironmentVariable struct {
 }
 
 type StudioConfigFile struct {
-	Name     string `json:"name"`
-	Value    string `json:"value"`
+	Name       string `json:"name"`
+	BinaryData []byte `json:"value"`
 }
 type HttpResponseEnvironmentVariables struct {
 	ApplicationID  string                      `json:"applicationId"`

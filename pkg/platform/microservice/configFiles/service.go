@@ -70,6 +70,11 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 
 	r.ParseForm()
 
+	file, handler, err := r.FormFile("file")
+
+	fmt.Println(handler.Filename)
+	fmt.Println(file)
+
 	var data platform.StudioConfigFile
 
 	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
@@ -87,9 +92,9 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 
 	s.logContext.Info("Update config files")
 
-	var input platform.HttpResponseConfigFile
+	var input platform.StudioConfigFile
 
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := ioutil.ReadAll(file)
 
 	if err != nil {
 		fmt.Println(err)
@@ -100,19 +105,22 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 
 	bodyAsString := string(body)
 
+	input.BinaryData = body
+	input.Name = handler.Filename
+
+	fmt.Println("bodyAsString", bodyAsString)
+
+
 	// We are onnly interested in the Data
-	err = s.configFilesRepo.UpdateConfigFiles(applicationID, environment, microserviceID, input.Data)
+	err = s.configFilesRepo.UpdateConfigFiles(applicationID, environment, microserviceID, input)
 	if err != nil {
 		fmt.Println(err)
-
 		utils.RespondWithError(w, http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 
 	data, err = s.configFilesRepo.GetConfigFile(applicationID, environment, microserviceID)
 	if err != nil {
-
-
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}

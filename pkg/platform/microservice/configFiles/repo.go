@@ -2,7 +2,7 @@ package configFiles
 
 import (
 	"errors"
-
+	"fmt"
 	"strings"
 
 	"github.com/dolittle/platform-api/pkg/platform"
@@ -50,9 +50,9 @@ func (r k8sRepo) GetConfigFile(applicationID string, environment string, microse
 		return data, errors.New("unable to load data from configmap")
 	}
 
-	for name, value := range configMap.Data {
+	for name, value := range configMap.BinaryData {
 		data.Name = name
-		data.Value = value
+		data.BinaryData = value
 	}
 
 	return data, nil
@@ -68,13 +68,24 @@ func (r k8sRepo) UpdateConfigFiles(applicationID string, environment string, mic
 
 	configmapName := platformK8s.GetMicroserviceConfigFilesConfigmapName(name)
 	configMap, err := r.k8sDolittleRepo.GetConfigMap(applicationID, configmapName)
+
+	fmt.Println("data", data)
+
+	if len(configMap.Data) == 0 {
+		configMap.Data = map[string]string{}
+	}
+
+	if len(configMap.BinaryData) == 0 {
+		configMap.BinaryData = map[string][]byte{}
+	}
+
 	if err != nil {
 		return errors.New("unable to load data from configmap")
 	}
 
 	uniqueNames := make([]string, 0)
 
-	for name, value := range configMap.Data {
+	for name, value := range configMap.BinaryData {
 		if name == "" {
 			return errors.New("Empty config file name in existing configmap")
 		}
@@ -83,14 +94,9 @@ func (r k8sRepo) UpdateConfigFiles(applicationID string, environment string, mic
 			return errors.New("No spaces allowed in config file name in existing configmap")
 		}
 
-		if value == "" {
+		if len(value) == 0 {
 			return errors.New("No empty value allowed in config file in existing configmap")
 		}
-
-		// FLAGGED FOR REMOVAL
-		// if strings.TrimSpace(value) != value {
-		// 	return errors.New("TrimSpace validation failed in config file value in existing configmap")
-		// }
 
 		// Check for duplicate keys
 		if funk.ContainsString(uniqueNames, name) {
@@ -104,7 +110,7 @@ func (r k8sRepo) UpdateConfigFiles(applicationID string, environment string, mic
 	//r.k8sDolittleRepo.WriteConfigMap
 	// Update data
 
-	configMap.Data[data.Name] = " | \n" + string(data.Value)
+	configMap.BinaryData[data.Name] = data.BinaryData
 
 	// Write configmap and secret
 	_, err = r.k8sDolittleRepo.WriteConfigMap(configMap)
