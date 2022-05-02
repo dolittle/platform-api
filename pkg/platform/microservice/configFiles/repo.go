@@ -15,7 +15,8 @@ import (
 type ConfigFilesRepo interface {
 	GetConfigFile(applicationID string, environment string, microserviceID string) (platform.StudioConfigFile, error)
 	GetConfigFilesNamesList(applicationID string, environment string, microserviceID string) ([]string, error)
-	AppendEntryToConfigFiles(applicationID string, environment string, microserviceID string, data platform.StudioConfigFile) error
+	AddEntryToConfigFiles(applicationID string, environment string, microserviceID string, data platform.StudioConfigFile) error
+	RemoveEntryFromConfigFiles(applicationID string, environment string, microserviceID string, key string) error
 }
 
 type k8sRepo struct {
@@ -85,7 +86,7 @@ func (r k8sRepo) GetConfigFilesNamesList(applicationID string, environment strin
 	return data, nil
 }
 
-func (r k8sRepo) AppendEntryToConfigFiles(applicationID string, environment string, microserviceID string, data platform.StudioConfigFile) error {
+func (r k8sRepo) AddEntryToConfigFiles(applicationID string, environment string, microserviceID string, data platform.StudioConfigFile) error {
 
 	// Get name of microservice
 	name, err := r.k8sDolittleRepo.GetMicroserviceName(applicationID, environment, microserviceID)
@@ -140,6 +141,38 @@ func (r k8sRepo) AppendEntryToConfigFiles(applicationID string, environment stri
 
 	// Write configmap and secret
 	_, err = r.k8sDolittleRepo.WriteConfigMap(configMap)
+	if err != nil {
+		fmt.Println(err.Error())
+		return errors.New("failed to update configmap")
+	}
+
+	return nil
+}
+
+func (r k8sRepo) RemoveEntryFromConfigFiles(applicationID string, environment string, microserviceID string, key string) error {
+
+	// Get name of microservice
+	name, err := r.k8sDolittleRepo.GetMicroserviceName(applicationID, environment, microserviceID)
+	if err != nil {
+		return errors.New("unable to find microservice")
+	}
+
+	configmapName := platformK8s.GetMicroserviceConfigFilesConfigmapName(name)
+	configMap, err := r.k8sDolittleRepo.GetConfigMap(applicationID, configmapName)
+
+	if err != nil {
+		return errors.New("unable to load data from configmap")
+	}
+
+	if len(configMap.BinaryData) == 0 {
+		return errors.New("no entries in configmap")
+	}
+
+	delete(configMap.BinaryData, key)
+
+	// Write configmap and secret
+	_, err = r.k8sDolittleRepo.WriteConfigMap(configMap)
+
 	if err != nil {
 		fmt.Println(err.Error())
 		return errors.New("failed to update configmap")

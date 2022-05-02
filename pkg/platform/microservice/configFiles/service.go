@@ -115,7 +115,7 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 	input.Name = handler.Filename
 
 	// We are onnly interested in the Data
-	err = s.configFilesRepo.AppendEntryToConfigFiles(applicationID, environment, microserviceID, input)
+	err = s.configFilesRepo.AddEntryToConfigFiles(applicationID, environment, microserviceID, input)
 	if err != nil {
 		fmt.Println("UpdateConfigFiles ERROR: " + err.Error())
 		utils.RespondWithError(w, http.StatusUnprocessableEntity, err.Error())
@@ -153,7 +153,6 @@ func (s *service) DeleteConfigFile(w http.ResponseWriter, r *http.Request) {
 
 	s.logContext.Info("Update config files")
 
-
 	defer r.Body.Close()
 
 	// Get name of microservice
@@ -168,10 +167,7 @@ func (s *service) DeleteConfigFile(w http.ResponseWriter, r *http.Request) {
 
 	configMap.BinaryData[fileName] = []byte{}
 
-	// We are onnly interested in the Data
-	var input platform.StudioConfigFile
-
-	err = s.configFilesRepo.AppendEntryToConfigFiles(applicationID, environment, microserviceID, input)
+	err = s.configFilesRepo.RemoveEntryFromConfigFiles(applicationID, environment, microserviceID, fileName)
 	if err != nil {
 		fmt.Println("DeleteConfigFile ERROR: " + err.Error())
 		utils.RespondWithError(w, http.StatusUnprocessableEntity, err.Error())
