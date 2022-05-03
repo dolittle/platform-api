@@ -381,11 +381,26 @@ type HttpResponseEnvironmentVariables struct {
 	Data           []StudioEnvironmentVariable `json:"data"`
 }
 type HttpResponseConfigFilesNamesList struct {
-	ApplicationID  string                      `json:"applicationId"`
-	MicroserviceID string                      `json:"microserviceId"`
-	Environment    string                      `json:"environment"`
-	Data           []string                    `json:"data"` //: this will need to be retrofitted
+	ApplicationID  string   `json:"applicationId"`
+	MicroserviceID string   `json:"microserviceId"`
+	Environment    string   `json:"environment"`
+	Data           []string `json:"data"` //: this will need to be retrofitted
 }
+
+type HttpResponseDeleteConfigFile struct {
+	ApplicationID  string `json:"applicationId"`
+	MicroserviceID string `json:"microserviceId"`
+	Environment    string `json:"environment"`
+	Success        bool   `json:"success"` //: this will need to be retrofitted
+}
+
+type HttpRequestDeleteConfigFile struct {
+	ApplicationID  string `json:"applicationId"`
+	MicroserviceID string `json:"microserviceId"`
+	Environment    string `json:"environment"`
+	Key            string  `json:"key"` //: this will need to be retrofitted
+}
+
 type MicroserviceMetadataShortInfo struct {
 	CustomerID       string `json:"customerId"`
 	CustomerName     string `json:"customerName"`

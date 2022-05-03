@@ -170,6 +170,7 @@ func (r k8sRepo) RemoveEntryFromConfigFiles(applicationID string, environment st
 
 	delete(configMap.BinaryData, key)
 
+
 	// Write configmap and secret
 	_, err = r.k8sDolittleRepo.WriteConfigMap(configMap)
 

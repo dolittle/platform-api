@@ -1,6 +1,7 @@
 package configFiles
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -82,20 +83,13 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	validFilename, err := regexp.MatchString(`^[0-9a-zA-Z_\-. åÅæÆøØ]+$`, handler.Filename)
+	validFilename, err := regexp.MatchString(`[-._a-zA-Z0-9]+`, handler.Filename)
 
 	if !validFilename {
 		errMsg := "UpdateConfigFiles ERROR: Invalid new file name"
 		fmt.Println(errMsg)
 		utils.RespondWithError(w, http.StatusBadRequest, errMsg)
 		return
-	}
-
-	// move this down
-	response := platform.HttpResponseConfigFilesNamesList{
-		ApplicationID:  applicationID,
-		Environment:    environment,
-		MicroserviceID: microserviceID,
 	}
 
 	s.logContext.Info("Update config files")
@@ -122,6 +116,13 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// move this down
+	response := platform.HttpResponseConfigFilesNamesList{
+		ApplicationID:  applicationID,
+		Environment:    environment,
+		MicroserviceID: microserviceID,
+	}
+
 	utils.RespondWithJSON(w, http.StatusOK, response)
 }
 
@@ -131,47 +132,51 @@ func (s *service) DeleteConfigFile(w http.ResponseWriter, r *http.Request) {
 	applicationID := vars["applicationID"]
 	microserviceID := vars["microserviceID"]
 	environment := vars["environment"]
-	fileName := vars["config-file"]
 
 	userID := r.Header.Get("User-ID")
 	customerID := r.Header.Get("Tenant-ID")
 
-	r.ParseForm()
+	
+	var input platform.HttpRequestDeleteConfigFile
+	b, err := ioutil.ReadAll(r.Body)
+
+	if err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+	defer r.Body.Close()
+
+	err = json.Unmarshal(b, &input)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+
+	fmt.Println("INPUT KEY", input.Key)
 
 	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
+
+	fmt.Println("allowed", allowed)
 
 	if !allowed {
 		return
 	}
 
-	// move this down
-	response := platform.HttpResponseConfigFilesNamesList{
-		ApplicationID:  applicationID,
-		Environment:    environment,
-		MicroserviceID: microserviceID,
-	}
-
 	s.logContext.Info("Update config files")
 
-	defer r.Body.Close()
-
-	// Get name of microservice
-	name, err := s.k8sDolittleRepo.GetMicroserviceName(applicationID, environment, microserviceID)
-	if err != nil {
-		utils.RespondWithJSON(w, http.StatusBadRequest, "DeleteConfigFile ERROR: unable to find microservice")
-		return
-	}
-
-	configmapName := platformK8s.GetMicroserviceConfigFilesConfigmapName(name)
-	configMap, err := s.k8sDolittleRepo.GetConfigMap(applicationID, configmapName)
-
-	configMap.BinaryData[fileName] = []byte{}
-
-	err = s.configFilesRepo.RemoveEntryFromConfigFiles(applicationID, environment, microserviceID, fileName)
+	err = s.configFilesRepo.RemoveEntryFromConfigFiles(applicationID, environment, microserviceID, input.Key)
 	if err != nil {
 		fmt.Println("DeleteConfigFile ERROR: " + err.Error())
 		utils.RespondWithError(w, http.StatusUnprocessableEntity, err.Error())
 		return
+	}
+
+	// move this down
+	response := platform.HttpResponseDeleteConfigFile{
+		ApplicationID:  applicationID,
+		Environment:    environment,
+		MicroserviceID: microserviceID,
+		Success:        true,
 	}
 
 	utils.RespondWithJSON(w, http.StatusOK, response)
