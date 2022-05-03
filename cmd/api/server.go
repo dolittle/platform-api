@@ -202,6 +202,7 @@ var serverCMD = &cobra.Command{
 
 		containerRegistryService := containerregistry.NewService(
 			gitRepo,
+			//containerregistry.NewLocalRepo(),
 			containerregistry.NewAzureRepo(logContext.WithField("context", "container-registry-azure")),
 			logContext.WithField("context", "container-registry-service"),
 		)
