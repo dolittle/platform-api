@@ -62,8 +62,9 @@ func (s *service) GetImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	baseUrl := fmt.Sprintf("%s.azurecr.io", customer.ContainerRegistryName)
 	credentials := ContainerRegistryCredentials{
-		URL:      fmt.Sprintf("https://%s.azurecr.io", customer.ContainerRegistryName),
+		URL:      fmt.Sprintf("https://%s", baseUrl),
 		Username: customer.ContainerRegistryUsername,
 		Password: customer.ContainerRegistryPassword,
 	}
@@ -75,7 +76,7 @@ func (s *service) GetImages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := HTTPResponseImages{
-		Url:    credentials.URL,
+		Url:    baseUrl,
 		Images: images,
 	}
 
