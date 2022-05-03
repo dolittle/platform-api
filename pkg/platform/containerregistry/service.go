@@ -11,6 +11,7 @@ import (
 )
 
 type HTTPResponseImages struct {
+	Url    string   `json:"url"`
 	Images []string `json:"images"`
 }
 
@@ -74,6 +75,7 @@ func (s *service) GetImages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := HTTPResponseImages{
+		Url:    credentials.URL,
 		Images: images,
 	}
 
