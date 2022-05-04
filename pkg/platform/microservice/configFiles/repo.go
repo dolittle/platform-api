@@ -107,7 +107,6 @@ func (r k8sRepo) AddEntryToConfigFiles(applicationID string, environment string,
 		return errors.New("unable to load data from configmap")
 	}
 
-
 	// TODO would be nice to use a resource (application-namespace branch)
 	//r.k8sDolittleRepo.WriteConfigMap
 	// Update data
@@ -144,7 +143,6 @@ func (r k8sRepo) RemoveEntryFromConfigFiles(applicationID string, environment st
 	}
 
 	delete(configMap.BinaryData, key)
-
 
 	// Write configmap and secret
 	_, err = r.k8sDolittleRepo.WriteConfigMap(configMap)

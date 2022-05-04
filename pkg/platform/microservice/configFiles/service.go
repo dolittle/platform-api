@@ -144,7 +144,6 @@ func (s *service) DeleteConfigFile(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get("User-ID")
 	customerID := r.Header.Get("Tenant-ID")
 
-	
 	var input platform.HttpRequestDeleteConfigFile
 	b, err := ioutil.ReadAll(r.Body)
 
