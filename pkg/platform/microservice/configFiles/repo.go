@@ -109,29 +109,6 @@ func (r k8sRepo) AddEntryToConfigFiles(applicationID string, environment string,
 		return errors.New("unable to load data from configmap")
 	}
 
-	uniqueNames := make([]string, 0)
-
-	// TODO: Reconsider why this is here
-	for name, value := range configMap.BinaryData {
-		if name == "" {
-			return errors.New("Empty config file name in existing configmap")
-		}
-
-		if strings.TrimSpace(name) != name {
-			return errors.New("No spaces allowed in config file name in existing configmap")
-		}
-
-		if len(value) == 0 {
-			return errors.New("No empty value allowed in config file in existing configmap")
-		}
-
-		// Check for duplicate keys
-		if funk.ContainsString(uniqueNames, name) {
-			return errors.New("No duplicate keys allowed in config file in existing configmap")
-		}
-
-		uniqueNames = append(uniqueNames, name)
-	}
 
 	// TODO would be nice to use a resource (application-namespace branch)
 	//r.k8sDolittleRepo.WriteConfigMap
