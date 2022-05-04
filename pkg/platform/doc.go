@@ -398,7 +398,7 @@ type HttpRequestDeleteConfigFile struct {
 	ApplicationID  string `json:"applicationId"`
 	MicroserviceID string `json:"microserviceId"`
 	Environment    string `json:"environment"`
-	Key            string  `json:"key"` //: this will need to be retrofitted
+	Key            string `json:"key"` //: this will need to be retrofitted
 }
 
 type MicroserviceMetadataShortInfo struct {
