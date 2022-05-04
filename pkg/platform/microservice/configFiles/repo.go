@@ -3,12 +3,10 @@ package configFiles
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/dolittle/platform-api/pkg/platform"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 	"k8s.io/client-go/kubernetes"
 )
 
