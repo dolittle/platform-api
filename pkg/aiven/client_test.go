@@ -15,7 +15,7 @@ var _ = Describe("Client", func() {
 	Describe("Creating topics", func() {
 		When("creating an empty topic", func() {
 			It("should fail", func() {
-				_, err := client.CreateTopic("", 0)
+				err := client.CreateTopic("", 1)
 
 				Expect(err).ToNot(BeNil())
 			})

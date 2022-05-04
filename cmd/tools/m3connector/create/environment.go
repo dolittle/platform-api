@@ -30,11 +30,11 @@ var environmentCMD = &cobra.Command{
 		}
 		fmt.Println(createUserResponse)
 
-		addACLResponse, err := client.CreateACL("joel-throwaway-test-topic", "joel-throwaway-test", aiven.Admin)
+		// addACLResponse, err := client.CreateACL("joel-throwaway-test-topic", "joel-throwaway-test", aiven.Admin)
 
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Println(addACLResponse)
+		// if err != nil {
+		// 	log.Fatal(err)
+		// }
+		// fmt.Println(addACLResponse)
 	},
 }
