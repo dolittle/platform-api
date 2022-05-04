@@ -92,6 +92,14 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// file size limit from header.Size()
+	if handler.Size > 3145728 {
+		errMsg := "UpdateConfigFiles ERROR: File size too large"
+		fmt.Println(errMsg)
+		utils.RespondWithError(w, http.StatusBadRequest, errMsg)
+		return
+	}
+
 	s.logContext.Info("Update config files")
 
 	var input platform.StudioConfigFile
