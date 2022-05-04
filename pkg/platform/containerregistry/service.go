@@ -1,8 +1,12 @@
 package containerregistry
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+
+	applicationK8s "github.com/dolittle/platform-api/pkg/platform/application/k8s"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	"github.com/dolittle/platform-api/pkg/utils"
@@ -33,27 +37,60 @@ type ContainerRegistryRepo interface {
 }
 
 type service struct {
-	gitRepo    storage.Repo
-	repo       ContainerRegistryRepo
-	logContext logrus.FieldLogger
+	gitRepo         storage.Repo
+	repo            ContainerRegistryRepo
+	k8sDolittleRepo platformK8s.K8sRepo
+	logContext      logrus.FieldLogger
 }
 
 func NewService(
 	gitRepo storage.Repo,
 	repo ContainerRegistryRepo,
+	k8sDolittleRepo platformK8s.K8sRepo,
 	logContext logrus.FieldLogger,
 ) service {
 	return service{
-		gitRepo:    gitRepo,
-		repo:       repo,
-		logContext: logContext,
+		gitRepo:         gitRepo,
+		repo:            repo,
+		k8sDolittleRepo: k8sDolittleRepo,
+		logContext:      logContext,
 	}
 }
 
-func (s *service) GetImages(w http.ResponseWriter, r *http.Request) {
+func (s *service) getContainerRegistryCredentialsFromKubernetes(logContext logrus.FieldLogger, applicationID string, containerRegistryName string) (ContainerRegistryCredentials, error) {
+	secretName := "acr"
+	secret, err := s.k8sDolittleRepo.GetSecret(logContext, applicationID, secretName)
+	if err != nil {
+		logContext.WithField("error", err).Error("failed to talk to kubernetes")
+		return ContainerRegistryCredentials{}, err
+	}
 
+	data := secret.StringData[".dockerconfigjson"]
+	var config applicationK8s.DockerConfigJSON
+	_ = json.Unmarshal([]byte(data), &config)
+
+	containerRegistryKey := fmt.Sprintf("%s.azurecr.io", containerRegistryName)
+
+	containerRegistryCredentials, ok := config.Auths[containerRegistryKey]
+	if !ok {
+		logContext.WithField("error", err).Error("acr is missing")
+		return ContainerRegistryCredentials{}, err
+	}
+
+	credentials := ContainerRegistryCredentials{
+		URL:      fmt.Sprintf("https://%s", containerRegistryKey),
+		Username: containerRegistryCredentials.Username,
+		Password: containerRegistryCredentials.Password,
+	}
+
+	return credentials, nil
+}
+
+func (s *service) GetImages(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	applicationID := vars["applicationID"]
+	userID := r.Header.Get("User-ID")
 	customerID := r.Header.Get("Tenant-ID")
-	// TODO might need to confirm access
 
 	customer, err := s.gitRepo.GetTerraformTenant(customerID)
 	if err != nil {
@@ -62,11 +99,22 @@ func (s *service) GetImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	baseUrl := fmt.Sprintf("%s.azurecr.io", customer.ContainerRegistryName)
-	credentials := ContainerRegistryCredentials{
-		URL:      fmt.Sprintf("https://%s", baseUrl),
-		Username: customer.ContainerRegistryUsername,
-		Password: customer.ContainerRegistryPassword,
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
+	if !allowed {
+		return
+	}
+
+	logContext := s.logContext.WithFields(logrus.Fields{
+		"method":        "GetImages",
+		"customerID":    customerID,
+		"applicationID": applicationID,
+		"userID":        userID,
+	})
+
+	credentials, err := s.getContainerRegistryCredentialsFromKubernetes(logContext, applicationID, customer.ContainerRegistryName)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, "Something went wrong")
+		return
 	}
 
 	images, err := s.repo.GetImages(credentials)
@@ -76,7 +124,7 @@ func (s *service) GetImages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := HTTPResponseImages{
-		Url:    baseUrl,
+		Url:    fmt.Sprintf("%s.azurecr.io", customer.ContainerRegistryName),
 		Images: images,
 	}
 
@@ -88,8 +136,11 @@ func (s *service) GetImages(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *service) GetTags(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	applicationID := vars["applicationID"]
+	imageName := vars["imageName"]
+	userID := r.Header.Get("User-ID")
 	customerID := r.Header.Get("Tenant-ID")
-	// TODO might need to confirm access
 
 	customer, err := s.gitRepo.GetTerraformTenant(customerID)
 	if err != nil {
@@ -98,14 +149,23 @@ func (s *service) GetTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	credentials := ContainerRegistryCredentials{
-		URL:      fmt.Sprintf("https://%s.azurecr.io", customer.ContainerRegistryName),
-		Username: customer.ContainerRegistryUsername,
-		Password: customer.ContainerRegistryPassword,
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
+	if !allowed {
+		return
 	}
 
-	vars := mux.Vars(r)
-	imageName := vars["imageName"]
+	logContext := s.logContext.WithFields(logrus.Fields{
+		"method":        "GetTags",
+		"customerID":    customerID,
+		"applicationID": applicationID,
+		"userID":        userID,
+	})
+
+	credentials, err := s.getContainerRegistryCredentialsFromKubernetes(logContext, applicationID, customer.ContainerRegistryName)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, "Something went wrong")
+		return
+	}
 
 	tags, err := s.repo.GetTags(credentials, imageName)
 	if err != nil {

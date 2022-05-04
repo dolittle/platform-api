@@ -204,6 +204,7 @@ var serverCMD = &cobra.Command{
 			gitRepo,
 			//containerregistry.NewLocalRepo(),
 			containerregistry.NewAzureRepo(logContext.WithField("context", "container-registry-azure")),
+			k8sRepo,
 			logContext.WithField("context", "container-registry-service"),
 		)
 
@@ -422,12 +423,12 @@ var serverCMD = &cobra.Command{
 		).Methods(http.MethodPost, http.MethodOptions)
 
 		router.Handle(
-			"/containerregistry/images",
+			"/application/{applicationID}/containerregistry/images",
 			stdChainBase.ThenFunc(containerRegistryService.GetImages),
 		).Methods(http.MethodGet, http.MethodOptions)
 
 		router.Handle(
-			"/containerregistry/tags/{imageName:.*}",
+			"/application/{applicationID}/containerregistry/tags/{imageName:.*}",
 			stdChainBase.ThenFunc(containerRegistryService.GetTags),
 		).Methods(http.MethodGet, http.MethodOptions)
 
