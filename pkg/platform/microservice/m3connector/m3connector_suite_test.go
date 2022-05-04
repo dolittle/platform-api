@@ -1,4 +1,4 @@
-package aiven_test
+package m3connector_test
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestAiven(t *testing.T) {
+func TestM3connector(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Aiven Suite")
+	RunSpecs(t, "M3connector Suite")
 }

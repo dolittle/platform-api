@@ -1,15 +1,16 @@
-package aiven
+package aiven_test
 
 import (
+	"github.com/dolittle/platform-api/pkg/aiven"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Client", func() {
-	var client *client
+	var client *aiven.Client
 
 	BeforeEach(func() {
-		client = NewClient("test-token", "test-project", "test-service")
+		client = aiven.NewClient("test-token", "test-project", "test-service")
 	})
 
 	Describe("Creating topics", func() {
@@ -25,7 +26,7 @@ var _ = Describe("Client", func() {
 	Describe("Creating users", func() {
 		When("creating an user with an empty username", func() {
 			It("should fail", func() {
-				_, err := client.CreateUser("")
+				err := client.CreateUser("")
 
 				Expect(err).ToNot(BeNil())
 			})
@@ -35,7 +36,7 @@ var _ = Describe("Client", func() {
 	Describe("Creating ACL's", func() {
 		When("creating an ACL with an empty topic", func() {
 			It("should fail", func() {
-				_, err := client.CreateACL("", "test-username", Read)
+				err := client.CreateACL("", "test-username", aiven.Read)
 
 				Expect(err).ToNot(BeNil())
 			})
@@ -43,7 +44,7 @@ var _ = Describe("Client", func() {
 
 		When("creating an ACL with an empty username", func() {
 			It("should fail", func() {
-				_, err := client.CreateACL("test-topic", "", Read)
+				err := client.CreateACL("test-topic", "", aiven.Read)
 
 				Expect(err).ToNot(BeNil())
 			})
@@ -53,7 +54,7 @@ var _ = Describe("Client", func() {
 	Describe("Creating an environment", func() {
 		When("creating an environment", func() {
 			It("should fail", func() {
-				_, err := client.CreateACL("", "test-username", Read)
+				err := client.CreateACL("", "test-username", aiven.Read)
 
 				Expect(err).ToNot(BeNil())
 			})
@@ -61,7 +62,7 @@ var _ = Describe("Client", func() {
 
 		When("creating an ACL with an empty username", func() {
 			It("should fail", func() {
-				_, err := client.CreateACL("test-topic", "", Read)
+				err := client.CreateACL("test-topic", "", aiven.Read)
 
 				Expect(err).ToNot(BeNil())
 			})

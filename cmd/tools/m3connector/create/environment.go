@@ -23,12 +23,12 @@ var environmentCMD = &cobra.Command{
 		project := "dolittle-test-env"
 		service := "kafka-test-env"
 		client := aiven.NewClient(apiToken, project, service)
-		createUserResponse, err := client.CreateUser("joel-throwaway-test")
+		err := client.CreateUser("joel-throwaway-test")
 
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println(createUserResponse)
+		fmt.Println("done")
 
 		// addACLResponse, err := client.CreateACL("joel-throwaway-test-topic", "joel-throwaway-test", aiven.Admin)
 
