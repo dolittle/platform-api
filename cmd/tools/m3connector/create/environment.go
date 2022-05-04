@@ -1,13 +1,14 @@
 package create
 
 import (
-	"fmt"
-	"log"
+	"os"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
 	"github.com/dolittle/platform-api/pkg/aiven"
+	"github.com/dolittle/platform-api/pkg/platform/microservice/m3connector"
 )
 
 var environmentCMD = &cobra.Command{
@@ -15,26 +16,50 @@ var environmentCMD = &cobra.Command{
 	Short: "",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
+		logrus.SetFormatter(&logrus.JSONFormatter{})
+		logrus.SetOutput(os.Stdout)
+
+		logger := logrus.StandardLogger()
+		logContext := logger.WithFields(logrus.Fields{
+			"command": "environment",
+		})
+
 		apiToken := viper.GetString("tools.m3connector.aiven.apiToken")
 		if apiToken == "" {
-			fmt.Println("you have to provide an Aiven api token")
-			return
+			logContext.Fatal("you have to provide an Aiven api token")
 		}
+
+		customerID, _ := cmd.Flags().GetString("customer-id")
+		applicationID, _ := cmd.Flags().GetString("application-id")
+		environment, _ := cmd.Flags().GetString("environment")
+		if customerID == "" || applicationID == "" || environment == "" {
+			logContext.Fatal("you have to specify the customerID, applicationID and environment")
+		}
+
+		logContext = logContext.WithFields(logrus.Fields{
+			"customer_id":    customerID,
+			"application_id": applicationID,
+			"environment":    environment,
+		})
+
 		project := "dolittle-test-env"
 		service := "kafka-test-env"
-		client := aiven.NewClient(apiToken, project, service)
-		err := client.CreateUser("joel-throwaway-test")
 
+		aiven, err := aiven.NewClient(apiToken, project, service, logContext)
 		if err != nil {
-			log.Fatal(err)
+			logContext.Fatal(err)
 		}
-		fmt.Println("done")
-
-		// addACLResponse, err := client.CreateACL("joel-throwaway-test-topic", "joel-throwaway-test", aiven.Admin)
-
-		// if err != nil {
-		// 	log.Fatal(err)
-		// }
-		// fmt.Println(addACLResponse)
+		m3connector := m3connector.NewM3Connector(aiven, logContext)
+		m3connector.CreateEnvironment(customerID, applicationID, environment)
+		if err != nil {
+			logContext.Fatal(err)
+		}
+		logContext.Info("done")
 	},
+}
+
+func init() {
+	environmentCMD.Flags().String("customer-id", "", "The customers ID")
+	environmentCMD.Flags().String("application-id", "", "The applications ID")
+	environmentCMD.Flags().String("environment", "", "The environment")
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform/microservice/m3connector"
 
 	mockM3Connector "github.com/dolittle/platform-api/mocks/pkg/platform/microservice/m3connector"
+	logrusTest "github.com/sirupsen/logrus/hooks/test"
 )
 
 var _ = Describe("M3connector", func() {
@@ -22,8 +23,9 @@ var _ = Describe("M3connector", func() {
 		resourcePrefix string
 	)
 	BeforeEach(func() {
+		logger, _ := logrusTest.NewNullLogger()
 		mockKafka = new(mockM3Connector.KafkaProvider)
-		connector = m3connector.NewM3Connector(mockKafka)
+		connector = m3connector.NewM3Connector(mockKafka, logger)
 		customer = "test-customer"
 		application = "test-application"
 		environment = "test"

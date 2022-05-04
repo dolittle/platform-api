@@ -4,10 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 type M3Connector struct {
-	kafka KafkaProvider
+	kafka      KafkaProvider
+	logContext logrus.FieldLogger
 }
 
 type KafkaProvider interface {
@@ -16,28 +19,53 @@ type KafkaProvider interface {
 	CreateACL(topic string, username string, permission string) error
 }
 
-func NewM3Connector(kafka KafkaProvider) *M3Connector {
+type KafkaACLPermission string
+
+const (
+	Admin     KafkaACLPermission = "admin"
+	Read      KafkaACLPermission = "read"
+	ReadWrite KafkaACLPermission = "readwrite"
+	Write     KafkaACLPermission = "write"
+)
+
+func NewM3Connector(kafka KafkaProvider, logContext logrus.FieldLogger) *M3Connector {
 	return &M3Connector{
 		kafka: kafka,
+		logContext: logContext.WithFields(logrus.Fields{
+			"context": "m3connector",
+		}),
 	}
 }
 
-func (m *M3Connector) CreateEnvironment(customer, application, environment string) error {
-	if customer == "" {
+// CreateEnvironment creates the required 4 topics, ACL's for them and an user needed for M3Connector to work in an environment
+func (m *M3Connector) CreateEnvironment(customerID, applicationID, environment string) error {
+	logContext := m.logContext.WithField("method", "CreateEnvironment")
+
+	if customerID == "" {
 		return errors.New("customer can't be empty")
 	}
-	if application == "" {
+	if applicationID == "" {
 		return errors.New("application can't be empty")
 	}
 	if environment == "" {
 		return errors.New("environment can't be empty")
 	}
 
-	resourcePrefix := fmt.Sprintf("cust_%s_%s_%s.m3", customer, application, environment)
+	resourcePrefix := fmt.Sprintf("cust_%s_%s_%s.m3", customerID, applicationID, environment)
 	username := resourcePrefix
+
+	logContext = logContext.WithFields(logrus.Fields{
+		"customer_id":    customerID,
+		"application_id": applicationID,
+		"environment":    environment,
+		"username":       username,
+	})
 
 	err := m.kafka.CreateUser(resourcePrefix)
 	if err != nil {
+		logContext.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("failed to create a user")
 		return err
 	}
 
@@ -64,17 +92,27 @@ func (m *M3Connector) CreateEnvironment(customer, application, environment strin
 		return err
 	}
 
+	logContext.Debug("created all topics and ACL's")
+
 	return nil
 }
 
 func (m *M3Connector) createTopicAndACL(topic string, retentionMs int64, username string) error {
+	logContext := m.logContext.WithFields(logrus.Fields{
+		"method":       "createTopicAndACL",
+		"topic":        topic,
+		"retention_ms": retentionMs,
+		"username":     username,
+	})
 	err := m.kafka.CreateTopic(topic, retentionMs)
 	if err != nil {
+		logContext.WithField("error", err).Error("failed to create the topic")
 		return err
 	}
 
-	err = m.kafka.CreateACL(topic, username, "readwrite")
+	err = m.kafka.CreateACL(topic, username, string(ReadWrite))
 	if err != nil {
+		logContext.WithField("error", err).Error("failed to create the ACL")
 		return err
 	}
 	return nil
