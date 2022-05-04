@@ -1,3 +1,9 @@
+# [4.6.2] - 2022-5-4 [PR: #117](https://github.com/dolittle/platform-api/pull/117)
+## Summary
+
+Fix error when trying to create a base microservice without the M3Connector and the environment variable set.
+
+
 # [4.6.1] - 2022-4-29 [PR: #114](https://github.com/dolittle/platform-api/pull/114)
 ## Summary
 
