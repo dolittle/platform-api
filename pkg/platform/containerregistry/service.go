@@ -171,6 +171,10 @@ func (s *service) GetTags(w http.ResponseWriter, r *http.Request) {
 
 	tags, err := s.repo.GetTags(credentials, imageName)
 	if err != nil {
+		if err == ErrNotFound {
+			utils.RespondWithError(w, http.StatusNotFound, "Tag was not found")
+			return
+		}
 		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to get tags")
 		return
 	}

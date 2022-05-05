@@ -3,10 +3,15 @@ package containerregistry
 import (
 	"context"
 	"errors"
+	"net/http"
 
 	"github.com/Azure/azure-sdk-for-go/services/preview/containerregistry/runtime/2019-07/containerregistry"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/sirupsen/logrus"
+)
+
+var (
+	ErrNotFound = errors.New("not-found")
 )
 
 type azureRepo struct {
@@ -38,6 +43,15 @@ func (repo azureRepo) GetImages(credentials ContainerRegistryCredentials) ([]str
 		return make([]string, 0), errors.New("failed to get images")
 	}
 
+	if result.Response.StatusCode != http.StatusOK {
+		return make([]string, 0), errors.New("failed to talk to azure")
+	}
+
+	// Assume http.StatusOK
+	if result.Names == nil {
+		return make([]string, 0), nil
+	}
+
 	return *result.Names, nil
 }
 
@@ -50,12 +64,16 @@ func (repo azureRepo) GetTags(credentials ContainerRegistryCredentials, image st
 
 	baseClient := containerregistry.New(credentials.URL)
 	baseClient.Authorizer = basicAuthorizer
-	tagResult, err := baseClient.GetTagList(ctx, image)
+	result, err := baseClient.GetTagList(ctx, image)
 
 	if err != nil {
+		if result.Response.StatusCode == http.StatusNotFound {
+			return make([]string, 0), ErrNotFound
+		}
+
 		repo.logContext.WithField("error", err).Error("failed to get tags")
 		return make([]string, 0), errors.New("failed to get tags")
 	}
 
-	return *tagResult.Tags, nil
+	return *result.Tags, nil
 }
