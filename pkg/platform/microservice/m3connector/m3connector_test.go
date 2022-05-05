@@ -3,6 +3,7 @@ package m3connector_test
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -22,15 +23,19 @@ var _ = Describe("M3connector", func() {
 		application    string
 		environment    string
 		resourcePrefix string
+		username       string
 	)
 	BeforeEach(func() {
 		logger, _ := logrusTest.NewNullLogger()
 		mockKafka = new(mockM3Connector.KafkaProvider)
 		connector = m3connector.NewM3Connector(mockKafka, logger)
-		customer = "test-customer"
-		application = "test-application"
+		customer = "8f90ddec-a668-4995-8399-2af9a8731723"
+		application = "e0f6a2a4-c136-4a56-80fa-75ff4daa75d6"
 		environment = "test"
-		resourcePrefix = fmt.Sprintf("cust_%s_%s_%s.m3", customer, application, environment)
+		resourcePrefix = fmt.Sprintf("cust_%s.app_%s.env_%s.m3connector", customer, application, environment)
+		shortCustomer := "8f90ddeca6684995"
+		shortApplication := "e0f6a2a4c1364a56"
+		username = fmt.Sprintf("%s.%s.%s.m3connector", shortCustomer, shortApplication, environment)
 	})
 	Describe("Creating a new environmet", func() {
 		It("should fail without a customer", func() {
@@ -49,7 +54,7 @@ var _ = Describe("M3connector", func() {
 		It("should call to create an user with the correct username", func() {
 			mockKafka.On(
 				"CreateUser",
-				resourcePrefix,
+				username,
 			).Return(nil)
 
 			mockKafka.On(
@@ -73,7 +78,7 @@ var _ = Describe("M3connector", func() {
 		It("should fail if the user creation fails", func() {
 			mockKafka.On(
 				"CreateUser",
-				resourcePrefix,
+				username,
 			).Return(errors.New("test error"))
 
 			err := connector.CreateEnvironment(customer, application, environment)
@@ -91,7 +96,7 @@ var _ = Describe("M3connector", func() {
 			mockKafka.
 				On(
 					"CreateUser",
-					resourcePrefix,
+					mock.Anything,
 				).Return(nil).
 				On(
 					"CreateTopic",
@@ -132,7 +137,7 @@ var _ = Describe("M3connector", func() {
 			mockKafka.
 				On(
 					"CreateUser",
-					resourcePrefix,
+					mock.Anything,
 				).Return(nil).
 				On(
 					"CreateTopic",
@@ -156,7 +161,7 @@ var _ = Describe("M3connector", func() {
 			mockKafka.
 				On(
 					"CreateUser",
-					resourcePrefix,
+					mock.Anything,
 				).Return(nil)
 			mockKafka.On(
 				"CreateTopic",
@@ -168,25 +173,25 @@ var _ = Describe("M3connector", func() {
 				On(
 					"AddACL",
 					changeTopic,
-					resourcePrefix,
+					username,
 					permission,
 				).Return(nil).
 				On(
 					"AddACL",
 					inputTopic,
-					resourcePrefix,
+					username,
 					permission,
 				).Return(nil).
 				On(
 					"AddACL",
 					commandTopic,
-					resourcePrefix,
+					username,
 					permission,
 				).Return(nil).
 				On(
 					"AddACL",
 					receiptsTopic,
-					resourcePrefix,
+					username,
 					permission,
 				).Return(nil)
 
@@ -202,7 +207,7 @@ var _ = Describe("M3connector", func() {
 			mockKafka.
 				On(
 					"CreateUser",
-					resourcePrefix,
+					mock.Anything,
 				).Return(nil).
 				On(
 					"CreateTopic",
@@ -212,12 +217,84 @@ var _ = Describe("M3connector", func() {
 				On(
 					"AddACL",
 					changeTopic,
-					resourcePrefix,
+					username,
 					permission,
 				).Return(errors.New("error adding acl"))
 
 			err := connector.CreateEnvironment(customer, application, environment)
 			Expect(err).ToNot(BeNil())
+			mock.AssertExpectationsForObjects(GinkgoT(), mockKafka)
+		})
+
+		It("should lowercase the customer, application and environment", func() {
+			upperCustomer := strings.ToUpper(customer)
+			upperApplication := strings.ToUpper(application)
+			upperEnv := strings.ToUpper(environment)
+
+			changeTopic := fmt.Sprintf("%s.change-events", resourcePrefix)
+			inputTopic := fmt.Sprintf("%s.input", resourcePrefix)
+			commandTopic := fmt.Sprintf("%s.commands", resourcePrefix)
+			receiptsTopic := fmt.Sprintf("%s.command-receipts", resourcePrefix)
+
+			mockKafka.On(
+				"CreateUser",
+				username,
+			).Return(nil)
+
+			mockKafka.
+				On(
+					"CreateUser",
+					mock.Anything,
+				).Return(nil).
+				On(
+					"CreateTopic",
+					changeTopic,
+					mock.Anything,
+				).Return(nil).
+				On(
+					"CreateTopic",
+					inputTopic,
+					mock.Anything,
+				).Return(nil).
+				On(
+					"CreateTopic",
+					commandTopic,
+					mock.Anything,
+				).Return(nil).
+				On(
+					"CreateTopic",
+					receiptsTopic,
+					mock.Anything,
+				).Return(nil)
+
+			mockKafka.
+				On(
+					"AddACL",
+					changeTopic,
+					username,
+					mock.Anything,
+				).Return(nil).
+				On(
+					"AddACL",
+					inputTopic,
+					username,
+					mock.Anything,
+				).Return(nil).
+				On(
+					"AddACL",
+					commandTopic,
+					username,
+					mock.Anything,
+				).Return(nil).
+				On(
+					"AddACL",
+					receiptsTopic,
+					username,
+					mock.Anything,
+				).Return(nil)
+
+			err := connector.CreateEnvironment(upperCustomer, upperApplication, upperEnv)
+			Expect(err).To(BeNil())
 			mock.AssertExpectationsForObjects(GinkgoT(), mockKafka)
 		})
 	})

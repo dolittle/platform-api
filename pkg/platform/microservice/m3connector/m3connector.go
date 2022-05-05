@@ -3,6 +3,7 @@ package m3connector
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -28,6 +29,8 @@ const (
 	Write     KafkaACLPermission = "write"
 )
 
+const serviceName = "m3connector"
+
 func NewM3Connector(kafka KafkaProvider, logContext logrus.FieldLogger) *M3Connector {
 	return &M3Connector{
 		kafka: kafka,
@@ -51,8 +54,14 @@ func (m *M3Connector) CreateEnvironment(customerID, applicationID, environment s
 		return errors.New("environment can't be empty")
 	}
 
-	resourcePrefix := fmt.Sprintf("cust_%s_%s_%s.m3", customerID, applicationID, environment)
-	username := resourcePrefix
+	customerID = strings.ToLower(customerID)
+	applicationID = strings.ToLower(applicationID)
+	environment = strings.ToLower(environment)
+
+	resourcePrefix := fmt.Sprintf("cust_%s.app_%s.env_%s.%s", customerID, applicationID, environment, serviceName)
+	shortCustomerID := strings.ReplaceAll(customerID, "-", "")[:16]
+	shortApplicationID := strings.ReplaceAll(applicationID, "-", "")[:16]
+	username := fmt.Sprintf("%s.%s.%s.%s", shortCustomerID, shortApplicationID, environment, serviceName)
 
 	logContext = logContext.WithFields(logrus.Fields{
 		"customer_id":    customerID,
@@ -61,7 +70,7 @@ func (m *M3Connector) CreateEnvironment(customerID, applicationID, environment s
 		"username":       username,
 	})
 
-	err := m.kafka.CreateUser(resourcePrefix)
+	err := m.kafka.CreateUser(username)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
