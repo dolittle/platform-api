@@ -16,6 +16,7 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform/backup"
 	"github.com/dolittle/platform-api/pkg/platform/businessmoment"
 	"github.com/dolittle/platform-api/pkg/platform/cicd"
+	"github.com/dolittle/platform-api/pkg/platform/containerregistry"
 	"github.com/dolittle/platform-api/pkg/platform/customer"
 	"github.com/dolittle/platform-api/pkg/platform/insights"
 	"github.com/dolittle/platform-api/pkg/platform/job"
@@ -197,6 +198,13 @@ var serverCMD = &cobra.Command{
 			gitRepo,
 			logrus.WithField("context", "studio-service"),
 			k8sRepoV2,
+		)
+
+		containerRegistryService := containerregistry.NewService(
+			gitRepo,
+			containerregistry.NewAzureRepo(logContext.WithField("context", "container-registry-azure")),
+			k8sRepo,
+			logContext.WithField("context", "container-registry-service"),
 		)
 
 		c := cors.New(cors.Options{
@@ -412,6 +420,16 @@ var serverCMD = &cobra.Command{
 			"/studio/customer/{customerID}",
 			stdChainBase.ThenFunc(studioService.Save),
 		).Methods(http.MethodPost, http.MethodOptions)
+
+		router.Handle(
+			"/application/{applicationID}/containerregistry/images",
+			stdChainBase.ThenFunc(containerRegistryService.GetImages),
+		).Methods(http.MethodGet, http.MethodOptions)
+
+		router.Handle(
+			"/application/{applicationID}/containerregistry/tags/{imageName:.*}",
+			stdChainBase.ThenFunc(containerRegistryService.GetTags),
+		).Methods(http.MethodGet, http.MethodOptions)
 
 		router.Handle(
 			"/admin/customer/{customerID}/application/{applicationID}/access/users",
