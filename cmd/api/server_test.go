@@ -1,6 +1,9 @@
 package api
 
 import (
+	"fmt"
+	"io/ioutil"
+	"net/http"
 	"net/http/httptest"
 
 	"github.com/dolittle/platform-api/pkg/platform"
@@ -20,6 +23,7 @@ var _ = Describe("foo", func() {
 		viper.Set("tools.server.gitRepo.url", "git@github.com:dolittle-platform/Operations")
 		viper.Set("tools.server.gitRepo.sshKey", "does/not/exist")
 		viper.Set("tools.server.kubernetes.externalClusterHost", "external-host")
+		viper.Set("tools.server.secret", "johnc")
 
 		logContext := logrus.StandardLogger()
 		k8sClient, k8sConfig := platformK8s.InitKubernetesClient()
@@ -29,7 +33,19 @@ var _ = Describe("foo", func() {
 		s := httptest.NewServer(srv.Handler)
 		defer s.Close()
 
-		Expect(s.URL).To(Equal("foo"))
+		//Expect(s.URL).To(Equal("foo"))
+
+		c := http.Client{}
+		request, _ := http.NewRequest("GET", fmt.Sprintf("%s/application/12321/containerregistry/images", s.URL), nil)
+		request.Header.Set("x-shared-secret", "johnc")
+		request.Header.Set("Tenant-ID", "123")
+		request.Header.Set("User-ID", "666")
+		response, _ := c.Do(request)
+
+		Expect(response).ToNot(BeNil())
+		r, _ := ioutil.ReadAll(response.Body)
+		Expect(string(r)).To(Equal("Foo"))
+		Expect(response.StatusCode).To(Equal(http.StatusOK))
 	})
 
 })
