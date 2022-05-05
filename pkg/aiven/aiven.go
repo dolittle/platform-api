@@ -14,9 +14,9 @@ type Client struct {
 	logContext logrus.FieldLogger
 }
 
+// NewClient creates a new aiven token client with a default user agent string copied from their own implementation
+// https://github.com/aiven/aiven-go-client/blob/31343720eb5c31fbe37fe2ac188daa435b99ee4c/client.go#L71
 func NewClient(apiToken, project, service string, logger logrus.FieldLogger) (*Client, error) {
-	// the  user agent string is by default like that, I just wanted to be explicit
-	// https://github.com/aiven/aiven-go-client/blob/31343720eb5c31fbe37fe2ac188daa435b99ee4c/client.go#L71
 	userAgent := fmt.Sprintf("aiven-go-client/%s", aiven.Version())
 	logContext := logger.WithFields(logrus.Fields{
 		"context":    "aiven",
@@ -40,6 +40,7 @@ func (c *Client) CreateUser(username string) error {
 		"method":   "CreateUser",
 		"username": username,
 	})
+	logContext.Debug("creating a user")
 	userRequest := aiven.CreateServiceUserRequest{
 		Username: username,
 	}
@@ -53,14 +54,15 @@ func (c *Client) CreateUser(username string) error {
 	return err
 }
 
-// CreateACL adds an ACL entry with the permission for the given topic and  username
-func (c *Client) CreateACL(topic string, username string, permission string) error {
+func (c *Client) AddACL(topic string, username string, permission string) error {
 	logContext := c.logContext.WithFields(logrus.Fields{
 		"method":     "CreateACL",
 		"username":   username,
 		"topic":      topic,
 		"permission": permission,
 	})
+
+	logContext.Debug("adding an acl")
 	userRequest := aiven.CreateKafkaACLRequest{
 		Permission: permission,
 		Topic:      topic,
@@ -75,15 +77,16 @@ func (c *Client) CreateACL(topic string, username string, permission string) err
 	return err
 }
 
-// just returns an error because KafkaTopics.Create also only returns an error weirdly
 func (c *Client) CreateTopic(topic string, retentionMs int64) error {
 	logContext := c.logContext.WithFields(logrus.Fields{
 		"method":       "CreateTopic",
 		"topic":        topic,
 		"retention_ms": retentionMs,
 	})
+	replication := 3
 	topicRequest := aiven.CreateKafkaTopicRequest{
-		TopicName: topic,
+		TopicName:   topic,
+		Replication: &replication,
 		Config: aiven.KafkaTopicConfig{
 			RetentionMs: &retentionMs,
 		},

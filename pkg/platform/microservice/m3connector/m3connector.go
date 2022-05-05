@@ -16,7 +16,7 @@ type M3Connector struct {
 type KafkaProvider interface {
 	CreateTopic(topic string, retentionMs int64) error
 	CreateUser(username string) error
-	CreateACL(topic string, username string, permission string) error
+	AddACL(topic string, username string, permission string) error
 }
 
 type KafkaACLPermission string
@@ -110,7 +110,7 @@ func (m *M3Connector) createTopicAndACL(topic string, retentionMs int64, usernam
 		return err
 	}
 
-	err = m.kafka.CreateACL(topic, username, string(ReadWrite))
+	err = m.kafka.AddACL(topic, username, string(ReadWrite))
 	if err != nil {
 		logContext.WithField("error", err).Error("failed to create the ACL")
 		return err

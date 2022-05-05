@@ -9,8 +9,8 @@ type KafkaProvider struct {
 	mock.Mock
 }
 
-// CreateACL provides a mock function with given fields: topic, username, permission
-func (_m *KafkaProvider) CreateACL(topic string, username string, permission string) error {
+// AddACL provides a mock function with given fields: topic, username, permission
+func (_m *KafkaProvider) AddACL(topic string, username string, permission string) error {
 	ret := _m.Called(topic, username, permission)
 
 	var r0 error

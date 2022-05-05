@@ -1,6 +1,7 @@
 package m3connector_test
 
 import (
+	"errors"
 	"fmt"
 
 	. "github.com/onsi/ginkgo"
@@ -58,7 +59,7 @@ var _ = Describe("M3connector", func() {
 			).Return(nil).Times(4)
 
 			mockKafka.On(
-				"CreateACL",
+				"AddACL",
 				mock.Anything,
 				mock.Anything,
 				mock.Anything,
@@ -66,6 +67,17 @@ var _ = Describe("M3connector", func() {
 
 			err := connector.CreateEnvironment(customer, application, environment)
 			Expect(err).To(BeNil())
+			mock.AssertExpectationsForObjects(GinkgoT(), mockKafka)
+		})
+
+		It("should fail if the user creation fails", func() {
+			mockKafka.On(
+				"CreateUser",
+				resourcePrefix,
+			).Return(errors.New("test error"))
+
+			err := connector.CreateEnvironment(customer, application, environment)
+			Expect(err).ToNot(BeNil())
 			mock.AssertExpectationsForObjects(GinkgoT(), mockKafka)
 		})
 
@@ -103,7 +115,7 @@ var _ = Describe("M3connector", func() {
 				).Return(nil)
 
 			mockKafka.On(
-				"CreateACL",
+				"AddACL",
 				mock.Anything,
 				mock.Anything,
 				mock.Anything,
@@ -114,13 +126,32 @@ var _ = Describe("M3connector", func() {
 			mock.AssertExpectationsForObjects(GinkgoT(), mockKafka)
 		})
 
+		It("should fail if the topic creation fails", func() {
+			changeTopic := fmt.Sprintf("%s.change-events", resourcePrefix)
+
+			mockKafka.
+				On(
+					"CreateUser",
+					resourcePrefix,
+				).Return(nil).
+				On(
+					"CreateTopic",
+					changeTopic,
+					int64(-1),
+				).Return(errors.New("topic creation error"))
+
+			err := connector.CreateEnvironment(customer, application, environment)
+			Expect(err).ToNot(BeNil())
+			mock.AssertExpectationsForObjects(GinkgoT(), mockKafka)
+		})
+
 		It("should call to create the ACLs for the 4 topics", func() {
 
 			changeTopic := fmt.Sprintf("%s.change-events", resourcePrefix)
 			inputTopic := fmt.Sprintf("%s.input", resourcePrefix)
 			commandTopic := fmt.Sprintf("%s.commands", resourcePrefix)
 			receiptsTopic := fmt.Sprintf("%s.command-receipts", resourcePrefix)
-			permission := "readwrite"
+			permission := string(m3connector.ReadWrite)
 
 			mockKafka.
 				On(
@@ -135,25 +166,25 @@ var _ = Describe("M3connector", func() {
 
 			mockKafka.
 				On(
-					"CreateACL",
+					"AddACL",
 					changeTopic,
 					resourcePrefix,
 					permission,
 				).Return(nil).
 				On(
-					"CreateACL",
+					"AddACL",
 					inputTopic,
 					resourcePrefix,
 					permission,
 				).Return(nil).
 				On(
-					"CreateACL",
+					"AddACL",
 					commandTopic,
 					resourcePrefix,
 					permission,
 				).Return(nil).
 				On(
-					"CreateACL",
+					"AddACL",
 					receiptsTopic,
 					resourcePrefix,
 					permission,
@@ -161,6 +192,32 @@ var _ = Describe("M3connector", func() {
 
 			err := connector.CreateEnvironment(customer, application, environment)
 			Expect(err).To(BeNil())
+			mock.AssertExpectationsForObjects(GinkgoT(), mockKafka)
+		})
+
+		It("should fail if adding an ACL fails", func() {
+			changeTopic := fmt.Sprintf("%s.change-events", resourcePrefix)
+			permission := string(m3connector.ReadWrite)
+
+			mockKafka.
+				On(
+					"CreateUser",
+					resourcePrefix,
+				).Return(nil).
+				On(
+					"CreateTopic",
+					changeTopic,
+					int64(-1),
+				).Return(nil).
+				On(
+					"AddACL",
+					changeTopic,
+					resourcePrefix,
+					permission,
+				).Return(errors.New("error adding acl"))
+
+			err := connector.CreateEnvironment(customer, application, environment)
+			Expect(err).ToNot(BeNil())
 			mock.AssertExpectationsForObjects(GinkgoT(), mockKafka)
 		})
 	})
