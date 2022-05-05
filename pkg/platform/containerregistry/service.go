@@ -65,13 +65,15 @@ func (s *service) getContainerRegistryCredentialsFromKubernetes(logContext logru
 		return ContainerRegistryCredentials{}, err
 	}
 
-	data := secret.StringData[".dockerconfigjson"]
+	data := secret.Data[".dockerconfigjson"]
+
 	var config applicationK8s.DockerConfigJSON
-	_ = json.Unmarshal([]byte(data), &config)
+	_ = json.Unmarshal(data, &config)
 
 	containerRegistryKey := fmt.Sprintf("%s.azurecr.io", containerRegistryName)
 
 	containerRegistryCredentials, ok := config.Auths[containerRegistryKey]
+
 	if !ok {
 		logContext.WithField("error", err).Error("acr is missing")
 		return ContainerRegistryCredentials{}, err
