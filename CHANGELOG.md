@@ -1,3 +1,23 @@
+# [4.7.0] - 2022-5-5 [PR: #116](https://github.com/dolittle/platform-api/pull/116)
+# Note
+- This does not work in local development due to the container registry, we will need to document how to cheat the system
+
+# Todo
+- [ ] Write code to talk to azure
+- [ ] Maybe a test for the http layer
+- [ ] Think about creating storage interface for getting Tenant to reduce the testing
+
+
+## Summary
+
+Query the platform-api for images and tags in the container registry offered for each customer
+
+### Added
+
+- Get images
+- Get tags based on image name
+
+
 # [4.6.2] - 2022-5-4 [PR: #117](https://github.com/dolittle/platform-api/pull/117)
 ## Summary
 
