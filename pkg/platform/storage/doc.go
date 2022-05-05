@@ -48,6 +48,14 @@ type Repo interface {
 
 	SaveBusinessMomentEntity(customerID string, input platform.HttpInputBusinessMomentEntity) error
 	DeleteBusinessMomentEntity(customerID string, applicationID string, environment string, microserviceID string, entityID string) error
+
+	GetCustomers() ([]platform.Customer, error)
+	SaveCustomer(customer JSONCustomer) error
+
+	Pull() error
+
+	GetDirectory() string
+	CommitPathAndPush(path string, msg string) error
 }
 
 var (

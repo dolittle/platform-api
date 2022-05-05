@@ -10,6 +10,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/dolittle/platform-api/pkg/platform"
+	"github.com/dolittle/platform-api/pkg/platform/storage"
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -31,6 +32,15 @@ type GitStorageConfig struct {
 type GitSync interface {
 	Pull() error
 }
+
+/*type GitStorageFoo interface {
+	Pull() error
+	CommitPathAndPush(path string, msg string) error
+	IsAutomationEnabledWithStudioConfig(studioConfig platform.StudioConfig, applicationID string, environment string) bool
+	GetRoot() string
+	GetRepository() *git.Repository
+}*/
+
 type GitStorage struct {
 	logContext logrus.FieldLogger
 	Repo       *git.Repository
@@ -39,7 +49,7 @@ type GitStorage struct {
 	config     GitStorageConfig
 }
 
-func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *GitStorage {
+func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) storage.Repo {
 	directoryOnly := gitConfig.DirectoryOnly
 
 	branch := plumbing.NewBranchReferenceName(gitConfig.Branch)
@@ -124,6 +134,10 @@ func NewGitStorage(logContext logrus.FieldLogger, gitConfig GitStorageConfig) *G
 
 	s.Repo = r
 	return s
+}
+
+func (s *GitStorage) GetDirectory() string {
+	return s.Directory
 }
 
 // CommitPathAndPush adds the path to index, creates a commit, and pushes to the remote
