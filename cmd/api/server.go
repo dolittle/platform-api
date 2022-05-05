@@ -26,13 +26,14 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform/microservice"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/environmentVariables"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/purchaseorderapi"
+	"github.com/dolittle/platform-api/pkg/platform/storage"
+	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
 	"github.com/dolittle/platform-api/pkg/platform/studio"
 	"github.com/dolittle/platform-api/pkg/platform/user"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	k8sSimple "github.com/dolittle/platform-api/pkg/platform/microservice/simple/k8s"
-	gitStorage "github.com/dolittle/platform-api/pkg/platform/storage/git"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/rs/cors"
@@ -57,15 +58,18 @@ var serverCMD = &cobra.Command{
 		platformEnvironment := viper.GetString("tools.server.platformEnvironment")
 		gitRepoConfig := git.InitGit(logContext, platformEnvironment)
 		k8sClient, k8sConfig := platformK8s.InitKubernetesClient()
+		gitRepo := gitStorage.NewGitStorage(
+			logrus.WithField("context", "git-repo"),
+			gitRepoConfig,
+		)
 
-		fmt.Println("HAHAH")
-		srv := NewServer(logContext, gitRepoConfig, k8sClient, k8sConfig)
+		srv := NewServer(logContext, gitRepo, k8sClient, k8sConfig)
 
 		log.Fatal(srv.ListenAndServe())
 	},
 }
 
-func NewServer(logContext *logrus.Logger, gitRepoConfig gitStorage.GitStorageConfig,
+func NewServer(logContext *logrus.Logger, gitRepo storage.Repo,
 	k8sClient kubernetes.Interface, k8sConfig *rest.Config) *http.Server {
 
 	// fix: https://github.com/spf13/viper/issues/798
@@ -98,11 +102,6 @@ func NewServer(logContext *logrus.Logger, gitRepoConfig gitStorage.GitStorageCon
 
 	k8sRepo := platformK8s.NewK8sRepo(k8sClient, k8sConfig, logContext.WithField("context", "k8s-repo"))
 	k8sRepoV2 := k8s.NewRepo(k8sClient, logContext.WithField("context", "k8s-repo-v2"))
-
-	gitRepo := gitStorage.NewGitStorage(
-		logrus.WithField("context", "git-repo"),
-		gitRepoConfig,
-	)
 
 	jobResourceConfig := jobK8s.CreateResourceConfigFromViper(viper.GetViper())
 
