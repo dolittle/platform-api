@@ -11,7 +11,6 @@ import (
 )
 
 type ConfigFilesRepo interface {
-	GetConfigFile(applicationID string, environment string, microserviceID string) (platform.StudioConfigFile, error)
 	GetConfigFilesNamesList(applicationID string, environment string, microserviceID string) ([]string, error)
 	AddEntryToConfigFiles(applicationID string, environment string, microserviceID string, data platform.StudioConfigFile) error
 	RemoveEntryFromConfigFiles(applicationID string, environment string, microserviceID string, key string) error
@@ -29,33 +28,6 @@ func NewConfigFilesK8sRepo(k8sDolittleRepo platformK8s.K8sRepo, k8sClient kubern
 		k8sClient:       k8sClient,
 		logContext:      logContext,
 	}
-}
-
-func (r k8sRepo) GetConfigFile(applicationID string, environment string, microserviceID string) (platform.StudioConfigFile, error) {
-	var data platform.StudioConfigFile
-
-	name, err := r.k8sDolittleRepo.GetMicroserviceName(applicationID, environment, microserviceID)
-	if err != nil {
-		return data, errors.New("unable to find microservice")
-	}
-
-	configmapName := platformK8s.GetMicroserviceConfigFilesConfigmapName(name)
-
-	configMap, err := r.k8sDolittleRepo.GetConfigMap(applicationID, configmapName)
-	if err != nil {
-		return data, errors.New("unable to load data from configmap")
-	}
-
-	if err != nil {
-		return data, errors.New("unable to load data from configmap")
-	}
-
-	for name, value := range configMap.BinaryData {
-		data.Name = name
-		data.BinaryData = value
-	}
-
-	return data, nil
 }
 
 func (r k8sRepo) GetConfigFilesNamesList(applicationID string, environment string, microserviceID string) ([]string, error) {
