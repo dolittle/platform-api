@@ -100,7 +100,11 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 
 
 
-	validFilename, err := regexp.MatchString(`[-._a-zA-Z0-9]+`, handler.Filename)
+	validFilename, err := regexp.MatchString(`'[-._a-zA-Z0-9]+')`, handler.Filename)
+
+	fmt.Println(validFilename)
+	fmt.Println( handler.Filename)
+	fmt.Println("err", err)
 
 	if !validFilename {
 		errMsg := "UpdateConfigFiles ERROR: Invalid new file name"
