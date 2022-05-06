@@ -83,6 +83,14 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if file == nil {
+		errMsg := "UpdateConfigFiles ERROR: No file"
+		fmt.Println(errMsg)
+		utils.RespondWithError(w, http.StatusBadRequest, errMsg)
+		return
+	}
+
+
 	validFilename, err := regexp.MatchString(`[-._a-zA-Z0-9]+`, handler.Filename)
 
 	if !validFilename {
