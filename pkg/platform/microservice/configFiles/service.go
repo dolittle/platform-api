@@ -122,7 +122,6 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 	input.BinaryData = body
 	input.Name = handler.Filename
 
-	// We are onnly interested in the Data
 	err = s.configFilesRepo.AddEntryToConfigFiles(applicationID, environment, microserviceID, input)
 	if err != nil {
 		fmt.Println("UpdateConfigFiles ERROR: " + err.Error())
