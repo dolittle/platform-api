@@ -733,6 +733,15 @@ func GetMicroserviceEnvironmentVariableConfigmapName(name string) string {
 }
 
 // TODO move once resources land
+func GetMicroserviceConfigFilesConfigmapName(name string) string {
+	return strings.ToLower(
+		fmt.Sprintf("%s-config-files",
+			name,
+		),
+	)
+}
+
+// TODO move once resources land
 func GetMicroserviceEnvironmentVariableSecretName(name string) string {
 	return strings.ToLower(
 		fmt.Sprintf("%s-secret-env-variables",

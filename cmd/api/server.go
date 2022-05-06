@@ -24,6 +24,7 @@ import (
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	m3ConnectorListeners "github.com/dolittle/platform-api/pkg/platform/listeners/m3connector"
 	"github.com/dolittle/platform-api/pkg/platform/microservice"
+	"github.com/dolittle/platform-api/pkg/platform/microservice/configFiles"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/environmentVariables"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/purchaseorderapi"
 	"github.com/dolittle/platform-api/pkg/platform/studio"
@@ -142,6 +143,16 @@ var serverCMD = &cobra.Command{
 			),
 			k8sRepo,
 			logrus.WithField("context", "microservice-environment-variables-service"),
+		)
+
+		microserviceConfigFilesService := configFiles.NewService(
+			configFiles.NewConfigFilesK8sRepo(
+				k8sRepo,
+				k8sClient,
+				logrus.WithField("context", "microservice-config-files-repo"),
+			),
+			k8sRepo,
+			logrus.WithField("context", "microservice-config-files-service"),
 		)
 
 		applicationService := application.NewService(
@@ -321,6 +332,21 @@ var serverCMD = &cobra.Command{
 			"/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/environment-variables",
 			stdChainWithJSON.ThenFunc(microserviceEnvironmentVariablesService.UpdateEnvironmentVariables),
 		).Methods(http.MethodPut, http.MethodOptions)
+
+		router.Handle(
+			"/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/config-files",
+			stdChainBase.ThenFunc(microserviceConfigFilesService.UpdateConfigFiles),
+		).Methods(http.MethodPut, http.MethodOptions)
+
+		router.Handle(
+			"/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/config-files",
+			stdChainBase.ThenFunc(microserviceConfigFilesService.DeleteConfigFile),
+		).Methods(http.MethodDelete, http.MethodOptions)
+
+		router.Handle(
+			"/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/config-files/list",
+			stdChainWithJSON.ThenFunc(microserviceConfigFilesService.GetConfigFilesNamesList),
+		).Methods(http.MethodGet, http.MethodOptions)
 
 		router.Handle(
 			"/live/application/{applicationID}/pod/{podName}/logs",
