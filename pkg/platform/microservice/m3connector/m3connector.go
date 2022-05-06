@@ -59,6 +59,7 @@ func (m *M3Connector) CreateEnvironment(customerID, applicationID, environment s
 	environment = strings.ToLower(environment)
 
 	resourcePrefix := fmt.Sprintf("cust_%s.app_%s.env_%s.%s", customerID, applicationID, environment, serviceName)
+	// Aiven only allows 64 characters for the username so we do some truncating
 	shortCustomerID := strings.ReplaceAll(customerID, "-", "")[:16]
 	shortApplicationID := strings.ReplaceAll(applicationID, "-", "")[:16]
 	username := fmt.Sprintf("%s.%s.%s.%s", shortCustomerID, shortApplicationID, environment, serviceName)
@@ -102,7 +103,6 @@ func (m *M3Connector) CreateEnvironment(customerID, applicationID, environment s
 	}
 
 	logContext.Debug("created all topics and ACL's")
-
 	return nil
 }
 
