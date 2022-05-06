@@ -1,3 +1,20 @@
+# [4.8.0] - 2022-5-6 [PR: #121](https://github.com/dolittle/platform-api/pull/121)
+## Summary
+
+- Config Files support
+
+### Added
+
+- Get config files names list for microservice
+- Delete config file for microservice
+- Add entry to config file configmap for microservice
+-  validation
+
+### Changed
+
+- More descriptive error logging in some of the environment variables repo and service
+
+
 # [4.7.0] - 2022-5-5 [PR: #116](https://github.com/dolittle/platform-api/pull/116)
 # Note
 - This does not work in local development due to the container registry, we will need to document how to cheat the system
