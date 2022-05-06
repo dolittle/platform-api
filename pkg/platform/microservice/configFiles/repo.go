@@ -33,21 +33,27 @@ func NewConfigFilesK8sRepo(k8sDolittleRepo platformK8s.K8sRepo, k8sClient kubern
 func (r k8sRepo) GetConfigFilesNamesList(applicationID string, environment string, microserviceID string) ([]string, error) {
 	data := []string{}
 
+	logContext := r.logContext.WithFields(logrus.Fields{
+		"method": "GetConfigFilesNamesList",
+		"application_id": applicationID,
+		"microservice_id": microserviceID,
+		"environment": environment,
+	})
+
 	name, err := r.k8sDolittleRepo.GetMicroserviceName(applicationID, environment, microserviceID)
 	if err != nil {
-		return data, errors.New("unable to find microservice")
+		logContext.WithField("error", err).Error("unable to find microservice")
+		return data, err
 	}
 
 	configmapName := platformK8s.GetMicroserviceConfigFilesConfigmapName(name)
 
 	configMap, err := r.k8sDolittleRepo.GetConfigMap(applicationID, configmapName)
 	if err != nil {
-		return data, errors.New("unable to load data from configmap")
+		logContext.WithField("error", err).Error("unable to load data from configmap")
+		return data, err
 	}
 
-	if err != nil {
-		return data, errors.New("unable to load data from configmap")
-	}
 
 	for name := range configMap.BinaryData {
 		data = append(data, name)
@@ -97,21 +103,31 @@ func (r k8sRepo) AddEntryToConfigFiles(applicationID string, environment string,
 
 func (r k8sRepo) RemoveEntryFromConfigFiles(applicationID string, environment string, microserviceID string, key string) error {
 
+	logContext := r.logContext.WithFields(logrus.Fields{
+		"method": "GetConfigFilesNamesList",
+		"application_id": applicationID,
+		"microservice_id": microserviceID,
+		"environment": environment,
+	})
+
 	// Get name of microservice
 	name, err := r.k8sDolittleRepo.GetMicroserviceName(applicationID, environment, microserviceID)
 	if err != nil {
-		return errors.New("unable to find microservice")
+		logContext.WithField("error", err).Error("unable to find microservice")
+		return err
 	}
 
 	configmapName := platformK8s.GetMicroserviceConfigFilesConfigmapName(name)
 	configMap, err := r.k8sDolittleRepo.GetConfigMap(applicationID, configmapName)
 
 	if err != nil {
-		return errors.New("unable to load data from configmap")
+		logContext.WithField("error", err).Error("unable to load data from configmap")
+		return err
 	}
 
 	if len(configMap.BinaryData) == 0 {
-		return errors.New("no entries in configmap")
+		logContext.WithField("error", err).Error("no entries in configmap")
+		return err
 	}
 
 	delete(configMap.BinaryData, key)
@@ -120,8 +136,8 @@ func (r k8sRepo) RemoveEntryFromConfigFiles(applicationID string, environment st
 	_, err = r.k8sDolittleRepo.WriteConfigMap(configMap)
 
 	if err != nil {
-		fmt.Println(err.Error())
-		return errors.New("failed to update configmap")
+		logContext.WithField("error", err).Error("failed to update configmap")
+		return err;
 	}
 
 	return nil
