@@ -3,6 +3,7 @@ package configFiles
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -90,6 +91,14 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if strings.TrimSpace(handler.Filename) != handler.Filename {
+		errMsg := "UpdateEnvironmentVariables ERROR: No spaces allowed in config file name"
+		fmt.Println(errMsg)
+		utils.RespondWithError(w, http.StatusBadRequest, errMsg)
+		return	
+	}
+
+
 
 	validFilename, err := regexp.MatchString(`[-._a-zA-Z0-9]+`, handler.Filename)
 
@@ -167,11 +176,8 @@ func (s *service) DeleteConfigFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("INPUT KEY", input.Key)
-
 	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
 
-	fmt.Println("allowed", allowed)
 
 	if !allowed {
 		return
