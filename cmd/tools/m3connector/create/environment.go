@@ -29,6 +29,12 @@ var environmentCMD = &cobra.Command{
 			logContext.Fatal("you have to provide an Aiven api token")
 		}
 
+		project := viper.GetString("tools.m3connector.aiven.project")
+		service := viper.GetString("tools.m3connector.aiven.service")
+		if project == "" || service == "" {
+			logContext.Fatal("you have to specify both the project and the service")
+		}
+
 		customerID, _ := cmd.Flags().GetString("customer-id")
 		applicationID, _ := cmd.Flags().GetString("application-id")
 		environment, _ := cmd.Flags().GetString("environment")
@@ -41,9 +47,6 @@ var environmentCMD = &cobra.Command{
 			"application_id": applicationID,
 			"environment":    environment,
 		})
-
-		project := "dolittle-test-env"
-		service := "kafka-test-env"
 
 		aiven, err := aiven.NewClient(apiToken, project, service, logContext)
 		if err != nil {

@@ -21,4 +21,14 @@ func init() {
 	viper.BindEnv("tools.m3connector.aiven.apiToken", "AIVEN_API_TOKEN")
 	RootCMD.PersistentFlags().String("aiven-api-token", viper.GetString("tools.m3connector.aiven.apiToken"), "Aiven API token")
 	viper.BindPFlag("tools.m3connector.aiven.apiToken", RootCMD.PersistentFlags().Lookup("aiven-api-token"))
+
+	viper.SetDefault("tools.m3connector.aiven.project", "")
+	viper.BindEnv("tools.m3connector.aiven.project", "AIVEN_PROJECT")
+	RootCMD.PersistentFlags().String("aiven-project", viper.GetString("tools.m3connector.aiven.project"), "Aiven project")
+	viper.BindPFlag("tools.m3connector.aiven.project", RootCMD.PersistentFlags().Lookup("aiven-project"))
+
+	viper.SetDefault("tools.m3connector.aiven.service", "")
+	viper.BindEnv("tools.m3connector.aiven.service", "AIVEN_SERVICE")
+	RootCMD.PersistentFlags().String("aiven-service", viper.GetString("tools.m3connector.aiven.service"), "Aiven service")
+	viper.BindPFlag("tools.m3connector.aiven.service", RootCMD.PersistentFlags().Lookup("aiven-service"))
 }
