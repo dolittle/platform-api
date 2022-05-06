@@ -160,7 +160,7 @@ func (s *service) DeleteConfigFile(w http.ResponseWriter, r *http.Request) {
 
 	err = json.Unmarshal(b, &input)
 	if err != nil {
-		utils.RespondWithError(w, http.StatusUnprocessableEntity, err.Error())
+		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
