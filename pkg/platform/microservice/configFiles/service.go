@@ -176,7 +176,7 @@ func (s *service) DeleteConfigFile(w http.ResponseWriter, r *http.Request) {
 	err = s.configFilesRepo.RemoveEntryFromConfigFiles(applicationID, environment, microserviceID, input.Key)
 	if err != nil {
 		fmt.Println("DeleteConfigFile ERROR: " + err.Error())
-		utils.RespondWithError(w, http.StatusUnprocessableEntity, err.Error())
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
