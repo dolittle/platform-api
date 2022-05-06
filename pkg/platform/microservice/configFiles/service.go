@@ -6,7 +6,6 @@ import (
 	"strings"
 	"io/ioutil"
 	"net/http"
-	"regexp"
 
 	"github.com/dolittle/platform-api/pkg/platform"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
@@ -98,20 +97,6 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 		return	
 	}
 
-
-
-	validFilename, err := regexp.MatchString(`'[-._a-zA-Z0-9]+'`, handler.Filename)
-
-	fmt.Println(validFilename)
-	fmt.Println( handler.Filename)
-	fmt.Println("err", err)
-
-	if !validFilename {
-		errMsg := "UpdateConfigFiles ERROR: Invalid new file name"
-		fmt.Println(errMsg)
-		utils.RespondWithError(w, http.StatusBadRequest, errMsg)
-		return
-	}
 
 	// file size limit from header.Size()
 	if handler.Size > 3145728 {

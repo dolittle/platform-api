@@ -116,8 +116,8 @@ func (r k8sRepo) AddEntryToConfigFiles(applicationID string, environment string,
 	// Write configmap and secret
 	_, err = r.k8sDolittleRepo.WriteConfigMap(configMap)
 	if err != nil {
-		fmt.Println(err.Error())
-		return errors.New("failed to update configmap")
+		fmt.Println()
+		return errors.New("failed to update configmap: " + err.Error())
 	}
 
 	return nil
