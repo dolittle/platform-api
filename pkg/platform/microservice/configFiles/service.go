@@ -96,30 +96,30 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if file == nil {
-		errMsg := "UpdateConfigFiles ERROR: No file"
+		msg := "UpdateConfigFiles ERROR: No file"
 
-		logContext.WithField("error", err).Error(errMsg)
+		logContext.Info(msg)
 
-		utils.RespondWithError(w, http.StatusBadRequest, errMsg)
+		utils.RespondWithError(w, http.StatusBadRequest, msg)
 		return
 	}
 
 	if strings.TrimSpace(handler.Filename) != handler.Filename {
-		errMsg := "UpdateEnvironmentVariables ERROR: No spaces allowed in config file name"
+		msg := "UpdateEnvironmentVariables ERROR: No spaces allowed in config file name"
 
-		logContext.WithField("error", err).Error(errMsg)
+		logContext.Info(msg)
 
-		utils.RespondWithError(w, http.StatusBadRequest, errMsg)
+		utils.RespondWithError(w, http.StatusBadRequest, msg)
 		return
 	}
 
 	// file size limit from header.Size()
 	if handler.Size > 3145728 {
-		errMsg := "UpdateConfigFiles ERROR: File size too large"
+		msg := "UpdateConfigFiles ERROR: File size too large"
 
-		logContext.WithField("error", err).Error(errMsg)
+		logContext.Info(msg)
 
-		utils.RespondWithError(w, http.StatusBadRequest, errMsg)
+		utils.RespondWithError(w, http.StatusBadRequest, msg)
 		return
 	}
 
@@ -129,9 +129,11 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(file)
 	
 	if err != nil {
-		logContext.WithField("error", err).Error(err.Error())
+		msg := "UpdateConfigFiles ERROR: Invalid file"
 
-		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		logContext.Info(msg)
+
+		utils.RespondWithError(w, http.StatusBadRequest, "Invalid file")
 		return
 	}
 	defer r.Body.Close()
@@ -176,7 +178,7 @@ func (s *service) DeleteConfigFile(w http.ResponseWriter, r *http.Request) {
 	b, err := ioutil.ReadAll(r.Body)
 
 	if err != nil {
-		logContext.WithField("error", err).Error("DeleteConfigFile ERROR: " + err.Error())
+		logContext.Info("DeleteConfigFile ERROR: Invalid request payload")
 		
 		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
@@ -185,7 +187,7 @@ func (s *service) DeleteConfigFile(w http.ResponseWriter, r *http.Request) {
 
 	err = json.Unmarshal(b, &input)
 	if err != nil {
-		logContext.WithField("error", err).Error("DeleteConfigFile ERROR: " + err.Error())
+		logContext.Info("DeleteConfigFile BAD_REQUEST: " + err.Error())
 
 		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
@@ -194,7 +196,7 @@ func (s *service) DeleteConfigFile(w http.ResponseWriter, r *http.Request) {
 	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
 
 	if !allowed {
-		logContext.WithField("error", err).Error("DeleteConfigFile ERROR: not allowed")
+		logContext.Info("DeleteConfigFile ERROR: not allowed")
 
 		return
 	}
