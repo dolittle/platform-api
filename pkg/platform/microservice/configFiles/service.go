@@ -107,17 +107,17 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 
 	s.logContext.Info("Update config files")
 
-	var input platform.MicroserviceConfigFile
-
+	
 	body, err := ioutil.ReadAll(file)
-
+	
 	if err != nil {
 		fmt.Println("UpdateConfigFiles ERROR: " + err.Error())
 		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 	defer r.Body.Close()
-
+	
+	var input MicroserviceConfigFile
 	input.BinaryData = body
 	input.Name = handler.Filename
 

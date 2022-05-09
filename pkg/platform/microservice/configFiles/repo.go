@@ -3,7 +3,6 @@ package configFiles
 import (
 	"errors"
 
-	"github.com/dolittle/platform-api/pkg/platform"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
@@ -11,7 +10,7 @@ import (
 
 type ConfigFilesRepo interface {
 	GetConfigFilesNamesList(applicationID string, environment string, microserviceID string) ([]string, error)
-	AddEntryToConfigFiles(applicationID string, environment string, microserviceID string, data platform.MicroserviceConfigFile) error
+	AddEntryToConfigFiles(applicationID string, environment string, microserviceID string, data MicroserviceConfigFile) error
 	RemoveEntryFromConfigFiles(applicationID string, environment string, microserviceID string, key string) error
 }
 
@@ -19,6 +18,10 @@ type k8sRepo struct {
 	k8sDolittleRepo platformK8s.K8sRepo
 	k8sClient       kubernetes.Interface
 	logContext      logrus.FieldLogger
+}
+type   struct {
+	Name       string `json:"name"`
+	BinaryData []byte `json:"value"`
 }
 
 func NewConfigFilesK8sRepo(k8sDolittleRepo platformK8s.K8sRepo, k8sClient kubernetes.Interface, logContext logrus.FieldLogger) k8sRepo {
@@ -60,7 +63,7 @@ func (r k8sRepo) GetConfigFilesNamesList(applicationID string, environment strin
 	return data, nil
 }
 
-func (r k8sRepo) AddEntryToConfigFiles(applicationID string, environment string, microserviceID string, data platform.MicroserviceConfigFile) error {
+func (r k8sRepo) AddEntryToConfigFiles(applicationID string, environment string, microserviceID string, data MicroserviceConfigFile) error {
 
 	// Get name of microservice
 	name, err := r.k8sDolittleRepo.GetMicroserviceName(applicationID, environment, microserviceID)
