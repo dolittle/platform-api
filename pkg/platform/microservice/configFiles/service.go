@@ -207,7 +207,6 @@ func (s *service) DeleteConfigFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// move this down
 	response := platform.HttpResponseDeleteConfigFile{
 		ApplicationID:  applicationID,
 		Environment:    environment,
