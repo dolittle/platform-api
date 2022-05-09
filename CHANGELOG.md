@@ -6,8 +6,14 @@
 ### Added
 
 - Get config files names list for microservice
+  - /live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/config-files/list
+    - GET
 - Delete config file for microservice
+  - /live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/config-files
+    - DELETE
 - Add entry to config file configmap for microservice
+  - /live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/config-files
+    - PUT
 -  validation
 
 ### Changed
