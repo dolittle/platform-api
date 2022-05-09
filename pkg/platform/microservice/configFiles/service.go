@@ -49,25 +49,20 @@ func (s *service) GetConfigFilesNamesList(w http.ResponseWriter, r *http.Request
 
 		return
 	}
-
-	response := platform.HttpResponseConfigFilesNamesList{
-		ApplicationID:  applicationID,
-		Environment:    environment,
-		MicroserviceID: microserviceID,
-		Data:           []string{},
-	}
-
+	
 	data, err := s.configFilesRepo.GetConfigFilesNamesList(applicationID, environment, microserviceID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-
-	for _, name := range data {
-		response.Data = append(response.Data, name)
+	
+	response := platform.HttpResponseConfigFilesNamesList{
+		ApplicationID:  applicationID,
+		Environment:    environment,
+		MicroserviceID: microserviceID,
+		Data:           data,
 	}
 
-	response.Data = data
 	utils.RespondWithJSON(w, http.StatusOK, response)
 }
 
