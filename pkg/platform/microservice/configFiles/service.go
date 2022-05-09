@@ -124,12 +124,10 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 
 	err = s.configFilesRepo.AddEntryToConfigFiles(applicationID, environment, microserviceID, input)
 	if err != nil {
-		fmt.Println("UpdateConfigFiles ERROR: " + err.Error())
 		utils.RespondWithError(w, http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 
-	// move this down
 	response := platform.HttpResponseConfigFilesNamesList{
 		ApplicationID:  applicationID,
 		Environment:    environment,

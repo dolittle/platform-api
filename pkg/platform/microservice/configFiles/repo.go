@@ -2,7 +2,6 @@ package configFiles
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/dolittle/platform-api/pkg/platform"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
@@ -70,6 +69,14 @@ func (r k8sRepo) AddEntryToConfigFiles(applicationID string, environment string,
 		return errors.New("unable to find microservice")
 	}
 
+	logContext := r.logContext.WithFields(logrus.Fields{
+		"method": "GetConfigFilesNamesList",
+		"application_id": applicationID,
+		"microservice_id": microserviceID,
+		"environment": environment,
+	})
+
+
 	configmapName := platformK8s.GetMicroserviceConfigFilesConfigmapName(name)
 	configMap, err := r.k8sDolittleRepo.GetConfigMap(applicationID, configmapName)
 
@@ -82,7 +89,8 @@ func (r k8sRepo) AddEntryToConfigFiles(applicationID string, environment string,
 	}
 
 	if err != nil {
-		return errors.New("unable to load data from configmap")
+		logContext.WithField("error", err).Error("unable to load data from configmap")
+		return errors.New("unable to load data from configmap: " + err.Error())
 	}
 
 	// TODO would be nice to use a resource (application-namespace branch)
@@ -94,7 +102,7 @@ func (r k8sRepo) AddEntryToConfigFiles(applicationID string, environment string,
 	// Write configmap and secret
 	_, err = r.k8sDolittleRepo.WriteConfigMap(configMap)
 	if err != nil {
-		fmt.Println()
+		logContext.WithField("error", err).Error("failed to update configmap")
 		return errors.New("failed to update configmap: " + err.Error())
 	}
 
