@@ -19,7 +19,7 @@ type k8sRepo struct {
 	k8sClient       kubernetes.Interface
 	logContext      logrus.FieldLogger
 }
-type   struct {
+type MicroserviceConfigFile struct {
 	Name       string `json:"name"`
 	BinaryData []byte `json:"value"`
 }

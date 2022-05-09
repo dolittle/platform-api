@@ -36,10 +36,16 @@ func (s *service) GetConfigFilesNamesList(w http.ResponseWriter, r *http.Request
 	userID := r.Header.Get("User-ID")
 	customerID := r.Header.Get("Tenant-ID")
 
-
+	logContext := s.logContext.WithFields(logrus.Fields{
+		"method":          "UpdateConfigFiles",
+		"application_id":  applicationID,
+		"microservice_id": microserviceID,
+		"environment":     environment,
+	})
+	
 	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
 	if !allowed {
-		s.logContext.Info("UpdateConfigFiles: not allowed ")
+		logContext.Info("UpdateConfigFiles: not allowed ")
 
 		return
 	}
@@ -74,6 +80,13 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 
 	userID := r.Header.Get("User-ID")
 	customerID := r.Header.Get("Tenant-ID")
+	
+	logContext := s.logContext.WithFields(logrus.Fields{
+		"method":          "UpdateConfigFiles",
+		"application_id":  applicationID,
+		"microservice_id": microserviceID,
+		"environment":     environment,
+	})
 
 	r.ParseForm()
 
@@ -82,7 +95,7 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
 
 	if !allowed {
-		s.logContext.Info("UpdateConfigFiles: not allowed ")
+		logContext.Info("UpdateConfigFiles: not allowed ")
 
 		return
 	}
@@ -90,7 +103,7 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 	if file == nil {
 		errMsg := "UpdateConfigFiles ERROR: No file"
 
-		s.logContext.WithField("error", err).Error(errMsg)
+		logContext.WithField("error", err).Error(errMsg)
 
 		utils.RespondWithError(w, http.StatusBadRequest, errMsg)
 		return
@@ -99,7 +112,7 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 	if strings.TrimSpace(handler.Filename) != handler.Filename {
 		errMsg := "UpdateEnvironmentVariables ERROR: No spaces allowed in config file name"
 
-		s.logContext.WithField("error", err).Error(errMsg)
+		logContext.WithField("error", err).Error(errMsg)
 
 		utils.RespondWithError(w, http.StatusBadRequest, errMsg)
 		return
@@ -109,7 +122,7 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 	if handler.Size > 3145728 {
 		errMsg := "UpdateConfigFiles ERROR: File size too large"
 
-		s.logContext.WithField("error", err).Error(errMsg)
+		logContext.WithField("error", err).Error(errMsg)
 
 		utils.RespondWithError(w, http.StatusBadRequest, errMsg)
 		return
@@ -121,7 +134,7 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(file)
 	
 	if err != nil {
-		s.logContext.WithField("error", err).Error(err.Error())
+		logContext.WithField("error", err).Error(err.Error())
 
 		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
@@ -156,12 +169,19 @@ func (s *service) DeleteConfigFile(w http.ResponseWriter, r *http.Request) {
 
 	userID := r.Header.Get("User-ID")
 	customerID := r.Header.Get("Tenant-ID")
+	
+	logContext := s.logContext.WithFields(logrus.Fields{
+		"method":          "DeleteConfigFile",
+		"application_id":  applicationID,
+		"microservice_id": microserviceID,
+		"environment":     environment,
+	})
 
 	var input platform.HttpRequestDeleteConfigFile
 	b, err := ioutil.ReadAll(r.Body)
 
 	if err != nil {
-		s.logContext.WithField("error", err).Error("DeleteConfigFile ERROR: " + err.Error())
+		logContext.WithField("error", err).Error("DeleteConfigFile ERROR: " + err.Error())
 		
 		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
@@ -170,7 +190,7 @@ func (s *service) DeleteConfigFile(w http.ResponseWriter, r *http.Request) {
 
 	err = json.Unmarshal(b, &input)
 	if err != nil {
-		s.logContext.WithField("error", err).Error("DeleteConfigFile ERROR: " + err.Error())
+		logContext.WithField("error", err).Error("DeleteConfigFile ERROR: " + err.Error())
 
 		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
@@ -179,12 +199,12 @@ func (s *service) DeleteConfigFile(w http.ResponseWriter, r *http.Request) {
 	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
 
 	if !allowed {
-		s.logContext.WithField("error", err).Error("DeleteConfigFile ERROR: not allowed")
+		logContext.WithField("error", err).Error("DeleteConfigFile ERROR: not allowed")
 
 		return
 	}
 
-	s.logContext.Info("Update config files")
+	logContext.Info("Update config files")
 
 	err = s.configFilesRepo.RemoveEntryFromConfigFiles(applicationID, environment, microserviceID, input.Key)
 	if err != nil {
