@@ -381,7 +381,7 @@ type StudioEnvironmentVariable struct {
 	IsSecret bool   `json:"isSecret"`
 }
 
-type StudioConfigFile struct {
+type MicroserviceConfigFile struct {
 	Name       string `json:"name"`
 	BinaryData []byte `json:"value"`
 }

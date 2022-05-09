@@ -11,7 +11,7 @@ import (
 
 type ConfigFilesRepo interface {
 	GetConfigFilesNamesList(applicationID string, environment string, microserviceID string) ([]string, error)
-	AddEntryToConfigFiles(applicationID string, environment string, microserviceID string, data platform.StudioConfigFile) error
+	AddEntryToConfigFiles(applicationID string, environment string, microserviceID string, data platform.MicroserviceConfigFile) error
 	RemoveEntryFromConfigFiles(applicationID string, environment string, microserviceID string, key string) error
 }
 
@@ -33,10 +33,10 @@ func (r k8sRepo) GetConfigFilesNamesList(applicationID string, environment strin
 	data := []string{}
 
 	logContext := r.logContext.WithFields(logrus.Fields{
-		"method": "GetConfigFilesNamesList",
-		"application_id": applicationID,
+		"method":          "GetConfigFilesNamesList",
+		"application_id":  applicationID,
 		"microservice_id": microserviceID,
-		"environment": environment,
+		"environment":     environment,
 	})
 
 	name, err := r.k8sDolittleRepo.GetMicroserviceName(applicationID, environment, microserviceID)
@@ -53,7 +53,6 @@ func (r k8sRepo) GetConfigFilesNamesList(applicationID string, environment strin
 		return data, err
 	}
 
-
 	for name := range configMap.BinaryData {
 		data = append(data, name)
 	}
@@ -61,7 +60,7 @@ func (r k8sRepo) GetConfigFilesNamesList(applicationID string, environment strin
 	return data, nil
 }
 
-func (r k8sRepo) AddEntryToConfigFiles(applicationID string, environment string, microserviceID string, data platform.StudioConfigFile) error {
+func (r k8sRepo) AddEntryToConfigFiles(applicationID string, environment string, microserviceID string, data platform.MicroserviceConfigFile) error {
 
 	// Get name of microservice
 	name, err := r.k8sDolittleRepo.GetMicroserviceName(applicationID, environment, microserviceID)
@@ -70,12 +69,11 @@ func (r k8sRepo) AddEntryToConfigFiles(applicationID string, environment string,
 	}
 
 	logContext := r.logContext.WithFields(logrus.Fields{
-		"method": "GetConfigFilesNamesList",
-		"application_id": applicationID,
+		"method":          "GetConfigFilesNamesList",
+		"application_id":  applicationID,
 		"microservice_id": microserviceID,
-		"environment": environment,
+		"environment":     environment,
 	})
-
 
 	configmapName := platformK8s.GetMicroserviceConfigFilesConfigmapName(name)
 	configMap, err := r.k8sDolittleRepo.GetConfigMap(applicationID, configmapName)
@@ -112,10 +110,10 @@ func (r k8sRepo) AddEntryToConfigFiles(applicationID string, environment string,
 func (r k8sRepo) RemoveEntryFromConfigFiles(applicationID string, environment string, microserviceID string, key string) error {
 
 	logContext := r.logContext.WithFields(logrus.Fields{
-		"method": "GetConfigFilesNamesList",
-		"application_id": applicationID,
+		"method":          "GetConfigFilesNamesList",
+		"application_id":  applicationID,
 		"microservice_id": microserviceID,
-		"environment": environment,
+		"environment":     environment,
 	})
 
 	// Get name of microservice
@@ -145,7 +143,7 @@ func (r k8sRepo) RemoveEntryFromConfigFiles(applicationID string, environment st
 
 	if err != nil {
 		logContext.WithField("error", err).Error("failed to update configmap")
-		return err;
+		return err
 	}
 
 	return nil

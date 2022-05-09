@@ -3,9 +3,9 @@ package configFiles
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/dolittle/platform-api/pkg/platform"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
@@ -94,9 +94,8 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 		errMsg := "UpdateEnvironmentVariables ERROR: No spaces allowed in config file name"
 		fmt.Println(errMsg)
 		utils.RespondWithError(w, http.StatusBadRequest, errMsg)
-		return	
+		return
 	}
-
 
 	// file size limit from header.Size()
 	if handler.Size > 3145728 {
@@ -108,7 +107,7 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 
 	s.logContext.Info("Update config files")
 
-	var input platform.StudioConfigFile
+	var input platform.MicroserviceConfigFile
 
 	body, err := ioutil.ReadAll(file)
 
@@ -163,7 +162,6 @@ func (s *service) DeleteConfigFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
-
 
 	if !allowed {
 		return
