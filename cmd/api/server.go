@@ -149,7 +149,7 @@ var serverCMD = &cobra.Command{
 			configFiles.NewConfigFilesK8sRepo(
 				k8sRepo,
 				k8sClient,
-				logrus.WithField("context", "microservice-config-files-service"),
+				logrus.WithField("context", "microservice-config-files-repo"),
 			),
 			k8sRepo,
 			logrus.WithField("context", "microservice-config-files-service"),
