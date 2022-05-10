@@ -1,3 +1,15 @@
+# [4.8.1] - 2022-5-10 [PR: #125](https://github.com/dolittle/platform-api/pull/125)
+## Summary
+
+Resolved remaining comments of [PR 121](https://github.com/dolittle/platform-api/pull/121)
+
+### Changed
+
+- use logcontext
+- log as info for validation messages
+- refactoring based on [comments](https://github.com/dolittle/platform-api/pull/121)
+
+
 # [4.8.0] - 2022-5-6 [PR: #121](https://github.com/dolittle/platform-api/pull/121)
 ## Summary
 
