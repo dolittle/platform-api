@@ -381,10 +381,6 @@ type StudioEnvironmentVariable struct {
 	IsSecret bool   `json:"isSecret"`
 }
 
-type StudioConfigFile struct {
-	Name       string `json:"name"`
-	BinaryData []byte `json:"value"`
-}
 type HttpResponseEnvironmentVariables struct {
 	ApplicationID  string                      `json:"applicationId"`
 	MicroserviceID string                      `json:"microserviceId"`
@@ -395,21 +391,21 @@ type HttpResponseConfigFilesNamesList struct {
 	ApplicationID  string   `json:"applicationId"`
 	MicroserviceID string   `json:"microserviceId"`
 	Environment    string   `json:"environment"`
-	Data           []string `json:"data"` //: this will need to be retrofitted
+	Data           []string `json:"data"`
 }
 
 type HttpResponseDeleteConfigFile struct {
 	ApplicationID  string `json:"applicationId"`
 	MicroserviceID string `json:"microserviceId"`
 	Environment    string `json:"environment"`
-	Success        bool   `json:"success"` //: this will need to be retrofitted
+	Success        bool   `json:"success"`
 }
 
 type HttpRequestDeleteConfigFile struct {
 	ApplicationID  string `json:"applicationId"`
 	MicroserviceID string `json:"microserviceId"`
 	Environment    string `json:"environment"`
-	Key            string `json:"key"` //: this will need to be retrofitted
+	Key            string `json:"key"`
 }
 
 type MicroserviceMetadataShortInfo struct {
