@@ -37,7 +37,7 @@ func (s *service) GetConfigFilesNamesList(w http.ResponseWriter, r *http.Request
 	customerID := r.Header.Get("Tenant-ID")
 
 	logContext := s.logContext.WithFields(logrus.Fields{
-		"method":          "UpdateConfigFiles",
+		"method":          "GetConfigFilesNamesList",
 		"application_id":  applicationID,
 		"microservice_id": microserviceID,
 		"environment":     environment,
