@@ -133,7 +133,7 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 
 		logContext.Info(msg)
 
-		utils.RespondWithError(w, http.StatusBadRequest, "Invalid file")
+		utils.RespondWithError(w, http.StatusBadRequest, msg)
 		return
 	}
 	defer r.Body.Close()
