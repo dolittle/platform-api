@@ -72,7 +72,7 @@ func (r k8sRepo) AddEntryToConfigFiles(applicationID string, environment string,
 	}
 
 	logContext := r.logContext.WithFields(logrus.Fields{
-		"method":          "GetConfigFilesNamesList",
+		"method":          "AddEntryToConfigFiles",
 		"application_id":  applicationID,
 		"microservice_id": microserviceID,
 		"environment":     environment,
