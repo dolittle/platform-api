@@ -113,7 +113,7 @@ func (r k8sRepo) AddEntryToConfigFiles(applicationID string, environment string,
 func (r k8sRepo) RemoveEntryFromConfigFiles(applicationID string, environment string, microserviceID string, key string) error {
 
 	logContext := r.logContext.WithFields(logrus.Fields{
-		"method":          "GetConfigFilesNamesList",
+		"method":          "RemoveEntryFromConfigFiles",
 		"application_id":  applicationID,
 		"microservice_id": microserviceID,
 		"environment":     environment,
