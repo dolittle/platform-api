@@ -9,7 +9,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/mock"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/testing"
@@ -61,7 +60,7 @@ var _ = Describe("M3connector", func() {
 			mockKafka.On(
 				"CreateUser",
 				username,
-			).Return(nil)
+			).Return("", "", nil)
 
 			mockKafka.On(
 				"CreateTopic",
@@ -85,7 +84,7 @@ var _ = Describe("M3connector", func() {
 			mockKafka.On(
 				"CreateUser",
 				username,
-			).Return(errors.New("test error"))
+			).Return("", "", errors.New("test error"))
 
 			err := connector.CreateEnvironment(customer, application, environment)
 			Expect(err).ToNot(BeNil())
@@ -103,7 +102,7 @@ var _ = Describe("M3connector", func() {
 				On(
 					"CreateUser",
 					mock.Anything,
-				).Return(nil).
+				).Return("", "", nil).
 				On(
 					"CreateTopic",
 					changeTopic,
@@ -144,7 +143,7 @@ var _ = Describe("M3connector", func() {
 				On(
 					"CreateUser",
 					mock.Anything,
-				).Return(nil).
+				).Return("", "", nil).
 				On(
 					"CreateTopic",
 					changeTopic,
@@ -168,7 +167,7 @@ var _ = Describe("M3connector", func() {
 				On(
 					"CreateUser",
 					mock.Anything,
-				).Return(nil)
+				).Return("", "", nil)
 			mockKafka.On(
 				"CreateTopic",
 				mock.Anything,
@@ -214,7 +213,7 @@ var _ = Describe("M3connector", func() {
 				On(
 					"CreateUser",
 					mock.Anything,
-				).Return(nil).
+				).Return("", "", nil).
 				On(
 					"CreateTopic",
 					changeTopic,
@@ -245,7 +244,7 @@ var _ = Describe("M3connector", func() {
 			mockKafka.On(
 				"CreateUser",
 				username,
-			).Return(nil)
+			).Return("", "", nil)
 
 			mockKafka.
 				On(
@@ -305,13 +304,13 @@ var _ = Describe("M3connector", func() {
 		})
 
 		When("writing the credentials and config to the kafka-files configmap", func() {
-			It("should create the confimap if it doesn't exist", func() {
+			It("should create the configmap if it doesn't exist", func() {
 
 				mockKafka.
 					On(
 						"CreateUser",
 						mock.Anything,
-					).Return(nil).
+					).Return("", "", nil).
 					On(
 						"CreateTopic",
 						mock.Anything,
@@ -333,9 +332,9 @@ var _ = Describe("M3connector", func() {
 					originalObj := createAction.GetObject()
 					configMap := originalObj.(*corev1.ConfigMap)
 
-					Expect(configMap.Data["accessKey.pem"]).To(Equal())
+					Expect(configMap.Data["accessKey.pem"]).To(Equal(""))
 
-					return true, nil, nil
+					return true, configMap, nil
 				})
 
 				err := connector.CreateEnvironment(customer, application, environment)
