@@ -67,7 +67,7 @@ func (r k8sRepo) GetConfigFilesNamesList(applicationID string, environment strin
 		data = append(data, name)
 	}
 
-	logContext.Infof("found %s config files", len(data))
+	logContext.Infof("found %d config files", len(data))
 
 	return data, nil
 }
