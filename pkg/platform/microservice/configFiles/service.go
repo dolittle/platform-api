@@ -42,20 +42,20 @@ func (s *service) GetConfigFilesNamesList(w http.ResponseWriter, r *http.Request
 		"microservice_id": microserviceID,
 		"environment":     environment,
 	})
-	
+
 	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
 	if !allowed {
 		logContext.Info("UpdateConfigFiles: not allowed ")
 
 		return
 	}
-	
+
 	data, err := s.configFilesRepo.GetConfigFilesNamesList(applicationID, environment, microserviceID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	
+
 	response := platform.HttpResponseConfigFilesNamesList{
 		ApplicationID:  applicationID,
 		Environment:    environment,
@@ -75,7 +75,7 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 
 	userID := r.Header.Get("User-ID")
 	customerID := r.Header.Get("Tenant-ID")
-	
+
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"method":          "UpdateConfigFiles",
 		"application_id":  applicationID,
@@ -125,9 +125,8 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 
 	s.logContext.Info("Update config files")
 
-	
 	body, err := ioutil.ReadAll(file)
-	
+
 	if err != nil {
 		msg := "UpdateConfigFiles ERROR: Invalid file"
 
@@ -137,9 +136,9 @@ func (s *service) UpdateConfigFiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
-	
+
 	var input MicroserviceConfigFile
-	input.BinaryData = body
+	input.Value = body
 	input.Name = handler.Filename
 
 	err = s.configFilesRepo.AddEntryToConfigFiles(applicationID, environment, microserviceID, input)
@@ -166,7 +165,7 @@ func (s *service) DeleteConfigFile(w http.ResponseWriter, r *http.Request) {
 
 	userID := r.Header.Get("User-ID")
 	customerID := r.Header.Get("Tenant-ID")
-	
+
 	logContext := s.logContext.WithFields(logrus.Fields{
 		"method":          "DeleteConfigFile",
 		"application_id":  applicationID,
@@ -179,7 +178,7 @@ func (s *service) DeleteConfigFile(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logContext.Info("DeleteConfigFile ERROR: Invalid request payload")
-		
+
 		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}

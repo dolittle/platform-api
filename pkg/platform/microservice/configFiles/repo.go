@@ -3,6 +3,8 @@ package configFiles
 import (
 	"errors"
 
+	"unicode/utf8"
+
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
@@ -20,8 +22,8 @@ type k8sRepo struct {
 	logContext      logrus.FieldLogger
 }
 type MicroserviceConfigFile struct {
-	Name       string `json:"name"`
-	BinaryData []byte `json:"value"`
+	Name  string `json:"name"`
+	Value []byte `json:"value"`
 }
 
 func NewConfigFilesK8sRepo(k8sDolittleRepo platformK8s.K8sRepo, k8sClient kubernetes.Interface, logContext logrus.FieldLogger) k8sRepo {
@@ -41,6 +43,7 @@ func (r k8sRepo) GetConfigFilesNamesList(applicationID string, environment strin
 		"microservice_id": microserviceID,
 		"environment":     environment,
 	})
+	logContext.Info("getting config files names list")
 
 	name, err := r.k8sDolittleRepo.GetMicroserviceName(applicationID, environment, microserviceID)
 	if err != nil {
@@ -60,11 +63,16 @@ func (r k8sRepo) GetConfigFilesNamesList(applicationID string, environment strin
 		data = append(data, name)
 	}
 
+	for name := range configMap.Data {
+		data = append(data, name)
+	}
+
+	logContext.Infof("found %d config files", len(data))
+
 	return data, nil
 }
 
 func (r k8sRepo) AddEntryToConfigFiles(applicationID string, environment string, microserviceID string, data MicroserviceConfigFile) error {
-
 	// Get name of microservice
 	name, err := r.k8sDolittleRepo.GetMicroserviceName(applicationID, environment, microserviceID)
 	if err != nil {
@@ -80,6 +88,10 @@ func (r k8sRepo) AddEntryToConfigFiles(applicationID string, environment string,
 
 	configmapName := platformK8s.GetMicroserviceConfigFilesConfigmapName(name)
 	configMap, err := r.k8sDolittleRepo.GetConfigMap(applicationID, configmapName)
+	if err != nil {
+		logContext.WithField("error", err).Error("unable to load data from configmap")
+		return errors.New("unable to load data from configmap: " + err.Error())
+	}
 
 	if len(configMap.Data) == 0 {
 		configMap.Data = map[string]string{}
@@ -89,16 +101,12 @@ func (r k8sRepo) AddEntryToConfigFiles(applicationID string, environment string,
 		configMap.BinaryData = map[string][]byte{}
 	}
 
-	if err != nil {
-		logContext.WithField("error", err).Error("unable to load data from configmap")
-		return errors.New("unable to load data from configmap: " + err.Error())
+	if utf8.Valid(data.Value) {
+		configMap.Data[data.Name] = string(data.Value)
+	} else {
+		configMap.BinaryData[data.Name] = data.Value
+
 	}
-
-	// TODO would be nice to use a resource (application-namespace branch)
-	//r.k8sDolittleRepo.WriteConfigMap
-	// Update data
-
-	configMap.BinaryData[data.Name] = data.BinaryData
 
 	// Write configmap and secret
 	_, err = r.k8sDolittleRepo.WriteConfigMap(configMap)
