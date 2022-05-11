@@ -148,7 +148,7 @@ var _ = Describe("Repo", func() {
 							Name: getAction.GetName(),
 						},
 						BinaryData: map[string][]byte{
-							binaryFile: []byte{0xff, 0xfe, 0xfd},
+							binaryFile: {0xff, 0xfe, 0xfd},
 						},
 						Data: map[string]string{
 							dataFile: "i just be data",
