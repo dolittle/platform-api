@@ -43,6 +43,7 @@ func (r k8sRepo) GetConfigFilesNamesList(applicationID string, environment strin
 		"microservice_id": microserviceID,
 		"environment":     environment,
 	})
+	logContext.Info("getting config files names list")
 
 	name, err := r.k8sDolittleRepo.GetMicroserviceName(applicationID, environment, microserviceID)
 	if err != nil {
@@ -65,6 +66,8 @@ func (r k8sRepo) GetConfigFilesNamesList(applicationID string, environment strin
 	for name := range configMap.Data {
 		data = append(data, name)
 	}
+
+	logContext.Infof("found %s config files", len(data))
 
 	return data, nil
 }
