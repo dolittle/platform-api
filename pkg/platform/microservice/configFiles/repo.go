@@ -70,7 +70,6 @@ func (r k8sRepo) GetConfigFilesNamesList(applicationID string, environment strin
 }
 
 func (r k8sRepo) AddEntryToConfigFiles(applicationID string, environment string, microserviceID string, data MicroserviceConfigFile) error {
-
 	// Get name of microservice
 	name, err := r.k8sDolittleRepo.GetMicroserviceName(applicationID, environment, microserviceID)
 	if err != nil {
@@ -105,10 +104,6 @@ func (r k8sRepo) AddEntryToConfigFiles(applicationID string, environment string,
 		configMap.BinaryData[data.Name] = data.Value
 
 	}
-
-	// TODO would be nice to use a resource (application-namespace branch)
-	//r.k8sDolittleRepo.WriteConfigMap
-	// Update data
 
 	// Write configmap and secret
 	_, err = r.k8sDolittleRepo.WriteConfigMap(configMap)
