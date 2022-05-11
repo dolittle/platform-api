@@ -1,3 +1,13 @@
+# [4.8.2] - 2022-5-11 [PR: #126](https://github.com/dolittle/platform-api/pull/126)
+## Summary
+
+- Fixes a bug with only the `binaryData` property for config files configmaps being used for fetching config files filenames.
+- Adds support for both utf8 & non-utf8 files being uploaded as the configs. If the code detects that the incoming config file isn't valid utf8 it's going to get saved to the `binaryData` property. Otherwise it's saved to `data`.
+
+## Reference
+- https://app.asana.com/0/1202121266838773/1202244401000776
+
+
 # [4.8.1] - 2022-5-10 [PR: #125](https://github.com/dolittle/platform-api/pull/125)
 ## Summary
 
