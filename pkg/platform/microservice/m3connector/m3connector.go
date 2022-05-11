@@ -16,7 +16,8 @@ type M3Connector struct {
 
 type KafkaProvider interface {
 	CreateTopic(topic string, retentionMs int64) error
-	CreateUser(username string) error
+	// Create's a Kafka "user" and returns the access certificate and access key if successful
+	CreateUser(username string) (certificate string, key string, err error)
 	AddACL(topic string, username string, permission string) error
 }
 
@@ -71,7 +72,7 @@ func (m *M3Connector) CreateEnvironment(customerID, applicationID, environment s
 		"username":       username,
 	})
 
-	err := m.kafka.CreateUser(username)
+	_, _, err := m.kafka.CreateUser(username)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,

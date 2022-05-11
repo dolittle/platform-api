@@ -8,6 +8,11 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/mock"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/testing"
 
 	"github.com/dolittle/platform-api/pkg/platform/microservice/m3connector"
 
@@ -24,6 +29,7 @@ var _ = Describe("M3connector", func() {
 		environment    string
 		resourcePrefix string
 		username       string
+		clientSet      *fake.Clientset
 	)
 	BeforeEach(func() {
 		logger, _ := logrusTest.NewNullLogger()
@@ -37,7 +43,7 @@ var _ = Describe("M3connector", func() {
 		shortApplication := "e0f6a2a4c1364a56"
 		username = fmt.Sprintf("%s.%s.%s.m3connector", shortCustomer, shortApplication, environment)
 	})
-	Describe("Creating a new environmet", func() {
+	Describe("Creating a new environment", func() {
 		It("should fail without a customer", func() {
 			err := connector.CreateEnvironment("", application, environment)
 			Expect(err).ToNot(BeNil())
@@ -297,5 +303,47 @@ var _ = Describe("M3connector", func() {
 			Expect(err).To(BeNil())
 			mock.AssertExpectationsForObjects(GinkgoT(), mockKafka)
 		})
+
+		When("writing the credentials and config to the kafka-files configmap", func() {
+			It("should create the confimap if it doesn't exist", func() {
+
+				mockKafka.
+					On(
+						"CreateUser",
+						mock.Anything,
+					).Return(nil).
+					On(
+						"CreateTopic",
+						mock.Anything,
+						mock.Anything,
+					).Return(nil).
+					On(
+						"AddACL",
+						mock.Anything,
+						mock.Anything,
+						mock.Anything,
+					).Return(nil)
+
+				// make the get return no configmap, simulating a missing configmap
+				clientSet.AddReactor("get", "configmaps", func(action testing.Action) (bool, runtime.Object, error) {
+					return true, nil, nil
+				})
+				clientSet.AddReactor("create", "configmaps", func(action testing.Action) (bool, runtime.Object, error) {
+					createAction := action.(testing.CreateAction)
+					originalObj := createAction.GetObject()
+					configMap := originalObj.(*corev1.ConfigMap)
+
+					Expect(configMap.Data["accessKey.pem"]).To(Equal())
+
+					return true, nil, nil
+				})
+
+				err := connector.CreateEnvironment(customer, application, environment)
+				Expect(err).To(BeNil())
+				mock.AssertExpectationsForObjects(GinkgoT(), mockKafka)
+			})
+
+		})
+
 	})
 })

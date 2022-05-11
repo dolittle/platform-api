@@ -35,7 +35,7 @@ func NewClient(apiToken, project, service string, logger logrus.FieldLogger) (*C
 	}, nil
 }
 
-func (c *Client) CreateUser(username string) error {
+func (c *Client) CreateUser(username string) (string, string, error) {
 	logContext := c.logContext.WithFields(logrus.Fields{
 		"method":   "CreateUser",
 		"username": username,
@@ -45,13 +45,13 @@ func (c *Client) CreateUser(username string) error {
 		Username: username,
 	}
 
-	_, err := c.client.ServiceUsers.Create(c.project, c.service, userRequest)
+	serviceUser, err := c.client.ServiceUsers.Create(c.project, c.service, userRequest)
 	if err != nil {
 		logContext.WithField("error", err).Error("failed to create the service user")
-		return err
+		return "", "", err
 	}
 	logContext.Debug("created the service user")
-	return err
+	return serviceUser.AccessCert, serviceUser.AccessKey, err
 }
 
 func (c *Client) AddACL(topic string, username string, permission string) error {
