@@ -136,18 +136,13 @@ func (r k8sRepo) RemoveEntryFromConfigFiles(applicationID string, environment st
 
 	configmapName := platformK8s.GetMicroserviceConfigFilesConfigmapName(name)
 	configMap, err := r.k8sDolittleRepo.GetConfigMap(applicationID, configmapName)
-
 	if err != nil {
 		logContext.WithField("error", err).Error("unable to load data from configmap")
 		return err
 	}
 
-	if len(configMap.BinaryData) == 0 {
-		logContext.WithField("error", err).Error("no entries in configmap")
-		return err
-	}
-
 	delete(configMap.BinaryData, key)
+	delete(configMap.Data, key)
 
 	// Write configmap and secret
 	_, err = r.k8sDolittleRepo.WriteConfigMap(configMap)
