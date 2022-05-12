@@ -159,10 +159,79 @@ var _ = Describe("Repo", func() {
 
 				files, err := repo.GetConfigFilesNamesList(applicationID, environment, microserviceID)
 				Expect(err).To(BeNil())
-
 				Expect(files).ToNot(BeEmpty())
 				Expect(files).To(ConsistOf(binaryFile, dataFile))
 			})
 		})
+	})
+
+	Describe("deleting an entry from config files", func() {
+		It("should delete the entry from the binaryData property", func() {
+			fileToDelete := "binary-file"
+			fileToKeep := "second-binary-file"
+
+			clientSet.AddReactor("get", "configmaps", func(action testing.Action) (handled bool, ret runtime.Object, err error) {
+				getAction := action.(testing.GetAction)
+				configMap := &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: getAction.GetName(),
+					},
+					BinaryData: map[string][]byte{
+						fileToDelete: {0xfe, 0xfe, 0xfd},
+						fileToKeep:   {0xff, 0xff, 0xff},
+					},
+				}
+				return true, configMap, nil
+			})
+
+			clientSet.AddReactor("update", "configmaps", func(action testing.Action) (handled bool, ret runtime.Object, err error) {
+				updateAction := action.(testing.UpdateAction)
+				originalObj := updateAction.GetObject()
+				configMap := originalObj.(*corev1.ConfigMap)
+
+				Expect(configMap.BinaryData[fileToKeep]).ToNot(BeNil())
+				Expect(configMap.BinaryData[fileToDelete]).To(BeNil())
+
+				return true, configMap, nil
+			})
+
+			err := repo.RemoveEntryFromConfigFiles(applicationID, environment, microserviceID, fileToDelete)
+			Expect(err).To(BeNil())
+		})
+		It("should delete the entry from the data property", func() {
+			fileToDelete := "data-file"
+			fileToKeep := "second-data-file"
+
+			clientSet.AddReactor("get", "configmaps", func(action testing.Action) (handled bool, ret runtime.Object, err error) {
+				getAction := action.(testing.GetAction)
+				configMap := &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: getAction.GetName(),
+					},
+					Data: map[string]string{
+						fileToDelete: "im going to be deleted",
+						fileToKeep:   "hähä i won't >:D",
+					},
+				}
+
+				return true, configMap, nil
+			})
+
+			clientSet.AddReactor("update", "configmaps", func(action testing.Action) (handled bool, ret runtime.Object, err error) {
+				updateAction := action.(testing.UpdateAction)
+				originalObj := updateAction.GetObject()
+				configMap := originalObj.(*corev1.ConfigMap)
+
+				Expect(configMap.Data[fileToKeep]).ToNot(BeEmpty())
+				Expect(configMap.Data[fileToDelete]).To(BeEmpty())
+
+				return true, configMap, nil
+			})
+
+			err := repo.RemoveEntryFromConfigFiles(applicationID, environment, microserviceID, fileToDelete)
+
+			Expect(err).To(BeNil())
+		})
+
 	})
 })
