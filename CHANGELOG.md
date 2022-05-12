@@ -1,3 +1,69 @@
+# [4.9.0] - 2022-5-12 [PR: #128](https://github.com/dolittle/platform-api/pull/128)
+## Summary
+
+Hard coding a default resource request and limit for CPU and Memory on:
+- Head containers
+- Runtime containers
+- MongoDB containers (not backup jobs)
+
+The requests are higher for "Prod" environments, according to the suggested default values:
+```yaml
+environments:
+  prod:
+    runtime:
+      resources:
+        requests:
+          cpu: 50m
+          memory: 256Mi
+        limits:
+          cpu: 2000m
+          memory: 1Gi
+    head:
+      resources:
+        requests:
+          cpu: 50m
+          memory: 256Mi
+        limits:
+          cpu: 2000m
+          memory: 1Gi
+    mongodb:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 512Mi
+        limits:
+          cpu: 2000m
+          memory: 2Gi
+
+  non-prod:
+    runtime:
+      resources:
+        requests:
+          cpu: 25m
+          memory: 256Mi
+        limits:
+          cpu: 2000m
+          memory: 1Gi
+    head:
+      resources:
+        requests:
+          cpu: 25m
+          memory: 256Mi
+        limits:
+          cpu: 2000m
+          memory: 1Gi
+    mongodb:
+      resources:
+        requests:
+          cpu: 50m
+          memory: 512Mi
+        limits:
+          cpu: 2000m
+          memory: 2Gi
+
+```
+
+
 # [4.8.3] - 2022-5-12 [PR: #127](https://github.com/dolittle/platform-api/pull/127)
 ## Summary
 
