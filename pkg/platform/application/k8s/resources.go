@@ -15,6 +15,7 @@ import (
 
 	v1 "k8s.io/api/batch/v1"
 	v1beta1 "k8s.io/api/batch/v1beta1"
+	apiv1 "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -559,6 +560,7 @@ func NewMongo(environment string, tenant dolittleK8s.Tenant, application dolittl
 									MountPath: "/data/db",
 								},
 							},
+							Resources: getMongoResources(environment),
 						}}},
 				},
 				VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
@@ -691,5 +693,31 @@ func NewLocalDevRoleBindingToDeveloper(tenant dolittleK8s.Tenant, application do
 			Kind:     "Role",
 			Name:     "developer",
 		},
+	}
+}
+func getMongoResources(environment string) apiv1.ResourceRequirements {
+	switch strings.ToLower(environment) {
+	case "prod":
+		return apiv1.ResourceRequirements{
+			Requests: apiv1.ResourceList{
+				apiv1.ResourceCPU:    resource.MustParse("100m"),
+				apiv1.ResourceMemory: resource.MustParse("512Mi"),
+			},
+			Limits: apiv1.ResourceList{
+				apiv1.ResourceCPU:    resource.MustParse("2000m"),
+				apiv1.ResourceMemory: resource.MustParse("2Gi"),
+			},
+		}
+	default:
+		return apiv1.ResourceRequirements{
+			Requests: apiv1.ResourceList{
+				apiv1.ResourceCPU:    resource.MustParse("50m"),
+				apiv1.ResourceMemory: resource.MustParse("512Mi"),
+			},
+			Limits: apiv1.ResourceList{
+				apiv1.ResourceCPU:    resource.MustParse("2000m"),
+				apiv1.ResourceMemory: resource.MustParse("2Gi"),
+			},
+		}
 	}
 }
