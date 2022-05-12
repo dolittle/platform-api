@@ -8,10 +8,11 @@ import (
 )
 
 type Client struct {
-	client     *aiven.Client
-	project    string
-	service    string
-	logContext logrus.FieldLogger
+	client               *aiven.Client
+	project              string
+	service              string
+	logContext           logrus.FieldLogger
+	certificateAuthority string
 }
 
 // NewClient creates a new aiven token client with a default user agent string copied from their own implementation
@@ -27,11 +28,20 @@ func NewClient(apiToken, project, service string, logger logrus.FieldLogger) (*C
 		logContext.WithField("error", err).Error("failed to create the aiven client with token")
 		return nil, err
 	}
+
+	// the CA is unchaning so we can create it on initialization
+	certificateAuthority, err := aivenClient.CA.Get(project)
+	if err != nil {
+		logContext.WithField("error", err).Error("failed to create the aiven client with token")
+		return nil, err
+	}
+
 	return &Client{
-		project:    project,
-		service:    service,
-		client:     aivenClient,
-		logContext: logContext,
+		project:              project,
+		service:              service,
+		client:               aivenClient,
+		certificateAuthority: certificateAuthority,
+		logContext:           logContext,
 	}, nil
 }
 
@@ -97,4 +107,8 @@ func (c *Client) CreateTopic(topic string, retentionMs int64) error {
 		logContext.WithField("error", err).Error("failed to create the topic")
 	}
 	return err
+}
+
+func (c *Client) GetCertificateAuthority() string {
+	return c.certificateAuthority
 }

@@ -11,6 +11,7 @@ import (
 
 type M3Connector struct {
 	kafka      KafkaProvider
+	k8sRepo    K8sRepo
 	logContext logrus.FieldLogger
 }
 
@@ -19,6 +20,11 @@ type KafkaProvider interface {
 	// Create's a Kafka "user" and returns the access certificate and access key if successful
 	CreateUser(username string) (certificate string, key string, err error)
 	AddACL(topic string, username string, permission string) error
+	GetCertificateAuthority() string
+}
+
+type K8sRepo interface {
+	UpsertKafkaFiles(applicationID, environment string, kafkaFiles KafkaFiles) error
 }
 
 type KafkaACLPermission string
@@ -32,9 +38,22 @@ const (
 
 const serviceName = "m3connector"
 
-func NewM3Connector(kafka KafkaProvider, logContext logrus.FieldLogger) *M3Connector {
+type KafkaFiles struct {
+	AccessKey            string      `json:"accessKey.pem"`
+	CertificateAuthority string      `json:"ca.pem"`
+	Certificate          string      `json:"certificate.pem"`
+	Config               KafkaConfig `json:"config.json"`
+}
+
+type KafkaConfig struct {
+	BrokerUrl string   `json:"brokerUrl"`
+	Topics    []string `json:"topics"`
+}
+
+func NewM3Connector(kafka KafkaProvider, k8sRepo K8sRepo, logContext logrus.FieldLogger) *M3Connector {
 	return &M3Connector{
-		kafka: kafka,
+		kafka:   kafka,
+		k8sRepo: k8sRepo,
 		logContext: logContext.WithFields(logrus.Fields{
 			"context": "m3connector",
 		}),
@@ -72,7 +91,7 @@ func (m *M3Connector) CreateEnvironment(customerID, applicationID, environment s
 		"username":       username,
 	})
 
-	_, _, err := m.kafka.CreateUser(username)
+	certificate, accessKey, err := m.kafka.CreateUser(username)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
@@ -103,7 +122,18 @@ func (m *M3Connector) CreateEnvironment(customerID, applicationID, environment s
 		return err
 	}
 
+	kafkaFiles := KafkaFiles{
+		AccessKey:            accessKey,
+		Certificate:          certificate,
+		CertificateAuthority: m.kafka.GetCertificateAuthority(),
+		// Config: KafkaConfig{
+
+		// }
+	}
+	m.k8sRepo.UpsertKafkaFiles(applicationID, environment, kafkaFiles)
+
 	logContext.Debug("created all topics and ACL's")
+
 	return nil
 }
 

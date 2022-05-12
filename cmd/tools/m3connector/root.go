@@ -1,6 +1,10 @@
 package m3connector
 
 import (
+	"fmt"
+	"log"
+	"os"
+
 	"github.com/dolittle/platform-api/cmd/tools/m3connector/create"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -31,4 +35,13 @@ func init() {
 	viper.BindEnv("tools.m3connector.aiven.service", "AIVEN_SERVICE")
 	RootCMD.PersistentFlags().String("aiven-service", viper.GetString("tools.m3connector.aiven.service"), "Aiven service")
 	viper.BindPFlag("tools.m3connector.aiven.service", RootCMD.PersistentFlags().Lookup("aiven-service"))
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	RootCMD.PersistentFlags().String("kube-config", fmt.Sprintf("%s/.kube/config", homeDir), "Full path to kubeconfig, set to 'incluster' to make it use kubernetes lookup instead")
+	viper.BindPFlag("tools.server.kubeConfig", RootCMD.PersistentFlags().Lookup("kube-config"))
+	viper.BindEnv("tools.server.kubeConfig", "KUBECONFIG")
 }
