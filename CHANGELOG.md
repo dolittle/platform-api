@@ -1,3 +1,12 @@
+# [4.8.3] - 2022-5-12 [PR: #127](https://github.com/dolittle/platform-api/pull/127)
+## Summary
+
+Fixes a bug with config files saved on the configmaps `data` property not being deleted in the `RemoveEntryFromConfigFiles()` method.
+
+## Reference
+- https://app.asana.com/0/1202121266838773/1202261003053932/f
+
+
 # [4.8.2] - 2022-5-11 [PR: #126](https://github.com/dolittle/platform-api/pull/126)
 ## Summary
 
