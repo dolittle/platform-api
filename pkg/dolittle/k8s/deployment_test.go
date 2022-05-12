@@ -144,6 +144,12 @@ var _ = Describe("Deployment", func() {
 			Expect(deployment.Spec.Template.Spec.Containers[0].VolumeMounts[4].MountPath).To(Equal("/app/data"))
 			Expect(deployment.Spec.Template.Spec.Containers[0].VolumeMounts[4].Name).To(Equal("config-files"))
 		})
+
+		It("should create a head container with resource limits", func() {
+			Expect(deployment.Spec.Template.Spec.Containers[0].Resources.Limits.Memory().String()).To(Equal("500Mi"))
+			Expect(deployment.Spec.Template.Spec.Containers[0].Resources.Requests.Memory().String()).To(Equal("250Mi"))
+		})
+
 		It("should create a container named 'runtime'", func() {
 			Expect(deployment.Spec.Template.Spec.Containers[1].Name).To(Equal("runtime"))
 		})
@@ -191,6 +197,12 @@ var _ = Describe("Deployment", func() {
 			Expect(deployment.Spec.Template.Spec.Containers[1].VolumeMounts[6].SubPath).To(Equal("appsettings.json"))
 			Expect(deployment.Spec.Template.Spec.Containers[1].VolumeMounts[6].Name).To(Equal("dolittle-config"))
 		})
+
+		It("should create a runtimer container with resource limits", func() {
+			Expect(deployment.Spec.Template.Spec.Containers[1].Resources.Limits.Memory().String()).To(Equal("1Gi"))
+			Expect(deployment.Spec.Template.Spec.Containers[1].Resources.Requests.Memory().String()).To(Equal("250Mi"))
+		})
+
 		It("should create a pod template with the 'tenants-config' volume", func() {
 			Expect(deployment.Spec.Template.Spec.Volumes[0].Name).To(Equal("tenants-config"))
 			Expect(deployment.Spec.Template.Spec.Volumes[0].VolumeSource.ConfigMap.LocalObjectReference.Name).To(Equal("andrejensen-tenants"))

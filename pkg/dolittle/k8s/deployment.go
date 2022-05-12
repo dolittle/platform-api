@@ -49,6 +49,18 @@ func NewDeployment(microservice Microservice, headImage string, runtimeImage str
 	configEnvVariablesName = strings.ToLower(configEnvVariablesName)
 	configSecretEnvVariablesName = strings.ToLower(configSecretEnvVariablesName)
 
+	// TODO in the future, this could be linked to the customers subscription
+	// Or some way to let them override it as a premium feature
+	headResourceLimit, err := resource.ParseQuantity("500Mi")
+	if err != nil {
+		panic(err)
+	}
+
+	headResourceRequest, err := resource.ParseQuantity("250Mi")
+	if err != nil {
+		panic(err)
+	}
+
 	containers := []apiv1.Container{
 		{
 			Name:  "head",
@@ -58,6 +70,14 @@ func NewDeployment(microservice Microservice, headImage string, runtimeImage str
 					Name:          "http",
 					Protocol:      apiv1.ProtocolTCP,
 					ContainerPort: 80,
+				},
+			},
+			Resources: apiv1.ResourceRequirements{
+				Limits: apiv1.ResourceList{
+					apiv1.ResourceMemory: headResourceLimit,
+				},
+				Requests: apiv1.ResourceList{
+					apiv1.ResourceMemory: headResourceRequest,
 				},
 			},
 			EnvFrom: []apiv1.EnvFromSource{
