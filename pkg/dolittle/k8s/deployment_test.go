@@ -144,6 +144,14 @@ var _ = Describe("Deployment", func() {
 			Expect(deployment.Spec.Template.Spec.Containers[0].VolumeMounts[4].MountPath).To(Equal("/app/data"))
 			Expect(deployment.Spec.Template.Spec.Containers[0].VolumeMounts[4].Name).To(Equal("config-files"))
 		})
+
+		It("should create a head container with resource requests and limits", func() {
+			Expect(deployment.Spec.Template.Spec.Containers[0].Resources.Requests.Cpu().String()).To(Equal("25m"))
+			Expect(deployment.Spec.Template.Spec.Containers[0].Resources.Requests.Memory().String()).To(Equal("256Mi"))
+			Expect(deployment.Spec.Template.Spec.Containers[0].Resources.Limits.Cpu().String()).To(Equal("2"))
+			Expect(deployment.Spec.Template.Spec.Containers[0].Resources.Limits.Memory().String()).To(Equal("1Gi"))
+		})
+
 		It("should create a container named 'runtime'", func() {
 			Expect(deployment.Spec.Template.Spec.Containers[1].Name).To(Equal("runtime"))
 		})
@@ -191,6 +199,14 @@ var _ = Describe("Deployment", func() {
 			Expect(deployment.Spec.Template.Spec.Containers[1].VolumeMounts[6].SubPath).To(Equal("appsettings.json"))
 			Expect(deployment.Spec.Template.Spec.Containers[1].VolumeMounts[6].Name).To(Equal("dolittle-config"))
 		})
+
+		It("should create a runtime container with resource limits", func() {
+			Expect(deployment.Spec.Template.Spec.Containers[1].Resources.Requests.Cpu().String()).To(Equal("25m"))
+			Expect(deployment.Spec.Template.Spec.Containers[1].Resources.Requests.Memory().String()).To(Equal("256Mi"))
+			Expect(deployment.Spec.Template.Spec.Containers[1].Resources.Limits.Cpu().String()).To(Equal("2"))
+			Expect(deployment.Spec.Template.Spec.Containers[1].Resources.Limits.Memory().String()).To(Equal("1Gi"))
+		})
+
 		It("should create a pod template with the 'tenants-config' volume", func() {
 			Expect(deployment.Spec.Template.Spec.Volumes[0].Name).To(Equal("tenants-config"))
 			Expect(deployment.Spec.Template.Spec.Volumes[0].VolumeSource.ConfigMap.LocalObjectReference.Name).To(Equal("andrejensen-tenants"))
@@ -205,16 +221,18 @@ var _ = Describe("Deployment", func() {
 		})
 	})
 
-	Describe("when creating a Runtime", func() {
+	Describe("when creating a Runtime for a Prod environment", func() {
 		var (
 			runtimeImage string
+			environment  string
 			container    corev1.Container
 		)
 
 		BeforeEach(func() {
 			runtimeImage = "dolittle/runtime:160.1.0"
+			environment = "Prod"
 
-			container = Runtime(runtimeImage)
+			container = Runtime(runtimeImage, environment)
 		})
 
 		It("should create a container named 'runtime'", func() {
@@ -271,6 +289,12 @@ var _ = Describe("Deployment", func() {
 			Expect(container.VolumeMounts[6].MountPath).To(Equal("/app/appsettings.json"))
 			Expect(container.VolumeMounts[6].SubPath).To(Equal("appsettings.json"))
 			Expect(container.VolumeMounts[6].Name).To(Equal("dolittle-config"))
+		})
+		It("should create a runtime container with resource limits", func() {
+			Expect(container.Resources.Requests.Cpu().String()).To(Equal("50m"))
+			Expect(container.Resources.Requests.Memory().String()).To(Equal("256Mi"))
+			Expect(container.Resources.Limits.Cpu().String()).To(Equal("2"))
+			Expect(container.Resources.Limits.Memory().String()).To(Equal("1Gi"))
 		})
 	})
 })

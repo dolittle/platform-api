@@ -81,6 +81,13 @@ var _ = Describe("Setting up an application", func() {
 			expect := `mongodump --host=todo-mongo.application-fake-application-123.svc.cluster.local:27017 --gzip --archive=/mnt/backup/fake-application-todo-$(date +%Y-%m-%d_%H-%M-%S).gz.mongodump`
 			Expect(resources.Cronjob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Args[0]).To(Equal(expect))
 		})
+
+		It("should have set resource requests and limits for the container in the StatefulSet", func() {
+			Expect(resources.StatefulSet.Spec.Template.Spec.Containers[0].Resources.Requests.Cpu().String()).To(Equal("50m"))
+			Expect(resources.StatefulSet.Spec.Template.Spec.Containers[0].Resources.Requests.Memory().String()).To(Equal("512Mi"))
+			Expect(resources.StatefulSet.Spec.Template.Spec.Containers[0].Resources.Limits.Cpu().String()).To(Equal("2"))
+			Expect(resources.StatefulSet.Spec.Template.Spec.Containers[0].Resources.Limits.Memory().String()).To(Equal("2Gi"))
+		})
 	})
 	When("Creating the environment", func() {
 		var (
