@@ -35,6 +35,7 @@ var _ = Describe("M3connector", func() {
 		receiptsTopic  string
 		permission     string
 		kafkaFiles     m3connector.KafkaFiles
+		brokerUrl      string
 	)
 
 	BeforeEach(func() {
@@ -52,19 +53,29 @@ var _ = Describe("M3connector", func() {
 		certificate = "im the certificate"
 		accessKey = "im the access key"
 		ca = "im the certificate authority"
+		brokerUrl = "test-project-test-service.aivencloud.blahblah:123123123"
+		changeTopic = fmt.Sprintf("%s.change-events", resourcePrefix)
+		inputTopic = fmt.Sprintf("%s.input", resourcePrefix)
+		commandTopic = fmt.Sprintf("%s.commands", resourcePrefix)
+		receiptsTopic = fmt.Sprintf("%s.command-receipts", resourcePrefix)
+		permission = string(m3connector.ReadWrite)
 
 		kafkaFiles = m3connector.KafkaFiles{
 			AccessKey:            accessKey,
 			Certificate:          certificate,
 			CertificateAuthority: ca,
+			Config: m3connector.KafkaConfig{
+				// hardcode the Aiven url
+				BrokerUrl: brokerUrl,
+				Topics: []string{
+					changeTopic,
+					inputTopic,
+					commandTopic,
+					receiptsTopic,
+				},
+			},
 		}
 
-		changeTopic = fmt.Sprintf("%s.change-events", resourcePrefix)
-		inputTopic = fmt.Sprintf("%s.input", resourcePrefix)
-		commandTopic = fmt.Sprintf("%s.commands", resourcePrefix)
-		receiptsTopic = fmt.Sprintf("%s.command-receipts", resourcePrefix)
-
-		permission = string(m3connector.ReadWrite)
 	})
 
 	// this section is run after all BeforeEach() blocks but before the It() blocks, meaning we can setup some default
@@ -77,6 +88,7 @@ var _ = Describe("M3connector", func() {
 		mockKafka.On("CreateTopic", mock.Anything, mock.Anything).Return(nil)
 		mockKafka.On("AddACL", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 		mockKafka.On("GetCertificateAuthority").Return("")
+		mockKafka.On("GetBrokerUrl").Return("")
 		mockRepo.On("UpsertKafkaFiles", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 		err = connector.CreateEnvironment(customer, application, environment)
 	})
@@ -176,6 +188,9 @@ var _ = Describe("M3connector", func() {
 						On(
 							"GetCertificateAuthority",
 						).Return(kafkaFiles.CertificateAuthority).
+						On(
+							"GetBrokerUrl",
+						).Return(kafkaFiles.Config.BrokerUrl).
 						On(
 							"CreateUser",
 							username,

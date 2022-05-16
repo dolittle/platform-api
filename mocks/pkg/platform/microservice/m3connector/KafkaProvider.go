@@ -69,6 +69,20 @@ func (_m *KafkaProvider) CreateUser(username string) (string, string, error) {
 	return r0, r1, r2
 }
 
+// GetBrokerUrl provides a mock function with given fields:
+func (_m *KafkaProvider) GetBrokerUrl() string {
+	ret := _m.Called()
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func() string); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	return r0
+}
+
 // GetCertificateAuthority provides a mock function with given fields:
 func (_m *KafkaProvider) GetCertificateAuthority() string {
 	ret := _m.Called()

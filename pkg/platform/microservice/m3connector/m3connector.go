@@ -21,6 +21,7 @@ type KafkaProvider interface {
 	CreateUser(username string) (certificate string, key string, err error)
 	AddACL(topic string, username string, permission string) error
 	GetCertificateAuthority() string
+	GetBrokerUrl() string
 }
 
 type K8sRepo interface {
@@ -126,9 +127,15 @@ func (m *M3Connector) CreateEnvironment(customerID, applicationID, environment s
 		AccessKey:            accessKey,
 		Certificate:          certificate,
 		CertificateAuthority: m.kafka.GetCertificateAuthority(),
-		// Config: KafkaConfig{
-
-		// }
+		Config: KafkaConfig{
+			BrokerUrl: m.kafka.GetBrokerUrl(),
+			Topics: []string{
+				changeTopic,
+				inputTopic,
+				commandTopic,
+				receiptsTopic,
+			},
+		},
 	}
 	err = m.k8sRepo.UpsertKafkaFiles(applicationID, environment, kafkaFiles)
 	if err != nil {
