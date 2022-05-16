@@ -130,7 +130,10 @@ func (m *M3Connector) CreateEnvironment(customerID, applicationID, environment s
 
 		// }
 	}
-	m.k8sRepo.UpsertKafkaFiles(applicationID, environment, kafkaFiles)
+	err = m.k8sRepo.UpsertKafkaFiles(applicationID, environment, kafkaFiles)
+	if err != nil {
+		return err
+	}
 
 	logContext.Debug("created all topics and ACL's")
 

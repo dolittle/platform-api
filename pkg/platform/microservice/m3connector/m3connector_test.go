@@ -28,6 +28,13 @@ var _ = Describe("M3connector", func() {
 		certificate    string
 		accessKey      string
 		ca             string
+		err            error
+		changeTopic    string
+		inputTopic     string
+		commandTopic   string
+		receiptsTopic  string
+		permission     string
+		kafkaFiles     m3connector.KafkaFiles
 	)
 
 	BeforeEach(func() {
@@ -45,11 +52,27 @@ var _ = Describe("M3connector", func() {
 		certificate = "im the certificate"
 		accessKey = "im the access key"
 		ca = "im the certificate authority"
+
+		kafkaFiles = m3connector.KafkaFiles{
+			AccessKey:            accessKey,
+			Certificate:          certificate,
+			CertificateAuthority: ca,
+		}
+
+		changeTopic = fmt.Sprintf("%s.change-events", resourcePrefix)
+		inputTopic = fmt.Sprintf("%s.input", resourcePrefix)
+		commandTopic = fmt.Sprintf("%s.commands", resourcePrefix)
+		receiptsTopic = fmt.Sprintf("%s.command-receipts", resourcePrefix)
+
+		permission = string(m3connector.ReadWrite)
 	})
 
-	var err error
+	// this section is run after all BeforeEach() blocks but before the It() blocks, meaning we can setup some default
+	// behaviours for the mocks without having to always define the exact behaviour. This works by allowing the On()
+	// setups on each mock in their BeforeEach()'s to be added to the mocks ExpectedCalls slice before the default
+	// behaviour so that when the mock tries to check for the calls it will find the specific setups first in the slice
+	// before the default behaviour.
 	JustBeforeEach(func() {
-		// @joel TODO comment how this works
 		mockKafka.On("CreateUser", mock.Anything).Return("", "", nil)
 		mockKafka.On("CreateTopic", mock.Anything, mock.Anything).Return(nil)
 		mockKafka.On("AddACL", mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -69,13 +92,24 @@ var _ = Describe("M3connector", func() {
 			})
 		})
 
-		XIt("should fail without an application", func() {
-			err := connector.CreateEnvironment(customer, "", environment)
-			Expect(err).ToNot(BeNil())
+		When("application is empty", func() {
+			BeforeEach(func() {
+				application = ""
+			})
+
+			It("should fail", func() {
+				Expect(err).ToNot(BeNil())
+			})
 		})
-		XIt("should fail without an environment", func() {
-			err := connector.CreateEnvironment(customer, application, "")
-			Expect(err).ToNot(BeNil())
+
+		When("environment is empty", func() {
+			BeforeEach(func() {
+				environment = ""
+			})
+
+			It("should fail", func() {
+				Expect(err).ToNot(BeNil())
+			})
 		})
 
 		Describe("with all the necessary data", func() {
@@ -84,7 +118,51 @@ var _ = Describe("M3connector", func() {
 					mockKafka.On(
 						"CreateUser",
 						username,
-					).Return("", "", errors.New("test error"))
+					).Return("", "", errors.New("user error"))
+				})
+
+				It("should fail", func() {
+					Expect(err).ToNot(BeNil())
+				})
+			})
+
+			When("topic creation fails", func() {
+				BeforeEach(func() {
+					mockKafka.On(
+						"CreateTopic",
+						mock.Anything,
+						mock.Anything,
+					).Return(errors.New("topic error"))
+				})
+
+				It("should fail", func() {
+					Expect(err).ToNot(BeNil())
+				})
+			})
+
+			When("topic creation fails", func() {
+				BeforeEach(func() {
+					mockKafka.On(
+						"AddACL",
+						mock.Anything,
+						mock.Anything,
+						mock.Anything,
+					).Return(errors.New("ACL error"))
+				})
+
+				It("should fail", func() {
+					Expect(err).ToNot(BeNil())
+				})
+			})
+
+			When("writing the kafka-files fails", func() {
+				BeforeEach(func() {
+					mockRepo.On(
+						"UpsertKafkaFiles",
+						mock.Anything,
+						mock.Anything,
+						mock.Anything,
+					).Return(errors.New("kafka-files error"))
 				})
 
 				It("should fail", func() {
@@ -93,6 +171,17 @@ var _ = Describe("M3connector", func() {
 			})
 
 			When("everything works", func() {
+				BeforeEach(func() {
+					mockKafka.
+						On(
+							"GetCertificateAuthority",
+						).Return(kafkaFiles.CertificateAuthority).
+						On(
+							"CreateUser",
+							username,
+						).Return(kafkaFiles.Certificate, kafkaFiles.AccessKey, nil)
+				})
+
 				It("should not fail", func() {
 					Expect(err).To(BeNil())
 				})
@@ -102,301 +191,48 @@ var _ = Describe("M3connector", func() {
 				})
 
 				It("should create the 4 topics with correct names and retention", func() {
-					changeTopic := fmt.Sprintf("%s.change-events", resourcePrefix)
-					inputTopic := fmt.Sprintf("%s.input", resourcePrefix)
-					commandTopic := fmt.Sprintf("%s.commands", resourcePrefix)
-					receiptsTopic := fmt.Sprintf("%s.command-receipts", resourcePrefix)
-
 					mockKafka.AssertCalled(GinkgoT(), "CreateTopic", commandTopic, int64(-1))
 					mockKafka.AssertCalled(GinkgoT(), "CreateTopic", changeTopic, int64(-1))
 					mockKafka.AssertCalled(GinkgoT(), "CreateTopic", inputTopic, int64(-1))
 					mockKafka.AssertCalled(GinkgoT(), "CreateTopic", receiptsTopic, int64(604800000))
 				})
 
+				It("should add the ACL's between the topics and the username", func() {
+					mockKafka.AssertCalled(GinkgoT(), "AddACL", changeTopic, username, permission)
+					mockKafka.AssertCalled(GinkgoT(), "AddACL", inputTopic, username, permission)
+					mockKafka.AssertCalled(GinkgoT(), "AddACL", commandTopic, username, permission)
+					mockKafka.AssertCalled(GinkgoT(), "AddACL", receiptsTopic, username, permission)
+				})
+
+				It("should write the credentials and config to the kafka-files configmap", func() {
+					mockRepo.AssertCalled(GinkgoT(), "UpsertKafkaFiles", application, environment, kafkaFiles)
+				})
 			})
 
-			// mockKafka.On(
-			// 	"CreateTopic",
-			// 	mock.Anything,
-			// 	mock.Anything,
-			// ).Return(nil).Times(4)
+			When("given uppercase arguments", func() {
+				BeforeEach(func() {
+					customer = strings.ToUpper(customer)
+					application = strings.ToUpper(application)
+					environment = strings.ToUpper(environment)
+					mockKafka.
+						On(
+							"GetCertificateAuthority",
+						).Return(kafkaFiles.CertificateAuthority).
+						On(
+							"CreateUser",
+							username,
+						).Return(kafkaFiles.Certificate, kafkaFiles.AccessKey, nil)
+				})
+				It("should create a user with the correct lowercase username", func() {
+					mockKafka.AssertCalled(GinkgoT(), "CreateUser", username)
+				})
 
-			// mockKafka.On(
-			// 	"AddACL",
-			// 	mock.Anything,
-			// 	mock.Anything,
-			// 	mock.Anything,
-			// ).Return(nil).Times(4)
-
-		})
-
-		XIt("should call to create 4 topics with the correct names and retentions", func() {
-
-			changeTopic := fmt.Sprintf("%s.change-events", resourcePrefix)
-			inputTopic := fmt.Sprintf("%s.input", resourcePrefix)
-			commandTopic := fmt.Sprintf("%s.commands", resourcePrefix)
-			receiptsTopic := fmt.Sprintf("%s.command-receipts", resourcePrefix)
-
-			mockKafka.
-				On(
-					"GetCertificateAuthority",
-					mock.Anything,
-				).Return(ca).
-				On(
-					"CreateUser",
-					mock.Anything,
-				).Return("", "", nil).
-				On(
-					"CreateTopic",
-					changeTopic,
-					int64(-1),
-				).Return(nil).
-				On(
-					"CreateTopic",
-					inputTopic,
-					int64(-1),
-				).Return(nil).
-				On(
-					"CreateTopic",
-					commandTopic,
-					int64(-1),
-				).Return(nil).
-				On(
-					"CreateTopic",
-					receiptsTopic,
-					int64(604800000),
-				).Return(nil)
-
-			mockKafka.On(
-				"AddACL",
-				mock.Anything,
-				mock.Anything,
-				mock.Anything,
-			).Return(nil).Times(4)
-
-			err := connector.CreateEnvironment(customer, application, environment)
-			Expect(err).To(BeNil())
-			mock.AssertExpectationsForObjects(GinkgoT(), mockKafka)
-		})
-
-		XIt("should fail if the topic creation fails", func() {
-			changeTopic := fmt.Sprintf("%s.change-events", resourcePrefix)
-
-			mockKafka.
-				On(
-					"GetCertificateAuthority",
-					mock.Anything,
-				).Return(ca).
-				On(
-					"CreateUser",
-					mock.Anything,
-				).Return("", "", nil).
-				On(
-					"CreateTopic",
-					changeTopic,
-					int64(-1),
-				).Return(errors.New("topic creation error"))
-
-			err := connector.CreateEnvironment(customer, application, environment)
-			Expect(err).ToNot(BeNil())
-			mock.AssertExpectationsForObjects(GinkgoT(), mockKafka)
-		})
-
-		XIt("should call to create the ACLs for the 4 topics", func() {
-
-			changeTopic := fmt.Sprintf("%s.change-events", resourcePrefix)
-			inputTopic := fmt.Sprintf("%s.input", resourcePrefix)
-			commandTopic := fmt.Sprintf("%s.commands", resourcePrefix)
-			receiptsTopic := fmt.Sprintf("%s.command-receipts", resourcePrefix)
-			permission := string(m3connector.ReadWrite)
-
-			mockKafka.
-				On(
-					"GetCertificateAuthority",
-					mock.Anything,
-				).Return(ca).
-				On(
-					"CreateUser",
-					mock.Anything,
-				).Return("", "", nil)
-			mockKafka.On(
-				"CreateTopic",
-				mock.Anything,
-				mock.Anything,
-			).Return(nil).Times(4)
-
-			mockKafka.
-				On(
-					"AddACL",
-					changeTopic,
-					username,
-					permission,
-				).Return(nil).
-				On(
-					"AddACL",
-					inputTopic,
-					username,
-					permission,
-				).Return(nil).
-				On(
-					"AddACL",
-					commandTopic,
-					username,
-					permission,
-				).Return(nil).
-				On(
-					"AddACL",
-					receiptsTopic,
-					username,
-					permission,
-				).Return(nil)
-
-			err := connector.CreateEnvironment(customer, application, environment)
-			Expect(err).To(BeNil())
-			mock.AssertExpectationsForObjects(GinkgoT(), mockKafka)
-		})
-
-		XIt("should fail if adding an ACL fails", func() {
-			changeTopic := fmt.Sprintf("%s.change-events", resourcePrefix)
-			permission := string(m3connector.ReadWrite)
-
-			mockKafka.
-				On(
-					"GetCertificateAuthority",
-					mock.Anything,
-				).Return(ca).
-				On(
-					"CreateUser",
-					mock.Anything,
-				).Return("", "", nil).
-				On(
-					"CreateTopic",
-					changeTopic,
-					int64(-1),
-				).Return(nil).
-				On(
-					"AddACL",
-					changeTopic,
-					username,
-					permission,
-				).Return(errors.New("error adding acl"))
-
-			err := connector.CreateEnvironment(customer, application, environment)
-			Expect(err).ToNot(BeNil())
-			mock.AssertExpectationsForObjects(GinkgoT(), mockKafka)
-		})
-
-		XIt("should lowercase the customer, application and environment", func() {
-			upperCustomer := strings.ToUpper(customer)
-			upperApplication := strings.ToUpper(application)
-			upperEnv := strings.ToUpper(environment)
-
-			changeTopic := fmt.Sprintf("%s.change-events", resourcePrefix)
-			inputTopic := fmt.Sprintf("%s.input", resourcePrefix)
-			commandTopic := fmt.Sprintf("%s.commands", resourcePrefix)
-			receiptsTopic := fmt.Sprintf("%s.command-receipts", resourcePrefix)
-
-			mockKafka.
-				On(
-					"GetCertificateAuthority",
-					mock.Anything,
-				).Return(ca).
-				On(
-					"CreateUser",
-					mock.Anything,
-				).Return("", "", nil).
-				On(
-					"CreateTopic",
-					changeTopic,
-					mock.Anything,
-				).Return(nil).
-				On(
-					"CreateTopic",
-					inputTopic,
-					mock.Anything,
-				).Return(nil).
-				On(
-					"CreateTopic",
-					commandTopic,
-					mock.Anything,
-				).Return(nil).
-				On(
-					"CreateTopic",
-					receiptsTopic,
-					mock.Anything,
-				).Return(nil)
-
-			mockKafka.
-				On(
-					"AddACL",
-					changeTopic,
-					username,
-					mock.Anything,
-				).Return(nil).
-				On(
-					"AddACL",
-					inputTopic,
-					username,
-					mock.Anything,
-				).Return(nil).
-				On(
-					"AddACL",
-					commandTopic,
-					username,
-					mock.Anything,
-				).Return(nil).
-				On(
-					"AddACL",
-					receiptsTopic,
-					username,
-					mock.Anything,
-				).Return(nil)
-
-			err := connector.CreateEnvironment(upperCustomer, upperApplication, upperEnv)
-			Expect(err).To(BeNil())
-			mock.AssertExpectationsForObjects(GinkgoT(), mockKafka)
-		})
-
-		When("writing the credentials and config to the kafka-files configmap", func() {
-			XIt("should call the config map to be created with the correct values", func() {
-
-				kafkaFiles := m3connector.KafkaFiles{
-					AccessKey:            accessKey,
-					Certificate:          certificate,
-					CertificateAuthority: ca,
-				}
-
-				mockKafka.
-					On(
-						"GetServiceCA",
-					).Return(kafkaFiles.CertificateAuthority).
-					On(
-						"CreateUser",
-						mock.Anything,
-					).Return(kafkaFiles.Certificate, kafkaFiles.AccessKey, nil).
-					On(
-						"CreateTopic",
-						mock.Anything,
-						mock.Anything,
-					).Return(nil).
-					On(
-						"AddACL",
-						mock.Anything,
-						mock.Anything,
-						mock.Anything,
-					).Return(nil)
-
-				mockRepo.On(
-					"UpsertKafkaFiles",
-					application,
-					environment,
-					kafkaFiles,
-				).Return(nil)
-
-				err := connector.CreateEnvironment(customer, application, environment)
-				Expect(err).To(BeNil())
-				mock.AssertExpectationsForObjects(GinkgoT(), mockKafka)
-				mock.AssertExpectationsForObjects(GinkgoT(), mockRepo)
+				It("should create the 4 topics with correct lowercase names", func() {
+					mockKafka.AssertCalled(GinkgoT(), "CreateTopic", commandTopic, int64(-1))
+					mockKafka.AssertCalled(GinkgoT(), "CreateTopic", changeTopic, int64(-1))
+					mockKafka.AssertCalled(GinkgoT(), "CreateTopic", inputTopic, int64(-1))
+					mockKafka.AssertCalled(GinkgoT(), "CreateTopic", receiptsTopic, int64(604800000))
+				})
 			})
 		})
 	})
