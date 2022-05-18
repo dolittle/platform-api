@@ -22,10 +22,10 @@ func NewClient(apiToken, project, service string, logger logrus.FieldLogger) (*C
 		"context":    "aiven",
 		"user_agent": userAgent,
 	})
+	logContext.Debug("creating an aiven client")
 	aivenClient, err := aiven.NewTokenClient(apiToken, userAgent)
 	if err != nil {
-		logContext.WithField("error", err).Error("failed to create the aiven client with token")
-		return nil, err
+		return nil, fmt.Errorf("failed to create an aiven client with token: %w", err)
 	}
 	return &Client{
 		project:    project,
@@ -47,10 +47,8 @@ func (c *Client) CreateUser(username string) error {
 
 	_, err := c.client.ServiceUsers.Create(c.project, c.service, userRequest)
 	if err != nil {
-		logContext.WithField("error", err).Error("failed to create the service user")
-		return err
+		return fmt.Errorf("failed to create a user: %w", err)
 	}
-	logContext.Debug("created the service user")
 	return err
 }
 
@@ -71,8 +69,7 @@ func (c *Client) AddACL(topic string, username string, permission string) error 
 
 	_, err := c.client.KafkaACLs.Create(c.project, c.service, userRequest)
 	if err != nil {
-		logContext.WithField("error", err).Error("failed to create the ACL")
-		return err
+		return fmt.Errorf("failed to add an ACl: %w", err)
 	}
 	return err
 }
@@ -83,6 +80,7 @@ func (c *Client) CreateTopic(topic string, retentionMs int64) error {
 		"topic":        topic,
 		"retention_ms": retentionMs,
 	})
+	logContext.Debug("creating a topic")
 	replication := 3
 	topicRequest := aiven.CreateKafkaTopicRequest{
 		TopicName:   topic,
@@ -94,7 +92,7 @@ func (c *Client) CreateTopic(topic string, retentionMs int64) error {
 
 	err := c.client.KafkaTopics.Create(c.project, c.service, topicRequest)
 	if err != nil {
-		logContext.WithField("error", err).Error("failed to create the topic")
+		return fmt.Errorf("failed to create a topic: %w", err)
 	}
 	return err
 }
