@@ -5,6 +5,7 @@ import (
 	"github.com/dolittle/platform-api/cmd/tools/automate"
 	"github.com/dolittle/platform-api/cmd/tools/explore"
 	"github.com/dolittle/platform-api/cmd/tools/job"
+	"github.com/dolittle/platform-api/cmd/tools/m3connector"
 	"github.com/dolittle/platform-api/cmd/tools/studio"
 	"github.com/dolittle/platform-api/cmd/tools/terraform"
 	"github.com/dolittle/platform-api/cmd/tools/users"
@@ -27,4 +28,5 @@ func init() {
 	RootCmd.AddCommand(terraform.RootCMD)
 	RootCmd.AddCommand(users.RootCMD)
 	RootCmd.AddCommand(application.RootCMD)
+	RootCmd.AddCommand(m3connector.RootCMD)
 }
