@@ -1,3 +1,43 @@
+# [4.10.0] - 2022-5-19 [PR: #122](https://github.com/dolittle/platform-api/pull/122)
+## Summary
+
+Adds a new CLI command `platform tools m3connector create environment` that provisions the kafka resources needed for an m3connector setup for an environment.
+```bash
+Usage:
+  platform tools m3connector create environment [flags]
+
+Flags:
+      --application-id string   The applications ID
+      --customer-id string      The customers ID
+      --environment string      The environment
+  -h, --help                    help for environment
+
+Global Flags:
+      --aiven-api-token string        Aiven API token
+      --aiven-project string          Aiven project
+      --aiven-service string          Aiven service
+      --platform-environment string   Platform environment (dev or prod), not linked to application environment (default "dev")
+```
+
+The kafka resources are:
+- 4 topics:
+  - `cust_<customer-id>.app_<application-id>.env_<environment>.m3connector.change-events` (3 replicas, unlimited retention)
+  - `cust_<customer-id>.app_<application-id>.env_<environment>.m3connector.input` (3 replicas, unlimited retention)
+  - `cust_<customer-id>.app_<application-id>.env_<environment>.m3connector.commands` (3 replicas, unlimited retention)
+  - `cust_<customer-id>.app_<application-id>.env_<environment>.m3connector.command-receipts` (3 replicas, 7d retention)
+- An Aiven (sub) service user. Aiven's max length for usernames is 64 so we format the username in the following way:
+```go
+environment := "dev"
+serviceName := "m3connector"
+shortCustomerID := strings.ReplaceAll(customerID, "-", "")[:16]
+shortApplicationID := strings.ReplaceAll(applicationID, "-", "")[:16]
+username := fmt.Sprintf("%s.%s.%s.%s", shortCustomerID, shortApplicationID, environment, serviceName)
+```
+- Adds ACL's between the topics and the user with `"readwrite"` permissions.
+
+The command will currently fail if any of the resources already existed.
+
+
 # [4.9.0] - 2022-5-12 [PR: #128](https://github.com/dolittle/platform-api/pull/128)
 ## Summary
 
