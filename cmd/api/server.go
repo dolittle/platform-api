@@ -16,6 +16,7 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform/backup"
 	"github.com/dolittle/platform-api/pkg/platform/businessmoment"
 	"github.com/dolittle/platform-api/pkg/platform/cicd"
+	"github.com/dolittle/platform-api/pkg/platform/codegenerator"
 	"github.com/dolittle/platform-api/pkg/platform/containerregistry"
 	"github.com/dolittle/platform-api/pkg/platform/customer"
 	"github.com/dolittle/platform-api/pkg/platform/insights"
@@ -209,6 +210,11 @@ var serverCMD = &cobra.Command{
 			gitRepo,
 			logrus.WithField("context", "studio-service"),
 			k8sRepoV2,
+		)
+
+		codegeneratorService := codegenerator.NewService(
+			logContext.WithField("context", "codegen-service"),
+			k8sRepo,
 		)
 
 		containerRegistryService := containerregistry.NewService(
@@ -445,6 +451,11 @@ var serverCMD = &cobra.Command{
 		router.Handle(
 			"/studio/customer/{customerID}",
 			stdChainBase.ThenFunc(studioService.Save),
+		).Methods(http.MethodPost, http.MethodOptions)
+
+		router.Handle(
+			"/application/{applicationID}/codegenerator/m3connector-consumer",
+			stdChainBase.ThenFunc(codegeneratorService.GenerateM3ConnectorConsumer),
 		).Methods(http.MethodPost, http.MethodOptions)
 
 		router.Handle(
