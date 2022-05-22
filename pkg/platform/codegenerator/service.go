@@ -52,8 +52,8 @@ func (s *service) GenerateM3ConnectorConsumer(w http.ResponseWriter, r *http.Req
 	certificateFile := strings.NewReader(configMap.Data["certificate.pem"])
 	caFile := strings.NewReader(configMap.Data["ca.pem"])
 	cfgJson := configMap.Data["config.json"]
-	var foo KafkaConfigJSON
-	err = json.Unmarshal([]byte(cfgJson), &foo)
+	var kafkaTopicsCfg KafkaConfigJSON
+	err = json.Unmarshal([]byte(cfgJson), &kafkaTopicsCfg)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -62,7 +62,7 @@ func (s *service) GenerateM3ConnectorConsumer(w http.ResponseWriter, r *http.Req
 	commandTopic := "todo-add-command-topic"
 	commandReceiptsTopic := "todo-add-command-receipts-topic"
 	changeEventsTopic := "todo-add-change-events-topc"
-	for _, n := range foo.Topics {
+	for _, n := range kafkaTopicsCfg.Topics {
 		if strings.HasSuffix(n, ".input") {
 			inputTopic = n
 		}
@@ -81,9 +81,9 @@ func (s *service) GenerateM3ConnectorConsumer(w http.ResponseWriter, r *http.Req
 	}
 
 	c := newCodeGeneratorClient("https://localhost:7159")
-	zipFileName := "foo.zip"
+	zipFileName := "m3connector-consumer.zip"
 	kafkaConfig := KafkaConfig{
-		BrokerURL:            foo.BrokerUrl,
+		BrokerURL:            kafkaTopicsCfg.BrokerUrl,
 		InputTopic:           inputTopic,
 		CommandTopic:         commandTopic,
 		CommandReceiptsTopic: commandReceiptsTopic,
@@ -93,9 +93,9 @@ func (s *service) GenerateM3ConnectorConsumer(w http.ResponseWriter, r *http.Req
 		Ca:                   caFile,
 	}
 	generatedCode := c.GenerateM3ConnectorConsumer(zipFileName,
+		"M3ConnectorConsumer",
 		environment,
-		"Dev",
-		"foo",
+		"username",
 		kafkaConfig)
 	s.logContext.WithField("numberOfBytes", len(generatedCode)).Info("Code is generated")
 
