@@ -13,8 +13,9 @@ import (
 )
 
 type service struct {
-	logContext      logrus.FieldLogger
-	k8sDolittleRepo platformK8s.K8sRepo
+	logContext            logrus.FieldLogger
+	k8sDolittleRepo       platformK8s.K8sRepo
+	codegenServiceBaseUrl string
 }
 
 type KafkaConfigJSON struct {
@@ -23,10 +24,12 @@ type KafkaConfigJSON struct {
 }
 
 func NewService(logContext logrus.FieldLogger,
-	k8sDolittleRepo platformK8s.K8sRepo) service {
+	k8sDolittleRepo platformK8s.K8sRepo,
+	codegenServiceBaseUrl string) service {
 	return service{
-		logContext:      logContext,
-		k8sDolittleRepo: k8sDolittleRepo,
+		logContext:            logContext,
+		k8sDolittleRepo:       k8sDolittleRepo,
+		codegenServiceBaseUrl: codegenServiceBaseUrl,
 	}
 }
 
@@ -40,6 +43,7 @@ func (s *service) GenerateM3ConnectorConsumer(w http.ResponseWriter, r *http.Req
 	s.logContext.WithField("Tenant-ID", customerID).
 		WithField("User-ID", userID).
 		WithField("ApplicationId", applicationID).
+		WithField("CodeGenService", s.codegenServiceBaseUrl).
 		Info("Will generatore m3connector")
 
 	configMap, err := s.k8sDolittleRepo.GetConfigMap(applicationID, fmt.Sprintf("%s-kafka-files", environment))
@@ -55,7 +59,8 @@ func (s *service) GenerateM3ConnectorConsumer(w http.ResponseWriter, r *http.Req
 	var kafkaTopicsCfg KafkaConfigJSON
 	err = json.Unmarshal([]byte(cfgJson), &kafkaTopicsCfg)
 	if err != nil {
-		fmt.Println(err)
+		s.logContext.Error(err)
+		return
 	}
 
 	inputTopic := "todo-add-topic"
@@ -80,7 +85,7 @@ func (s *service) GenerateM3ConnectorConsumer(w http.ResponseWriter, r *http.Req
 		}
 	}
 
-	c := newCodeGeneratorClient("https://localhost:7159")
+	c := newCodeGeneratorClient(s.codegenServiceBaseUrl)
 	zipFileName := "m3connector-consumer.zip"
 	kafkaConfig := KafkaConfig{
 		BrokerURL:            kafkaTopicsCfg.BrokerUrl,
@@ -92,11 +97,15 @@ func (s *service) GenerateM3ConnectorConsumer(w http.ResponseWriter, r *http.Req
 		Certificate:          certificateFile,
 		Ca:                   caFile,
 	}
-	generatedCode := c.GenerateM3ConnectorConsumer(zipFileName,
+	generatedCode, err := c.GenerateM3ConnectorConsumer(zipFileName,
 		"M3ConnectorConsumer",
 		environment,
 		"username",
 		kafkaConfig)
+	if err != nil {
+		s.logContext.Error(err)
+		return
+	}
 	s.logContext.WithField("numberOfBytes", len(generatedCode)).Info("Code is generated")
 
 	w.Write(generatedCode)

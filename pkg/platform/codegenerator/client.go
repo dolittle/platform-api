@@ -42,7 +42,7 @@ func (c codegeneratorclient) GenerateM3ConnectorConsumer(zipFileName string,
 	solutionName string,
 	environment string,
 	username string,
-	kafkaConfig KafkaConfig) []byte {
+	kafkaConfig KafkaConfig) ([]byte, error) {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
@@ -58,9 +58,7 @@ func (c codegeneratorclient) GenerateM3ConnectorConsumer(zipFileName string,
 	query.Add("commandTopic", kafkaConfig.CommandTopic)
 	query.Add("receiptsTopic", kafkaConfig.CommandReceiptsTopic)
 	query.Add("changeEventsTopic", kafkaConfig.CommandReceiptsTopic)
-	url := fmt.Sprintf("https://localhost:7159/api/File/GetKafkaConfiguration?%s", query.Encode())
-
-	fmt.Println(url)
+	url := fmt.Sprintf("%s/api/File/GetKafkaConfiguration?%s", c.baseUrl, query.Encode())
 
 	payload := &bytes.Buffer{}
 	writer := multipart.NewWriter(payload)
@@ -76,8 +74,7 @@ func (c codegeneratorclient) GenerateM3ConnectorConsumer(zipFileName string,
 
 	err := writer.Close()
 	if err != nil {
-		fmt.Println(err)
-		return nil
+		return nil, err
 	}
 
 	req, err := http.NewRequest("POST", url, payload)
@@ -85,11 +82,10 @@ func (c codegeneratorclient) GenerateM3ConnectorConsumer(zipFileName string,
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	response, err := httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
 
 	body, _ := ioutil.ReadAll(response.Body)
-	//fmt.Println(response.Header["Content-Type"])
-	//fmt.Println("Ouput:")
-	//fmt.Println(string(body))
-	//ioutil.WriteFile("/Users/gh/Desktop/foo.zip", body, fs.FileMode(os.O_CREATE))
-	return body
+	return body, nil
 }
