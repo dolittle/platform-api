@@ -36,7 +36,7 @@ func NewService(logContext logrus.FieldLogger,
 func (s *service) GenerateM3ConnectorConsumer(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
-	environment := vars["environment"]
+	environment := strings.ToLower(vars["environment"])
 	userID := r.Header.Get("User-ID")
 	customerID := r.Header.Get("Tenant-ID")
 
