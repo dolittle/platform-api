@@ -3,10 +3,7 @@ package codegenerator
 import (
 	"encoding/json"
 	"fmt"
-	"io/fs"
-	"io/ioutil"
 	"net/http"
-	"os"
 	"strings"
 
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
@@ -31,37 +28,6 @@ func NewService(logContext logrus.FieldLogger,
 		logContext:      logContext,
 		k8sDolittleRepo: k8sDolittleRepo,
 	}
-}
-
-func Test() {
-	accessKeyFile, _ := os.Open("/Users/gh/Desktop/secrets/accessKey.pem")
-	defer accessKeyFile.Close()
-
-	certificateFile, _ := os.Open("/Users/gh/Desktop/secrets/certificate.pem")
-	defer certificateFile.Close()
-
-	caFile, _ := os.Open("/Users/gh/Desktop/secrets/ca.pem")
-	defer caFile.Close()
-
-	c := newCodeGeneratorClient("https://localhost:7159")
-	zipFileName := "foo.zip"
-	kafkaConfig := KafkaConfig{
-		BrokerURL:            "Foo",
-		InputTopic:           "Foo",
-		CommandTopic:         "Foo",
-		CommandReceiptsTopic: "Foo",
-		ChangeEventsTopic:    "Foo",
-		AccessKey:            accessKeyFile,
-		Certificate:          certificateFile,
-		Ca:                   caFile,
-	}
-	generatedCode := c.GenerateM3ConnectorConsumer(zipFileName,
-		"foo",
-		"Dev",
-		"foo",
-		kafkaConfig)
-	outputFile := fmt.Sprintf("/Users/gh/Desktop/%s", zipFileName)
-	ioutil.WriteFile(outputFile, generatedCode, fs.FileMode(os.O_CREATE))
 }
 
 func (s *service) GenerateM3ConnectorConsumer(w http.ResponseWriter, r *http.Request) {
