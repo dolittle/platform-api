@@ -454,7 +454,7 @@ var serverCMD = &cobra.Command{
 		).Methods(http.MethodPost, http.MethodOptions)
 
 		router.Handle(
-			"/application/{applicationID}/codegenerator/m3connector-consumer",
+			"/application/{applicationID}/{environment}/codegenerator/m3connector-consumer",
 			stdChainBase.ThenFunc(codegeneratorService.GenerateM3ConnectorConsumer),
 		).Methods(http.MethodPost, http.MethodOptions)
 

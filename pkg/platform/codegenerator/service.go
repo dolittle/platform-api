@@ -67,6 +67,7 @@ func Test() {
 func (s *service) GenerateM3ConnectorConsumer(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
+	environment := vars["environment"]
 	userID := r.Header.Get("User-ID")
 	customerID := r.Header.Get("Tenant-ID")
 
@@ -75,8 +76,7 @@ func (s *service) GenerateM3ConnectorConsumer(w http.ResponseWriter, r *http.Req
 		WithField("ApplicationId", applicationID).
 		Info("Will generatore m3connector")
 
-	// TODO: take env as input!
-	configMap, err := s.k8sDolittleRepo.GetConfigMap(applicationID, "test-kafka-files")
+	configMap, err := s.k8sDolittleRepo.GetConfigMap(applicationID, fmt.Sprintf("%s-kafka-files", environment))
 	if err != nil {
 		s.logContext.Error(err)
 		return
@@ -91,15 +91,6 @@ func (s *service) GenerateM3ConnectorConsumer(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		fmt.Println(err)
 	}
-
-	/*accessKeyFile, _ := os.Open("/Users/gh/Desktop/secrets/accessKey.pem")
-	defer accessKeyFile.Close()
-
-	certificateFile, _ := os.Open("/Users/gh/Desktop/secrets/certificate.pem")
-	defer certificateFile.Close()
-
-	//caFile, _ := os.Open("/Users/gh/Desktop/secrets/ca.pem")
-	//defer caFile.Close()*/
 
 	inputTopic := "todo-add-topic"
 	commandTopic := "todo-add-command-topic"
@@ -136,7 +127,7 @@ func (s *service) GenerateM3ConnectorConsumer(w http.ResponseWriter, r *http.Req
 		Ca:                   caFile,
 	}
 	generatedCode := c.GenerateM3ConnectorConsumer(zipFileName,
-		"foo",
+		environment,
 		"Dev",
 		"foo",
 		kafkaConfig)
