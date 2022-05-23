@@ -30,6 +30,7 @@ var _ = Describe("Repo", func() {
 		environment      string
 		kafkaFiles       m3connector.KafkaFiles
 		updatedConfigMap *corev1.ConfigMap
+		createdConfigMap *corev1.ConfigMap
 		updatedConfig    m3connector.KafkaConfig
 		getError         error
 		getConfigMap     *corev1.ConfigMap
@@ -68,10 +69,14 @@ var _ = Describe("Repo", func() {
 		clientSet.AddReactor("update", "configmaps", func(action testing.Action) (bool, runtime.Object, error) {
 			updateAction := action.(testing.UpdateAction)
 			updatedConfigMap = updateAction.GetObject().(*corev1.ConfigMap)
-			err := json.Unmarshal([]byte(updatedConfigMap.Data["config.json"]), &updatedConfig)
-			fmt.Println("err:", err)
-			fmt.Println("updatedconfig:", updatedConfig)
+			json.Unmarshal([]byte(updatedConfigMap.Data["config.json"]), &updatedConfig)
 			return true, updatedConfigMap, nil
+		})
+
+		clientSet.AddReactor("create", "configmaps", func(action testing.Action) (bool, runtime.Object, error) {
+			createAction := action.(testing.CreateAction)
+			createdConfigMap = createAction.GetObject().(*corev1.ConfigMap)
+			return true, createdConfigMap, nil
 		})
 
 		err = repo.UpsertKafkaFiles(applicationID, environment, kafkaFiles)
@@ -85,6 +90,19 @@ var _ = Describe("Repo", func() {
 		When("everything works", func() {
 			It("should not fail", func() {
 				Expect(err).To(BeNil())
+			})
+
+			It("should create a new configmap", func() {
+				Expect(createdConfigMap).ToNot(BeNil())
+			})
+			It("should write the access key", func() {
+				Expect(createdConfigMap.Data["accessKey.pem"]).To(Equal(kafkaFiles.AccessKey))
+			})
+			It("should write the certificate", func() {
+				Expect(createdConfigMap.Data["certificate.pem"]).To(Equal(kafkaFiles.Certificate))
+			})
+			It("should write the access key", func() {
+				Expect(createdConfigMap.Data["ca.pem"]).To(Equal(kafkaFiles.CertificateAuthority))
 			})
 		})
 	})
