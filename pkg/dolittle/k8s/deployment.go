@@ -60,6 +60,7 @@ func NewDeployment(microservice Microservice, headImage string, runtimeImage str
 					ContainerPort: 80,
 				},
 			},
+			Resources: getHeadResources(microservice.Environment),
 			EnvFrom: []apiv1.EnvFromSource{
 				{
 					ConfigMapRef: &apiv1.ConfigMapEnvSource{
@@ -105,7 +106,7 @@ func NewDeployment(microservice Microservice, headImage string, runtimeImage str
 		},
 	}
 	if runtimeImage != "none" {
-		containers = append(containers, Runtime(runtimeImage))
+		containers = append(containers, Runtime(runtimeImage, microservice.Environment))
 	}
 
 	deployment := &appsv1.Deployment{
@@ -176,15 +177,7 @@ func NewDeployment(microservice Microservice, headImage string, runtimeImage str
 	return deployment
 }
 
-func Runtime(image string) apiv1.Container {
-	limit, err := resource.ParseQuantity("1Gi")
-	if err != nil {
-		panic(err)
-	}
-	request, err := resource.ParseQuantity("250Mi")
-	if err != nil {
-		panic(err)
-	}
+func Runtime(image, environment string) apiv1.Container {
 	return apiv1.Container{
 		Name:  "runtime",
 		Image: image,
@@ -200,14 +193,7 @@ func Runtime(image string) apiv1.Container {
 				ContainerPort: 9700,
 			},
 		},
-		Resources: apiv1.ResourceRequirements{
-			Limits: apiv1.ResourceList{
-				apiv1.ResourceMemory: limit,
-			},
-			Requests: apiv1.ResourceList{
-				apiv1.ResourceMemory: request,
-			},
-		},
+		Resources: getRuntimeResources(environment),
 		VolumeMounts: []apiv1.VolumeMount{
 			{
 				MountPath: "/app/.dolittle/tenants.json",
@@ -247,4 +233,62 @@ func Runtime(image string) apiv1.Container {
 		},
 	}
 }
+
 func int32Ptr(i int32) *int32 { return &i }
+
+// TODO in the future, this could be linked to the customers subscription
+// Or some way to let them override it as a premium feature
+
+func getHeadResources(environment string) apiv1.ResourceRequirements {
+	switch strings.ToLower(environment) {
+	case "prod":
+		return apiv1.ResourceRequirements{
+			Requests: apiv1.ResourceList{
+				apiv1.ResourceCPU:    resource.MustParse("50m"),
+				apiv1.ResourceMemory: resource.MustParse("256Mi"),
+			},
+			Limits: apiv1.ResourceList{
+				apiv1.ResourceCPU:    resource.MustParse("2000m"),
+				apiv1.ResourceMemory: resource.MustParse("1Gi"),
+			},
+		}
+	default:
+		return apiv1.ResourceRequirements{
+			Requests: apiv1.ResourceList{
+				apiv1.ResourceCPU:    resource.MustParse("25m"),
+				apiv1.ResourceMemory: resource.MustParse("256Mi"),
+			},
+			Limits: apiv1.ResourceList{
+				apiv1.ResourceCPU:    resource.MustParse("2000m"),
+				apiv1.ResourceMemory: resource.MustParse("1Gi"),
+			},
+		}
+	}
+}
+
+func getRuntimeResources(environment string) apiv1.ResourceRequirements {
+	switch strings.ToLower(environment) {
+	case "prod":
+		return apiv1.ResourceRequirements{
+			Requests: apiv1.ResourceList{
+				apiv1.ResourceCPU:    resource.MustParse("50m"),
+				apiv1.ResourceMemory: resource.MustParse("256Mi"),
+			},
+			Limits: apiv1.ResourceList{
+				apiv1.ResourceCPU:    resource.MustParse("2000m"),
+				apiv1.ResourceMemory: resource.MustParse("1Gi"),
+			},
+		}
+	default:
+		return apiv1.ResourceRequirements{
+			Requests: apiv1.ResourceList{
+				apiv1.ResourceCPU:    resource.MustParse("25m"),
+				apiv1.ResourceMemory: resource.MustParse("256Mi"),
+			},
+			Limits: apiv1.ResourceList{
+				apiv1.ResourceCPU:    resource.MustParse("2000m"),
+				apiv1.ResourceMemory: resource.MustParse("1Gi"),
+			},
+		}
+	}
+}

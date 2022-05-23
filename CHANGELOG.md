@@ -1,3 +1,189 @@
+# [4.10.0] - 2022-5-19 [PR: #122](https://github.com/dolittle/platform-api/pull/122)
+## Summary
+
+Adds a new CLI command `platform tools m3connector create environment` that provisions the kafka resources needed for an m3connector setup for an environment.
+```bash
+Usage:
+  platform tools m3connector create environment [flags]
+
+Flags:
+      --application-id string   The applications ID
+      --customer-id string      The customers ID
+      --environment string      The environment
+  -h, --help                    help for environment
+
+Global Flags:
+      --aiven-api-token string        Aiven API token
+      --aiven-project string          Aiven project
+      --aiven-service string          Aiven service
+      --platform-environment string   Platform environment (dev or prod), not linked to application environment (default "dev")
+```
+
+The kafka resources are:
+- 4 topics:
+  - `cust_<customer-id>.app_<application-id>.env_<environment>.m3connector.change-events` (3 replicas, unlimited retention)
+  - `cust_<customer-id>.app_<application-id>.env_<environment>.m3connector.input` (3 replicas, unlimited retention)
+  - `cust_<customer-id>.app_<application-id>.env_<environment>.m3connector.commands` (3 replicas, unlimited retention)
+  - `cust_<customer-id>.app_<application-id>.env_<environment>.m3connector.command-receipts` (3 replicas, 7d retention)
+- An Aiven (sub) service user. Aiven's max length for usernames is 64 so we format the username in the following way:
+```go
+environment := "dev"
+serviceName := "m3connector"
+shortCustomerID := strings.ReplaceAll(customerID, "-", "")[:16]
+shortApplicationID := strings.ReplaceAll(applicationID, "-", "")[:16]
+username := fmt.Sprintf("%s.%s.%s.%s", shortCustomerID, shortApplicationID, environment, serviceName)
+```
+- Adds ACL's between the topics and the user with `"readwrite"` permissions.
+
+The command will currently fail if any of the resources already existed.
+
+
+# [4.9.0] - 2022-5-12 [PR: #128](https://github.com/dolittle/platform-api/pull/128)
+## Summary
+
+Hard coding a default resource request and limit for CPU and Memory on:
+- Head containers
+- Runtime containers
+- MongoDB containers (not backup jobs)
+
+The requests are higher for "Prod" environments, according to the suggested default values:
+```yaml
+environments:
+  prod:
+    runtime:
+      resources:
+        requests:
+          cpu: 50m
+          memory: 256Mi
+        limits:
+          cpu: 2000m
+          memory: 1Gi
+    head:
+      resources:
+        requests:
+          cpu: 50m
+          memory: 256Mi
+        limits:
+          cpu: 2000m
+          memory: 1Gi
+    mongodb:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 512Mi
+        limits:
+          cpu: 2000m
+          memory: 2Gi
+
+  non-prod:
+    runtime:
+      resources:
+        requests:
+          cpu: 25m
+          memory: 256Mi
+        limits:
+          cpu: 2000m
+          memory: 1Gi
+    head:
+      resources:
+        requests:
+          cpu: 25m
+          memory: 256Mi
+        limits:
+          cpu: 2000m
+          memory: 1Gi
+    mongodb:
+      resources:
+        requests:
+          cpu: 50m
+          memory: 512Mi
+        limits:
+          cpu: 2000m
+          memory: 2Gi
+
+```
+
+
+# [4.8.3] - 2022-5-12 [PR: #127](https://github.com/dolittle/platform-api/pull/127)
+## Summary
+
+Fixes a bug with config files saved on the configmaps `data` property not being deleted in the `RemoveEntryFromConfigFiles()` method.
+
+## Reference
+- https://app.asana.com/0/1202121266838773/1202261003053932/f
+
+
+# [4.8.2] - 2022-5-11 [PR: #126](https://github.com/dolittle/platform-api/pull/126)
+## Summary
+
+- Fixes a bug with only the `binaryData` property for config files configmaps being used for fetching config files filenames.
+- Adds support for both utf8 & non-utf8 files being uploaded as the configs. If the code detects that the incoming config file isn't valid utf8 it's going to get saved to the `binaryData` property. Otherwise it's saved to `data`.
+
+## Reference
+- https://app.asana.com/0/1202121266838773/1202244401000776
+
+
+# [4.8.1] - 2022-5-10 [PR: #125](https://github.com/dolittle/platform-api/pull/125)
+## Summary
+
+Resolved remaining comments of [PR 121](https://github.com/dolittle/platform-api/pull/121)
+
+### Changed
+
+- use logcontext
+- log as info for validation messages
+- refactoring based on [comments](https://github.com/dolittle/platform-api/pull/121)
+
+
+# [4.8.0] - 2022-5-6 [PR: #121](https://github.com/dolittle/platform-api/pull/121)
+## Summary
+
+- Config Files support
+
+### Added
+
+- Get config files names list for microservice
+  - /live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/config-files/list
+    - GET
+- Delete config file for microservice
+  - /live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/config-files
+    - DELETE
+- Add entry to config file configmap for microservice
+  - /live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/config-files
+    - PUT
+-  validation
+
+### Changed
+
+- More descriptive error logging in some of the environment variables repo and service
+
+
+# [4.7.0] - 2022-5-5 [PR: #116](https://github.com/dolittle/platform-api/pull/116)
+# Note
+- This does not work in local development due to the container registry, we will need to document how to cheat the system
+
+# Todo
+- [ ] Write code to talk to azure
+- [ ] Maybe a test for the http layer
+- [ ] Think about creating storage interface for getting Tenant to reduce the testing
+
+
+## Summary
+
+Query the platform-api for images and tags in the container registry offered for each customer
+
+### Added
+
+- Get images
+- Get tags based on image name
+
+
+# [4.6.2] - 2022-5-4 [PR: #117](https://github.com/dolittle/platform-api/pull/117)
+## Summary
+
+Fix error when trying to create a base microservice without the M3Connector and the environment variable set.
+
+
 # [4.6.1] - 2022-4-29 [PR: #114](https://github.com/dolittle/platform-api/pull/114)
 ## Summary
 

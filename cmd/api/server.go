@@ -16,6 +16,7 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform/backup"
 	"github.com/dolittle/platform-api/pkg/platform/businessmoment"
 	"github.com/dolittle/platform-api/pkg/platform/cicd"
+	"github.com/dolittle/platform-api/pkg/platform/containerregistry"
 	"github.com/dolittle/platform-api/pkg/platform/customer"
 	"github.com/dolittle/platform-api/pkg/platform/insights"
 	"github.com/dolittle/platform-api/pkg/platform/job"
@@ -23,6 +24,7 @@ import (
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	m3ConnectorListeners "github.com/dolittle/platform-api/pkg/platform/listeners/m3connector"
 	"github.com/dolittle/platform-api/pkg/platform/microservice"
+	"github.com/dolittle/platform-api/pkg/platform/microservice/configFiles"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/environmentVariables"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/purchaseorderapi"
 	"github.com/dolittle/platform-api/pkg/platform/studio"
@@ -143,6 +145,16 @@ var serverCMD = &cobra.Command{
 			logrus.WithField("context", "microservice-environment-variables-service"),
 		)
 
+		microserviceConfigFilesService := configFiles.NewService(
+			configFiles.NewConfigFilesK8sRepo(
+				k8sRepo,
+				k8sClient,
+				logrus.WithField("context", "microservice-config-files-repo"),
+			),
+			k8sRepo,
+			logrus.WithField("context", "microservice-config-files-service"),
+		)
+
 		applicationService := application.NewService(
 			subscriptionID,
 			externalClusterHost,
@@ -197,6 +209,13 @@ var serverCMD = &cobra.Command{
 			gitRepo,
 			logrus.WithField("context", "studio-service"),
 			k8sRepoV2,
+		)
+
+		containerRegistryService := containerregistry.NewService(
+			gitRepo,
+			containerregistry.NewAzureRepo(logContext.WithField("context", "container-registry-azure")),
+			k8sRepo,
+			logContext.WithField("context", "container-registry-service"),
 		)
 
 		c := cors.New(cors.Options{
@@ -315,6 +334,21 @@ var serverCMD = &cobra.Command{
 		).Methods(http.MethodPut, http.MethodOptions)
 
 		router.Handle(
+			"/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/config-files",
+			stdChainBase.ThenFunc(microserviceConfigFilesService.UpdateConfigFiles),
+		).Methods(http.MethodPut, http.MethodOptions)
+
+		router.Handle(
+			"/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/config-files",
+			stdChainBase.ThenFunc(microserviceConfigFilesService.DeleteConfigFile),
+		).Methods(http.MethodDelete, http.MethodOptions)
+
+		router.Handle(
+			"/live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/config-files/list",
+			stdChainWithJSON.ThenFunc(microserviceConfigFilesService.GetConfigFilesNamesList),
+		).Methods(http.MethodGet, http.MethodOptions)
+
+		router.Handle(
 			"/live/application/{applicationID}/pod/{podName}/logs",
 			stdChainBase.ThenFunc(microserviceService.GetPodLogs),
 		).Methods(http.MethodGet, http.MethodOptions)
@@ -412,6 +446,16 @@ var serverCMD = &cobra.Command{
 			"/studio/customer/{customerID}",
 			stdChainBase.ThenFunc(studioService.Save),
 		).Methods(http.MethodPost, http.MethodOptions)
+
+		router.Handle(
+			"/application/{applicationID}/containerregistry/images",
+			stdChainBase.ThenFunc(containerRegistryService.GetImages),
+		).Methods(http.MethodGet, http.MethodOptions)
+
+		router.Handle(
+			"/application/{applicationID}/containerregistry/tags/{imageName:.*}",
+			stdChainBase.ThenFunc(containerRegistryService.GetTags),
+		).Methods(http.MethodGet, http.MethodOptions)
 
 		router.Handle(
 			"/admin/customer/{customerID}/application/{applicationID}/access/users",
