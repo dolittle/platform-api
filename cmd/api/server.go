@@ -16,6 +16,7 @@ import (
 	"github.com/dolittle/platform-api/pkg/platform/backup"
 	"github.com/dolittle/platform-api/pkg/platform/businessmoment"
 	"github.com/dolittle/platform-api/pkg/platform/cicd"
+	"github.com/dolittle/platform-api/pkg/platform/codegenerator"
 	"github.com/dolittle/platform-api/pkg/platform/containerregistry"
 	"github.com/dolittle/platform-api/pkg/platform/customer"
 	"github.com/dolittle/platform-api/pkg/platform/insights"
@@ -72,6 +73,7 @@ var serverCMD = &cobra.Command{
 		sharedSecret := viper.GetString("tools.server.secret")
 		subscriptionID := viper.GetString("tools.server.azure.subscriptionId")
 		isProduction := viper.GetBool("tools.server.isProduction")
+		codegenServiceBaseUrl := viper.GetString("tools.server.scaffoldingservice")
 
 		userThirdPartyEnabled := viper.GetBool("tools.server.user.thirdPartyEnabled")
 		kratosURL := viper.GetString("tools.server.kratos.url")
@@ -209,6 +211,12 @@ var serverCMD = &cobra.Command{
 			gitRepo,
 			logrus.WithField("context", "studio-service"),
 			k8sRepoV2,
+		)
+
+		codegeneratorService := codegenerator.NewService(
+			logContext.WithField("context", "codegen-service"),
+			k8sRepo,
+			codegenServiceBaseUrl,
 		)
 
 		containerRegistryService := containerregistry.NewService(
@@ -448,6 +456,11 @@ var serverCMD = &cobra.Command{
 		).Methods(http.MethodPost, http.MethodOptions)
 
 		router.Handle(
+			"/application/{applicationID}/{environment}/codegenerator/m3connector-consumer",
+			stdChainBase.ThenFunc(codegeneratorService.GenerateM3ConnectorConsumer),
+		).Methods(http.MethodPost, http.MethodOptions)
+
+		router.Handle(
 			"/application/{applicationID}/containerregistry/images",
 			stdChainBase.ThenFunc(containerRegistryService.GetImages),
 		).Methods(http.MethodGet, http.MethodOptions)
@@ -492,6 +505,7 @@ func init() {
 	viper.SetDefault("tools.server.azure.subscriptionId", "")
 	viper.SetDefault("tools.server.kubernetes.externalClusterHost", defaultExternalClusterHost)
 	viper.SetDefault("tools.server.user.thirdPartyEnabled", false)
+	viper.SetDefault("tools.server.scaffoldingservice", "http://localhost:7159")
 
 	viper.BindEnv("tools.server.secret", "HEADER_SECRET")
 	viper.BindEnv("tools.server.listenOn", "LISTEN_ON")
@@ -500,6 +514,7 @@ func init() {
 	viper.BindEnv("tools.server.kubernetes.externalClusterHost", "AZURE_EXTERNAL_CLUSTER_HOST")
 	viper.BindEnv("tools.server.kratos.url", "KRATOS_URL")
 	viper.BindEnv("tools.server.user.thirdPartyEnabled", "USER_THIRD_PARTY_ENABLED")
+	viper.BindEnv("tools.server.scaffoldingservice", "SCAFFOLDING_SERVICE")
 }
 
 // getExternalClusterHost Return externalHost if set, otherwise fall back to the internalHost
