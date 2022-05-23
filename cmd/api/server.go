@@ -73,7 +73,7 @@ var serverCMD = &cobra.Command{
 		sharedSecret := viper.GetString("tools.server.secret")
 		subscriptionID := viper.GetString("tools.server.azure.subscriptionId")
 		isProduction := viper.GetBool("tools.server.isProduction")
-		codegenServiceBaseUrl := viper.GetString("tools.server.codegenservice")
+		codegenServiceBaseUrl := viper.GetString("tools.server.scaffoldingservice")
 
 		userThirdPartyEnabled := viper.GetBool("tools.server.user.thirdPartyEnabled")
 		kratosURL := viper.GetString("tools.server.kratos.url")
@@ -505,7 +505,7 @@ func init() {
 	viper.SetDefault("tools.server.azure.subscriptionId", "")
 	viper.SetDefault("tools.server.kubernetes.externalClusterHost", defaultExternalClusterHost)
 	viper.SetDefault("tools.server.user.thirdPartyEnabled", false)
-	viper.SetDefault("tools.server.codegenservice", "http://localhost:7159")
+	viper.SetDefault("tools.server.scaffoldingservice", "http://localhost:7159")
 
 	viper.BindEnv("tools.server.secret", "HEADER_SECRET")
 	viper.BindEnv("tools.server.listenOn", "LISTEN_ON")
@@ -514,7 +514,7 @@ func init() {
 	viper.BindEnv("tools.server.kubernetes.externalClusterHost", "AZURE_EXTERNAL_CLUSTER_HOST")
 	viper.BindEnv("tools.server.kratos.url", "KRATOS_URL")
 	viper.BindEnv("tools.server.user.thirdPartyEnabled", "USER_THIRD_PARTY_ENABLED")
-	viper.BindEnv("tools.server.codegenservice", "CODEGEN_SERVICE")
+	viper.BindEnv("tools.server.scaffoldingservice", "SCAFFOLDING_SERVICE")
 }
 
 // getExternalClusterHost Return externalHost if set, otherwise fall back to the internalHost
