@@ -62,7 +62,7 @@ var environmentCMD = &cobra.Command{
 		k8sRepo := k8s.NewM3ConnectorRepo(k8sClient, isProduction, logContext.Logger)
 
 		m3connector := m3connector.NewM3Connector(aiven, k8sRepo, logContext)
-		m3connector.CreateEnvironment(customerID, applicationID, environment)
+		err = m3connector.CreateEnvironment(customerID, applicationID, environment)
 		if err != nil {
 			logContext.Fatal(err)
 		}
