@@ -98,9 +98,12 @@ func (c *Client) AddACL(topic string, username string, permission string) error 
 
 	_, err := c.client.KafkaACLs.Create(c.project, c.service, userRequest)
 	if err != nil {
-		return fmt.Errorf("failed to add an ACl: %w", err)
+		if !aiven.IsAlreadyExists(err) {
+			return fmt.Errorf("failed to add an ACl: %w", err)
+		}
+		logContext.Debug("the ACL already exists")
 	}
-	return err
+	return nil
 }
 
 func (c *Client) CreateTopic(topic string, retentionMs int64) error {
@@ -121,9 +124,12 @@ func (c *Client) CreateTopic(topic string, retentionMs int64) error {
 
 	err := c.client.KafkaTopics.Create(c.project, c.service, topicRequest)
 	if err != nil {
-		return fmt.Errorf("failed to create a topic: %w", err)
+		if !aiven.IsAlreadyExists(err) {
+			return fmt.Errorf("failed to create a topic: %w", err)
+		}
+		logContext.Debug("the topic already exists")
 	}
-	return err
+	return nil
 }
 
 func (c *Client) GetCertificateAuthority() string {
