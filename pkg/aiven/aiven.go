@@ -50,23 +50,35 @@ func NewClient(apiToken, project, service string, logger logrus.FieldLogger) (*C
 	}, nil
 }
 
-func (c *Client) CreateUser(username string) (string, string, error) {
+func (c *Client) GetOrCreateUser(username string) (string, string, error) {
 	logContext := c.logContext.WithFields(logrus.Fields{
-		"method":   "CreateUser",
+		"method":   "GetOrCreateUser",
 		"username": username,
 	})
-	logContext.Debug("creating a user")
-	userRequest := aiven.CreateServiceUserRequest{
-		Username: username,
+	var serviceUser *aiven.ServiceUser
+
+	logContext.Debug("getting the service user user")
+	serviceUser, getErr := c.client.ServiceUsers.Get(c.project, c.service, username)
+	if getErr != nil {
+		if !aiven.IsNotFound(getErr) {
+			return "", "", fmt.Errorf("failed to check if the user already existed: %w", getErr)
+		}
+
+		logContext.Debug("no existing user already found, creating a new service user")
+		userRequest := aiven.CreateServiceUserRequest{
+			Username: username,
+		}
+
+		// have to initialize createErr so that we can use '=' to mutate the serviceUser variable from outer scope
+		var createErr error
+		serviceUser, createErr = c.client.ServiceUsers.Create(c.project, c.service, userRequest)
+		if createErr != nil {
+			return "", "", fmt.Errorf("failed to create a user: %w", createErr)
+		}
+		logContext.Debug("created the service user")
 	}
 
-	serviceUser, err := c.client.ServiceUsers.Create(c.project, c.service, userRequest)
-	if err != nil {
-		return "", "", fmt.Errorf("failed to create a user: %w", err)
-	}
-
-	logContext.Debug("created the service user")
-	return serviceUser.AccessCert, serviceUser.AccessKey, err
+	return serviceUser.AccessCert, serviceUser.AccessKey, nil
 }
 
 func (c *Client) AddACL(topic string, username string, permission string) error {

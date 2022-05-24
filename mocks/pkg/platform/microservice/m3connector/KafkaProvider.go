@@ -41,34 +41,6 @@ func (_m *KafkaProvider) CreateTopic(topic string, retentionMs int64) error {
 	return r0
 }
 
-// CreateUser provides a mock function with given fields: username
-func (_m *KafkaProvider) CreateUser(username string) (string, string, error) {
-	ret := _m.Called(username)
-
-	var r0 string
-	if rf, ok := ret.Get(0).(func(string) string); ok {
-		r0 = rf(username)
-	} else {
-		r0 = ret.Get(0).(string)
-	}
-
-	var r1 string
-	if rf, ok := ret.Get(1).(func(string) string); ok {
-		r1 = rf(username)
-	} else {
-		r1 = ret.Get(1).(string)
-	}
-
-	var r2 error
-	if rf, ok := ret.Get(2).(func(string) error); ok {
-		r2 = rf(username)
-	} else {
-		r2 = ret.Error(2)
-	}
-
-	return r0, r1, r2
-}
-
 // GetBrokerUrl provides a mock function with given fields:
 func (_m *KafkaProvider) GetBrokerUrl() string {
 	ret := _m.Called()
@@ -95,6 +67,34 @@ func (_m *KafkaProvider) GetCertificateAuthority() string {
 	}
 
 	return r0
+}
+
+// GetOrCreateUser provides a mock function with given fields: username
+func (_m *KafkaProvider) GetOrCreateUser(username string) (string, string, error) {
+	ret := _m.Called(username)
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func(string) string); ok {
+		r0 = rf(username)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	var r1 string
+	if rf, ok := ret.Get(1).(func(string) string); ok {
+		r1 = rf(username)
+	} else {
+		r1 = ret.Get(1).(string)
+	}
+
+	var r2 error
+	if rf, ok := ret.Get(2).(func(string) error); ok {
+		r2 = rf(username)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
 }
 
 // NewKafkaProvider creates a new instance of KafkaProvider. It also registers the testing.TB interface on the mock and a cleanup function to assert the mocks expectations.

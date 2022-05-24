@@ -84,7 +84,7 @@ var _ = Describe("M3connector", func() {
 	// behaviour so that when the mock tries to check for the calls it will find the specific setups first in the slice
 	// before the default behaviour.
 	JustBeforeEach(func() {
-		mockKafka.On("CreateUser", mock.Anything).Return("", "", nil)
+		mockKafka.On("GetOrCreateUser", mock.Anything).Return("", "", nil)
 		mockKafka.On("CreateTopic", mock.Anything, mock.Anything).Return(nil)
 		mockKafka.On("AddACL", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 		mockKafka.On("GetCertificateAuthority").Return("")
@@ -128,7 +128,7 @@ var _ = Describe("M3connector", func() {
 			When("user creation fails", func() {
 				BeforeEach(func() {
 					mockKafka.On(
-						"CreateUser",
+						"GetOrCreateUser",
 						username,
 					).Return("", "", errors.New("user error"))
 				})
@@ -192,7 +192,7 @@ var _ = Describe("M3connector", func() {
 							"GetBrokerUrl",
 						).Return(kafkaFiles.Config.BrokerUrl).
 						On(
-							"CreateUser",
+							"GetOrCreateUser",
 							username,
 						).Return(kafkaFiles.Certificate, kafkaFiles.AccessKey, nil)
 				})
@@ -202,7 +202,7 @@ var _ = Describe("M3connector", func() {
 				})
 
 				It("should create a user with the correct username", func() {
-					mockKafka.AssertCalled(GinkgoT(), "CreateUser", username)
+					mockKafka.AssertCalled(GinkgoT(), "GetOrCreateUser", username)
 				})
 
 				It("should create the 4 topics with correct names and retention", func() {
@@ -234,12 +234,12 @@ var _ = Describe("M3connector", func() {
 							"GetCertificateAuthority",
 						).Return(kafkaFiles.CertificateAuthority).
 						On(
-							"CreateUser",
+							"GetOrCreateUser",
 							username,
 						).Return(kafkaFiles.Certificate, kafkaFiles.AccessKey, nil)
 				})
 				It("should create a user with the correct lowercase username", func() {
-					mockKafka.AssertCalled(GinkgoT(), "CreateUser", username)
+					mockKafka.AssertCalled(GinkgoT(), "GetOrCreateUser", username)
 				})
 
 				It("should create the 4 topics with correct lowercase names", func() {
