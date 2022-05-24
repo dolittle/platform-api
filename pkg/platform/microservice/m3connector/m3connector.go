@@ -67,17 +67,10 @@ func (m *M3Connector) CreateEnvironment(customerID, applicationID, environment s
 	applicationID = strings.ToLower(applicationID)
 	environment = strings.ToLower(environment)
 
-	resourcePrefix := fmt.Sprintf("cust_%s.app_%s.env_%s.%s", customerID, applicationID, environment, serviceName)
-	// Aiven only allows 64 characters for the username so we do some truncating
-	shortCustomerID := strings.ReplaceAll(customerID, "-", "")[:16]
-	shortApplicationID := strings.ReplaceAll(applicationID, "-", "")[:16]
-	username := fmt.Sprintf("%s.%s.%s.%s", shortCustomerID, shortApplicationID, environment, serviceName)
-
 	logContext := m.logContext.WithFields(logrus.Fields{
 		"customer_id":    customerID,
 		"application_id": applicationID,
 		"environment":    environment,
-		"username":       username,
 		"method":         "CreateEnvironment",
 	})
 	logContext.Info("creating the environment for m3connector")
@@ -91,6 +84,13 @@ func (m *M3Connector) CreateEnvironment(customerID, applicationID, environment s
 	if environment == "" {
 		return errors.New("environment can't be empty")
 	}
+
+	resourcePrefix := fmt.Sprintf("cust_%s.app_%s.env_%s.%s", customerID, applicationID, environment, serviceName)
+	// Aiven only allows 64 characters for the username so we do some truncating
+	shortCustomerID := strings.ReplaceAll(customerID, "-", "")[:16]
+	shortApplicationID := strings.ReplaceAll(applicationID, "-", "")[:16]
+	username := fmt.Sprintf("%s.%s.%s.%s", shortCustomerID, shortApplicationID, environment, serviceName)
+	logContext = logContext.WithField("username", username)
 
 	certificate, accessKey, err := m.kafka.CreateUser(username)
 	if err != nil {
