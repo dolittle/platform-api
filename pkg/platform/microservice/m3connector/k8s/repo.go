@@ -39,6 +39,7 @@ func (r *k8sRepo) UpsertKafkaFiles(applicationID, environment string, kafkaFiles
 		"configmap_name": name,
 		"method":         "UpsertKafkaFiles",
 	})
+	logContext.Info("upserting the kafka files")
 
 	k8sNamespace, err := r.k8sClient.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
 	if err != nil {

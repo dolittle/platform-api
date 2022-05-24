@@ -63,18 +63,6 @@ func NewM3Connector(kafka KafkaProvider, k8sRepo K8sRepo, logContext logrus.Fiel
 
 // CreateEnvironment creates the required 4 topics, ACL's for them and an user needed for M3Connector to work in an environment
 func (m *M3Connector) CreateEnvironment(customerID, applicationID, environment string) error {
-	logContext := m.logContext.WithField("method", "CreateEnvironment")
-
-	if customerID == "" {
-		return errors.New("customer can't be empty")
-	}
-	if applicationID == "" {
-		return errors.New("application can't be empty")
-	}
-	if environment == "" {
-		return errors.New("environment can't be empty")
-	}
-
 	customerID = strings.ToLower(customerID)
 	applicationID = strings.ToLower(applicationID)
 	environment = strings.ToLower(environment)
@@ -85,12 +73,24 @@ func (m *M3Connector) CreateEnvironment(customerID, applicationID, environment s
 	shortApplicationID := strings.ReplaceAll(applicationID, "-", "")[:16]
 	username := fmt.Sprintf("%s.%s.%s.%s", shortCustomerID, shortApplicationID, environment, serviceName)
 
-	logContext = logContext.WithFields(logrus.Fields{
+	logContext := m.logContext.WithFields(logrus.Fields{
 		"customer_id":    customerID,
 		"application_id": applicationID,
 		"environment":    environment,
 		"username":       username,
+		"method":         "CreateEnvironment",
 	})
+	logContext.Info("creating the environment for m3connector")
+
+	if customerID == "" {
+		return errors.New("customer can't be empty")
+	}
+	if applicationID == "" {
+		return errors.New("application can't be empty")
+	}
+	if environment == "" {
+		return errors.New("environment can't be empty")
+	}
 
 	certificate, accessKey, err := m.kafka.CreateUser(username)
 	if err != nil {
@@ -142,7 +142,7 @@ func (m *M3Connector) CreateEnvironment(customerID, applicationID, environment s
 		return err
 	}
 
-	logContext.Debug("created all topics and ACL's")
+	logContext.Info("finished creating the environment")
 
 	return nil
 }
@@ -154,6 +154,7 @@ func (m *M3Connector) createTopicAndACL(topic string, retentionMs int64, usernam
 		"retention_ms": retentionMs,
 		"username":     username,
 	})
+	logContext.Debug("creating the topic and ACL")
 	err := m.kafka.CreateTopic(topic, retentionMs)
 	if err != nil {
 		logContext.WithField("error", err).Error("failed to create the topic")
