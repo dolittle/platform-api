@@ -34,6 +34,7 @@ var _ = Describe("Repo", func() {
 		updatedConfig    m3connector.KafkaConfig
 		getError         error
 		getConfigMap     *corev1.ConfigMap
+		getNamespace     *corev1.Namespace
 	)
 
 	BeforeEach(func() {
@@ -59,6 +60,19 @@ var _ = Describe("Repo", func() {
 		updatedConfig = m3connector.KafkaConfig{}
 		getConfigMap = nil
 		getError = nil
+		getNamespace = &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: fmt.Sprintf("application-%s", applicationID),
+				Labels: map[string]string{
+					"application": "TestApp",
+					"tenant":      "TestCustomer",
+				},
+				Annotations: map[string]string{
+					"dolittle.io/application-id": applicationID,
+					"dolittle.io/tenant-id":      "53816a9b-cc60-4889-8a2f-5a5d51526371",
+				},
+			},
+		}
 	})
 
 	JustBeforeEach(func() {
@@ -77,6 +91,9 @@ var _ = Describe("Repo", func() {
 			createAction := action.(testing.CreateAction)
 			createdConfigMap = createAction.GetObject().(*corev1.ConfigMap)
 			return true, createdConfigMap, nil
+		})
+		clientSet.AddReactor("get", "namespaces", func(action testing.Action) (bool, runtime.Object, error) {
+			return true, getNamespace, nil
 		})
 
 		err = repo.UpsertKafkaFiles(applicationID, environment, kafkaFiles)
@@ -103,6 +120,15 @@ var _ = Describe("Repo", func() {
 			})
 			It("should write the access key", func() {
 				Expect(createdConfigMap.Data["ca.pem"]).To(Equal(kafkaFiles.CertificateAuthority))
+			})
+			It("should have all the correct labels", func() {
+				Expect(createdConfigMap.Labels["application"]).To(Equal(getNamespace.Labels["application"]))
+				Expect(createdConfigMap.Labels["tenant"]).To(Equal(getNamespace.Labels["tenant"]))
+				Expect(createdConfigMap.Labels["environment"]).To(Equal("Test"))
+			})
+			It("should have all the correct annotations", func() {
+				Expect(createdConfigMap.Annotations["dolittle.io/application-id"]).To(Equal(getNamespace.Annotations["dolittle.io/application-id"]))
+				Expect(createdConfigMap.Annotations["dolittle.io/tenant-id"]).To(Equal(getNamespace.Annotations["dolittle.io/tenant-id"]))
 			})
 		})
 	})

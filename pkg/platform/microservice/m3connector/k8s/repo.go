@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/m3connector"
@@ -46,6 +47,12 @@ func (r *k8sRepo) UpsertKafkaFiles(applicationID, environment string, kafkaFiles
 		return err
 	}
 
+	customerLabel := k8sNamespace.Labels["tenant"]
+	applicationLabel := k8sNamespace.Labels["application"]
+	// the environment is Titled and I'm just assuming it's only the first letter that's capitalized
+	titledEnvironment := fmt.Sprintf("%s%s", strings.ToUpper(string(environment[0])), environment[1:])
+	labels := platformK8s.GetLabelsForEnvironment(customerLabel, applicationLabel, titledEnvironment)
+
 	bytesConfig, err := json.MarshalIndent(kafkaFiles.Config, "", "  ")
 	if err != nil {
 		return err
@@ -59,7 +66,7 @@ func (r *k8sRepo) UpsertKafkaFiles(applicationID, environment string, kafkaFiles
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
 			Annotations: k8sNamespace.GetAnnotations(),
-			Labels:      k8sNamespace.GetLabels(),
+			Labels:      labels,
 		},
 		Data: map[string]string{
 			"config.json":     string(bytesConfig),
