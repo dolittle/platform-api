@@ -8,7 +8,9 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/dolittle/platform-api/pkg/aiven"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/m3connector"
+	"github.com/dolittle/platform-api/pkg/platform/microservice/m3connector/k8s"
 )
 
 var environmentCMD = &cobra.Command{
@@ -52,8 +54,13 @@ var environmentCMD = &cobra.Command{
 		if err != nil {
 			logContext.Fatal(err)
 		}
-		m3connector := m3connector.NewM3Connector(aiven, logContext)
-		m3connector.CreateEnvironment(customerID, applicationID, environment)
+
+		k8sClient, _ := platformK8s.InitKubernetesClient()
+
+		k8sRepo := k8s.NewM3ConnectorRepo(k8sClient, logContext.Logger)
+
+		m3connector := m3connector.NewM3Connector(aiven, k8sRepo, logContext)
+		err = m3connector.CreateEnvironment(customerID, applicationID, environment)
 		if err != nil {
 			logContext.Fatal(err)
 		}

@@ -11,13 +11,21 @@ import (
 
 type M3Connector struct {
 	kafka      KafkaProvider
+	k8sRepo    K8sRepo
 	logContext logrus.FieldLogger
 }
 
 type KafkaProvider interface {
 	CreateTopic(topic string, retentionMs int64) error
-	CreateUser(username string) error
+	// Get's or create's a Kafka "user" and returns the access certificate and access key if successful
+	GetOrCreateUser(username string) (certificate string, key string, err error)
 	AddACL(topic string, username string, permission string) error
+	GetCertificateAuthority() string
+	GetBrokerUrl() string
+}
+
+type K8sRepo interface {
+	UpsertKafkaFiles(applicationID, environment string, kafkaFiles KafkaFiles) error
 }
 
 type KafkaACLPermission string
@@ -31,9 +39,22 @@ const (
 
 const serviceName = "m3connector"
 
-func NewM3Connector(kafka KafkaProvider, logContext logrus.FieldLogger) *M3Connector {
+type KafkaFiles struct {
+	AccessKey            string      `json:"accessKey.pem"`
+	CertificateAuthority string      `json:"ca.pem"`
+	Certificate          string      `json:"certificate.pem"`
+	Config               KafkaConfig `json:"config.json"`
+}
+
+type KafkaConfig struct {
+	BrokerUrl string   `json:"brokerUrl"`
+	Topics    []string `json:"topics"`
+}
+
+func NewM3Connector(kafka KafkaProvider, k8sRepo K8sRepo, logContext logrus.FieldLogger) *M3Connector {
 	return &M3Connector{
-		kafka: kafka,
+		kafka:   kafka,
+		k8sRepo: k8sRepo,
 		logContext: logContext.WithFields(logrus.Fields{
 			"context": "m3connector",
 		}),
@@ -42,7 +63,17 @@ func NewM3Connector(kafka KafkaProvider, logContext logrus.FieldLogger) *M3Conne
 
 // CreateEnvironment creates the required 4 topics, ACL's for them and an user needed for M3Connector to work in an environment
 func (m *M3Connector) CreateEnvironment(customerID, applicationID, environment string) error {
-	logContext := m.logContext.WithField("method", "CreateEnvironment")
+	customerID = strings.ToLower(customerID)
+	applicationID = strings.ToLower(applicationID)
+	environment = strings.ToLower(environment)
+
+	logContext := m.logContext.WithFields(logrus.Fields{
+		"customer_id":    customerID,
+		"application_id": applicationID,
+		"environment":    environment,
+		"method":         "CreateEnvironment",
+	})
+	logContext.Info("creating the environment for m3connector")
 
 	if customerID == "" {
 		return errors.New("customer can't be empty")
@@ -54,24 +85,14 @@ func (m *M3Connector) CreateEnvironment(customerID, applicationID, environment s
 		return errors.New("environment can't be empty")
 	}
 
-	customerID = strings.ToLower(customerID)
-	applicationID = strings.ToLower(applicationID)
-	environment = strings.ToLower(environment)
-
 	resourcePrefix := fmt.Sprintf("cust_%s.app_%s.env_%s.%s", customerID, applicationID, environment, serviceName)
 	// Aiven only allows 64 characters for the username so we do some truncating
 	shortCustomerID := strings.ReplaceAll(customerID, "-", "")[:16]
 	shortApplicationID := strings.ReplaceAll(applicationID, "-", "")[:16]
 	username := fmt.Sprintf("%s.%s.%s.%s", shortCustomerID, shortApplicationID, environment, serviceName)
+	logContext = logContext.WithField("username", username)
 
-	logContext = logContext.WithFields(logrus.Fields{
-		"customer_id":    customerID,
-		"application_id": applicationID,
-		"environment":    environment,
-		"username":       username,
-	})
-
-	err := m.kafka.CreateUser(username)
+	certificate, accessKey, err := m.kafka.GetOrCreateUser(username)
 	if err != nil {
 		logContext.WithFields(logrus.Fields{
 			"error": err,
@@ -102,7 +123,27 @@ func (m *M3Connector) CreateEnvironment(customerID, applicationID, environment s
 		return err
 	}
 
-	logContext.Debug("created all topics and ACL's")
+	kafkaFiles := KafkaFiles{
+		AccessKey:            accessKey,
+		Certificate:          certificate,
+		CertificateAuthority: m.kafka.GetCertificateAuthority(),
+		Config: KafkaConfig{
+			BrokerUrl: m.kafka.GetBrokerUrl(),
+			Topics: []string{
+				changeTopic,
+				inputTopic,
+				commandTopic,
+				receiptsTopic,
+			},
+		},
+	}
+	err = m.k8sRepo.UpsertKafkaFiles(applicationID, environment, kafkaFiles)
+	if err != nil {
+		return err
+	}
+
+	logContext.Info("finished creating the environment")
+
 	return nil
 }
 
@@ -113,6 +154,7 @@ func (m *M3Connector) createTopicAndACL(topic string, retentionMs int64, usernam
 		"retention_ms": retentionMs,
 		"username":     username,
 	})
+	logContext.Debug("creating the topic and ACL")
 	err := m.kafka.CreateTopic(topic, retentionMs)
 	if err != nil {
 		logContext.WithField("error", err).Error("failed to create the topic")
