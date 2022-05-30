@@ -32,6 +32,7 @@ var _ = Describe("Repo", func() {
 		updatedConfigMap *corev1.ConfigMap
 		createdConfigMap *corev1.ConfigMap
 		updatedConfig    m3connector.KafkaConfig
+		createdConfig    m3connector.KafkaConfig
 		getError         error
 		getConfigMap     *corev1.ConfigMap
 		getNamespace     *corev1.Namespace
@@ -58,6 +59,7 @@ var _ = Describe("Repo", func() {
 			},
 		}
 		updatedConfig = m3connector.KafkaConfig{}
+		createdConfig = m3connector.KafkaConfig{}
 		getConfigMap = nil
 		getError = nil
 		getNamespace = &corev1.Namespace{
@@ -90,6 +92,7 @@ var _ = Describe("Repo", func() {
 		clientSet.AddReactor("create", "configmaps", func(action testing.Action) (bool, runtime.Object, error) {
 			createAction := action.(testing.CreateAction)
 			createdConfigMap = createAction.GetObject().(*corev1.ConfigMap)
+			json.Unmarshal([]byte(createdConfigMap.Data["config.json"]), &createdConfig)
 			return true, createdConfigMap, nil
 		})
 		clientSet.AddReactor("get", "namespaces", func(action testing.Action) (bool, runtime.Object, error) {
@@ -108,9 +111,11 @@ var _ = Describe("Repo", func() {
 			It("should not fail", func() {
 				Expect(err).To(BeNil())
 			})
-
 			It("should create a new configmap", func() {
 				Expect(createdConfigMap).ToNot(BeNil())
+			})
+			It("should overwrite the config.json with the given config", func() {
+				Expect(createdConfig).To(Equal(kafkaFiles.Config))
 			})
 			It("should write the access key", func() {
 				Expect(createdConfigMap.Data["accessKey.pem"]).To(Equal(kafkaFiles.AccessKey))
@@ -153,7 +158,6 @@ var _ = Describe("Repo", func() {
 				It("should overwrite the config.json with the given config", func() {
 					Expect(updatedConfig).To(Equal(kafkaFiles.Config))
 				})
-
 				It("should overwrite the access key", func() {
 					Expect(updatedConfigMap.Data["accessKey.pem"]).To(Equal(kafkaFiles.AccessKey))
 				})
