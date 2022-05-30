@@ -1,3 +1,12 @@
+# [4.11.0] - 2022-5-30 [PR: #130](https://github.com/dolittle/platform-api/pull/130)
+## Summary
+
+- Made the `tools m3connector create environment` CLI command to also upsert the `<env>-kafka-files` configmap in the correct environment in k8s with the credentials, certificates and `config.json`
+- Made the `CreateTopic()` & `AddACL()` methods in the `aiven` package to not return errors if the ACL/topic already existed.
+- Changed the `CreateUser()` method to `GetOrCreateUser()` so that it doesn't fail if the user already exists
+- Updated mocks with mockery 2.12.2 as the old ones didn't work with go 1.18
+
+
 # [4.10.0] - 2022-5-19 [PR: #122](https://github.com/dolittle/platform-api/pull/122)
 ## Summary
 
