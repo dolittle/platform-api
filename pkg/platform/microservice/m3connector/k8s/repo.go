@@ -16,16 +16,14 @@ import (
 )
 
 type k8sRepo struct {
-	k8sClient    kubernetes.Interface
-	isProduction bool
-	logger       logrus.FieldLogger
+	k8sClient kubernetes.Interface
+	logger    logrus.FieldLogger
 }
 
-func NewM3ConnectorRepo(k8sClient kubernetes.Interface, isProduction bool, logger *logrus.Logger) m3connector.K8sRepo {
+func NewM3ConnectorRepo(k8sClient kubernetes.Interface, logger *logrus.Logger) m3connector.K8sRepo {
 	return &k8sRepo{
-		k8sClient:    k8sClient,
-		isProduction: isProduction,
-		logger:       logger.WithField("repo", "m3-k8s-repo"),
+		k8sClient: k8sClient,
+		logger:    logger.WithField("repo", "m3-k8s-repo"),
 	}
 }
 

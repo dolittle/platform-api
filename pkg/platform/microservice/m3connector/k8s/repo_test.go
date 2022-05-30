@@ -41,7 +41,7 @@ var _ = Describe("Repo", func() {
 
 		clientSet = &fake.Clientset{}
 		logger, _ = logrusTest.NewNullLogger()
-		repo = k8s.NewM3ConnectorRepo(clientSet, false, logger)
+		repo = k8s.NewM3ConnectorRepo(clientSet, logger)
 		applicationID = "fb8836a0-4fc4-437d-8f25-bb200662f327"
 		environment = "test"
 		kafkaFiles = m3connector.KafkaFiles{

@@ -44,8 +44,6 @@ var environmentCMD = &cobra.Command{
 			logContext.Fatal("you have to specify the customerID, applicationID and environment")
 		}
 
-		isProduction := viper.GetBool("tools.server.isProduction")
-
 		logContext = logContext.WithFields(logrus.Fields{
 			"customer_id":    customerID,
 			"application_id": applicationID,
@@ -59,7 +57,7 @@ var environmentCMD = &cobra.Command{
 
 		k8sClient, _ := platformK8s.InitKubernetesClient()
 
-		k8sRepo := k8s.NewM3ConnectorRepo(k8sClient, isProduction, logContext.Logger)
+		k8sRepo := k8s.NewM3ConnectorRepo(k8sClient, logContext.Logger)
 
 		m3connector := m3connector.NewM3Connector(aiven, k8sRepo, logContext)
 		err = m3connector.CreateEnvironment(customerID, applicationID, environment)
