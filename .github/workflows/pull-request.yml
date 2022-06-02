@@ -3,6 +3,14 @@ name: Pull request build and push
 on: pull_request
 
 jobs:
+  reusable-workflow-test:
+    uses: ./.github/workflows/update-configmap-field.yml
+    secrets: inherit
+    with:
+      namespace: system-api
+      name: dev-api-v1-env-variables
+      field: GITHUB_WORKFLOW_TEST
+      value: "im a test value"
   pull-request:
     runs-on: ubuntu-latest
     steps:
@@ -84,13 +92,3 @@ jobs:
           build-args: |
             BASE_IMAGE=dolittle/platform-api:${{ github.head_ref }}
           tags: dolittle/platform-operations:${{ github.head_ref }}
-  reusable-workflow-test:
-    needs: 
-      - pull-request
-    uses: ./.github/workflows/update-configmap-field.yml
-    secrets: inherit
-    with:
-      namespace: system-api
-      name: dev-api-v1-env-variables
-      field: GITHUB_WORKFLOW_TEST
-      value: "im a test value"

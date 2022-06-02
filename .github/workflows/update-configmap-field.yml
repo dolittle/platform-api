@@ -34,7 +34,11 @@ jobs:
           method: service-account
           k8s-url: ${{ secrets.K8S_CLUSTER_URL }}
           k8s-secret: ${{ secrets.K8S_DEVOPS_SECRET }}
+      - name: Create patch JSOn
+        id: create-patch-json
+        run: |
+          echo ::set-output name=patch_json::'{"data": { ${{ inputs.field }}: ${{ inputs.value }} }}'
       
       - name: Update configmaps field
         run: |
-          kubectl -n ${{ inputs.namespace }} patch configmap/${{ inputs.name }} --type merge -p ${{ format('{"data":{ {0}: {1} !}!}',  inputs.field, inputs.value) }}
+          kubectl -n ${{ inputs.namespace }} patch configmap/${{ inputs.name }} --type merge -p ${{ steps.create-patch-json.outputs.patch_json }}
