@@ -38,8 +38,8 @@ jobs:
       - name: Create patch JSON
         id: create-patch-json
         run: |
-          echo ::set-output name=patch_json::'\'{"data": { "${{ inputs.field }}": "${{ inputs.value }}" }}\''
+          echo ::set-output name=patch_json::'{"data": { "${{ inputs.field }}": "${{ inputs.value }}" }}'
 
       - name: Update configmaps field
         run: |
-          kubectl -n ${{ inputs.namespace }} patch configmap ${{ inputs.name }} --type merge -p ${{ steps.create-patch-json.outputs.patch_json }}
+          kubectl -n ${{ inputs.namespace }} patch configmap ${{ inputs.name }} --type merge -p '${{ steps.create-patch-json.outputs.patch_json }}'
