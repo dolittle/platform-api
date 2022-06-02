@@ -20,9 +20,9 @@ on:
         required: true
         type: string
     secrets:
-      k8sCredentials:
+      K8S_CLUSTER_URL:
         required: true
-      k8sClusterURL:
+      K8S_DEVOPS_SECRET:
         required: true
     
 jobs:
@@ -32,8 +32,8 @@ jobs:
       - uses: azure/k8s-set-context@v2
         with: 
           method: service-account
-          k8s-url: ${{ secrets.k8sClusterURL }}
-          k8s-secret: ${{ secrets.k8sCredentials }}
+          k8s-url: ${{ secrets.K8S_CLUSTER_URL }}
+          k8s-secret: ${{ secrets.K8S_DEVOPS_SECRET }}
       
       - name: Update deployment's image
         run: kubectl -n ${{ inputs.namespace }} set image deployment/${{ inputs.deployment }} ${{ inputs.container }}=${{ inputs.image }}
