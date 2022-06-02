@@ -36,4 +36,5 @@ jobs:
           k8s-secret: ${{ secrets.K8S_DEVOPS_SECRET }}
       
       - name: Update configmaps field
-        run: kubectl -n ${{ inputs.namespace }} patch configmap/${{ inputs.name }} --type merge -p ${{ format('{"data":{ {0}: {1} !}!}', ${{ inputs.field }}, ${{ inputs.value }}) }}
+        run: |
+          kubectl -n ${{ inputs.namespace }} patch configmap/${{ inputs.name }} --type merge -p ${{ format('{"data":{ {0}: {1} !}!}', ${{ inputs.field }}, ${{ inputs.value }}) }}
