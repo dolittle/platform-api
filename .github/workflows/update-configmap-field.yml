@@ -1,0 +1,39 @@
+name: Update Configmaps Field
+
+on:
+  workflow_call:
+    inputs:
+      namespace:
+        description: 'Namespace of the deployment'
+        required: true
+        type: string
+      name:
+        description: 'Name of the configmap in k8s'
+        required: true
+        type: string
+      field:
+        description: 'Name of the field within the configmaps data property'
+        required: true
+        type: string
+      value:
+        description: 'Value to set to the field'
+        required: true
+        type: string
+    secrets:
+      k8sCredentials:
+        required: true
+      k8sClusterURL:
+        required: true
+    
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: azure/k8s-set-context@v2
+        with: 
+          method: service-account
+          k8s-url: ${{ secrets.k8sClusterURL }}
+          k8s-secret: ${{ secrets.k8sCredentials }}
+      
+      - name: Update configmaps field
+        run: kubectl -n ${{ inputs.namespace }} patch configmap/${{ inputs.name }} --type merge -p ${{ format('{"data":{ {0}: {1} !}!}', ${{ inputs.field }}, ${{ inputs.value }}) }}

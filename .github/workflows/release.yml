@@ -1,4 +1,4 @@
-name: Release
+name: Release & Deploy
 
 on:
   pull_request_target:
@@ -127,3 +127,22 @@ jobs:
         with:
           version: ${{ needs.setup.outputs.next-version }}
           body: ${{ needs.setup.outputs.pr-body }}
+
+  deploy-dev:
+    needs: release
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: ./.github/workflows/update-configmap-field
+        secrets: inherit
+        with:
+          namespace: system-api
+          name: dev-api-v1-env-variables
+          field: JOBS_OPERATIONS_IMAGE
+          value: dolittle/platform-operations:${{ needs.setup.outputs.next-version }}
+      - uses: ./.github/workflows/update-container-image
+        secrets: inherit
+        with:
+          namespace: system-api
+          deployment: dev-api-v1
+          value: dolittle/platform-operations:${{ needs.setup.outputs.next-version }}

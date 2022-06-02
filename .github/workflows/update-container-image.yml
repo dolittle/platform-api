@@ -1,0 +1,40 @@
+name: Update Container Image
+
+on:
+  workflow_call:
+    inputs:
+      namespace:
+        description: 'Namespace of the deployment'
+        required: true
+        type: string
+      deployment:
+        description: 'Name of the deployment in k8s'
+        required: true
+        type: string
+      container:
+        description: 'Name of the container within the deployment, defaults to head'
+        required: false
+        default: head
+        type: string
+      image:
+        required: true
+        type: string
+    secrets:
+      k8sCredentials:
+        required: true
+      k8sClusterURL:
+        required: true
+    
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: azure/k8s-set-context@v2
+        with: 
+          method: service-account
+          k8s-url: ${{ secrets.k8sClusterURL }}
+          k8s-secret: ${{ secrets.k8sCredentials }}
+      
+      - name: Update deployment's image
+        run: kubectl -n ${{ inputs.namespace }} set image deployment/${{ inputs.deployment }} ${{ inputs.container }}=${{ inputs.image }}
+        
