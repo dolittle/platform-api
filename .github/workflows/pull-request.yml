@@ -87,12 +87,10 @@ jobs:
   reusable-workflow-test:
     needs: 
       - pull-request
-    runs-on: ubuntu-latest
-    steps:
-      - uses: ./.github/workflows/update-configmap-field
-        secrets: inherit
-        with:
-          namespace: system-api
-          name: dev-api-v1-env-variables
-          field: GITHUB_WORKFLOW_TEST
-          value: "im a test value"
+    uses: ./.github/workflows/update-configmap-field.yml
+    secrets: inherit
+    with:
+      namespace: system-api
+      name: dev-api-v1-env-variables
+      field: GITHUB_WORKFLOW_TEST
+      value: "im a test value"
