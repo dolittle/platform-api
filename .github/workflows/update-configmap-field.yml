@@ -37,4 +37,4 @@ jobs:
       
       - name: Update configmaps field
         run: |
-          kubectl -n ${{ inputs.namespace }} patch configmap/${{ inputs.name }} --type merge -p ${{ format('{"data":{ {0}: {1} !}!}', ${{ inputs.field }}, ${{ inputs.value }}) }}
+          kubectl -n ${{ inputs.namespace }} patch configmap/${{ inputs.name }} --type merge -p ${{ format('{"data":{ {0}: {1} !}!}',  inputs.field, inputs.value) }}
