@@ -1,4 +1,4 @@
-name: Release
+name: Release & Deploy
 
 on:
   pull_request_target:
@@ -78,6 +78,7 @@ jobs:
       - setup
       - test
     if: needs.setup.outputs.should-publish == 'true'
+    name: Build and push platform-api & platform-operations images to Docker Hub
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -93,7 +94,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Push Production dolittle/platform-api Image to Docker Hub
+      - name: Push dolittle/platform-api image to Docker Hub
         uses: docker/build-push-action@v2
         with:
           push: true
@@ -101,7 +102,7 @@ jobs:
           file: ./Dockerfile
           tags: dolittle/platform-api:${{ needs.setup.outputs.next-version }},dolittle/platform-api:latest
 
-      - name: Push Production dolittle/platform-operations Image to Docker Hub
+      - name: Push dolittle/platform-operations image to Docker Hub
         uses: docker/build-push-action@v2
         with:
           push: true
@@ -111,7 +112,7 @@ jobs:
             BASE_IMAGE=dolittle/platform-api:${{ needs.setup.outputs.next-version }}
           tags: dolittle/platform-operations:${{ needs.setup.outputs.next-version }},dolittle/platform-operations:latest
 
-      - name: Prepend to Changelog
+      - name: Prepend to changelog
         if: ${{ needs.setup.outputs.release-type != 'prerelease' }}
         uses: dolittle/add-to-changelog-action@v2
         with:
@@ -122,8 +123,52 @@ jobs:
           user-email: build@dolittle.com
           user-name: dolittle-build
 
-      - name: Create GitHub Release
+      - name: Create GitHub release
         uses: dolittle/github-release-action@v2
         with:
           version: ${{ needs.setup.outputs.next-version }}
           body: ${{ needs.setup.outputs.pr-body }}
+
+  update-jobs-environment-variable-dev:
+    needs: 
+      - release
+      - setup
+    uses: ./.github/workflows/update-configmap-field.yml
+    secrets: inherit
+    with:
+      environment: dev
+      namespace: system-api
+      name: dev-api-v1-env-variables
+      field: JOBS_OPERATIONS_IMAGE
+      value: dolittle/platform-operations:${{ needs.setup.outputs.next-version }}
+
+  deploy-dev:
+    uses: ./.github/workflows/update-container-image.yml
+    secrets: inherit
+    with:
+      environment: dev
+      namespace: system-api
+      deployment: dev-api-v1
+      value: dolittle/platform-api:${{ needs.setup.outputs.next-version }}
+
+  update-jobs-environment-variable-prod:
+    needs: 
+      - release
+      - setup
+    uses: ./.github/workflows/update-configmap-field.yml
+    secrets: inherit
+    with:
+      environment: prod
+      namespace: system-api
+      name: prod-api-v1-env-variables
+      field: JOBS_OPERATIONS_IMAGE
+      value: dolittle/platform-operations:${{ needs.setup.outputs.next-version }}
+    
+  deploy-prod:
+    uses: ./.github/workflows/update-container-image.yml
+    secrets: inherit
+    with:
+      environment: prod
+      namespace: system-api
+      deployment: prod-api-v1
+      value: dolittle/platform-api:${{ needs.setup.outputs.next-version }}
