@@ -11,6 +11,16 @@ jobs:
       name: dev-api-v1-env-variables
       field: GITHUB_WORKFLOW_TEST
       value: "test when dont be a environment"
+  reusable-workflow-test-with-url:
+    uses: ./.github/workflows/update-configmap-field.yml
+    secrets: inherit
+    with:
+      environment: dev
+      environment-url: https://example.com
+      namespace: system-api
+      name: dev-api-v1-env-variables
+      field: GITHUB_WORKFLOW_TEST
+      value: "test when dont be a environment"
   pull-request:
     runs-on: ubuntu-latest
     steps:
