@@ -7,11 +7,10 @@ jobs:
     uses: ./.github/workflows/update-configmap-field.yml
     secrets: inherit
     with:
-      environment: dev
       namespace: system-api
       name: dev-api-v1-env-variables
       field: GITHUB_WORKFLOW_TEST
-      value: "test for environment url and when its empty"
+      value: "test when dont be a environment"
   pull-request:
     runs-on: ubuntu-latest
     steps:
