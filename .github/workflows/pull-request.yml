@@ -3,6 +3,14 @@ name: Pull request build and push
 on: pull_request
 
 jobs:
+  reusable-workflow-test:
+    uses: ./.github/workflows/update-configmap-field.yml
+    secrets: inherit
+    with:
+      namespace: system-api
+      name: dev-api-v1-env-variables
+      field: GITHUB_WORKFLOW_TEST
+      value: "im test value 2"
   pull-request:
     runs-on: ubuntu-latest
     steps:
@@ -60,7 +68,7 @@ jobs:
 
   build-operations:
     runs-on: ubuntu-latest
-    name: Build and release platform-operations image
+    name: Build and Deploy platform-operations
     needs:
       - pull-request
     steps:
