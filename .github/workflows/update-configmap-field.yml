@@ -5,7 +5,11 @@ on:
     inputs:
       environment:
         description: 'GitHub environment to run the job on'
-        required: true
+        required: false
+        type: string
+      enviroment-url:
+        description:  'GitHub environments URL'
+        required: false
         type: string
       namespace:
         description: 'Namespace of the deployment'
@@ -32,7 +36,9 @@ on:
 jobs:
   update:
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}
+    environment: 
+      name: ${{ inputs.environment }}
+      url: ${{ inputs.environment-url }}
     steps:
       - uses: azure/k8s-set-context@v2
         with: 
