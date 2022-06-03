@@ -143,6 +143,9 @@ jobs:
       value: dolittle/platform-operations:${{ needs.setup.outputs.next-version }}
 
   deploy-dev:
+    needs: 
+      - setup
+      - update-jobs-environment-variable-dev
     uses: ./.github/workflows/update-container-image.yml
     secrets: inherit
     with:
@@ -165,6 +168,9 @@ jobs:
       value: dolittle/platform-operations:${{ needs.setup.outputs.next-version }}
     
   deploy-prod:
+    needs: 
+      - setup
+      - update-jobs-environment-variable-prod
     uses: ./.github/workflows/update-container-image.yml
     secrets: inherit
     with:
