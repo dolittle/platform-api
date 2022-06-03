@@ -1,0 +1,71 @@
+name: Deploy platform-api
+
+on:
+  workflow_call:
+    inputs:
+      namespace:
+        description: 'Namespace to deploy to'
+        required: true
+        type: string
+      deployment:
+        description: 'Name of the deployment in k8s'
+        required: true
+        type: string
+      image:
+        required: true
+        type: string
+      container:
+        description: 'Name of the container within the deployment, defaults to head'
+        required: false
+        default: head
+        type: string
+      configmap:
+        description: 'Name of the configmap in k8s'
+        required: true
+        type: string
+      configmap-field:
+        description: 'Name of the field within the configmaps data property'
+        required: true
+        type: string
+      configmap-value:
+        description: 'Value to set to the field'
+        required: true
+        type: string
+      environment:
+        description: 'GitHub environment to run the job on'
+        required: true
+        type: string
+    secrets:
+      K8S_CLUSTER_URL:
+        description: 'URL for the kubernetes cluster'
+        required: true
+      K8S_DEVOPS_SECRET:
+        description: |
+          The complete kubernetes secret object (YAML or JSON) for a serviceaccounts token.
+          The serviceaccount needs permissions to patch deployments & configmaps in the given namespace'
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Create patch JSON
+        id: patch-json
+        run: |
+          echo ::set-output name=patch_json::'{"data": { "${{ inputs.configmap-field }}": "${{ inputs.configmap-value }}" }}'
+        
+      - uses: azure/k8s-set-context@v2
+        with: 
+          method: service-account
+          k8s-url: ${{ secrets.K8S_CLUSTER_URL }}
+          k8s-secret: ${{ secrets.K8S_DEVOPS_SECRET }}
+      
+      - name: Update configmap env variable
+        run: |
+          kubectl -n ${{ inputs.namespace }} patch configmap ${{ inputs.configmap }} --type merge -p '${{ steps.patch-json.outputs.patch_json }}'
+      
+      - name: Update deployment image
+        run: |
+          kubectl -n ${{ inputs.namespace }} set image deployment/${{ inputs.deployment }} ${{ inputs.container }}=${{ inputs.image }}
+  
