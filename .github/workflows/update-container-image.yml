@@ -40,7 +40,7 @@ on:
     
 jobs:
   update-container-with-environment-url:
-    if: inputs.environment-url =! ''
+    if: inputs.environment-url != ''
     runs-on: ubuntu-latest
     environment: 
       name: ${{ inputs.environment }}
