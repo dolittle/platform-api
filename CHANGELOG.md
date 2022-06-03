@@ -1,3 +1,9 @@
+# [4.11.4] - 2022-6-3 [PR: #138](https://github.com/dolittle/platform-api/pull/138)
+## Summary
+
+Fix deploy typo and force deployment (very good).
+
+
 # [4.11.3] - 2022-6-3 [PR: #136](https://github.com/dolittle/platform-api/pull/136)
 ## Summary
 
