@@ -30,8 +30,12 @@ on:
         default: ''
     secrets:
       K8S_CLUSTER_URL:
+        description: 'URL for the kubernetes cluster'
         required: true
       K8S_DEVOPS_SECRET:
+        description: |
+          The complete kubernetes secret object (YAML or JSON) for a serviceaccounts token.
+          The serviceaccount needs permissions to patch configmaps in the given namespace'
         required: true
     
 jobs:
@@ -62,6 +66,8 @@ jobs:
         run: |
           kubectl -n ${{ inputs.namespace }} patch configmap ${{ inputs.name }} --type merge -p '${{ needs.patch-json.outputs.patch-json }}'
 
+  # If the environment-url would be an empty string, GitHub prints a warning annotation for it.
+  # By using a separate action that omits the url from the environment property we can avoid that warning.
   update-config-map-without-environment-url:
     if: inputs.environment-url == ''
     runs-on: ubuntu-latest
