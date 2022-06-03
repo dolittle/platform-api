@@ -142,6 +142,7 @@ jobs:
       configmap-field: JOBS_OPERATIONS_IMAGE
       configmap-value: dolittle/platform-operations:${{ needs.setup.outputs.next-version }}
       environment: dev
+      environment-url: https://dev.dolittle.studio/
 
   deploy-prod:
     needs:
@@ -157,4 +158,5 @@ jobs:
       configmap-field: JOBS_OPERATIONS_IMAGE
       configmap-value: dolittle/platform-operations:${{ needs.setup.outputs.next-version }}
       environment: prod
+      environment-url: https://dolittle.studio/
     
