@@ -35,7 +35,7 @@ on:
         description: 'GitHub environment to run the job on'
         required: true
         type: string
-      enviroment-url:
+      environment-url:
         description:  'GitHub environments URL'
         required: true
         type: string
