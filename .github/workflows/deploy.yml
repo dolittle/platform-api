@@ -35,6 +35,10 @@ on:
         description: 'GitHub environment to run the job on'
         required: true
         type: string
+      enviroment-url:
+        description:  'GitHub environments URL'
+        required: true
+        type: string
     secrets:
       K8S_CLUSTER_URL:
         description: 'URL for the kubernetes cluster'
@@ -48,7 +52,9 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}
+    environment: 
+      name: ${{ inputs.environment }}
+      url: ${{ inputs.environment-url }}
     steps:
       - name: Create patch JSON
         id: patch-json
