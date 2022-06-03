@@ -82,7 +82,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-
       - uses: actions/setup-go@v2
         with:
           go-version: "1.16.3"
@@ -129,52 +128,33 @@ jobs:
           version: ${{ needs.setup.outputs.next-version }}
           body: ${{ needs.setup.outputs.pr-body }}
 
-  update-jobs-environment-variable-dev:
-    needs: 
+  deploy-dev:
+    needs:
       - release
       - setup
-    uses: ./.github/workflows/update-configmap-field.yml
-    secrets: inherit
-    with:
-      environment: dev
-      namespace: system-api
-      name: dev-api-v1-env-variables
-      field: JOBS_OPERATIONS_IMAGE
-      value: dolittle/platform-operations:${{ needs.setup.outputs.next-version }}
-
-  deploy-dev:
-    needs: 
-      - setup
-      - update-jobs-environment-variable-dev
-    uses: ./.github/workflows/update-container-image.yml
+    uses: ./.github/workflows/deploy.yml
     secrets: inherit
     with:
       namespace: system-api
       deployment: dev-api-v1
       image: dolittle/platform-api:${{ needs.setup.outputs.next-version }}
+      configmap: dev-api-v1-env-variables
+      configmap-field: JOBS_OPERATIONS_IMAGE
+      configmap-value: dolittle/platform-operations:${{ needs.setup.outputs.next-version }}
       environment: dev
 
-  update-jobs-environment-variable-prod:
-    needs: 
+  deploy-prod:
+    needs:
       - release
       - setup
-    uses: ./.github/workflows/update-configmap-field.yml
-    secrets: inherit
-    with:
-      environment: prod
-      namespace: system-api
-      name: prod-api-v1-env-variables
-      field: JOBS_OPERATIONS_IMAGE
-      value: dolittle/platform-operations:${{ needs.setup.outputs.next-version }}
-    
-  deploy-prod:
-    needs: 
-      - setup
-      - update-jobs-environment-variable-prod
-    uses: ./.github/workflows/update-container-image.yml
+    uses: ./.github/workflows/deploy.yml
     secrets: inherit
     with:
       namespace: system-api
       deployment: prod-api-v1
       image: dolittle/platform-api:${{ needs.setup.outputs.next-version }}
+      configmap: prod-api-v1-env-variables
+      configmap-field: JOBS_OPERATIONS_IMAGE
+      configmap-value: dolittle/platform-operations:${{ needs.setup.outputs.next-version }}
       environment: prod
+    
