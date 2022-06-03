@@ -23,7 +23,7 @@ on:
         description: 'GitHub environment to run the job on, optional'
         required: false
         type: string
-      enviroment-url:
+      environment-url:
         description:  'GitHub environments URL, can only be defined if environment is also defined, optional'
         required: false
         type: string
