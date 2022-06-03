@@ -11,7 +11,7 @@ jobs:
       namespace: system-api
       name: dev-api-v1-env-variables
       field: GITHUB_WORKFLOW_TEST
-      value: "im test value for environment dev"
+      value: "im test value for environment dev, when the env is capitalized in github"
   pull-request:
     runs-on: ubuntu-latest
     steps:
