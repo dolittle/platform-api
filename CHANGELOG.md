@@ -1,3 +1,9 @@
+# [4.11.3] - 2022-6-3 [PR: #136](https://github.com/dolittle/platform-api/pull/136)
+## Summary
+
+Simplify the deployment workflow so that it doesn't require 2 rounds of approvals. Due to the limitations of reusable workflows in GitHub we sadly can't use the other 2 reusable workflows to do this. Also forces a deployment.
+
+
 # [4.11.2] - 2022-6-3 [PR: #134](https://github.com/dolittle/platform-api/pull/134)
 ## Summary
 
