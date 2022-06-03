@@ -1,3 +1,9 @@
+# [4.11.2] - 2022-6-3 [PR: #134](https://github.com/dolittle/platform-api/pull/134)
+## Summary
+
+Fix the needs of the deploy workflow and force a deployment
+
+
 # [4.11.1] - 2022-6-3 [PR: #133](https://github.com/dolittle/platform-api/pull/133)
 ## Summary
 
