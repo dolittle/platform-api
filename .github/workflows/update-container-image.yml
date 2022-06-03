@@ -3,6 +3,10 @@ name: Update Container Image
 on:
   workflow_call:
     inputs:
+      environment:
+        description: 'GitHub environment to run the job on'
+        required: true
+        type: string
       namespace:
         description: 'Namespace of the deployment'
         required: true
@@ -28,6 +32,7 @@ on:
 jobs:
   update:
     runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
     steps:
       - uses: azure/k8s-set-context@v2
         with: 
