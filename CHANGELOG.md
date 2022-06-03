@@ -1,3 +1,9 @@
+# [4.11.1] - 2022-6-3 [PR: #133](https://github.com/dolittle/platform-api/pull/133)
+## Summary
+
+Fix typo in reusable workflof, also force release (this is a good way to test workflows)
+
+
 # [4.11.0] - 2022-5-30 [PR: #130](https://github.com/dolittle/platform-api/pull/130)
 ## Summary
 
