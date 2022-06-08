@@ -1,6 +1,7 @@
 package environment
 
 func AddTenant(applicationID, environment, tenantID, subdomain string) {
+	namespace := fmt.
 
 }
 
