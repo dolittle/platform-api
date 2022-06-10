@@ -58,11 +58,11 @@ var _ = Describe("Repo", func() {
 		producerMicroserviceID = "adbb5d8c-ec55-42a0-acc7-13a6b14f3c73"
 
 		consumerApplicationID = "9bbda058-c59b-4362-94ce-40687b678302"
-		producerApplicationID = "656bc369-7047-4293-88d1-cee1995e16a4"
+		producerApplicationID = "9bbda058-c59b-4362-94ce-40687b678302"
 		producerNamespaceError = nil
 
 		consumerCustomerID = "de87265a-af31-4fd5-b64f-8d8679858473"
-		producerCustomerID = "2311990e-22fd-4d0d-a4e0-69180aaea8b0"
+		producerCustomerID = "de87265a-af31-4fd5-b64f-8d8679858473"
 
 		consumerTenantID = "eed821d3-be32-4a2f-9a83-8f4808866ddb"
 		producerTenantID = "2086ebc8-9be1-4300-a9d0-4acc8bb80781"
@@ -77,18 +77,18 @@ var _ = Describe("Repo", func() {
 			clientSet.AddReactor("get", "namespaces", func(action testing.Action) (bool, runtime.Object, error) {
 				getAction := action.(testing.GetAction)
 				getNamespace := getAction.GetName()
-				if strings.HasSuffix(getNamespace, consumerApplicationID) {
-					namespace := &corev1.Namespace{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      fmt.Sprintf("application-%s", consumerApplicationID),
-							Namespace: fmt.Sprintf("application-%s", consumerApplicationID),
-							Annotations: map[string]string{
-								"dolittle.io/tenant-id": consumerCustomerID,
-							},
-						},
-					}
-					return true, namespace, nil
-				}
+				// if strings.HasSuffix(getNamespace, consumerApplicationID) {
+				// 	namespace := &corev1.Namespace{
+				// 		ObjectMeta: metav1.ObjectMeta{
+				// 			Name:      fmt.Sprintf("application-%s", consumerApplicationID),
+				// 			Namespace: fmt.Sprintf("application-%s", consumerApplicationID),
+				// 			Annotations: map[string]string{
+				// 				"dolittle.io/tenant-id": consumerCustomerID,
+				// 			},
+				// 		},
+				// 	}
+				// 	return true, namespace, nil
+				// }
 				if strings.HasSuffix(getNamespace, producerApplicationID) {
 					namespace := &corev1.Namespace{
 						ObjectMeta: metav1.ObjectMeta{
@@ -139,6 +139,21 @@ var _ = Describe("Repo", func() {
 
 			It("should fail", func() {
 				Expect(err).ToNot(BeNil())
+			})
+		})
+
+		When("the consumer and producer are in different applications", func() {
+			BeforeEach(func() {
+				// a different applicationID
+				producerApplicationID = "587a9e21-9ab9-4955-812e-22c86bd52dcf"
+			})
+
+			It("should not fail", func() {
+				Expect(err).To(BeNil())
+			})
+
+			It("should create a networkpolicy between the microservices if it doesn't exist", func() {
+
 			})
 		})
 	})

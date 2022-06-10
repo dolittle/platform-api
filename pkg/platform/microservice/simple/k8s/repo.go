@@ -190,11 +190,6 @@ func (r k8sRepo) Subscribe(customerID string, applicationID string, environment 
 func (r k8sRepo) SubscribeToAnotherApplication(customerID string, applicationID string, environment string, microserviceID string, tenantID string, producerMicroserviceID string, producerTenantID string, publicStream string, partition string, producerApplicationID string, producerEnvironment string) error {
 	// check that both the applications are owned by the same customer
 	ctx := context.TODO()
-	// customerNamespaceName := fmt.Sprintf("application-%s", applicationID)
-	// consumerNamespace, err := r.k8sClient.CoreV1().Namespaces().Get(ctx, customerNamespaceName, metav1.GetOptions{})
-	// if err != nil {
-	// 	return err
-	// }
 
 	producerNamespaceName := fmt.Sprintf("application-%s", producerApplicationID)
 	producerNamespace, err := r.k8sClient.CoreV1().Namespaces().Get(ctx, producerNamespaceName, metav1.GetOptions{})
