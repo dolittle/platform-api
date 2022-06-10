@@ -178,3 +178,8 @@ func (r k8sRepo) Delete(applicationID, environment, microserviceID string) error
 	}
 	return nil
 }
+
+// Subscribe implements simple.Repo
+func (k8sRepo) Subscribe(customerID string, applicationID string, environment string, microserviceID string, tenantID string, producerMicroserviceID string, producerTenantID string, publicStream string, partition string) error {
+	panic("unimplemented")
+}
