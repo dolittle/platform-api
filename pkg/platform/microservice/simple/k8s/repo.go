@@ -2,6 +2,8 @@ package k8s
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle/platform-api/pkg/k8s"
@@ -180,6 +182,30 @@ func (r k8sRepo) Delete(applicationID, environment, microserviceID string) error
 }
 
 // Subscribe implements simple.Repo
-func (k8sRepo) Subscribe(customerID string, applicationID string, environment string, microserviceID string, tenantID string, producerMicroserviceID string, producerTenantID string, publicStream string, partition string) error {
+func (r k8sRepo) Subscribe(customerID string, applicationID string, environment string, microserviceID string, tenantID string, producerMicroserviceID string, producerTenantID string, publicStream string, partition string) error {
 	panic("unimplemented")
+}
+
+// SubscribeToAnotherApplication implements simple.Repo
+func (r k8sRepo) SubscribeToAnotherApplication(customerID string, applicationID string, environment string, microserviceID string, tenantID string, producerMicroserviceID string, producerTenantID string, publicStream string, partition string, producerApplicationID string, producerEnvironment string) error {
+	// check that both the applications are owned by the same customer
+	ctx := context.TODO()
+	// customerNamespaceName := fmt.Sprintf("application-%s", applicationID)
+	// consumerNamespace, err := r.k8sClient.CoreV1().Namespaces().Get(ctx, customerNamespaceName, metav1.GetOptions{})
+	// if err != nil {
+	// 	return err
+	// }
+
+	producerNamespaceName := fmt.Sprintf("application-%s", producerApplicationID)
+	producerNamespace, err := r.k8sClient.CoreV1().Namespaces().Get(ctx, producerNamespaceName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	producerCustomerID := producerNamespace.Annotations["dolittle.io/tenant-id"]
+	if producerCustomerID != customerID {
+		return errors.New("can't create event horizon subscriptions between different customers")
+	}
+
+	return nil
 }
