@@ -2,8 +2,10 @@ package k8s
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
 	"github.com/dolittle/platform-api/pkg/k8s"
@@ -200,6 +202,79 @@ func (r k8sRepo) SubscribeToAnotherApplication(customerID string, applicationID 
 	producerCustomerID := producerNamespace.Annotations["dolittle.io/tenant-id"]
 	if producerCustomerID != customerID {
 		return errors.New("can't create event horizon subscriptions between different customers")
+	}
+
+	namespace := platformK8s.GetApplicationNamespace(applicationID)
+	configmaps, err := r.k8sClient.CoreV1().ConfigMaps(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	var consumerConfigmap *corev1.ConfigMap
+	for _, configmap := range configmaps.Items {
+		if !strings.EqualFold(configmap.Labels["environment"], environment) {
+			continue
+		}
+		if configmap.Annotations["dolittle.io/microservice-id"] != microserviceID {
+			continue
+		}
+		if !strings.HasSuffix(configmap.Name, "-dolittle") {
+			continue
+		}
+		consumerConfigmap = &configmap
+		break
+	}
+
+	if consumerConfigmap == nil {
+		return errors.New("consumer didn't have a configmap")
+	}
+
+	// get producers service
+	var producerService *corev1.Service
+	serviceList, err := r.k8sClient.CoreV1().Services(producerNamespaceName).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to list producers services: %w", err)
+	}
+	for _, service := range serviceList.Items {
+		if !strings.EqualFold(service.Labels["environment"], producerEnvironment) {
+			continue
+		}
+		if service.Annotations["dolittle.io/microservice-id"] != producerMicroserviceID {
+			continue
+		}
+		producerService = &service
+		break
+	}
+
+	var producerRuntimePort int32
+	for _, port := range producerService.Spec.Ports {
+		if port.Name == "runtime" {
+			producerRuntimePort = port.Port
+		}
+	}
+
+	var microservicesConfig dolittleK8s.MicroserviceMicroservices
+	err = json.Unmarshal([]byte(consumerConfigmap.Data["microservices.json"]), &microservicesConfig)
+	if err != nil {
+		return fmt.Errorf("couldn't deserialize microservices.json: %w", err)
+	}
+
+	if microservicesConfig == nil {
+		microservicesConfig = dolittleK8s.MicroserviceMicroservices{}
+	}
+	microservicesConfig[producerMicroserviceID] = dolittleK8s.MicroserviceMicroservice{
+		Host: fmt.Sprintf("%s-application-%s.svc.cluster.local", producerService.Name, producerApplicationID),
+		Port: producerRuntimePort,
+	}
+
+	// update the consumers microservices.json
+
+	b, _ := json.MarshalIndent(microservicesConfig, "", "  ")
+	microservicesConfigJSON := string(b)
+	consumerConfigmap.Data["microservices.json"] = microservicesConfigJSON
+
+	_, err = r.k8sClient.CoreV1().ConfigMaps(namespace).Update(ctx, consumerConfigmap, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to update consumers microservice.json: %w", err)
 	}
 
 	return nil

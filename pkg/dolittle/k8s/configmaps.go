@@ -53,6 +53,13 @@ type MicroserviceEndpointPort struct {
 	Port int `json:"port"`
 }
 
+type MicroserviceMicroservices map[string]MicroserviceMicroservice
+
+type MicroserviceMicroservice struct {
+	Host string `json:"host"`
+	Port int32  `json:"port"`
+}
+
 // platform.json
 type MicroservicePlatform struct {
 	Applicationname  string `json:"applicationName"`
@@ -305,7 +312,8 @@ func NewMicroserviceConfigmap(microservice Microservice, customersTenants []plat
 	b, _ = json.MarshalIndent(emptyObject{}, "", "  ")
 	eventHorizonConsentsJSON := string(b)
 
-	b, _ = json.MarshalIndent(emptyObject{}, "", "  ")
+	microservices := MicroserviceMicroservices{}
+	b, _ = json.MarshalIndent(microservices, "", "  ")
 	microservicesJSON := string(b)
 
 	b, _ = json.MarshalIndent(metrics, "", "  ")
