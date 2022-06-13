@@ -53,6 +53,7 @@ type MicroserviceEndpointPort struct {
 	Port int `json:"port"`
 }
 
+// microservices.json
 type MicroserviceMicroservices map[string]MicroserviceMicroservice
 
 type MicroserviceMicroservice struct {
