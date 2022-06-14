@@ -53,6 +53,17 @@ type MicroserviceEndpointPort struct {
 	Port int `json:"port"`
 }
 
+// event-horizon-consents.json
+type MicroserviceEventHorizonConsents map[string][]MicroserviceConsent
+
+type MicroserviceConsent struct {
+	Microservice string `json:"microservice"`
+	Tenant       string `json:"tenant"`
+	Stream       string `json:"stream"`
+	Partition    string `json:"partition"`
+	Consent      string `json:"consent"`
+}
+
 // microservices.json
 type MicroserviceMicroservices map[string]MicroserviceMicroservice
 
@@ -310,7 +321,8 @@ func NewMicroserviceConfigmap(microservice Microservice, customersTenants []plat
 	b, _ = json.MarshalIndent(emptyObject{}, "", "  ")
 	eventHorizonsJSON := string(b)
 
-	b, _ = json.MarshalIndent(emptyObject{}, "", "  ")
+	eventHorizonConsents := MicroserviceEventHorizonConsents{}
+	b, _ = json.MarshalIndent(eventHorizonConsents, "", "  ")
 	eventHorizonConsentsJSON := string(b)
 
 	microservices := MicroserviceMicroservices{}

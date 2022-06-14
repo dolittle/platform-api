@@ -13,6 +13,7 @@ import (
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	microserviceK8s "github.com/dolittle/platform-api/pkg/platform/microservice/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/simple"
+	"github.com/google/uuid"
 	"k8s.io/client-go/kubernetes"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -184,16 +185,16 @@ func (r k8sRepo) Delete(applicationID, environment, microserviceID string) error
 }
 
 // Subscribe implements simple.Repo
-func (r k8sRepo) Subscribe(customerID string, applicationID string, environment string, microserviceID string, tenantID string, producerMicroserviceID string, producerTenantID string, publicStream string, partition string) error {
+func (r k8sRepo) Subscribe(customerID, applicationID, environment, microserviceID, tenantID, producerMicroserviceID, producerTenantID, publicStream, partition string) error {
 	panic("unimplemented")
 }
 
 // SubscribeToAnotherApplication implements simple.Repo
-func (r k8sRepo) SubscribeToAnotherApplication(customerID string, applicationID string, environment string, microserviceID string, tenantID string, producerMicroserviceID string, producerTenantID string, publicStream string, partition string, producerApplicationID string, producerEnvironment string) error {
-	// check that both the applications are owned by the same customer
+func (r k8sRepo) SubscribeToAnotherApplication(customerID, applicationID, environment, microserviceID, tenantID, producerMicroserviceID, producerTenantID, publicStream, partition, producerApplicationID, producerEnvironment string) error {
 	ctx := context.TODO()
 
-	producerNamespaceName := fmt.Sprintf("application-%s", producerApplicationID)
+	// make sure that the producer's namespace is owned by the same customer
+	producerNamespaceName := platformK8s.GetApplicationNamespace(producerApplicationID)
 	producerNamespace, err := r.k8sClient.CoreV1().Namespaces().Get(ctx, producerNamespaceName, metav1.GetOptions{})
 	if err != nil {
 		return err
@@ -202,30 +203,6 @@ func (r k8sRepo) SubscribeToAnotherApplication(customerID string, applicationID 
 	producerCustomerID := producerNamespace.Annotations["dolittle.io/tenant-id"]
 	if producerCustomerID != customerID {
 		return errors.New("can't create event horizon subscriptions between different customers")
-	}
-
-	namespace := platformK8s.GetApplicationNamespace(applicationID)
-	configmaps, err := r.k8sClient.CoreV1().ConfigMaps(namespace).List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return err
-	}
-	var consumerConfigmap *corev1.ConfigMap
-	for _, configmap := range configmaps.Items {
-		if !strings.EqualFold(configmap.Labels["environment"], environment) {
-			continue
-		}
-		if configmap.Annotations["dolittle.io/microservice-id"] != microserviceID {
-			continue
-		}
-		if !strings.HasSuffix(configmap.Name, "-dolittle") {
-			continue
-		}
-		consumerConfigmap = &configmap
-		break
-	}
-
-	if consumerConfigmap == nil {
-		return errors.New("consumer didn't have a configmap")
 	}
 
 	// get producers service
@@ -252,6 +229,84 @@ func (r k8sRepo) SubscribeToAnotherApplication(customerID string, applicationID 
 		}
 	}
 
+	// get the producers -dolittle configmap
+	producerConfigmaps, err := r.k8sClient.CoreV1().ConfigMaps(producerNamespaceName).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	var producerConfigmap *corev1.ConfigMap
+	for _, configmap := range producerConfigmaps.Items {
+		if !strings.EqualFold(configmap.Labels["environment"], producerEnvironment) {
+			continue
+		}
+		if configmap.Annotations["dolittle.io/microservice-id"] != producerMicroserviceID {
+			continue
+		}
+		if !strings.HasSuffix(configmap.Name, "-dolittle") {
+			continue
+		}
+		producerConfigmap = &configmap
+		break
+	}
+
+	if producerConfigmap == nil {
+		return errors.New("producer didn't have a configmap")
+	}
+
+	// get the producers event-horizon-consents.json and update it
+	var consents dolittleK8s.MicroserviceEventHorizonConsents
+	err = json.Unmarshal([]byte(producerConfigmap.Data["event-horizon-consents.json"]), &consents)
+	if err != nil {
+		return fmt.Errorf("couldn't deserialize event-horizon-consents.json: %w", err)
+	}
+
+	if consents == nil {
+		consents = dolittleK8s.MicroserviceEventHorizonConsents{}
+	}
+	consents[producerMicroserviceID] = append(consents[producerMicroserviceID], dolittleK8s.MicroserviceConsent{
+		Microservice: microserviceID,
+		Tenant:       tenantID,
+		Stream:       publicStream,
+		Partition:    partition,
+		Consent:      uuid.New().String(),
+	})
+
+	b, _ := json.MarshalIndent(consents, "", "  ")
+	consentsJSON := string(b)
+	producerConfigmap.Data["event-horizon-consents.json"] = consentsJSON
+
+	_, err = r.k8sClient.CoreV1().ConfigMaps(producerNamespaceName).Update(ctx, producerConfigmap, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to update producers event-horizon-consents.json: %w", err)
+	}
+
+	// find the consumers -dolittle configmap
+	namespace := platformK8s.GetApplicationNamespace(applicationID)
+	consumerConfigmaps, err := r.k8sClient.CoreV1().ConfigMaps(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	var consumerConfigmap *corev1.ConfigMap
+	for _, configmap := range consumerConfigmaps.Items {
+		if !strings.EqualFold(configmap.Labels["environment"], environment) {
+			continue
+		}
+		if configmap.Annotations["dolittle.io/microservice-id"] != microserviceID {
+			continue
+		}
+		if !strings.HasSuffix(configmap.Name, "-dolittle") {
+			continue
+		}
+		consumerConfigmap = &configmap
+		break
+	}
+
+	if consumerConfigmap == nil {
+		return errors.New("consumer didn't have a configmap")
+	}
+
+	// get the consumers microservices.json and update it
 	var microservicesConfig dolittleK8s.MicroserviceMicroservices
 	err = json.Unmarshal([]byte(consumerConfigmap.Data["microservices.json"]), &microservicesConfig)
 	if err != nil {
@@ -266,9 +321,7 @@ func (r k8sRepo) SubscribeToAnotherApplication(customerID string, applicationID 
 		Port: producerRuntimePort,
 	}
 
-	// update the consumers microservices.json
-
-	b, _ := json.MarshalIndent(microservicesConfig, "", "  ")
+	b, _ = json.MarshalIndent(microservicesConfig, "", "  ")
 	microservicesConfigJSON := string(b)
 	consumerConfigmap.Data["microservices.json"] = microservicesConfigJSON
 
