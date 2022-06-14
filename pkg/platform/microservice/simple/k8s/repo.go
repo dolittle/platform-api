@@ -190,7 +190,7 @@ func (r k8sRepo) Subscribe(customerID, applicationID, environment, microserviceI
 }
 
 // SubscribeToAnotherApplication implements simple.Repo
-func (r k8sRepo) SubscribeToAnotherApplication(customerID, applicationID, environment, microserviceID, tenantID, producerMicroserviceID, producerTenantID, publicStream, partition, producerApplicationID, producerEnvironment string) error {
+func (r k8sRepo) SubscribeToAnotherApplication(customerID, applicationID, environment, microserviceID, tenantID, producerMicroserviceID, producerTenantID, publicStream, partition, producerApplicationID, producerEnvironment, scope string) error {
 	ctx := context.TODO()
 
 	// make sure that the producer's namespace is owned by the same customer
@@ -202,7 +202,32 @@ func (r k8sRepo) SubscribeToAnotherApplication(customerID, applicationID, enviro
 
 	producerCustomerID := producerNamespace.Annotations["dolittle.io/tenant-id"]
 	if producerCustomerID != customerID {
-		return errors.New("can't create event horizon subscriptions between different customers")
+		return fmt.Errorf("can't create event horizon subscriptions between different customers, consumer: %s and producer: %s", customerID, producerCustomerID)
+	}
+
+	// make sure the producer has a networkpolicy allowing this microservice to talk to it
+	var producerNetworkPolicy *networkingv1.NetworkPolicy
+	networkPolicyList, err := r.k8sClient.NetworkingV1().NetworkPolicies(producerNamespaceName).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to list producers networkpolicies: %w", err)
+	}
+
+	for _, networkPolicy := range networkPolicyList.Items {
+		if !strings.EqualFold(networkPolicy.Labels["environment"], producerEnvironment) {
+			continue
+		}
+		if networkPolicy.Annotations["dolittle.io/microservice-id"] != producerMicroserviceID {
+			continue
+		}
+		if !strings.HasSuffix(networkPolicy.Name, "-event-horizons") {
+			continue
+		}
+		producerNetworkPolicy = &networkPolicy
+		break
+	}
+
+	if producerNetworkPolicy == nil {
+		// create it
 	}
 
 	// get producers service
@@ -324,6 +349,29 @@ func (r k8sRepo) SubscribeToAnotherApplication(customerID, applicationID, enviro
 	b, _ = json.MarshalIndent(microservicesConfig, "", "  ")
 	microservicesConfigJSON := string(b)
 	consumerConfigmap.Data["microservices.json"] = microservicesConfigJSON
+
+	// get the consumers event-horizons.json and update it
+	var eventHorizons dolittleK8s.MicroserviceEventHorizons
+	err = json.Unmarshal([]byte(consumerConfigmap.Data["event-horizons.json"]), &eventHorizons)
+	if err != nil {
+		return fmt.Errorf("couldn't deserialize event-horizons.json: %w", err)
+	}
+
+	if eventHorizons == nil {
+		eventHorizons = dolittleK8s.MicroserviceEventHorizons{}
+	}
+
+	eventHorizons[tenantID] = append(eventHorizons[tenantID], dolittleK8s.MicroserviceEventHorizon{
+		Scope:        scope,
+		Microservice: producerMicroserviceID,
+		Tenant:       producerTenantID,
+		Stream:       publicStream,
+		Partition:    partition,
+	})
+
+	b, _ = json.MarshalIndent(eventHorizons, "", "  ")
+	eventHorizonsJSON := string(b)
+	consumerConfigmap.Data["event-horizons.json"] = eventHorizonsJSON
 
 	_, err = r.k8sClient.CoreV1().ConfigMaps(namespace).Update(ctx, consumerConfigmap, metav1.UpdateOptions{})
 	if err != nil {

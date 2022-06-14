@@ -9,9 +9,13 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	logrusTest "github.com/sirupsen/logrus/hooks/test"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
@@ -27,16 +31,16 @@ import (
 var _ = Describe("Repo", func() {
 
 	var (
-		clientSet              *fake.Clientset
-		config                 *rest.Config
-		k8sDolittleRepo        platformK8s.K8sRepo
-		k8sRepoV2              pkgK8s.Repo
-		repo                   simple.Repo
-		logger                 *logrus.Logger
-		consumerMicroserviceID string
-		producerMicroserviceID string
-		// getConsumerMicroservice *appsv1.Deployment
-		environment              string
+		clientSet                *fake.Clientset
+		config                   *rest.Config
+		k8sDolittleRepo          platformK8s.K8sRepo
+		k8sRepoV2                pkgK8s.Repo
+		repo                     simple.Repo
+		logger                   *logrus.Logger
+		consumerMicroserviceID   string
+		producerMicroserviceID   string
+		consumerEnvironment      string
+		producerEnvironment      string
 		consumerApplicationID    string
 		producerApplicationID    string
 		producerNamespaceError   error
@@ -46,18 +50,29 @@ var _ = Describe("Repo", func() {
 		producerTenantID         string
 		publicStream             string
 		partition                string
+		scope                    string
 		err                      error
 		consumerConfigMap        *corev1.ConfigMap
 		producerConfigMap        *corev1.ConfigMap
+		consumerDeployment       *appsv1.Deployment
+		producerDeployment       *appsv1.Deployment
 		consumerUpdatedConfigMap *corev1.ConfigMap
 		updatedMicroservices     dolittleK8s.MicroserviceMicroservices
+		updatedEventHorizons     dolittleK8s.MicroserviceEventHorizons
 		producerUpdatedConfigMap *corev1.ConfigMap
 		updatedConsents          dolittleK8s.MicroserviceEventHorizonConsents
 		producerService          *corev1.Service
 		consumerMicroservices    dolittleK8s.MicroserviceMicroservices
+		consumerEventHorizons    dolittleK8s.MicroserviceEventHorizons
 		producerNamespace        string
 		consumerNamespace        string
 		producerConsents         dolittleK8s.MicroserviceEventHorizonConsents
+		listNetworkPoliciesError error
+		networkPolicy            *networkingv1.NetworkPolicy
+		consumerName             string
+		producerName             string
+		consumerLabels           map[string]string
+		producerLabels           map[string]string
 	)
 
 	BeforeEach(func() {
@@ -67,7 +82,6 @@ var _ = Describe("Repo", func() {
 		k8sDolittleRepo = platformK8s.NewK8sRepo(clientSet, config, logger)
 		k8sRepoV2 = pkgK8s.NewRepo(clientSet, logger)
 		repo = k8s.NewSimpleRepo(clientSet, k8sDolittleRepo, k8sRepoV2, false)
-		environment = "test"
 
 		consumerMicroserviceID = "9fda2a06-01ec-4a77-b589-dac206a6be7c"
 		producerMicroserviceID = "adbb5d8c-ec55-42a0-acc7-13a6b14f3c73"
@@ -86,6 +100,13 @@ var _ = Describe("Repo", func() {
 		publicStream = "18340123-2b68-4667-9190-460f1f3d9408"
 		updatedMicroservices = dolittleK8s.MicroserviceMicroservices{}
 		updatedConsents = dolittleK8s.MicroserviceEventHorizonConsents{}
+		scope = "264d1d94-eda1-46ee-ae3d-7057b798b7a1"
+		listNetworkPoliciesError = nil
+
+		consumerEnvironment = "test"
+		producerEnvironment = "dev"
+		consumerName = "consumer"
+		producerName = "producer"
 	})
 
 	Describe("Adding an event horizon subscription", func() {
@@ -94,18 +115,36 @@ var _ = Describe("Repo", func() {
 
 			producerNamespace = fmt.Sprintf("application-%s", producerApplicationID)
 			consumerNamespace = fmt.Sprintf("application-%s", consumerApplicationID)
+
+			consumerAnnotations := map[string]string{
+				"dolittle.io/tenant-id":       consumerCustomerID,
+				"dolittle.io/microservice-id": consumerMicroserviceID,
+				"dolittle.io/application-id":  consumerApplicationID,
+			}
+			producerAnnotations := map[string]string{
+				"dolittle.io/tenant-id":       producerCustomerID,
+				"dolittle.io/microservice-id": producerMicroserviceID,
+				"dolittle.io/application-id":  producerApplicationID,
+			}
+
+			consumerLabels = map[string]string{
+				"environment":  consumerEnvironment,
+				"application":  "ConsumerApplication",
+				"tenant":       "HorizonCustomer",
+				"microservice": "Consumer",
+			}
+			producerLabels = map[string]string{
+				"environment":  producerEnvironment,
+				"application":  "ConsumerApplication",
+				"tenant":       "HorizonCustomer",
+				"microservice": "Producer",
+			}
 			producerService = &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-producer-service",
-					Namespace: producerNamespace,
-					Labels: map[string]string{
-						"environment": "Test",
-					},
-					Annotations: map[string]string{
-						"dolittle.io/tenant-id":       producerCustomerID,
-						"dolittle.io/microservice-id": producerMicroserviceID,
-						"dolittle.io/application-id":  producerApplicationID,
-					},
+					Name:        fmt.Sprintf("%s-%s", producerEnvironment, producerName),
+					Namespace:   producerNamespace,
+					Labels:      producerLabels,
+					Annotations: producerAnnotations,
 				},
 				Spec: corev1.ServiceSpec{
 					Ports: []corev1.ServicePort{
@@ -125,22 +164,19 @@ var _ = Describe("Repo", func() {
 
 			b, _ := json.MarshalIndent(consumerMicroservices, "", "  ")
 			microservicesJSON := string(b)
+			b, _ = json.MarshalIndent(consumerEventHorizons, "", "  ")
+			eventHorizonsJSON := string(b)
 
 			consumerConfigMap = &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-consumer-dolittle",
-					Namespace: consumerNamespace,
-					Annotations: map[string]string{
-						"dolittle.io/tenant-id":       consumerCustomerID,
-						"dolittle.io/microservice-id": consumerMicroserviceID,
-						"dolittle.io/application-id":  consumerApplicationID,
-					},
-					Labels: map[string]string{
-						"environment": "Test",
-					},
+					Name:        fmt.Sprintf("%s-%s", consumerEnvironment, consumerName),
+					Namespace:   consumerNamespace,
+					Annotations: consumerAnnotations,
+					Labels:      consumerLabels,
 				},
 				Data: map[string]string{
-					"microservices.json": microservicesJSON,
+					"microservices.json":  microservicesJSON,
+					"event-horizons.json": eventHorizonsJSON,
 				},
 			}
 
@@ -149,16 +185,10 @@ var _ = Describe("Repo", func() {
 
 			producerConfigMap = &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-producer-dolittle",
-					Namespace: producerNamespace,
-					Annotations: map[string]string{
-						"dolittle.io/tenant-id":       producerCustomerID,
-						"dolittle.io/microservice-id": producerMicroserviceID,
-						"dolittle.io/application-id":  producerApplicationID,
-					},
-					Labels: map[string]string{
-						"environment": "Test",
-					},
+					Name:        fmt.Sprintf("%s-%s", producerEnvironment, producerName),
+					Namespace:   producerNamespace,
+					Annotations: producerAnnotations,
+					Labels:      producerLabels,
 				},
 				Data: map[string]string{
 					"event-horizon-consents.json": consentsJSON,
@@ -171,7 +201,7 @@ var _ = Describe("Repo", func() {
 				if strings.HasSuffix(getNamespace, producerApplicationID) {
 					namespace := &corev1.Namespace{
 						ObjectMeta: metav1.ObjectMeta{
-							Name:      fmt.Sprintf("application-%s", producerApplicationID),
+							Name:      producerNamespace,
 							Namespace: producerNamespace,
 							Annotations: map[string]string{
 								"dolittle.io/tenant-id": producerCustomerID,
@@ -203,7 +233,7 @@ var _ = Describe("Repo", func() {
 				if configmap.ObjectMeta.Annotations["dolittle.io/microservice-id"] == consumerMicroserviceID {
 					consumerUpdatedConfigMap = updateAction.GetObject().(*corev1.ConfigMap)
 					json.Unmarshal([]byte(consumerUpdatedConfigMap.Data["microservices.json"]), &updatedMicroservices)
-					fmt.Println(updatedMicroservices)
+					json.Unmarshal([]byte(consumerUpdatedConfigMap.Data["event-horizons.json"]), &updatedEventHorizons)
 					return true, consumerUpdatedConfigMap, nil
 				}
 				if configmap.ObjectMeta.Annotations["dolittle.io/microservice-id"] == producerMicroserviceID {
@@ -216,9 +246,8 @@ var _ = Describe("Repo", func() {
 
 			clientSet.AddReactor("list", "services", func(action testing.Action) (bool, runtime.Object, error) {
 				listAction := action.(testing.ListActionImpl)
-				producerNamespace := fmt.Sprintf("application-%s", producerApplicationID)
-
 				serviceList := corev1.ServiceList{}
+
 				if listAction.Namespace == producerNamespace {
 					serviceList = corev1.ServiceList{
 						Items: []corev1.Service{
@@ -229,7 +258,78 @@ var _ = Describe("Repo", func() {
 				return true, &serviceList, nil
 			})
 
-			err = repo.SubscribeToAnotherApplication(consumerCustomerID, consumerApplicationID, environment, consumerMicroserviceID, consumerTenantID, producerMicroserviceID, producerTenantID, publicStream, partition, producerApplicationID, environment)
+			clientSet.AddReactor("list", "networkpolicies", func(action testing.Action) (bool, runtime.Object, error) {
+				listAction := action.(testing.ListActionImpl)
+				networkPolicyList := networkingv1.NetworkPolicyList{}
+
+				if listAction.Namespace == producerNamespace {
+					networkPolicyList.Items = append(networkPolicyList.Items, networkingv1.NetworkPolicy{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:        fmt.Sprintf("%s-%s-event-horizons", producerEnvironment, producerName),
+							Namespace:   producerNamespace,
+							Annotations: producerAnnotations,
+							Labels:      producerLabels,
+						},
+						Spec: networkingv1.NetworkPolicySpec{
+							PodSelector: metav1.LabelSelector{
+								MatchLabels: producerLabels,
+							},
+							PolicyTypes: []networkingv1.PolicyType{"Ingress"},
+							Ingress: []networkingv1.NetworkPolicyIngressRule{
+								{
+									From: []networkingv1.NetworkPolicyPeer{
+										{
+											NamespaceSelector: &metav1.LabelSelector{
+												MatchLabels: map[string]string{
+													"tenant":      consumerLabels["tenant"],
+													"application": consumerLabels["appliation"],
+												},
+											},
+											PodSelector: &metav1.LabelSelector{
+												MatchLabels: map[string]string{
+													"environment":  consumerLabels["environment"],
+													"microservice": consumerLabels["microservice"],
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					})
+				}
+				return true, &networkPolicyList, listNetworkPoliciesError
+			})
+
+			clientSet.AddReactor("create", "networkpolicies", func(action testing.Action) (bool, runtime.Object, error) {
+				createAction := action.(testing.CreateActionImpl)
+				networkPolicy = createAction.GetObject().(*networkingv1.NetworkPolicy)
+				return true, networkPolicy, nil
+			})
+
+			consumerDeployment = &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        fmt.Sprintf("%s-%s", consumerEnvironment, consumerName),
+					Namespace:   consumerNamespace,
+					Annotations: consumerAnnotations,
+					Labels:      consumerLabels,
+				},
+			}
+
+			clientSet.AddReactor("list", "deployments", func(action testing.Action) (bool, runtime.Object, error) {
+				listAction := action.(testing.ListActionImpl)
+				deploymentList := appsv1.DeploymentList{}
+
+				if listAction.Namespace == producerNamespace {
+					deploymentList.Items = append(deploymentList.Items, *producerDeployment)
+				}
+				if listAction.Namespace == consumerNamespace {
+					deploymentList.Items = append(deploymentList.Items, *consumerDeployment)
+				}
+				return true, &deploymentList, nil
+			})
+
+			err = repo.SubscribeToAnotherApplication(consumerCustomerID, consumerApplicationID, consumerEnvironment, consumerMicroserviceID, consumerTenantID, producerMicroserviceID, producerTenantID, publicStream, partition, producerApplicationID, consumerEnvironment, scope)
 		})
 
 		When("the consumer and producer aren't owned by the same customer", func() {
@@ -248,32 +348,65 @@ var _ = Describe("Repo", func() {
 				producerApplicationID = "587a9e21-9ab9-4955-812e-22c86bd52dcf"
 			})
 
-			It("should not fail", func() {
-				Expect(err).To(BeNil())
+			Context("and they are owned by the same customer", func() {
+				Context("and they don't have a networkpolicy between them", func() {
+					BeforeEach(func() {
+						listNetworkPoliciesError = k8sErrors.NewNotFound(schema.ParseGroupResource("networkingv1.networkpolicies"), fmt.Sprintf("%s-%s-event-horizon", consumerEnvironment, "producer"))
+					})
+
+					It("should create a networkpolicy between the microservices if it doesn't exist", func() {
+
+					})
+				})
+				Context("and they have a networkpolicy between them", func() {
+					BeforeEach(func() {
+
+					})
+
+					It("should not fail", func() {
+						Expect(err).To(BeNil())
+					})
+
+					It("should update the consumers microservices.json with the producers tenant", func() {
+						Expect(updatedMicroservices[producerMicroserviceID]).ToNot(BeNil())
+					})
+
+					It("should update the consumers microservices.json with the producers full hostname and port", func() {
+						hostname := fmt.Sprintf("%s-%s.svc.cluster.local", producerService.Name, producerNamespace)
+						Expect(updatedMicroservices[producerMicroserviceID].Host).To(Equal(hostname))
+						Expect(updatedMicroservices[producerMicroserviceID].Port).To(Equal(producerService.Spec.Ports[1].Port))
+					})
+
+					It("should update the producers event-horizon-consents.json", func() {
+						Expect(updatedConsents[producerTenantID]).ToNot(BeEmpty())
+						Expect(len(updatedConsents[producerTenantID])).To(Equal(1))
+						Expect(updatedConsents[producerTenantID][0].Microservice).To(Equal(consumerMicroserviceID))
+						Expect(updatedConsents[producerTenantID][0].Tenant).To(Equal(consumerTenantID))
+						Expect(updatedConsents[producerTenantID][0].Stream).To(Equal(publicStream))
+						Expect(updatedConsents[producerTenantID][0].Partition).To(Equal(partition))
+						Expect(updatedConsents[producerTenantID][0].Consent).ToNot(BeNil())
+					})
+
+					It("Should update the consumers event-horizons.json", func() {
+						Expect(updatedEventHorizons[consumerTenantID]).ToNot(BeEmpty())
+						Expect(len(updatedEventHorizons[consumerTenantID])).To(Equal(1))
+						Expect(updatedEventHorizons[consumerTenantID][0].Scope).To(Equal(scope))
+						Expect(updatedEventHorizons[consumerTenantID][0].Microservice).To(Equal(producerMicroserviceID))
+						Expect(updatedEventHorizons[consumerTenantID][0].Tenant).To(Equal(producerTenantID))
+						Expect(updatedEventHorizons[consumerTenantID][0].Stream).To(Equal(publicStream))
+						Expect(updatedEventHorizons[consumerTenantID][0].Partition).To(Equal(partition))
+					})
+				})
 			})
 
-			It("should update the consumers microservices.json with the producers tenant", func() {
-				Expect(updatedMicroservices[producerMicroserviceID]).ToNot(BeNil())
-			})
+			Context("and they are owned by different customers", func() {
+				BeforeEach(func() {
+					producerCustomerID = "im not the consumers customer"
+				})
 
-			It("should update the consumers microservices.json with the producers full hostname and port", func() {
-				hostname := fmt.Sprintf("%s-%s.svc.cluster.local", producerService.Name, producerNamespace)
-				Expect(updatedMicroservices[producerMicroserviceID].Host).To(Equal(hostname))
-				Expect(updatedMicroservices[producerMicroserviceID].Port).To(Equal(producerService.Spec.Ports[1].Port))
-			})
-
-			XIt("should create a networkpolicy between the microservices if it doesn't exist", func() {
-
-			})
-
-			It("should update the producers event-horizon-consents.json", func() {
-				Expect(updatedConsents[producerTenantID]).ToNot(BeEmpty())
-				Expect(len(updatedConsents[producerTenantID])).To(Equal(1))
-				Expect(updatedConsents[producerTenantID][0].Microservice).To(Equal(consumerMicroserviceID))
-				Expect(updatedConsents[producerTenantID][0].Tenant).To(Equal(consumerTenantID))
-				Expect(updatedConsents[producerTenantID][0].Stream).To(Equal(publicStream))
-				Expect(updatedConsents[producerTenantID][0].Partition).To(Equal(partition))
-				Expect(updatedConsents[producerTenantID][0].Consent).ToNot(BeNil())
+				It("should fail", func() {
+					Expect(err).ToNot(BeNil())
+				})
 			})
 		})
 	})

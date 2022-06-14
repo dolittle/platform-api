@@ -53,15 +53,34 @@ type MicroserviceEndpointPort struct {
 	Port int `json:"port"`
 }
 
-// event-horizon-consents.json
+// event-horizon-consents.json, the key is the producers tenant that gives consent
 type MicroserviceEventHorizonConsents map[string][]MicroserviceConsent
 
 type MicroserviceConsent struct {
+	// the consumers microservice and tenant to give consent to
 	Microservice string `json:"microservice"`
 	Tenant       string `json:"tenant"`
-	Stream       string `json:"stream"`
-	Partition    string `json:"partition"`
-	Consent      string `json:"consent"`
+	// the public stream and partition the consent is given for
+	Stream    string `json:"stream"`
+	Partition string `json:"partition"`
+	// identifier for this consent
+	Consent string `json:"consent"`
+}
+
+// event-horizons.json, the key is the consumers tenant that wants to consume events
+type MicroserviceEventHorizons map[string][]MicroserviceEventHorizon
+
+type MicroserviceEventHorizon struct {
+	// the scope which to put the subscription
+	Scope string `json:"scope"`
+	// the producers microservice
+	Microservice string `json:"microservice"`
+	// the producers tenant
+	Tenant string `json:"tenant"`
+	// the producers public stream
+	Stream string `json:"stream"`
+	// the producers public stream's partition
+	Partition string `json:"partition"`
 }
 
 // microservices.json
