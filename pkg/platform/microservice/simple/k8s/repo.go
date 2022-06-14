@@ -264,7 +264,7 @@ func (r k8sRepo) SubscribeToAnotherApplication(customerID, applicationID, enviro
 	if consents == nil {
 		consents = dolittleK8s.MicroserviceEventHorizonConsents{}
 	}
-	consents[producerMicroserviceID] = append(consents[producerMicroserviceID], dolittleK8s.MicroserviceConsent{
+	consents[producerTenantID] = append(consents[producerTenantID], dolittleK8s.MicroserviceConsent{
 		Microservice: microserviceID,
 		Tenant:       tenantID,
 		Stream:       publicStream,
