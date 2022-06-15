@@ -3,8 +3,6 @@ package eventhorizon
 import (
 	"os"
 
-	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
-
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -55,7 +53,7 @@ var addCMD = &cobra.Command{
 			"partition":                partition,
 		})
 
-		k8sClient, _ := platformK8s.InitKubernetesClient()
+		// k8sClient, _ := platformK8s.InitKubernetesClient()
 	},
 }
 

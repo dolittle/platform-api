@@ -12,17 +12,15 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/testing"
 
+	mockPkgK8s "github.com/dolittle/platform-api/mocks/pkg/k8s"
 	dolittleK8s "github.com/dolittle/platform-api/pkg/dolittle/k8s"
-	pkgK8s "github.com/dolittle/platform-api/pkg/k8s"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/simple"
 	"github.com/dolittle/platform-api/pkg/platform/microservice/simple/k8s"
@@ -34,7 +32,7 @@ var _ = Describe("Repo", func() {
 		clientSet                *fake.Clientset
 		config                   *rest.Config
 		k8sDolittleRepo          platformK8s.K8sRepo
-		k8sRepoV2                pkgK8s.Repo
+		mockK8sRepoV2            *mockPkgK8s.Repo
 		repo                     simple.Repo
 		logger                   *logrus.Logger
 		consumerMicroserviceID   string
@@ -67,12 +65,12 @@ var _ = Describe("Repo", func() {
 		producerNamespace        string
 		consumerNamespace        string
 		producerConsents         dolittleK8s.MicroserviceEventHorizonConsents
-		listNetworkPoliciesError error
 		networkPolicy            *networkingv1.NetworkPolicy
 		consumerName             string
 		producerName             string
 		consumerLabels           map[string]string
 		producerLabels           map[string]string
+		hasNetworkPolicy         bool
 	)
 
 	BeforeEach(func() {
@@ -80,8 +78,8 @@ var _ = Describe("Repo", func() {
 		config = &rest.Config{}
 		logger, _ = logrusTest.NewNullLogger()
 		k8sDolittleRepo = platformK8s.NewK8sRepo(clientSet, config, logger)
-		k8sRepoV2 = pkgK8s.NewRepo(clientSet, logger)
-		repo = k8s.NewSimpleRepo(clientSet, k8sDolittleRepo, k8sRepoV2, false)
+		mockK8sRepoV2 = new(mockPkgK8s.Repo)
+		repo = k8s.NewSimpleRepo(clientSet, k8sDolittleRepo, mockK8sRepoV2, false)
 
 		consumerMicroserviceID = "9fda2a06-01ec-4a77-b589-dac206a6be7c"
 		producerMicroserviceID = "adbb5d8c-ec55-42a0-acc7-13a6b14f3c73"
@@ -101,7 +99,6 @@ var _ = Describe("Repo", func() {
 		updatedMicroservices = dolittleK8s.MicroserviceMicroservices{}
 		updatedConsents = dolittleK8s.MicroserviceEventHorizonConsents{}
 		scope = "264d1d94-eda1-46ee-ae3d-7057b798b7a1"
-		listNetworkPoliciesError = nil
 
 		consumerEnvironment = "test"
 		producerEnvironment = "dev"
@@ -139,6 +136,29 @@ var _ = Describe("Repo", func() {
 				"tenant":       "HorizonCustomer",
 				"microservice": "Producer",
 			}
+
+			producerDeployment = &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        fmt.Sprintf("%s-%s", producerEnvironment, producerName),
+					Namespace:   producerNamespace,
+					Annotations: producerAnnotations,
+					Labels:      producerLabels,
+				},
+			}
+			mockK8sRepoV2.On("GetDeployment", producerNamespace, producerEnvironment, producerMicroserviceID).
+				Return(*producerDeployment, nil)
+
+			consumerDeployment = &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        fmt.Sprintf("%s-%s", consumerEnvironment, consumerName),
+					Namespace:   consumerNamespace,
+					Annotations: consumerAnnotations,
+					Labels:      consumerLabels,
+				},
+			}
+			mockK8sRepoV2.On("GetDeployment", consumerNamespace, consumerEnvironment, consumerMicroserviceID).
+				Return(*consumerDeployment, nil)
+
 			producerService = &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        fmt.Sprintf("%s-%s", producerEnvironment, producerName),
@@ -169,7 +189,7 @@ var _ = Describe("Repo", func() {
 
 			consumerConfigMap = &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:        fmt.Sprintf("%s-%s", consumerEnvironment, consumerName),
+					Name:        fmt.Sprintf("%s-%s-dolittle", consumerEnvironment, consumerName),
 					Namespace:   consumerNamespace,
 					Annotations: consumerAnnotations,
 					Labels:      consumerLabels,
@@ -185,7 +205,7 @@ var _ = Describe("Repo", func() {
 
 			producerConfigMap = &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:        fmt.Sprintf("%s-%s", producerEnvironment, producerName),
+					Name:        fmt.Sprintf("%s-%s-dolittle", producerEnvironment, producerName),
 					Namespace:   producerNamespace,
 					Annotations: producerAnnotations,
 					Labels:      producerLabels,
@@ -263,42 +283,47 @@ var _ = Describe("Repo", func() {
 				networkPolicyList := networkingv1.NetworkPolicyList{}
 
 				if listAction.Namespace == producerNamespace {
-					networkPolicyList.Items = append(networkPolicyList.Items, networkingv1.NetworkPolicy{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:        fmt.Sprintf("%s-%s-event-horizons", producerEnvironment, producerName),
-							Namespace:   producerNamespace,
-							Annotations: producerAnnotations,
-							Labels:      producerLabels,
-						},
-						Spec: networkingv1.NetworkPolicySpec{
-							PodSelector: metav1.LabelSelector{
-								MatchLabels: producerLabels,
+					// control setting up the networkpolicy
+					if hasNetworkPolicy {
+
+						networkPolicyList.Items = append(networkPolicyList.Items, networkingv1.NetworkPolicy{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:        fmt.Sprintf("%s-%s-event-horizons", producerEnvironment, producerName),
+								Namespace:   producerNamespace,
+								Annotations: producerAnnotations,
+								Labels:      producerLabels,
 							},
-							PolicyTypes: []networkingv1.PolicyType{"Ingress"},
-							Ingress: []networkingv1.NetworkPolicyIngressRule{
-								{
-									From: []networkingv1.NetworkPolicyPeer{
-										{
-											NamespaceSelector: &metav1.LabelSelector{
-												MatchLabels: map[string]string{
-													"tenant":      consumerLabels["tenant"],
-													"application": consumerLabels["appliation"],
+							Spec: networkingv1.NetworkPolicySpec{
+								PodSelector: metav1.LabelSelector{
+									MatchLabels: producerLabels,
+								},
+								PolicyTypes: []networkingv1.PolicyType{"Ingress"},
+								Ingress: []networkingv1.NetworkPolicyIngressRule{
+									{
+										From: []networkingv1.NetworkPolicyPeer{
+											{
+												NamespaceSelector: &metav1.LabelSelector{
+													MatchLabels: map[string]string{
+														"tenant":      consumerLabels["tenant"],
+														"application": consumerLabels["appliation"],
+													},
 												},
-											},
-											PodSelector: &metav1.LabelSelector{
-												MatchLabels: map[string]string{
-													"environment":  consumerLabels["environment"],
-													"microservice": consumerLabels["microservice"],
+												PodSelector: &metav1.LabelSelector{
+													MatchLabels: map[string]string{
+														"environment":  consumerLabels["environment"],
+														"microservice": consumerLabels["microservice"],
+													},
 												},
 											},
 										},
 									},
 								},
 							},
-						},
-					})
+						})
+					}
+
 				}
-				return true, &networkPolicyList, listNetworkPoliciesError
+				return true, &networkPolicyList, nil
 			})
 
 			clientSet.AddReactor("create", "networkpolicies", func(action testing.Action) (bool, runtime.Object, error) {
@@ -329,7 +354,7 @@ var _ = Describe("Repo", func() {
 				return true, &deploymentList, nil
 			})
 
-			err = repo.SubscribeToAnotherApplication(consumerCustomerID, consumerApplicationID, consumerEnvironment, consumerMicroserviceID, consumerTenantID, producerMicroserviceID, producerTenantID, publicStream, partition, producerApplicationID, consumerEnvironment, scope)
+			err = repo.SubscribeToAnotherApplication(consumerCustomerID, consumerApplicationID, consumerEnvironment, consumerMicroserviceID, consumerTenantID, producerMicroserviceID, producerTenantID, publicStream, partition, producerApplicationID, producerEnvironment, scope)
 		})
 
 		When("the consumer and producer aren't owned by the same customer", func() {
@@ -349,22 +374,40 @@ var _ = Describe("Repo", func() {
 			})
 
 			Context("and they are owned by the same customer", func() {
-				Context("and they don't have a networkpolicy between them", func() {
+				Context("and the producer doesn't have a networkpolicy for the consumer", func() {
 					BeforeEach(func() {
-						listNetworkPoliciesError = k8sErrors.NewNotFound(schema.ParseGroupResource("networkingv1.networkpolicies"), fmt.Sprintf("%s-%s-event-horizon", consumerEnvironment, "producer"))
+						hasNetworkPolicy = false
 					})
 
 					It("should create a networkpolicy between the microservices if it doesn't exist", func() {
+						Expect(networkPolicy).ToNot(BeNil())
+					})
 
+					It("should create a networkpolicy with the correct podselector labels", func() {
+						Expect(networkPolicy.Spec.PodSelector.MatchLabels).To(Equal(producerLabels))
+					})
+
+					It("should create a networkpolicy with the correct ingress from selector labels", func() {
+						Expect(networkPolicy.Spec.Ingress[0].From[0].NamespaceSelector.MatchLabels["tenant"]).To(Equal(consumerLabels["tenant"]))
+						Expect(networkPolicy.Spec.Ingress[0].From[0].NamespaceSelector.MatchLabels["application"]).To(Equal(consumerLabels["application"]))
+						Expect(networkPolicy.Spec.Ingress[0].From[0].PodSelector.MatchLabels["environment"]).To(Equal(consumerLabels["environment"]))
+						Expect(networkPolicy.Spec.Ingress[0].From[0].PodSelector.MatchLabels["microservice"]).To(Equal(consumerLabels["microservice"]))
 					})
 				})
-				Context("and they have a networkpolicy between them", func() {
+				Context("and the producer has a networkpolicy for the consumer", func() {
 					BeforeEach(func() {
-
+						hasNetworkPolicy = true
 					})
 
 					It("should not fail", func() {
 						Expect(err).To(BeNil())
+					})
+
+					It("should have gotten the producers microservice", func() {
+						mockK8sRepoV2.AssertCalled(GinkgoT(), "GetDeployment", producerNamespace, producerEnvironment, producerMicroserviceID)
+					})
+					It("should have gotten the consumers microservice", func() {
+						mockK8sRepoV2.AssertCalled(GinkgoT(), "GetDeployment", consumerNamespace, consumerEnvironment, consumerMicroserviceID)
 					})
 
 					It("should update the consumers microservices.json with the producers tenant", func() {

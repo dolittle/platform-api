@@ -192,6 +192,7 @@ func (r k8sRepo) Subscribe(customerID, applicationID, environment, microserviceI
 // SubscribeToAnotherApplication implements simple.Repo
 func (r k8sRepo) SubscribeToAnotherApplication(customerID, applicationID, environment, microserviceID, tenantID, producerMicroserviceID, producerTenantID, publicStream, partition, producerApplicationID, producerEnvironment, scope string) error {
 	ctx := context.TODO()
+	namespace := platformK8s.GetApplicationNamespace(applicationID)
 
 	// make sure that the producer's namespace is owned by the same customer
 	producerNamespaceName := platformK8s.GetApplicationNamespace(producerApplicationID)
@@ -205,7 +206,18 @@ func (r k8sRepo) SubscribeToAnotherApplication(customerID, applicationID, enviro
 		return fmt.Errorf("can't create event horizon subscriptions between different customers, consumer: %s and producer: %s", customerID, producerCustomerID)
 	}
 
-	// make sure the producer has a networkpolicy allowing this microservice to talk to it
+	// get the producers microservice
+	producerDeployment, err := r.k8sRepoV2.GetDeployment(producerNamespaceName, producerEnvironment, producerMicroserviceID)
+	if err != nil {
+		return fmt.Errorf("failed to get producers deployment: %w", err)
+	}
+
+	consumerDeployment, err := r.k8sRepoV2.GetDeployment(namespace, environment, microserviceID)
+	if err != nil {
+		return fmt.Errorf("failed to get consumers deployment: %w", err)
+	}
+
+	//make sure the producer has a networkpolicy allowing this microservice to talk to it
 	var producerNetworkPolicy *networkingv1.NetworkPolicy
 	networkPolicyList, err := r.k8sClient.NetworkingV1().NetworkPolicies(producerNamespaceName).List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -228,6 +240,45 @@ func (r k8sRepo) SubscribeToAnotherApplication(customerID, applicationID, enviro
 
 	if producerNetworkPolicy == nil {
 		// create it
+
+		networkPolicy := &networkingv1.NetworkPolicy{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        fmt.Sprintf("%s-event-horizons", producerDeployment.Name),
+				Namespace:   producerNamespaceName,
+				Annotations: producerDeployment.Annotations,
+				Labels:      producerDeployment.Labels,
+			},
+			Spec: networkingv1.NetworkPolicySpec{
+				PodSelector: metav1.LabelSelector{
+					MatchLabels: producerDeployment.Labels,
+				},
+				PolicyTypes: []networkingv1.PolicyType{"Ingress"},
+				Ingress: []networkingv1.NetworkPolicyIngressRule{
+					{
+						From: []networkingv1.NetworkPolicyPeer{
+							{
+								NamespaceSelector: &metav1.LabelSelector{
+									MatchLabels: map[string]string{
+										"tenant":      consumerDeployment.Labels["tenant"],
+										"application": consumerDeployment.Labels["application"],
+									},
+								},
+								PodSelector: &metav1.LabelSelector{
+									MatchLabels: map[string]string{
+										"environment":  consumerDeployment.Labels["environment"],
+										"microservice": consumerDeployment.Labels["microservice"],
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		if _, err := r.k8sClient.NetworkingV1().NetworkPolicies(producerNamespaceName).Create(ctx, networkPolicy, metav1.CreateOptions{}); err != nil {
+			return fmt.Errorf("failed to create network policy for producer %w", err)
+		}
 	}
 
 	// get producers service
@@ -306,8 +357,6 @@ func (r k8sRepo) SubscribeToAnotherApplication(customerID, applicationID, enviro
 		return fmt.Errorf("failed to update producers event-horizon-consents.json: %w", err)
 	}
 
-	// find the consumers -dolittle configmap
-	namespace := platformK8s.GetApplicationNamespace(applicationID)
 	consumerConfigmaps, err := r.k8sClient.CoreV1().ConfigMaps(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
