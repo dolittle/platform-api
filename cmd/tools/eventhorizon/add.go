@@ -3,8 +3,13 @@ package eventhorizon
 import (
 	"os"
 
+	"github.com/dolittle/platform-api/pkg/k8s"
+	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
+	k8sSimple "github.com/dolittle/platform-api/pkg/platform/microservice/simple/k8s"
+
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var addCMD = &cobra.Command{
@@ -28,6 +33,7 @@ var addCMD = &cobra.Command{
 		producerTenantID, _ := cmd.Flags().GetString("producer-tenant-id")
 		publicStream, _ := cmd.Flags().GetString("public-stream")
 		partition, _ := cmd.Flags().GetString("partition")
+		scope, _ := cmd.Flags().GetString("scope")
 
 		if customerID == "" ||
 			applicationID == "" ||
@@ -37,9 +43,13 @@ var addCMD = &cobra.Command{
 			producerMicroserviceID == "" ||
 			producerTenantID == "" ||
 			publicStream == "" ||
-			partition == "" {
+			partition == "" ||
+			scope == "" {
 			logContext.Fatal("you have to specify the required flags")
 		}
+
+		producerApplicationID, _ := cmd.Flags().GetString("producer-application-id")
+		producerEnvironment, _ := cmd.Flags().GetString("producer-environment")
 
 		logContext = logContext.WithFields(logrus.Fields{
 			"customer_id":              customerID,
@@ -51,9 +61,53 @@ var addCMD = &cobra.Command{
 			"producer_tenant_id":       producerTenantID,
 			"public_stream":            publicStream,
 			"partition":                partition,
+			"scope":                    scope,
+			"producer_application_id":  producerApplicationID,
+			"producer_environment":     producerEnvironment,
 		})
 
-		// k8sClient, _ := platformK8s.InitKubernetesClient()
+		k8sClient, config := platformK8s.InitKubernetesClient()
+		k8sRepo := platformK8s.NewK8sRepo(k8sClient, config, logContext)
+		k8sRepoV2 := k8s.NewRepo(k8sClient, logContext)
+
+		isProduction := viper.GetBool("tools.server.isProduction")
+		simpleRepo := k8sSimple.NewSimpleRepo(k8sClient, k8sRepo, k8sRepoV2, isProduction)
+
+		if producerApplicationID == "" || producerEnvironment == "" {
+			// do the simple case where procucer & consumer are in the same application and same environment
+			err := simpleRepo.Subscribe(
+				customerID,
+				applicationID,
+				environment,
+				microserviceID,
+				tenantID,
+				producerMicroserviceID,
+				producerTenantID,
+				publicStream,
+				partition,
+				scope)
+			if err != nil {
+				logContext.Fatal(err)
+			}
+		} else {
+			err := simpleRepo.SubscribeToAnotherApplication(
+				customerID,
+				applicationID,
+				environment,
+				microserviceID,
+				tenantID,
+				producerMicroserviceID,
+				producerTenantID,
+				publicStream,
+				partition,
+				scope,
+				producerApplicationID,
+				producerEnvironment)
+			if err != nil {
+				logContext.Fatal(err)
+			}
+		}
+		logContext.Info("job done")
 	},
 }
 
@@ -63,6 +117,7 @@ func init() {
 	addCMD.Flags().String("microservice-id", "", "The consumers microservice ID")
 	addCMD.Flags().String("environment", "", "The consumers environment")
 	addCMD.Flags().String("tenant-id", "", "The consumers tenantID")
+	addCMD.Flags().String("scope", "", "The consumers scope to put the events to")
 
 	addCMD.Flags().String("producer-microservice-id", "", "The producers microservice ID")
 	addCMD.Flags().String("producer-tenant-id", "", "The producers tenant that gives consent to it's public stream")

@@ -185,12 +185,24 @@ func (r k8sRepo) Delete(applicationID, environment, microserviceID string) error
 }
 
 // Subscribe implements simple.Repo
-func (r k8sRepo) Subscribe(customerID, applicationID, environment, microserviceID, tenantID, producerMicroserviceID, producerTenantID, publicStream, partition string) error {
+func (r k8sRepo) Subscribe(customerID, applicationID, environment, microserviceID, tenantID, producerMicroserviceID, producerTenantID, publicStream, partition, scope string) error {
 	panic("unimplemented")
 }
 
 // SubscribeToAnotherApplication implements simple.Repo
-func (r k8sRepo) SubscribeToAnotherApplication(customerID, applicationID, environment, microserviceID, tenantID, producerMicroserviceID, producerTenantID, publicStream, partition, producerApplicationID, producerEnvironment, scope string) error {
+func (r k8sRepo) SubscribeToAnotherApplication(
+	customerID,
+	applicationID,
+	environment,
+	microserviceID,
+	tenantID,
+	producerMicroserviceID,
+	producerTenantID,
+	publicStream,
+	partition,
+	scope,
+	producerApplicationID,
+	producerEnvironment string) error {
 	ctx := context.TODO()
 	namespace := platformK8s.GetApplicationNamespace(applicationID)
 
@@ -280,6 +292,8 @@ func (r k8sRepo) SubscribeToAnotherApplication(customerID, applicationID, enviro
 			return fmt.Errorf("failed to create network policy for producer %w", err)
 		}
 	}
+
+	// TODO: if producer network policy does not have policy for consumer, add it
 
 	// get producers service
 	var producerService *corev1.Service

@@ -45,13 +45,13 @@ func (_m *Repo) Delete(applicationID string, environment string, microserviceID 
 	return r0
 }
 
-// Subscribe provides a mock function with given fields: customerID, applicationID, environment, microserviceID, tenantID, producerMicroserviceID, producerTenantID, publicStream, partition
-func (_m *Repo) Subscribe(customerID string, applicationID string, environment string, microserviceID string, tenantID string, producerMicroserviceID string, producerTenantID string, publicStream string, partition string) error {
-	ret := _m.Called(customerID, applicationID, environment, microserviceID, tenantID, producerMicroserviceID, producerTenantID, publicStream, partition)
+// Subscribe provides a mock function with given fields: customerID, applicationID, environment, microserviceID, tenantID, producerMicroserviceID, producerTenantID, publicStream, partition, scope
+func (_m *Repo) Subscribe(customerID string, applicationID string, environment string, microserviceID string, tenantID string, producerMicroserviceID string, producerTenantID string, publicStream string, partition string, scope string) error {
+	ret := _m.Called(customerID, applicationID, environment, microserviceID, tenantID, producerMicroserviceID, producerTenantID, publicStream, partition, scope)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, string, string, string, string, string, string, string, string) error); ok {
-		r0 = rf(customerID, applicationID, environment, microserviceID, tenantID, producerMicroserviceID, producerTenantID, publicStream, partition)
+	if rf, ok := ret.Get(0).(func(string, string, string, string, string, string, string, string, string, string) error); ok {
+		r0 = rf(customerID, applicationID, environment, microserviceID, tenantID, producerMicroserviceID, producerTenantID, publicStream, partition, scope)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -59,13 +59,13 @@ func (_m *Repo) Subscribe(customerID string, applicationID string, environment s
 	return r0
 }
 
-// SubscribeToAnotherApplication provides a mock function with given fields: customerID, applicationID, environment, microserviceID, tenantID, producerMicroserviceID, producerTenantID, publicStream, partition, producerApplicationID, producerEnvironment, scope
-func (_m *Repo) SubscribeToAnotherApplication(customerID string, applicationID string, environment string, microserviceID string, tenantID string, producerMicroserviceID string, producerTenantID string, publicStream string, partition string, producerApplicationID string, producerEnvironment string, scope string) error {
-	ret := _m.Called(customerID, applicationID, environment, microserviceID, tenantID, producerMicroserviceID, producerTenantID, publicStream, partition, producerApplicationID, producerEnvironment, scope)
+// SubscribeToAnotherApplication provides a mock function with given fields: customerID, applicationID, environment, microserviceID, tenantID, producerMicroserviceID, producerTenantID, publicStream, partition, scope, producerApplicationID, producerEnvironment
+func (_m *Repo) SubscribeToAnotherApplication(customerID string, applicationID string, environment string, microserviceID string, tenantID string, producerMicroserviceID string, producerTenantID string, publicStream string, partition string, scope string, producerApplicationID string, producerEnvironment string) error {
+	ret := _m.Called(customerID, applicationID, environment, microserviceID, tenantID, producerMicroserviceID, producerTenantID, publicStream, partition, scope, producerApplicationID, producerEnvironment)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, string, string, string, string, string, string, string, string, string, string) error); ok {
-		r0 = rf(customerID, applicationID, environment, microserviceID, tenantID, producerMicroserviceID, producerTenantID, publicStream, partition, producerApplicationID, producerEnvironment, scope)
+		r0 = rf(customerID, applicationID, environment, microserviceID, tenantID, producerMicroserviceID, producerTenantID, publicStream, partition, scope, producerApplicationID, producerEnvironment)
 	} else {
 		r0 = ret.Error(0)
 	}
