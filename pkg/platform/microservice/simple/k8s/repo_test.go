@@ -3,7 +3,6 @@ package k8s_test
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -65,12 +64,14 @@ var _ = Describe("Repo", func() {
 		producerNamespace        string
 		consumerNamespace        string
 		producerConsents         dolittleK8s.MicroserviceEventHorizonConsents
-		networkPolicy            *networkingv1.NetworkPolicy
+		createdNetworkPolicy     *networkingv1.NetworkPolicy
+		updatedNetworkPolicy     *networkingv1.NetworkPolicy
+		listNetworkPolicy        *networkingv1.NetworkPolicy
 		consumerName             string
 		producerName             string
 		consumerLabels           map[string]string
 		producerLabels           map[string]string
-		hasNetworkPolicy         bool
+		producerAnnotations      map[string]string
 	)
 
 	BeforeEach(func() {
@@ -104,12 +105,25 @@ var _ = Describe("Repo", func() {
 		producerEnvironment = "dev"
 		consumerName = "consumer"
 		producerName = "producer"
+
+		consumerLabels = map[string]string{
+			"environment":  consumerEnvironment,
+			"application":  "ConsumerApplication",
+			"tenant":       "HorizonCustomer",
+			"microservice": "Consumer",
+		}
+		producerLabels = map[string]string{
+			"environment":  producerEnvironment,
+			"application":  "ConsumerApplication",
+			"tenant":       "HorizonCustomer",
+			"microservice": "Producer",
+		}
 	})
 
 	Describe("Adding an event horizon subscription", func() {
 
+		// the applicationID can be modified in the beforeEach blocks so calculate the annotations within here
 		JustBeforeEach(func() {
-
 			producerNamespace = fmt.Sprintf("application-%s", producerApplicationID)
 			consumerNamespace = fmt.Sprintf("application-%s", consumerApplicationID)
 
@@ -118,23 +132,10 @@ var _ = Describe("Repo", func() {
 				"dolittle.io/microservice-id": consumerMicroserviceID,
 				"dolittle.io/application-id":  consumerApplicationID,
 			}
-			producerAnnotations := map[string]string{
+			producerAnnotations = map[string]string{
 				"dolittle.io/tenant-id":       producerCustomerID,
 				"dolittle.io/microservice-id": producerMicroserviceID,
 				"dolittle.io/application-id":  producerApplicationID,
-			}
-
-			consumerLabels = map[string]string{
-				"environment":  consumerEnvironment,
-				"application":  "ConsumerApplication",
-				"tenant":       "HorizonCustomer",
-				"microservice": "Consumer",
-			}
-			producerLabels = map[string]string{
-				"environment":  producerEnvironment,
-				"application":  "ConsumerApplication",
-				"tenant":       "HorizonCustomer",
-				"microservice": "Producer",
 			}
 
 			producerDeployment = &appsv1.Deployment{
@@ -218,7 +219,8 @@ var _ = Describe("Repo", func() {
 			clientSet.AddReactor("get", "namespaces", func(action testing.Action) (bool, runtime.Object, error) {
 				getAction := action.(testing.GetAction)
 				getNamespace := getAction.GetName()
-				if strings.HasSuffix(getNamespace, producerApplicationID) {
+				fmt.Println("WE GETTING NAMESPACE:", getNamespace)
+				if getNamespace == producerNamespace {
 					namespace := &corev1.Namespace{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      producerNamespace,
@@ -283,53 +285,23 @@ var _ = Describe("Repo", func() {
 				networkPolicyList := networkingv1.NetworkPolicyList{}
 
 				if listAction.Namespace == producerNamespace {
-					// control setting up the networkpolicy
-					if hasNetworkPolicy {
-
-						networkPolicyList.Items = append(networkPolicyList.Items, networkingv1.NetworkPolicy{
-							ObjectMeta: metav1.ObjectMeta{
-								Name:        fmt.Sprintf("%s-%s-event-horizons", producerEnvironment, producerName),
-								Namespace:   producerNamespace,
-								Annotations: producerAnnotations,
-								Labels:      producerLabels,
-							},
-							Spec: networkingv1.NetworkPolicySpec{
-								PodSelector: metav1.LabelSelector{
-									MatchLabels: producerLabels,
-								},
-								PolicyTypes: []networkingv1.PolicyType{"Ingress"},
-								Ingress: []networkingv1.NetworkPolicyIngressRule{
-									{
-										From: []networkingv1.NetworkPolicyPeer{
-											{
-												NamespaceSelector: &metav1.LabelSelector{
-													MatchLabels: map[string]string{
-														"tenant":      consumerLabels["tenant"],
-														"application": consumerLabels["appliation"],
-													},
-												},
-												PodSelector: &metav1.LabelSelector{
-													MatchLabels: map[string]string{
-														"environment":  consumerLabels["environment"],
-														"microservice": consumerLabels["microservice"],
-													},
-												},
-											},
-										},
-									},
-								},
-							},
-						})
+					if listNetworkPolicy != nil {
+						networkPolicyList.Items = append(networkPolicyList.Items, *listNetworkPolicy)
 					}
-
 				}
 				return true, &networkPolicyList, nil
 			})
 
 			clientSet.AddReactor("create", "networkpolicies", func(action testing.Action) (bool, runtime.Object, error) {
 				createAction := action.(testing.CreateActionImpl)
-				networkPolicy = createAction.GetObject().(*networkingv1.NetworkPolicy)
-				return true, networkPolicy, nil
+				createdNetworkPolicy = createAction.GetObject().(*networkingv1.NetworkPolicy)
+				return true, createdNetworkPolicy, nil
+			})
+
+			clientSet.AddReactor("update", "networkpolicies", func(action testing.Action) (bool, runtime.Object, error) {
+				updateAction := action.(testing.UpdateActionImpl)
+				updatedNetworkPolicy = updateAction.GetObject().(*networkingv1.NetworkPolicy)
+				return true, updatedNetworkPolicy, nil
 			})
 
 			consumerDeployment = &appsv1.Deployment{
@@ -354,7 +326,7 @@ var _ = Describe("Repo", func() {
 				return true, &deploymentList, nil
 			})
 
-			err = repo.SubscribeToAnotherApplication(consumerCustomerID, consumerApplicationID, consumerEnvironment, consumerMicroserviceID, consumerTenantID, producerMicroserviceID, producerTenantID, publicStream, partition, producerApplicationID, producerEnvironment, scope)
+			err = repo.SubscribeToAnotherApplication(consumerCustomerID, consumerApplicationID, consumerEnvironment, consumerMicroserviceID, consumerTenantID, producerMicroserviceID, producerTenantID, publicStream, partition, scope, producerApplicationID, producerEnvironment)
 		})
 
 		When("the consumer and producer aren't owned by the same customer", func() {
@@ -371,32 +343,126 @@ var _ = Describe("Repo", func() {
 			BeforeEach(func() {
 				// a different applicationID
 				producerApplicationID = "587a9e21-9ab9-4955-812e-22c86bd52dcf"
+
+				producerAnnotations = map[string]string{
+					"dolittle.io/tenant-id":       producerCustomerID,
+					"dolittle.io/microservice-id": producerMicroserviceID,
+					"dolittle.io/application-id":  producerApplicationID,
+				}
 			})
 
 			Context("and they are owned by the same customer", func() {
-				Context("and the producer doesn't have a networkpolicy for the consumer", func() {
+				Context("and the producer doesn't have a networkpolicy", func() {
 					BeforeEach(func() {
-						hasNetworkPolicy = false
+						listNetworkPolicy = nil
 					})
 
-					It("should create a networkpolicy between the microservices if it doesn't exist", func() {
-						Expect(networkPolicy).ToNot(BeNil())
+					It("should not fail", func() {
+						Expect(err).To(BeNil())
+					})
+
+					It("should create a networkpolicy between the microservices", func() {
+						Expect(createdNetworkPolicy).ToNot(BeNil())
 					})
 
 					It("should create a networkpolicy with the correct podselector labels", func() {
-						Expect(networkPolicy.Spec.PodSelector.MatchLabels).To(Equal(producerLabels))
+						Expect(createdNetworkPolicy.Spec.PodSelector.MatchLabels).To(Equal(producerLabels))
 					})
 
 					It("should create a networkpolicy with the correct ingress from selector labels", func() {
-						Expect(networkPolicy.Spec.Ingress[0].From[0].NamespaceSelector.MatchLabels["tenant"]).To(Equal(consumerLabels["tenant"]))
-						Expect(networkPolicy.Spec.Ingress[0].From[0].NamespaceSelector.MatchLabels["application"]).To(Equal(consumerLabels["application"]))
-						Expect(networkPolicy.Spec.Ingress[0].From[0].PodSelector.MatchLabels["environment"]).To(Equal(consumerLabels["environment"]))
-						Expect(networkPolicy.Spec.Ingress[0].From[0].PodSelector.MatchLabels["microservice"]).To(Equal(consumerLabels["microservice"]))
+						Expect(createdNetworkPolicy.Spec.Ingress[0].From[0].NamespaceSelector.MatchLabels["tenant"]).To(Equal(consumerLabels["tenant"]))
+						Expect(createdNetworkPolicy.Spec.Ingress[0].From[0].NamespaceSelector.MatchLabels["application"]).To(Equal(consumerLabels["application"]))
+						Expect(createdNetworkPolicy.Spec.Ingress[0].From[0].PodSelector.MatchLabels["environment"]).To(Equal(consumerLabels["environment"]))
+						Expect(createdNetworkPolicy.Spec.Ingress[0].From[0].PodSelector.MatchLabels["microservice"]).To(Equal(consumerLabels["microservice"]))
 					})
 				})
+				Context("and the producer has a networkpolicy, but not for the consumer", func() {
+					BeforeEach(func() {
+						listNetworkPolicy = &networkingv1.NetworkPolicy{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:        fmt.Sprintf("%s-%s-event-horizons", producerEnvironment, producerName),
+								Namespace:   producerNamespace,
+								Annotations: producerAnnotations,
+								Labels:      producerLabels,
+							},
+							Spec: networkingv1.NetworkPolicySpec{
+								PodSelector: metav1.LabelSelector{
+									MatchLabels: producerLabels,
+								},
+								PolicyTypes: []networkingv1.PolicyType{"Ingress"},
+								Ingress: []networkingv1.NetworkPolicyIngressRule{
+									{
+										From: []networkingv1.NetworkPolicyPeer{
+											{
+												NamespaceSelector: &metav1.LabelSelector{
+													MatchLabels: map[string]string{
+														"tenant":      "im not the consumer tenant",
+														"application": "or the consumer app",
+													},
+												},
+												PodSelector: &metav1.LabelSelector{
+													MatchLabels: map[string]string{
+														"environment":  "hähä not ur env either",
+														"microservice": "or ur microservice",
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						}
+					})
+
+					It("should not fail", func() {
+						Expect(err).To(BeNil())
+					})
+
+					It("should add the consumer into the networkpolicy with correct info", func() {
+						Expect(len(updatedNetworkPolicy.Spec.Ingress[0].From)).To(Equal(2))
+						Expect(updatedNetworkPolicy.Spec.Ingress[0].From[1].NamespaceSelector.MatchLabels["tenant"]).To(Equal(consumerLabels["tenant"]))
+						Expect(updatedNetworkPolicy.Spec.Ingress[0].From[1].NamespaceSelector.MatchLabels["application"]).To(Equal(consumerLabels["application"]))
+						Expect(updatedNetworkPolicy.Spec.Ingress[0].From[1].PodSelector.MatchLabels["environment"]).To(Equal(consumerLabels["environment"]))
+						Expect(updatedNetworkPolicy.Spec.Ingress[0].From[1].PodSelector.MatchLabels["microservice"]).To(Equal(consumerLabels["microservice"]))
+					})
+				})
+
 				Context("and the producer has a networkpolicy for the consumer", func() {
 					BeforeEach(func() {
-						hasNetworkPolicy = true
+						listNetworkPolicy = &networkingv1.NetworkPolicy{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:        fmt.Sprintf("%s-%s-event-horizons", producerEnvironment, producerName),
+								Namespace:   producerNamespace,
+								Annotations: producerAnnotations,
+								Labels:      producerLabels,
+							},
+							Spec: networkingv1.NetworkPolicySpec{
+								PodSelector: metav1.LabelSelector{
+									MatchLabels: producerLabels,
+								},
+								PolicyTypes: []networkingv1.PolicyType{"Ingress"},
+								Ingress: []networkingv1.NetworkPolicyIngressRule{
+									{
+										From: []networkingv1.NetworkPolicyPeer{
+											{
+												NamespaceSelector: &metav1.LabelSelector{
+													MatchLabels: map[string]string{
+														"tenant":      consumerLabels["tenant"],
+														"application": consumerLabels["application"],
+													},
+												},
+												PodSelector: &metav1.LabelSelector{
+													MatchLabels: map[string]string{
+														"environment":  consumerLabels["environment"],
+														"microservice": consumerLabels["microservice"],
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						}
 					})
 
 					It("should not fail", func() {

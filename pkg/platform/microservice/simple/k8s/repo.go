@@ -291,9 +291,48 @@ func (r k8sRepo) SubscribeToAnotherApplication(
 		if _, err := r.k8sClient.NetworkingV1().NetworkPolicies(producerNamespaceName).Create(ctx, networkPolicy, metav1.CreateOptions{}); err != nil {
 			return fmt.Errorf("failed to create network policy for producer %w", err)
 		}
-	}
+	} else {
+		// check if the producer already has a networkpolicy for this consumer
+		hasIngressRule := false
+		for _, ingressRule := range producerNetworkPolicy.Spec.Ingress {
+			for _, peer := range ingressRule.From {
+				namespaceLabels := peer.NamespaceSelector.MatchLabels
+				podLabels := peer.PodSelector.MatchLabels
 
-	// TODO: if producer network policy does not have policy for consumer, add it
+				if namespaceLabels["tenant"] == consumerDeployment.Labels["tenant"] &&
+					namespaceLabels["application"] == consumerDeployment.Labels["application"] &&
+					podLabels["environment"] == consumerDeployment.Labels["environment"] &&
+					podLabels["microservice"] == consumerDeployment.Labels["microservice"] {
+					// found it
+					hasIngressRule = true
+					break
+				}
+			}
+		}
+
+		if !hasIngressRule {
+			ingressRule := networkingv1.NetworkPolicyPeer{
+				NamespaceSelector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"tenant":      consumerDeployment.Labels["tenant"],
+						"application": consumerDeployment.Labels["application"],
+					},
+				},
+				PodSelector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"environment":  consumerDeployment.Labels["environment"],
+						"microservice": consumerDeployment.Labels["microservice"],
+					},
+				},
+			}
+
+			producerNetworkPolicy.Spec.Ingress[0].From = append(producerNetworkPolicy.Spec.Ingress[0].From, ingressRule)
+			_, err := r.k8sClient.NetworkingV1().NetworkPolicies(producerNamespaceName).Update(ctx, producerNetworkPolicy, metav1.UpdateOptions{})
+			if err != nil {
+				return fmt.Errorf("failed to update the networkpolicy for the producer: %w", err)
+			}
+		}
+	}
 
 	// get producers service
 	var producerService *corev1.Service
@@ -371,6 +410,7 @@ func (r k8sRepo) SubscribeToAnotherApplication(
 		return fmt.Errorf("failed to update producers event-horizon-consents.json: %w", err)
 	}
 
+	// get the consumers -dolittle configmap
 	consumerConfigmaps, err := r.k8sClient.CoreV1().ConfigMaps(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
