@@ -1,4 +1,4 @@
-package cfg
+package copy
 
 import (
 	"github.com/spf13/cobra"
@@ -6,7 +6,7 @@ import (
 )
 
 var RootCMD = &cobra.Command{
-	Use:   "cfg",
+	Use:   "copy",
 	Short: "Microservice config setup with Studio",
 	Long:  ``,
 }

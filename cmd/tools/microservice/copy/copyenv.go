@@ -1,4 +1,4 @@
-package cfg
+package copy
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ import (
 )
 
 var heyCMD = &cobra.Command{
-	Use:   "copyenv",
+	Use:   "environment",
 	Short: "Copy env variables configmap for a microservice in one environment to another environment",
 	Long: `
 	Copy env variables configmap for a microservice in one environment to another environment.
