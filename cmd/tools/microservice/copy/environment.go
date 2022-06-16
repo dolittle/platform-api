@@ -32,14 +32,15 @@ var environmentCMD = &cobra.Command{
 		sourceEnvironment := viper.GetString("tools.studio.cfg.from-env")
 		destinationEnvironment := viper.GetString("tools.studio.cfg.to-env")
 		application := viper.GetString("tools.studio.cfg.application")
-
 		sourceConfigMapName := fmt.Sprintf("%s-%s-env-variables", sourceEnvironment, sourceMicroserviceName)
 		namespace := fmt.Sprintf("application-%s", application)
-		logContext.WithFields(logrus.Fields{
-			"k8sNamespace":     namespace,
-			"k8sConfigmap":     sourceConfigMapName,
-			"microserviceName": sourceMicroserviceName,
-		}).Info("Begins to copy env var configmap")
+		logContextWithMeta := logContext.WithFields(logrus.Fields{
+			"k8sNamespace": namespace,
+			"k8sConfigmap": sourceConfigMapName,
+		})
+
+		logContextWithMeta.WithField("microserviceName", sourceMicroserviceName).
+			Info("Begins to copy env var configmap")
 
 		kubeCtlGetCfgMap := exec.Command("kubectl", "-n", namespace, "get", "configmap", sourceConfigMapName, "-o", "json")
 		_, err := kubeCtlGetCfgMap.StderrPipe()
@@ -50,11 +51,8 @@ var environmentCMD = &cobra.Command{
 
 		configMapJson, err := kubeCtlGetCfgMap.Output()
 		if err != nil {
-			logContext.WithFields(logrus.Fields{
-				"k8sNamespace": namespace,
-				"k8sConfigMap": sourceConfigMapName,
-				"error":        err,
-			}).Fatal("Failed to get configmap")
+			logContextWithMeta.WithField("error", err).
+				Fatal("Failed to get configmap")
 			return
 		}
 
@@ -76,10 +74,7 @@ var environmentCMD = &cobra.Command{
 		kubeCtlGetCfgMap.Run()
 		kubectlApply.Wait()
 
-		logContext.WithFields(logrus.Fields{
-			"k8sNamespace":            namespace,
-			"k8sSourceCondfigMap":     sourceConfigMapName,
-			"k8sDestinationConfigMap": destinationConfigMap,
-		}).Info("Successfully copied configmap for env variables")
+		logContextWithMeta.WithField("k8sDestinationConfigMap", destinationConfigMap).
+			Info("Successfully copied configmap for env variables")
 	},
 }
