@@ -12,21 +12,21 @@ var RootCMD = &cobra.Command{
 }
 
 func init() {
-	RootCMD.AddCommand(heyCMD)
+	RootCMD.AddCommand(environmentCMD)
 
-	heyCMD.PersistentFlags().String("application", "", "application id")
-	heyCMD.MarkPersistentFlagRequired("application")
-	viper.BindPFlag("tools.studio.cfg.application", heyCMD.PersistentFlags().Lookup("application"))
+	environmentCMD.PersistentFlags().String("application", "", "application id")
+	environmentCMD.MarkPersistentFlagRequired("application")
+	viper.BindPFlag("tools.studio.cfg.application", environmentCMD.PersistentFlags().Lookup("application"))
 
-	heyCMD.PersistentFlags().String("microservice-name", "", "Name of microservice to copy environment variables from")
-	heyCMD.MarkPersistentFlagRequired("microservice-name")
-	viper.BindPFlag("tools.studio.cfg.microservice-name", heyCMD.PersistentFlags().Lookup("microservice-name"))
+	environmentCMD.PersistentFlags().String("microservice-name", "", "Name of microservice to copy environment variables from")
+	environmentCMD.MarkPersistentFlagRequired("microservice-name")
+	viper.BindPFlag("tools.studio.cfg.microservice-name", environmentCMD.PersistentFlags().Lookup("microservice-name"))
 
-	heyCMD.PersistentFlags().String("from-env", "", "The environment to copy from")
-	heyCMD.MarkPersistentFlagRequired("from-env")
-	viper.BindPFlag("tools.studio.cfg.from-env", heyCMD.PersistentFlags().Lookup("from-env"))
+	environmentCMD.PersistentFlags().String("from-env", "", "The environment to copy from")
+	environmentCMD.MarkPersistentFlagRequired("from-env")
+	viper.BindPFlag("tools.studio.cfg.from-env", environmentCMD.PersistentFlags().Lookup("from-env"))
 
-	heyCMD.PersistentFlags().String("to-env", "", "they environment to copy to")
-	heyCMD.MarkPersistentFlagRequired("to-env")
-	viper.BindPFlag("tools.studio.cfg.to-env", heyCMD.PersistentFlags().Lookup("to-env"))
+	environmentCMD.PersistentFlags().String("to-env", "", "they environment to copy to")
+	environmentCMD.MarkPersistentFlagRequired("to-env")
+	viper.BindPFlag("tools.studio.cfg.to-env", environmentCMD.PersistentFlags().Lookup("to-env"))
 }

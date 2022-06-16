@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var heyCMD = &cobra.Command{
+var environmentCMD = &cobra.Command{
 	Use:   "environment",
 	Short: "Copy env variables configmap for a microservice in one environment to another environment",
 	Long: `
