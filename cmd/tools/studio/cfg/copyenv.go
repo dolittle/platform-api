@@ -61,10 +61,11 @@ var heyCMD = &cobra.Command{
 		var modifiedConfigMap map[string]interface{}
 		json.Unmarshal(configMapJson, &modifiedConfigMap)
 		destinationConfigMap := fmt.Sprintf("%s-%s-env-variables", destinationEnvironment, sourceMicroserviceName)
-		modifiedConfigMap["metadata"].(map[string]interface{})["name"] = destinationConfigMap
+		metadata := modifiedConfigMap["metadata"].(map[string]interface{})
+		metadata["name"] = destinationConfigMap
 		// delete uid and version to ensure it patches
-		delete(modifiedConfigMap["metadata"].(map[string]interface{}), "resourceVersion")
-		delete(modifiedConfigMap["metadata"].(map[string]interface{}), "uid")
+		delete(metadata, "resourceVersion")
+		delete(metadata, "uid")
 		out, _ := json.Marshal(modifiedConfigMap)
 
 		kubectlApply := exec.Command("kubectl", "-o", "json", "apply", "-f", "-")
