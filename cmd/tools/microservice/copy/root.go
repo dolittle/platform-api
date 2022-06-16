@@ -14,19 +14,19 @@ var RootCMD = &cobra.Command{
 func init() {
 	RootCMD.AddCommand(environmentCMD)
 
-	environmentCMD.PersistentFlags().String("application", "", "application id")
+	environmentCMD.Flags().String("application", "", "application id")
 	environmentCMD.MarkPersistentFlagRequired("application")
-	viper.BindPFlag("tools.studio.cfg.application", environmentCMD.PersistentFlags().Lookup("application"))
+	viper.BindPFlag("tools.studio.cfg.application", environmentCMD.Flags().Lookup("application"))
 
-	environmentCMD.PersistentFlags().String("microservice-name", "", "Name of microservice to copy environment variables from")
+	environmentCMD.Flags().String("microservice-name", "", "Name of microservice to copy environment variables from")
 	environmentCMD.MarkPersistentFlagRequired("microservice-name")
-	viper.BindPFlag("tools.studio.cfg.microservice-name", environmentCMD.PersistentFlags().Lookup("microservice-name"))
+	viper.BindPFlag("tools.studio.cfg.microservice-name", environmentCMD.Flags().Lookup("microservice-name"))
 
-	environmentCMD.PersistentFlags().String("from-env", "", "The environment to copy from")
+	environmentCMD.Flags().String("from-env", "", "The environment to copy from")
 	environmentCMD.MarkPersistentFlagRequired("from-env")
-	viper.BindPFlag("tools.studio.cfg.from-env", environmentCMD.PersistentFlags().Lookup("from-env"))
+	viper.BindPFlag("tools.studio.cfg.from-env", environmentCMD.Flags().Lookup("from-env"))
 
-	environmentCMD.PersistentFlags().String("to-env", "", "they environment to copy to")
+	environmentCMD.Flags().String("to-env", "", "they environment to copy to")
 	environmentCMD.MarkPersistentFlagRequired("to-env")
-	viper.BindPFlag("tools.studio.cfg.to-env", environmentCMD.PersistentFlags().Lookup("to-env"))
+	viper.BindPFlag("tools.studio.cfg.to-env", environmentCMD.Flags().Lookup("to-env"))
 }
