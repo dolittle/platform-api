@@ -19,7 +19,7 @@ var serviceAccountCMD = &cobra.Command{
 	Long: `
 	Attempts to create a "devops" serviceaccount for the application and adds it to the already existing "developer" rolebinding.
 
-	go run main.go tools studio create-service-account --all
+	go run main.go tools studio create service-account --all
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.SetFormatter(&logrus.JSONFormatter{})

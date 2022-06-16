@@ -12,4 +12,5 @@ var RootCMD = &cobra.Command{
 
 func init() {
 	RootCMD.AddCommand(serviceAccountCMD)
+	RootCMD.AddCommand(microserviceCMD)
 }
