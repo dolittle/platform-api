@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/dolittle/platform-api/cmd/tools/studio/cfg"
 	"github.com/dolittle/platform-api/cmd/tools/studio/create"
 	"github.com/dolittle/platform-api/cmd/tools/studio/get"
 	"github.com/dolittle/platform-api/cmd/tools/studio/upsert"
@@ -26,6 +27,7 @@ func init() {
 	RootCmd.AddCommand(get.RootCMD)
 	RootCmd.AddCommand(userAdminCMD)
 	RootCmd.AddCommand(upsert.RootCMD)
+	RootCmd.AddCommand(cfg.RootCMD)
 
 	RootCmd.PersistentFlags().Bool("git-dry-run", false, "Don't commit and push changes")
 	viper.BindPFlag("tools.server.gitRepo.dryRun", RootCmd.PersistentFlags().Lookup("git-dry-run"))
