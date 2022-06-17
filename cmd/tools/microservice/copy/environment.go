@@ -18,7 +18,8 @@ var environmentCMD = &cobra.Command{
 	Long: `
 	Copy env variables configmap for a microservice in one environment to another environment.
 
-	go run main.go tools studio cfg copyenv --application cde2e951-d40a-3548-8b45-64c0ded97940 \
+	go run main.go tools microservice copy environment \
+		--application cde2e951-d40a-3548-8b45-64c0ded97940 \
 		--microservice-name frontend \
 		--from-env test \
 		--to-env prod
