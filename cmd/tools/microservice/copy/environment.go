@@ -29,10 +29,10 @@ var environmentCMD = &cobra.Command{
 		logrus.SetOutput(os.Stdout)
 		logContext := logrus.StandardLogger()
 
-		sourceMicroserviceName := viper.GetString("tools.studio.cfg.microservice-name")
-		sourceEnvironment := viper.GetString("tools.studio.cfg.from-env")
-		destinationEnvironment := viper.GetString("tools.studio.cfg.to-env")
-		application := viper.GetString("tools.studio.cfg.application")
+		sourceMicroserviceName := viper.GetString("tools.microservice.copy.environment.microservice-name")
+		sourceEnvironment := viper.GetString("tools.microservice.copy.environment.from-env")
+		destinationEnvironment := viper.GetString("tools.microservice.copy.environment.to-env")
+		application := viper.GetString("tools.microservice.copy.environment.application")
 		sourceConfigMapName := fmt.Sprintf("%s-%s-env-variables", sourceEnvironment, sourceMicroserviceName)
 		namespace := fmt.Sprintf("application-%s", application)
 		logContextWithMeta := logContext.WithFields(logrus.Fields{

@@ -16,17 +16,17 @@ func init() {
 
 	environmentCMD.Flags().String("application", "", "application id")
 	environmentCMD.MarkFlagRequired("application")
-	viper.BindPFlag("tools.studio.cfg.application", environmentCMD.Flags().Lookup("application"))
+	viper.BindPFlag("tools.microservice.copy.environment.application", environmentCMD.Flags().Lookup("application"))
 
 	environmentCMD.Flags().String("microservice-name", "", "Name of microservice to copy environment variables from")
 	environmentCMD.MarkFlagRequired("microservice-name")
-	viper.BindPFlag("tools.studio.cfg.microservice-name", environmentCMD.Flags().Lookup("microservice-name"))
+	viper.BindPFlag("tools.microservice.copy.environment.microservice-name", environmentCMD.Flags().Lookup("microservice-name"))
 
 	environmentCMD.Flags().String("from-env", "", "The environment to copy from")
 	environmentCMD.MarkFlagRequired("from-env")
-	viper.BindPFlag("tools.studio.cfg.from-env", environmentCMD.Flags().Lookup("from-env"))
+	viper.BindPFlag("tools.microservice.copy.environment.from-env", environmentCMD.Flags().Lookup("from-env"))
 
 	environmentCMD.Flags().String("to-env", "", "they environment to copy to")
 	environmentCMD.MarkFlagRequired("to-env")
-	viper.BindPFlag("tools.studio.cfg.to-env", environmentCMD.Flags().Lookup("to-env"))
+	viper.BindPFlag("tools.microservice.copy.environment.to-env", environmentCMD.Flags().Lookup("to-env"))
 }
