@@ -1,3 +1,19 @@
+# [4.12.0] - 2022-6-17 [PR: #141](https://github.com/dolittle/platform-api/pull/141)
+## Summary
+This was implemented to speed up Platform Engineers time spent on copying microservices from an environment to a new environment. 
+
+With this command it's possible to copy env vars for a microservice in a specific environment to a new environment.
+
+## Example
+```
+go run main.go tools microservice copy environment \
+    --application cde2e951-d40a-3548-8b45-64c0ded97940 \
+    --microservice-name frontend2 \
+    --from-env test \
+    --to-env prod
+```
+
+
 # [4.11.4] - 2022-6-3 [PR: #138](https://github.com/dolittle/platform-api/pull/138)
 ## Summary
 
