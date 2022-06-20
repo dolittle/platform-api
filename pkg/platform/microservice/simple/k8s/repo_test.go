@@ -339,6 +339,54 @@ var _ = Describe("Repo", func() {
 			})
 		})
 
+		When("the producers applicationID and environment isn't provided", func() {
+
+			BeforeEach(func() {
+				producerApplicationID = ""
+				producerEnvironment = consumerEnvironment
+			})
+
+			It("should not fail", func() {
+				Expect(err).To(BeNil())
+			})
+			It("should not create a networkpolicy", func() {
+				Expect(createdNetworkPolicy).To(BeNil())
+			})
+			It("should have gotten the producers microservice", func() {
+				mockK8sRepoV2.AssertCalled(GinkgoT(), "GetDeployment", producerNamespace, producerEnvironment, producerMicroserviceID)
+			})
+			It("should have gotten the consumers microservice", func() {
+				mockK8sRepoV2.AssertCalled(GinkgoT(), "GetDeployment", consumerNamespace, consumerEnvironment, consumerMicroserviceID)
+			})
+			It("should update the consumers microservices.json with the producers tenant", func() {
+				Expect(updatedMicroservices[producerMicroserviceID]).ToNot(BeNil())
+			})
+			It("should update the consumers microservices.json with the producers full hostname and port", func() {
+				hostname := fmt.Sprintf("%s-%s.svc.cluster.local", producerService.Name, producerNamespace)
+				Expect(updatedMicroservices[producerMicroserviceID].Host).To(Equal(hostname))
+				Expect(updatedMicroservices[producerMicroserviceID].Port).To(Equal(producerService.Spec.Ports[1].Port))
+			})
+			It("should update the producers event-horizon-consents.json", func() {
+				Expect(updatedConsents[producerTenantID]).ToNot(BeEmpty())
+				Expect(len(updatedConsents[producerTenantID])).To(Equal(1))
+				Expect(updatedConsents[producerTenantID][0].Microservice).To(Equal(consumerMicroserviceID))
+				Expect(updatedConsents[producerTenantID][0].Tenant).To(Equal(consumerTenantID))
+				Expect(updatedConsents[producerTenantID][0].Stream).To(Equal(publicStream))
+				Expect(updatedConsents[producerTenantID][0].Partition).To(Equal(partition))
+				Expect(updatedConsents[producerTenantID][0].Consent).ToNot(BeNil())
+			})
+			It("Should update the consumers event-horizons.json", func() {
+				Expect(updatedEventHorizons[consumerTenantID]).ToNot(BeEmpty())
+				Expect(len(updatedEventHorizons[consumerTenantID])).To(Equal(1))
+				Expect(updatedEventHorizons[consumerTenantID][0].Scope).To(Equal(scope))
+				Expect(updatedEventHorizons[consumerTenantID][0].Microservice).To(Equal(producerMicroserviceID))
+				Expect(updatedEventHorizons[consumerTenantID][0].Tenant).To(Equal(producerTenantID))
+				Expect(updatedEventHorizons[consumerTenantID][0].Stream).To(Equal(publicStream))
+				Expect(updatedEventHorizons[consumerTenantID][0].Partition).To(Equal(partition))
+			})
+
+		})
+
 		When("the consumer and producer are in different applications", func() {
 			BeforeEach(func() {
 				// a different applicationID
