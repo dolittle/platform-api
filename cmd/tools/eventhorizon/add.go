@@ -15,7 +15,37 @@ import (
 var addCMD = &cobra.Command{
 	Use:   "add",
 	Short: "add a new event horizon subscription",
-	Long:  ``,
+	Long: `
+
+Add an event horizon subscription within an application and environment
+go run main.go tools eventhorizon add 									\
+	--customer-id 78a04863-376f-4279-9b52-d26d03279853 					\
+	--application-id cfd9f00e-2308-0b4b-89dc-7b2280e19094 				\
+	--environment Test 													\
+	--microservice-id 76ba32bb-bbeb-45c5-925c-b8914cd1e6e4 				\
+	--tenant-id 445f8ea8-1a6f-40d7-b2fc-796dba92dc44 					\
+	--producer-microservice-id 6c70e222-1008-2e41-be43-bfe54f773ddd 	\
+	--producer-tenant-id 445f8ea8-1a6f-40d7-b2fc-796dba92dc44 			\
+	--public-stream 9a14541f-6077-40fc-bef5-89bce2c0790b 				\
+	--partition whatever 												\
+	--scope 443d87d1-ed23-4464-b321-de974a796a8c
+
+Add an event horizon subscription across applications
+go run main.go tools eventhorizon add 									\
+	--customer-id 4cb310e8-8a8e-48a4-bb81-a8cddb484197					\
+	--application-id e63b11dd-aaa6-2242-a0b9-230e4e06d43e 				\
+	--environment Dev 													\
+	--microservice-id e78f7323-19ff-445b-8dba-e0c17dadb569 				\
+	--tenant-id d802ee55-644f-f142-af23-925391061fd6 					\
+	--producer-application-id 35f0d011-f13f-8643-bea3-ef55ce47db2e 		\
+	--producer-environment Dev										 	\
+	--producer-microservice-id 418d5c62-5c6a-4b58-af51-93549d4635e5 	\
+	--producer-tenant-id 43423763-e222-da40-bc77-bf275cc3875c 			\
+	--public-stream 9a14541f-6077-40fc-bef5-89bce2c0790b 				\
+	--partition whatever 												\
+	--scope 443d87d1-ed23-4464-b321-de974a796a8c
+
+	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
 		logrus.SetOutput(os.Stdout)
