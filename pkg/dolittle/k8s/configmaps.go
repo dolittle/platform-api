@@ -53,6 +53,44 @@ type MicroserviceEndpointPort struct {
 	Port int `json:"port"`
 }
 
+// event-horizon-consents.json, the key is the producers tenant that gives consent
+type MicroserviceEventHorizonConsents map[string][]MicroserviceConsent
+
+type MicroserviceConsent struct {
+	// the consumers microservice and tenant to give consent to
+	Microservice string `json:"microservice"`
+	Tenant       string `json:"tenant"`
+	// the public stream and partition the consent is given for
+	Stream    string `json:"stream"`
+	Partition string `json:"partition"`
+	// identifier for this consent
+	Consent string `json:"consent"`
+}
+
+// event-horizons.json, the key is the consumers tenant that wants to consume events
+type MicroserviceEventHorizons map[string][]MicroserviceEventHorizon
+
+type MicroserviceEventHorizon struct {
+	// the scope which to put the subscription
+	Scope string `json:"scope"`
+	// the producers microservice
+	Microservice string `json:"microservice"`
+	// the producers tenant
+	Tenant string `json:"tenant"`
+	// the producers public stream
+	Stream string `json:"stream"`
+	// the producers public stream's partition
+	Partition string `json:"partition"`
+}
+
+// microservices.json
+type MicroserviceMicroservices map[string]MicroserviceMicroservice
+
+type MicroserviceMicroservice struct {
+	Host string `json:"host"`
+	Port int32  `json:"port"`
+}
+
 // platform.json
 type MicroservicePlatform struct {
 	Applicationname  string `json:"applicationName"`
@@ -302,10 +340,12 @@ func NewMicroserviceConfigmap(microservice Microservice, customersTenants []plat
 	b, _ = json.MarshalIndent(emptyObject{}, "", "  ")
 	eventHorizonsJSON := string(b)
 
-	b, _ = json.MarshalIndent(emptyObject{}, "", "  ")
+	eventHorizonConsents := MicroserviceEventHorizonConsents{}
+	b, _ = json.MarshalIndent(eventHorizonConsents, "", "  ")
 	eventHorizonConsentsJSON := string(b)
 
-	b, _ = json.MarshalIndent(emptyObject{}, "", "  ")
+	microservices := MicroserviceMicroservices{}
+	b, _ = json.MarshalIndent(microservices, "", "  ")
 	microservicesJSON := string(b)
 
 	b, _ = json.MarshalIndent(metrics, "", "  ")

@@ -26,6 +26,17 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+type service struct {
+	simpleRepo                 simple.Repo
+	businessMomentsAdaptorRepo businessMomentsAdaptorRepo
+	rawDataLogIngestorRepo     rawdatalog.RawDataLogIngestorRepo
+	purchaseOrderHandler       *purchaseorderapi.Handler
+	k8sDolittleRepo            platformK8s.K8sRepo
+	gitRepo                    storage.Repo
+	parser                     parser.Parser
+	logContext                 logrus.FieldLogger
+}
+
 func NewService(
 	isProduction bool,
 	gitRepo storage.Repo,

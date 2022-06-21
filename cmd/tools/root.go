@@ -3,6 +3,7 @@ package tools
 import (
 	"github.com/dolittle/platform-api/cmd/tools/application"
 	"github.com/dolittle/platform-api/cmd/tools/automate"
+	"github.com/dolittle/platform-api/cmd/tools/eventhorizon"
 	"github.com/dolittle/platform-api/cmd/tools/explore"
 	"github.com/dolittle/platform-api/cmd/tools/job"
 	"github.com/dolittle/platform-api/cmd/tools/m3connector"
@@ -30,5 +31,6 @@ func init() {
 	RootCmd.AddCommand(users.RootCMD)
 	RootCmd.AddCommand(application.RootCMD)
 	RootCmd.AddCommand(m3connector.RootCMD)
+	RootCmd.AddCommand(eventhorizon.RootCMD)
 	RootCmd.AddCommand(microservice.RootCMD)
 }
