@@ -383,7 +383,7 @@ var _ = Describe("Repo", func() {
 					Expect(updatedMicroservices[producerMicroserviceID]).ToNot(BeNil())
 				})
 				It("should update the consumers microservices.json with the producers full hostname and port", func() {
-					hostname := fmt.Sprintf("%s-%s.svc.cluster.local", producerService.Name, producerNamespace)
+					hostname := fmt.Sprintf("%s.%s.svc.cluster.local", producerService.Name, producerNamespace)
 					Expect(updatedMicroservices[producerMicroserviceID].Host).To(Equal(hostname))
 					Expect(updatedMicroservices[producerMicroserviceID].Port).To(Equal(producerService.Spec.Ports[1].Port))
 				})
@@ -457,7 +457,7 @@ var _ = Describe("Repo", func() {
 					Expect(updatedMicroservices[producerMicroserviceID]).ToNot(BeNil())
 				})
 				It("should update the consumers microservices.json with the producers full hostname and port", func() {
-					hostname := fmt.Sprintf("%s-%s.svc.cluster.local", producerService.Name, producerNamespace)
+					hostname := fmt.Sprintf("%s.%s.svc.cluster.local", producerService.Name, producerNamespace)
 					Expect(updatedMicroservices[producerMicroserviceID].Host).To(Equal(hostname))
 					Expect(updatedMicroservices[producerMicroserviceID].Port).To(Equal(producerService.Spec.Ports[1].Port))
 				})
@@ -682,7 +682,7 @@ var _ = Describe("Repo", func() {
 					})
 
 					It("should update the consumers microservices.json with the producers full hostname and port", func() {
-						hostname := fmt.Sprintf("%s-%s.svc.cluster.local", producerService.Name, producerNamespace)
+						hostname := fmt.Sprintf("%s.%s.svc.cluster.local", producerService.Name, producerNamespace)
 						Expect(updatedMicroservices[producerMicroserviceID].Host).To(Equal(hostname))
 						Expect(updatedMicroservices[producerMicroserviceID].Port).To(Equal(producerService.Spec.Ports[1].Port))
 					})

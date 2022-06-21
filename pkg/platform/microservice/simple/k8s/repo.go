@@ -451,7 +451,7 @@ func (r k8sRepo) SubscribeToAnotherApplication(
 		microservicesConfig = dolittleK8s.MicroserviceMicroservices{}
 	}
 	microservicesConfig[producerMicroserviceID] = dolittleK8s.MicroserviceMicroservice{
-		Host: fmt.Sprintf("%s-application-%s.svc.cluster.local", producerService.Name, producerApplicationID),
+		Host: fmt.Sprintf("%s.application-%s.svc.cluster.local", producerService.Name, producerApplicationID),
 		Port: producerRuntimePort,
 	}
 
