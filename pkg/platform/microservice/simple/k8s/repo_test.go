@@ -118,6 +118,22 @@ var _ = Describe("Repo", func() {
 			"tenant":       "HorizonCustomer",
 			"microservice": "Producer",
 		}
+
+		consumerConfigMap = nil
+		producerConfigMap = nil
+		consumerDeployment = nil
+		producerDeployment = nil
+		consumerUpdatedConfigMap = nil
+		updatedEventHorizons = dolittleK8s.MicroserviceEventHorizons{}
+		producerUpdatedConfigMap = nil
+		producerService = nil
+		consumerMicroservices = dolittleK8s.MicroserviceMicroservices{}
+		consumerEventHorizons = dolittleK8s.MicroserviceEventHorizons{}
+		producerConsents = dolittleK8s.MicroserviceEventHorizonConsents{}
+		createdNetworkPolicy = nil
+		updatedNetworkPolicy = nil
+		listNetworkPolicy = nil
+		err = nil
 	})
 
 	Describe("Adding an event horizon subscription", func() {
@@ -219,7 +235,6 @@ var _ = Describe("Repo", func() {
 			clientSet.AddReactor("get", "namespaces", func(action testing.Action) (bool, runtime.Object, error) {
 				getAction := action.(testing.GetAction)
 				getNamespace := getAction.GetName()
-				fmt.Println("WE GETTING NAMESPACE:", getNamespace)
 				if getNamespace == producerNamespace {
 					namespace := &corev1.Namespace{
 						ObjectMeta: metav1.ObjectMeta{
@@ -339,52 +354,138 @@ var _ = Describe("Repo", func() {
 			})
 		})
 
-		When("the producers applicationID and environment isn't provided", func() {
-
+		When("the producers and consumer are in the same application and environment", func() {
 			BeforeEach(func() {
-				producerApplicationID = ""
+				producerApplicationID = consumerApplicationID
 				producerEnvironment = consumerEnvironment
+				producerLabels = map[string]string{
+					"environment":  consumerEnvironment,
+					"application":  "ConsumerApplication",
+					"tenant":       "HorizonCustomer",
+					"microservice": "Producer",
+				}
 			})
 
-			It("should not fail", func() {
-				Expect(err).To(BeNil())
-			})
-			It("should not create a networkpolicy", func() {
-				Expect(createdNetworkPolicy).To(BeNil())
-			})
-			It("should have gotten the producers microservice", func() {
-				mockK8sRepoV2.AssertCalled(GinkgoT(), "GetDeployment", producerNamespace, producerEnvironment, producerMicroserviceID)
-			})
-			It("should have gotten the consumers microservice", func() {
-				mockK8sRepoV2.AssertCalled(GinkgoT(), "GetDeployment", consumerNamespace, consumerEnvironment, consumerMicroserviceID)
-			})
-			It("should update the consumers microservices.json with the producers tenant", func() {
-				Expect(updatedMicroservices[producerMicroserviceID]).ToNot(BeNil())
-			})
-			It("should update the consumers microservices.json with the producers full hostname and port", func() {
-				hostname := fmt.Sprintf("%s-%s.svc.cluster.local", producerService.Name, producerNamespace)
-				Expect(updatedMicroservices[producerMicroserviceID].Host).To(Equal(hostname))
-				Expect(updatedMicroservices[producerMicroserviceID].Port).To(Equal(producerService.Spec.Ports[1].Port))
-			})
-			It("should update the producers event-horizon-consents.json", func() {
-				Expect(updatedConsents[producerTenantID]).ToNot(BeEmpty())
-				Expect(len(updatedConsents[producerTenantID])).To(Equal(1))
-				Expect(updatedConsents[producerTenantID][0].Microservice).To(Equal(consumerMicroserviceID))
-				Expect(updatedConsents[producerTenantID][0].Tenant).To(Equal(consumerTenantID))
-				Expect(updatedConsents[producerTenantID][0].Stream).To(Equal(publicStream))
-				Expect(updatedConsents[producerTenantID][0].Partition).To(Equal(partition))
-				Expect(updatedConsents[producerTenantID][0].Consent).ToNot(BeNil())
-			})
-			It("Should update the consumers event-horizons.json", func() {
-				Expect(updatedEventHorizons[consumerTenantID]).ToNot(BeEmpty())
-				Expect(len(updatedEventHorizons[consumerTenantID])).To(Equal(1))
-				Expect(updatedEventHorizons[consumerTenantID][0].Scope).To(Equal(scope))
-				Expect(updatedEventHorizons[consumerTenantID][0].Microservice).To(Equal(producerMicroserviceID))
-				Expect(updatedEventHorizons[consumerTenantID][0].Tenant).To(Equal(producerTenantID))
-				Expect(updatedEventHorizons[consumerTenantID][0].Stream).To(Equal(publicStream))
-				Expect(updatedEventHorizons[consumerTenantID][0].Partition).To(Equal(partition))
+			Context("and there are no existing subscriptions", func() {
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not create a networkpolicy", func() {
+					Expect(createdNetworkPolicy).To(BeNil())
+				})
+				It("should have gotten the producers microservice", func() {
+					mockK8sRepoV2.AssertCalled(GinkgoT(), "GetDeployment", producerNamespace, producerEnvironment, producerMicroserviceID)
+				})
+				It("should have gotten the consumers microservice", func() {
+					mockK8sRepoV2.AssertCalled(GinkgoT(), "GetDeployment", consumerNamespace, consumerEnvironment, consumerMicroserviceID)
+				})
+				It("should update the consumers microservices.json with the producers id", func() {
+					Expect(updatedMicroservices[producerMicroserviceID]).ToNot(BeNil())
+				})
+				It("should update the consumers microservices.json with the producers full hostname and port", func() {
+					hostname := fmt.Sprintf("%s-%s.svc.cluster.local", producerService.Name, producerNamespace)
+					Expect(updatedMicroservices[producerMicroserviceID].Host).To(Equal(hostname))
+					Expect(updatedMicroservices[producerMicroserviceID].Port).To(Equal(producerService.Spec.Ports[1].Port))
+				})
+				It("should update the producers event-horizon-consents.json", func() {
+					Expect(updatedConsents[producerTenantID]).ToNot(BeEmpty())
+					Expect(len(updatedConsents[producerTenantID])).To(Equal(1))
+					Expect(updatedConsents[producerTenantID][0].Microservice).To(Equal(consumerMicroserviceID))
+					Expect(updatedConsents[producerTenantID][0].Tenant).To(Equal(consumerTenantID))
+					Expect(updatedConsents[producerTenantID][0].Stream).To(Equal(publicStream))
+					Expect(updatedConsents[producerTenantID][0].Partition).To(Equal(partition))
+					Expect(updatedConsents[producerTenantID][0].Consent).ToNot(BeNil())
+				})
+				It("Should update the consumers event-horizons.json", func() {
+					Expect(updatedEventHorizons[consumerTenantID]).ToNot(BeEmpty())
+					Expect(len(updatedEventHorizons[consumerTenantID])).To(Equal(1))
+					Expect(updatedEventHorizons[consumerTenantID][0].Scope).To(Equal(scope))
+					Expect(updatedEventHorizons[consumerTenantID][0].Microservice).To(Equal(producerMicroserviceID))
+					Expect(updatedEventHorizons[consumerTenantID][0].Tenant).To(Equal(producerTenantID))
+					Expect(updatedEventHorizons[consumerTenantID][0].Stream).To(Equal(publicStream))
+					Expect(updatedEventHorizons[consumerTenantID][0].Partition).To(Equal(partition))
+				})
 			})
 
+			Context("and the consumer has existing subscriptions to another producer", func() {
+				BeforeEach(func() {
+					consumerMicroservices = dolittleK8s.MicroserviceMicroservices{
+						"existing-subscription-microservice": dolittleK8s.MicroserviceMicroservice{
+							Host: "host",
+							Port: 2,
+						},
+					}
+
+					consumerEventHorizons = dolittleK8s.MicroserviceEventHorizons{
+						"existing-subscription-consumer-tenant": []dolittleK8s.MicroserviceEventHorizon{
+							{
+								Scope:        "existing-subscription-scope",
+								Microservice: "existing-subscription-microservice",
+								Tenant:       "existing-subscription-producer-tenant",
+								Stream:       "existing-subscription-stream",
+								Partition:    "existing-subscription-partition",
+							},
+						},
+						consumerTenantID: []dolittleK8s.MicroserviceEventHorizon{
+							{
+								Scope:        "existing-subscription-two-scope",
+								Microservice: "existing-subscription-two-microservice",
+								Tenant:       "existing-subscription-two-producer-tenant",
+								Stream:       "existing-subscription-two-stream",
+								Partition:    "existing-subscription-two-partition",
+							},
+						},
+					}
+				})
+
+				It("should not fail", func() {
+					Expect(err).To(BeNil())
+				})
+				It("should not create a networkpolicy", func() {
+					Expect(createdNetworkPolicy).To(BeNil())
+				})
+				It("should have gotten the producers microservice", func() {
+					mockK8sRepoV2.AssertCalled(GinkgoT(), "GetDeployment", producerNamespace, producerEnvironment, producerMicroserviceID)
+				})
+				It("should have gotten the consumers microservice", func() {
+					mockK8sRepoV2.AssertCalled(GinkgoT(), "GetDeployment", consumerNamespace, consumerEnvironment, consumerMicroserviceID)
+				})
+				It("should not change the consumers microservices.json existing microservice", func() {
+					Expect(updatedMicroservices["existing-subscription-microservice"]).To(Equal(consumerMicroservices["existing-subscription-microservice"]))
+				})
+				It("should update the consumers microservices.json with the producers id", func() {
+					Expect(updatedMicroservices[producerMicroserviceID]).ToNot(BeNil())
+				})
+				It("should update the consumers microservices.json with the producers full hostname and port", func() {
+					hostname := fmt.Sprintf("%s-%s.svc.cluster.local", producerService.Name, producerNamespace)
+					Expect(updatedMicroservices[producerMicroserviceID].Host).To(Equal(hostname))
+					Expect(updatedMicroservices[producerMicroserviceID].Port).To(Equal(producerService.Spec.Ports[1].Port))
+				})
+				It("should update the producers event-horizon-consents.json", func() {
+					Expect(updatedConsents[producerTenantID]).ToNot(BeEmpty())
+					Expect(len(updatedConsents[producerTenantID])).To(Equal(1))
+					Expect(updatedConsents[producerTenantID][0].Microservice).To(Equal(consumerMicroserviceID))
+					Expect(updatedConsents[producerTenantID][0].Tenant).To(Equal(consumerTenantID))
+					Expect(updatedConsents[producerTenantID][0].Stream).To(Equal(publicStream))
+					Expect(updatedConsents[producerTenantID][0].Partition).To(Equal(partition))
+					Expect(updatedConsents[producerTenantID][0].Consent).ToNot(BeNil())
+				})
+				It("Should not change the consumers event-horizons.json existing subscription", func() {
+					Expect(updatedEventHorizons["existing-subscription-consumer-tenant"]).To(Equal(consumerEventHorizons["existing-subscription-consumer-tenant"]))
+				})
+				It("Should not change the consumers event-horizons.json existing subscription", func() {
+					Expect(updatedEventHorizons[consumerTenantID][0]).To(Equal(consumerEventHorizons[consumerTenantID][0]))
+				})
+				It("Should update the consumers event-horizons.json", func() {
+					Expect(updatedEventHorizons[consumerTenantID]).ToNot(BeEmpty())
+					Expect(len(updatedEventHorizons[consumerTenantID])).To(Equal(2))
+					Expect(updatedEventHorizons[consumerTenantID][1].Scope).To(Equal(scope))
+					Expect(updatedEventHorizons[consumerTenantID][1].Microservice).To(Equal(producerMicroserviceID))
+					Expect(updatedEventHorizons[consumerTenantID][1].Tenant).To(Equal(producerTenantID))
+					Expect(updatedEventHorizons[consumerTenantID][1].Stream).To(Equal(publicStream))
+					Expect(updatedEventHorizons[consumerTenantID][1].Partition).To(Equal(partition))
+				})
+			})
 		})
 
 		When("the consumer and producer are in different applications", func() {
@@ -413,6 +514,10 @@ var _ = Describe("Repo", func() {
 						Expect(createdNetworkPolicy).ToNot(BeNil())
 					})
 
+					It("should create a networkpolicy of type Ingress", func() {
+						Expect(createdNetworkPolicy.Spec.PolicyTypes[0]).To(Equal(networkingv1.PolicyTypeIngress))
+					})
+
 					It("should create a networkpolicy with the correct podselector labels", func() {
 						Expect(createdNetworkPolicy.Spec.PodSelector.MatchLabels).To(Equal(producerLabels))
 					})
@@ -424,7 +529,8 @@ var _ = Describe("Repo", func() {
 						Expect(createdNetworkPolicy.Spec.Ingress[0].From[0].PodSelector.MatchLabels["microservice"]).To(Equal(consumerLabels["microservice"]))
 					})
 				})
-				Context("and the producer has a networkpolicy, but not for the consumer", func() {
+
+				Context("and the producer already has an event-horizon subscription for another consumer", func() {
 					BeforeEach(func() {
 						listNetworkPolicy = &networkingv1.NetworkPolicy{
 							ObjectMeta: metav1.ObjectMeta{
@@ -460,10 +566,26 @@ var _ = Describe("Repo", func() {
 								},
 							},
 						}
+
+						producerConsents = dolittleK8s.MicroserviceEventHorizonConsents{
+							producerTenantID: []dolittleK8s.MicroserviceConsent{
+								{
+									Microservice: "existing-consumer-microservice",
+									Tenant:       "existing-consumer-tenant",
+									Stream:       "existing-consumer-stream",
+									Partition:    "existing-consumer-partition",
+									Consent:      "existing-consumer-consent",
+								},
+							},
+						}
 					})
 
 					It("should not fail", func() {
 						Expect(err).To(BeNil())
+					})
+
+					It("should update the producers networkpolicy", func() {
+						Expect(updatedNetworkPolicy).ToNot(BeNil())
 					})
 
 					It("should add the consumer into the networkpolicy with correct info", func() {
@@ -473,9 +595,24 @@ var _ = Describe("Repo", func() {
 						Expect(updatedNetworkPolicy.Spec.Ingress[0].From[1].PodSelector.MatchLabels["environment"]).To(Equal(consumerLabels["environment"]))
 						Expect(updatedNetworkPolicy.Spec.Ingress[0].From[1].PodSelector.MatchLabels["microservice"]).To(Equal(consumerLabels["microservice"]))
 					})
+
+					It("should update the producers event-horizon-consents.json", func() {
+						Expect(updatedConsents[producerTenantID]).ToNot(BeEmpty())
+						Expect(len(updatedConsents[producerTenantID])).To(Equal(2))
+						Expect(updatedConsents[producerTenantID][0].Microservice).To(Equal("existing-consumer-microservice"))
+						Expect(updatedConsents[producerTenantID][0].Tenant).To(Equal("existing-consumer-tenant"))
+						Expect(updatedConsents[producerTenantID][0].Stream).To(Equal("existing-consumer-stream"))
+						Expect(updatedConsents[producerTenantID][0].Partition).To(Equal("existing-consumer-partition"))
+						Expect(updatedConsents[producerTenantID][0].Consent).To(Equal("existing-consumer-consent"))
+						Expect(updatedConsents[producerTenantID][1].Microservice).To(Equal(consumerMicroserviceID))
+						Expect(updatedConsents[producerTenantID][1].Tenant).To(Equal(consumerTenantID))
+						Expect(updatedConsents[producerTenantID][1].Stream).To(Equal(publicStream))
+						Expect(updatedConsents[producerTenantID][1].Partition).To(Equal(partition))
+						Expect(updatedConsents[producerTenantID][1].Consent).ToNot(BeNil())
+					})
 				})
 
-				Context("and the producer has a networkpolicy for the consumer", func() {
+				Context("and the producer already has another event-horizon subscription for the same consumer", func() {
 					BeforeEach(func() {
 						listNetworkPolicy = &networkingv1.NetworkPolicy{
 							ObjectMeta: metav1.ObjectMeta{
@@ -511,6 +648,18 @@ var _ = Describe("Repo", func() {
 								},
 							},
 						}
+
+						consumerEventHorizons = dolittleK8s.MicroserviceEventHorizons{
+							"existing-subscription-consumer-tenant": []dolittleK8s.MicroserviceEventHorizon{
+								{
+									Scope:        "existing-subscription-scope",
+									Microservice: "existing-subscription-microservice",
+									Tenant:       "existing-subscription-producer-tenant",
+									Stream:       "existing-subscription-stream",
+									Partition:    "existing-subscription-partition",
+								},
+							},
+						}
 					})
 
 					It("should not fail", func() {
@@ -524,8 +673,12 @@ var _ = Describe("Repo", func() {
 						mockK8sRepoV2.AssertCalled(GinkgoT(), "GetDeployment", consumerNamespace, consumerEnvironment, consumerMicroserviceID)
 					})
 
-					It("should update the consumers microservices.json with the producers tenant", func() {
+					It("should update the consumers microservices.json with the producers id", func() {
 						Expect(updatedMicroservices[producerMicroserviceID]).ToNot(BeNil())
+					})
+
+					It("should not update the producers networkpolicy", func() {
+						Expect(updatedNetworkPolicy).To(BeNil())
 					})
 
 					It("should update the consumers microservices.json with the producers full hostname and port", func() {
@@ -544,7 +697,11 @@ var _ = Describe("Repo", func() {
 						Expect(updatedConsents[producerTenantID][0].Consent).ToNot(BeNil())
 					})
 
-					It("Should update the consumers event-horizons.json", func() {
+					It("Should not change the existing subscription inevent-horizons.json", func() {
+						Expect(updatedEventHorizons["existing-subscription-consumer-tenant"]).To(Equal(consumerEventHorizons["existing-subscription-consumer-tenant"]))
+					})
+
+					It("Should add a new subscription the consumers event-horizons.json", func() {
 						Expect(updatedEventHorizons[consumerTenantID]).ToNot(BeEmpty())
 						Expect(len(updatedEventHorizons[consumerTenantID])).To(Equal(1))
 						Expect(updatedEventHorizons[consumerTenantID][0].Scope).To(Equal(scope))

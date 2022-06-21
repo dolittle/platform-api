@@ -186,7 +186,7 @@ func (r k8sRepo) Delete(applicationID, environment, microserviceID string) error
 
 // Subscribe implements simple.Repo
 func (r k8sRepo) Subscribe(customerID, applicationID, environment, microserviceID, tenantID, producerMicroserviceID, producerTenantID, publicStream, partition, scope string) error {
-	panic("unimplemented")
+	return r.SubscribeToAnotherApplication(customerID, applicationID, environment, microserviceID, tenantID, producerMicroserviceID, producerTenantID, publicStream, partition, scope, applicationID, environment)
 }
 
 // SubscribeToAnotherApplication implements simple.Repo
@@ -229,107 +229,109 @@ func (r k8sRepo) SubscribeToAnotherApplication(
 		return fmt.Errorf("failed to get consumers deployment: %w", err)
 	}
 
-	//make sure the producer has a networkpolicy allowing this microservice to talk to it
-	var producerNetworkPolicy *networkingv1.NetworkPolicy
-	networkPolicyList, err := r.k8sClient.NetworkingV1().NetworkPolicies(producerNamespaceName).List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to list producers networkpolicies: %w", err)
-	}
-
-	for _, networkPolicy := range networkPolicyList.Items {
-		if !strings.EqualFold(networkPolicy.Labels["environment"], producerEnvironment) {
-			continue
+	if applicationID != producerApplicationID {
+		//make sure the producer has a networkpolicy allowing this microservice to talk to it
+		var producerNetworkPolicy *networkingv1.NetworkPolicy
+		networkPolicyList, err := r.k8sClient.NetworkingV1().NetworkPolicies(producerNamespaceName).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to list producers networkpolicies: %w", err)
 		}
-		if networkPolicy.Annotations["dolittle.io/microservice-id"] != producerMicroserviceID {
-			continue
-		}
-		if !strings.HasSuffix(networkPolicy.Name, "-event-horizons") {
-			continue
-		}
-		producerNetworkPolicy = &networkPolicy
-		break
-	}
 
-	if producerNetworkPolicy == nil {
-		// create it
+		for _, networkPolicy := range networkPolicyList.Items {
+			if !strings.EqualFold(networkPolicy.Labels["environment"], producerEnvironment) {
+				continue
+			}
+			if networkPolicy.Annotations["dolittle.io/microservice-id"] != producerMicroserviceID {
+				continue
+			}
+			if !strings.HasSuffix(networkPolicy.Name, "-event-horizons") {
+				continue
+			}
+			producerNetworkPolicy = &networkPolicy
+			break
+		}
 
-		networkPolicy := &networkingv1.NetworkPolicy{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:        fmt.Sprintf("%s-event-horizons", producerDeployment.Name),
-				Namespace:   producerNamespaceName,
-				Annotations: producerDeployment.Annotations,
-				Labels:      producerDeployment.Labels,
-			},
-			Spec: networkingv1.NetworkPolicySpec{
-				PodSelector: metav1.LabelSelector{
-					MatchLabels: producerDeployment.Labels,
+		if producerNetworkPolicy == nil {
+			// create it
+
+			networkPolicy := &networkingv1.NetworkPolicy{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        fmt.Sprintf("%s-event-horizons", producerDeployment.Name),
+					Namespace:   producerNamespaceName,
+					Annotations: producerDeployment.Annotations,
+					Labels:      producerDeployment.Labels,
 				},
-				PolicyTypes: []networkingv1.PolicyType{"Ingress"},
-				Ingress: []networkingv1.NetworkPolicyIngressRule{
-					{
-						From: []networkingv1.NetworkPolicyPeer{
-							{
-								NamespaceSelector: &metav1.LabelSelector{
-									MatchLabels: map[string]string{
-										"tenant":      consumerDeployment.Labels["tenant"],
-										"application": consumerDeployment.Labels["application"],
+				Spec: networkingv1.NetworkPolicySpec{
+					PodSelector: metav1.LabelSelector{
+						MatchLabels: producerDeployment.Labels,
+					},
+					PolicyTypes: []networkingv1.PolicyType{"Ingress"},
+					Ingress: []networkingv1.NetworkPolicyIngressRule{
+						{
+							From: []networkingv1.NetworkPolicyPeer{
+								{
+									NamespaceSelector: &metav1.LabelSelector{
+										MatchLabels: map[string]string{
+											"tenant":      consumerDeployment.Labels["tenant"],
+											"application": consumerDeployment.Labels["application"],
+										},
 									},
-								},
-								PodSelector: &metav1.LabelSelector{
-									MatchLabels: map[string]string{
-										"environment":  consumerDeployment.Labels["environment"],
-										"microservice": consumerDeployment.Labels["microservice"],
+									PodSelector: &metav1.LabelSelector{
+										MatchLabels: map[string]string{
+											"environment":  consumerDeployment.Labels["environment"],
+											"microservice": consumerDeployment.Labels["microservice"],
+										},
 									},
 								},
 							},
 						},
 					},
 				},
-			},
-		}
+			}
 
-		if _, err := r.k8sClient.NetworkingV1().NetworkPolicies(producerNamespaceName).Create(ctx, networkPolicy, metav1.CreateOptions{}); err != nil {
-			return fmt.Errorf("failed to create network policy for producer %w", err)
-		}
-	} else {
-		// check if the producer already has a networkpolicy for this consumer
-		hasIngressRule := false
-		for _, ingressRule := range producerNetworkPolicy.Spec.Ingress {
-			for _, peer := range ingressRule.From {
-				namespaceLabels := peer.NamespaceSelector.MatchLabels
-				podLabels := peer.PodSelector.MatchLabels
+			if _, err := r.k8sClient.NetworkingV1().NetworkPolicies(producerNamespaceName).Create(ctx, networkPolicy, metav1.CreateOptions{}); err != nil {
+				return fmt.Errorf("failed to create network policy for producer %w", err)
+			}
+		} else {
+			// check if the producer already has a networkpolicy for this consumer
+			hasIngressRule := false
+			for _, ingressRule := range producerNetworkPolicy.Spec.Ingress {
+				for _, peer := range ingressRule.From {
+					namespaceLabels := peer.NamespaceSelector.MatchLabels
+					podLabels := peer.PodSelector.MatchLabels
 
-				if namespaceLabels["tenant"] == consumerDeployment.Labels["tenant"] &&
-					namespaceLabels["application"] == consumerDeployment.Labels["application"] &&
-					podLabels["environment"] == consumerDeployment.Labels["environment"] &&
-					podLabels["microservice"] == consumerDeployment.Labels["microservice"] {
-					// found it
-					hasIngressRule = true
-					break
+					if namespaceLabels["tenant"] == consumerDeployment.Labels["tenant"] &&
+						namespaceLabels["application"] == consumerDeployment.Labels["application"] &&
+						podLabels["environment"] == consumerDeployment.Labels["environment"] &&
+						podLabels["microservice"] == consumerDeployment.Labels["microservice"] {
+						// found it
+						hasIngressRule = true
+						break
+					}
 				}
 			}
-		}
 
-		if !hasIngressRule {
-			ingressRule := networkingv1.NetworkPolicyPeer{
-				NamespaceSelector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"tenant":      consumerDeployment.Labels["tenant"],
-						"application": consumerDeployment.Labels["application"],
+			if !hasIngressRule {
+				ingressRule := networkingv1.NetworkPolicyPeer{
+					NamespaceSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"tenant":      consumerDeployment.Labels["tenant"],
+							"application": consumerDeployment.Labels["application"],
+						},
 					},
-				},
-				PodSelector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"environment":  consumerDeployment.Labels["environment"],
-						"microservice": consumerDeployment.Labels["microservice"],
+					PodSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"environment":  consumerDeployment.Labels["environment"],
+							"microservice": consumerDeployment.Labels["microservice"],
+						},
 					},
-				},
-			}
+				}
 
-			producerNetworkPolicy.Spec.Ingress[0].From = append(producerNetworkPolicy.Spec.Ingress[0].From, ingressRule)
-			_, err := r.k8sClient.NetworkingV1().NetworkPolicies(producerNamespaceName).Update(ctx, producerNetworkPolicy, metav1.UpdateOptions{})
-			if err != nil {
-				return fmt.Errorf("failed to update the networkpolicy for the producer: %w", err)
+				producerNetworkPolicy.Spec.Ingress[0].From = append(producerNetworkPolicy.Spec.Ingress[0].From, ingressRule)
+				_, err := r.k8sClient.NetworkingV1().NetworkPolicies(producerNamespaceName).Update(ctx, producerNetworkPolicy, metav1.UpdateOptions{})
+				if err != nil {
+					return fmt.Errorf("failed to update the networkpolicy for the producer: %w", err)
+				}
 			}
 		}
 	}
@@ -349,6 +351,10 @@ func (r k8sRepo) SubscribeToAnotherApplication(
 		}
 		producerService = &service
 		break
+	}
+
+	if producerService == nil {
+		return fmt.Errorf("couldn't find the producers service")
 	}
 
 	var producerRuntimePort int32
