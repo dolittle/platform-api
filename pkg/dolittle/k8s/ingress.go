@@ -32,7 +32,7 @@ func NewCustomerTenantInfo(environment string, microserviceID string, customerTe
 }
 
 func NewCustomerTenantHost(microserviceID string) platform.CustomerTenantHost {
-	domainPrefix := namesgenerator.GetRandomName(-1)
+	domainPrefix := namesgenerator.GetRandomName(0)
 	domainPrefix = strings.ReplaceAll(domainPrefix, "_", "-")
 
 	host := fmt.Sprintf("%s.dolittle.cloud", domainPrefix)
