@@ -17,11 +17,11 @@ import (
 
 type service struct {
 	handler         *Handler
-	k8sDolittleRepo platformK8s.K8sRepo
+	k8sDolittleRepo platformK8s.K8sPlatformRepo
 	logger          logrus.FieldLogger
 }
 
-func NewService(isProduction bool, gitRepo storage.Repo, k8sDolittleRepo platformK8s.K8sRepo, k8sClient kubernetes.Interface, logContext logrus.FieldLogger) service {
+func NewService(isProduction bool, gitRepo storage.Repo, k8sDolittleRepo platformK8s.K8sPlatformRepo, k8sClient kubernetes.Interface, logContext logrus.FieldLogger) service {
 	rawDataLogRepo := rawdatalog.NewRawDataLogIngestorRepo(isProduction, k8sDolittleRepo, k8sClient, logContext)
 	specFactory := NewK8sResourceSpecFactory()
 	k8sResources := NewK8sResource(k8sClient, specFactory)

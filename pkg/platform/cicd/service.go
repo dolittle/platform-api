@@ -12,10 +12,10 @@ import (
 
 type service struct {
 	logContext      logrus.FieldLogger
-	k8sDolittleRepo platformK8s.K8sRepo
+	k8sDolittleRepo platformK8s.K8sPlatformRepo
 }
 
-func NewService(logContext logrus.FieldLogger, k8sDolittleRepo platformK8s.K8sRepo) *service {
+func NewService(logContext logrus.FieldLogger, k8sDolittleRepo platformK8s.K8sPlatformRepo) *service {
 	s := &service{
 		logContext:      logContext,
 		k8sDolittleRepo: k8sDolittleRepo,

@@ -63,14 +63,21 @@ var serverCMD = &cobra.Command{
 			gitRepoConfig,
 		)
 
-		srv := NewServer(logContext, gitRepo, k8sClient, k8sConfig)
+		k8sRepo := platformK8s.NewK8sRepo(k8sClient, k8sConfig, logContext.WithField("context", "k8s-repo"))
+		k8sRepoV2 := k8s.NewRepo(k8sClient, logContext.WithField("context", "k8s-repo-v2"))
+
+		srv := NewServer(logContext, gitRepo, k8sClient, k8sRepo, k8sRepoV2, k8sConfig)
 
 		log.Fatal(srv.ListenAndServe())
 	},
 }
 
-func NewServer(logContext *logrus.Logger, gitRepo storage.Repo,
-	k8sClient kubernetes.Interface, k8sConfig *rest.Config) *http.Server {
+func NewServer(logContext *logrus.Logger,
+	gitRepo storage.Repo,
+	k8sClient kubernetes.Interface,
+	k8sRepo platformK8s.K8sPlatformRepo,
+	k8sRepoV2 k8s.Repo,
+	k8sConfig *rest.Config) *http.Server {
 
 	// fix: https://github.com/spf13/viper/issues/798
 	for _, key := range viper.AllKeys() {
@@ -100,8 +107,8 @@ func NewServer(logContext *logrus.Logger, gitRepo storage.Repo,
 
 	router := mux.NewRouter()
 
-	k8sRepo := platformK8s.NewK8sRepo(k8sClient, k8sConfig, logContext.WithField("context", "k8s-repo"))
-	k8sRepoV2 := k8s.NewRepo(k8sClient, logContext.WithField("context", "k8s-repo-v2"))
+	/*k8sRepo := platformK8s.NewK8sRepo(k8sClient, k8sConfig, logContext.WithField("context", "k8s-repo"))
+	k8sRepoV2 := k8s.NewRepo(k8sClient, logContext.WithField("context", "k8s-repo-v2"))*/
 
 	jobResourceConfig := jobK8s.CreateResourceConfigFromViper(viper.GetViper())
 

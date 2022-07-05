@@ -29,7 +29,7 @@ import (
 func NewService(
 	isProduction bool,
 	gitRepo storage.Repo,
-	k8sDolittleRepo platformK8s.K8sRepo,
+	k8sDolittleRepo platformK8s.K8sPlatformRepo,
 	k8sClient kubernetes.Interface,
 	simpleRepo simple.Repo,
 	logContext logrus.FieldLogger,

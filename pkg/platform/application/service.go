@@ -34,7 +34,7 @@ type Service struct {
 	externalClusterHost string
 	simpleRepo          simple.Repo
 	gitRepo             storage.Repo
-	k8sDolittleRepo     platformK8s.K8sRepo
+	k8sDolittleRepo     platformK8s.K8sPlatformRepo
 	k8sClient           kubernetes.Interface
 	jobResourceConfig   jobK8s.CreateResourceConfig
 	roleBindingRepo     k8s.RepoRoleBinding
@@ -47,7 +47,7 @@ func NewService(
 	externalClusterHost string,
 	k8sClient kubernetes.Interface,
 	gitRepo storage.Repo,
-	k8sDolittleRepo platformK8s.K8sRepo,
+	k8sDolittleRepo platformK8s.K8sPlatformRepo,
 	jobResourceConfig jobK8s.CreateResourceConfig,
 	simpleRepo simple.Repo,
 	userAccess UserAccess,

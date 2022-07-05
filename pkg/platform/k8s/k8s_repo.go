@@ -553,6 +553,7 @@ func (r *K8sRepo) CanModifyApplication(customerID string, applicationID string, 
 // Only works when we can use the namespace
 // TODO bringing online the ad group from microsoft will allow us to check group access
 func (r *K8sRepo) CanModifyApplicationWithResourceAttributes(customerID string, applicationID string, userID string, attribute authv1.ResourceAttributes) (bool, error) {
+	fmt.Println("Tryprtint")
 	config := r.GetRestConfig()
 
 	config.Impersonate = rest.ImpersonationConfig{
@@ -562,6 +563,7 @@ func (r *K8sRepo) CanModifyApplicationWithResourceAttributes(customerID string, 
 		},
 	}
 
+	fmt.Println("Foobarx")
 	client, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		panic(err.Error())

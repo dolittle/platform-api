@@ -12,6 +12,6 @@ type service struct {
 	logContext            logrus.FieldLogger
 	k8sClient             kubernetes.Interface
 	gitRepo               storage.Repo
-	k8sDolittleRepo       platformK8s.K8sRepo
+	k8sDolittleRepo       platformK8s.K8sPlatformRepo
 	k8sBusinessMomentRepo businessmomentsadaptor.Repo
 }

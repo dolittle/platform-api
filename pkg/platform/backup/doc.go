@@ -10,7 +10,7 @@ import (
 
 type service struct {
 	gitRepo         storage.Repo
-	k8sDolittleRepo platformK8s.K8sRepo
+	k8sDolittleRepo platformK8s.K8sPlatformRepo
 	k8sClient       kubernetes.Interface
 	logContext      logrus.FieldLogger
 }

@@ -14,11 +14,11 @@ import (
 
 type service struct {
 	environmentVariablesRepo EnvironmentVariablesRepo
-	k8sDolittleRepo          platformK8s.K8sRepo
+	k8sDolittleRepo          platformK8s.K8sPlatformRepo
 	logContext               logrus.FieldLogger
 }
 
-func NewService(environmentVariablesRepo EnvironmentVariablesRepo, k8sDolittleRepo platformK8s.K8sRepo, logContext logrus.FieldLogger) service {
+func NewService(environmentVariablesRepo EnvironmentVariablesRepo, k8sDolittleRepo platformK8s.K8sPlatformRepo, logContext logrus.FieldLogger) service {
 	return service{
 		environmentVariablesRepo: environmentVariablesRepo,
 		k8sDolittleRepo:          k8sDolittleRepo,

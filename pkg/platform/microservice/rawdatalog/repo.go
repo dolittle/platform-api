@@ -28,12 +28,12 @@ import (
 
 type RawDataLogIngestorRepo struct {
 	k8sClient       kubernetes.Interface
-	k8sDolittleRepo platformK8s.K8sRepo
+	k8sDolittleRepo platformK8s.K8sPlatformRepo
 	logContext      logrus.FieldLogger
 	isProduction    bool
 }
 
-func NewRawDataLogIngestorRepo(isProduction bool, k8sDolittleRepo platformK8s.K8sRepo, k8sClient kubernetes.Interface, logContext logrus.FieldLogger) RawDataLogIngestorRepo {
+func NewRawDataLogIngestorRepo(isProduction bool, k8sDolittleRepo platformK8s.K8sPlatformRepo, k8sClient kubernetes.Interface, logContext logrus.FieldLogger) RawDataLogIngestorRepo {
 	return RawDataLogIngestorRepo{
 		k8sClient:       k8sClient,
 		k8sDolittleRepo: k8sDolittleRepo,

@@ -39,12 +39,12 @@ type IngressResources struct {
 type k8sRepo struct {
 	k8sClient       kubernetes.Interface
 	k8sRepoV2       k8s.Repo
-	k8sDolittleRepo platformK8s.K8sRepo
+	k8sDolittleRepo platformK8s.K8sPlatformRepo
 	kind            platform.MicroserviceKind
 	isProduction    bool
 }
 
-func NewSimpleRepo(k8sClient kubernetes.Interface, k8sDolittleRepo platformK8s.K8sRepo, k8sRepoV2 k8s.Repo, isProduction bool) simple.Repo {
+func NewSimpleRepo(k8sClient kubernetes.Interface, k8sDolittleRepo platformK8s.K8sPlatformRepo, k8sRepoV2 k8s.Repo, isProduction bool) simple.Repo {
 	return k8sRepo{
 		k8sClient:       k8sClient,
 		k8sRepoV2:       k8sRepoV2,

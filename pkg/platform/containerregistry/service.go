@@ -39,14 +39,14 @@ type ContainerRegistryRepo interface {
 type service struct {
 	gitRepo         storage.Repo
 	repo            ContainerRegistryRepo
-	k8sDolittleRepo platformK8s.K8sRepo
+	k8sDolittleRepo platformK8s.K8sPlatformRepo
 	logContext      logrus.FieldLogger
 }
 
 func NewService(
 	gitRepo storage.Repo,
 	repo ContainerRegistryRepo,
-	k8sDolittleRepo platformK8s.K8sRepo,
+	k8sDolittleRepo platformK8s.K8sPlatformRepo,
 	logContext logrus.FieldLogger,
 ) service {
 	return service{
