@@ -14,6 +14,10 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	authv1 "k8s.io/api/authorization/v1"
+	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/client-go/rest"
 )
 
@@ -88,7 +92,7 @@ func (m *K8sPlatformRepoMock) GetConfigMap(applicationID string, name string) (*
 }
 
 func (m *K8sPlatformRepoMock) GetSecret(logContext logrus.FieldLogger, applicationID string, name string) (*corev1.Secret, error) {
-	return nil, nil
+	return &corev1.Secret{}, nil
 }
 
 func (m *K8sPlatformRepoMock) GetServiceAccount(logContext logrus.FieldLogger, applicationID string, name string) (*corev1.ServiceAccount, error) {
@@ -152,7 +156,7 @@ func (m *K8sPlatformRepoMock) WriteSecret(secret *corev1.Secret) (*corev1.Secret
 }
 
 func (m *K8sPlatformRepoMock) GetUserSpecificSubjectRulesReviewStatus(applicationID string, groupID string, userID string) (authv1.SubjectRulesReviewStatus, error) {
-	return nil, nil
+	return authv1.SubjectRulesReviewStatus{}, nil
 }
 
 func (m *K8sPlatformRepoMock) RemovePolicyRule(roleName string, applicationID string, newRule rbacv1.PolicyRule) error {
@@ -165,6 +169,10 @@ func (m *K8sPlatformRepoMock) AddPolicyRule(roleName string, applicationID strin
 
 func (m *K8sPlatformRepoMock) CanModifyApplicationWithResponse(w http.ResponseWriter, customerID string, applicationID string, userID string) bool {
 	return true
+}
+
+func (m *K8sPlatformRepoMock) AddServiceAccount(serviceAccount string, roleBinding string, customerID string, customerName string, applicationID string, applicationName string) error {
+	return nil
 }
 
 type GitStorageRepoMock struct {

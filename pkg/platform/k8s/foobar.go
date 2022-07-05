@@ -39,4 +39,5 @@ type K8sPlatformRepo interface {
 	GetUserSpecificSubjectRulesReviewStatus(applicationID string, groupID string, userID string) (authv1.SubjectRulesReviewStatus, error)
 	RemovePolicyRule(roleName string, applicationID string, newRule rbacv1.PolicyRule) error
 	AddPolicyRule(roleName string, applicationID string, newRule rbacv1.PolicyRule) error
+	AddServiceAccount(serviceAccount string, roleBinding string, customerID string, customerName string, applicationID string, applicationName string) error
 }

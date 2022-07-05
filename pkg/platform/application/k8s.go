@@ -19,7 +19,7 @@ func CreateApplicationAndEnvironmentAndWelcomeMicroservice(
 	client kubernetes.Interface,
 	storageRepo storage.RepoMicroservice,
 	simpleRepo simple.Repo,
-	k8sDolittleRepo platformK8s.K8sRepo,
+	k8sDolittleRepo platformK8s.K8sPlatformRepo,
 	application storage.JSONApplication,
 	terraformCustomer platform.TerraformCustomer,
 	terraformApplication platform.TerraformApplication,

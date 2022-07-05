@@ -41,9 +41,9 @@ type K8sRepo struct {
 	// DO we add logcontext?
 }
 
-func NewK8sRepo(k8sClient kubernetes.Interface, config *rest.Config, logContext logrus.FieldLogger) K8sRepo {
+func NewK8sRepo(k8sClient kubernetes.Interface, config *rest.Config, logContext logrus.FieldLogger) *K8sRepo {
 	k8sRepoV2 := k8s.NewRepo(k8sClient, logContext.WithField("context", "k8s-repo-v2"))
-	return K8sRepo{
+	return &K8sRepo{
 		k8sRepoV2:  k8sRepoV2,
 		baseConfig: config,
 		k8sClient:  k8sClient,

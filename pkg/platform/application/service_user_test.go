@@ -39,7 +39,7 @@ var _ = Describe("Testing Admin Application user endpoints", func() {
 		gitRepo         *mockStorage.Repo
 		clientSet       *fake.Clientset
 		config          *rest.Config
-		k8sRepo         platformK8s.K8sRepo
+		k8sRepo         *platformK8s.K8sRepo
 		userAccessRepo  *mockApplication.UserAccess
 		roleBindingRepo *mockK8s.RepoRoleBinding
 		service         application.Service
