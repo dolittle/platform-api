@@ -65,8 +65,9 @@ var serverCMD = &cobra.Command{
 
 		k8sRepo := platformK8s.NewK8sRepo(k8sClient, k8sConfig, logContext.WithField("context", "k8s-repo"))
 		k8sRepoV2 := k8s.NewRepo(k8sClient, logContext.WithField("context", "k8s-repo-v2"))
+		containerRegistryRepo := containerregistry.NewAzureRepo(logContext.WithField("context", "container-registry-azure"))
 
-		srv := NewServer(logContext, gitRepo, k8sClient, k8sRepo, k8sRepoV2, k8sConfig)
+		srv := NewServer(logContext, gitRepo, k8sClient, k8sRepo, k8sRepoV2, k8sConfig, containerRegistryRepo)
 
 		log.Fatal(srv.ListenAndServe())
 	},
@@ -77,7 +78,8 @@ func NewServer(logContext *logrus.Logger,
 	k8sClient kubernetes.Interface,
 	k8sRepo platformK8s.K8sPlatformRepo,
 	k8sRepoV2 k8s.Repo,
-	k8sConfig *rest.Config) *http.Server {
+	k8sConfig *rest.Config,
+	containerRegistryRepo containerregistry.ContainerRegistryRepo) *http.Server {
 
 	// fix: https://github.com/spf13/viper/issues/798
 	for _, key := range viper.AllKeys() {
@@ -221,7 +223,7 @@ func NewServer(logContext *logrus.Logger,
 
 	containerRegistryService := containerregistry.NewService(
 		gitRepo,
-		containerregistry.NewAzureRepo(logContext.WithField("context", "container-registry-azure")),
+		containerRegistryRepo,
 		k8sRepo,
 		logContext.WithField("context", "container-registry-service"),
 	)

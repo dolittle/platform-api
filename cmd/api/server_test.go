@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/dolittle/platform-api/pkg/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
+	"github.com/dolittle/platform-api/pkg/platform/containerregistry"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/storage"
 	. "github.com/onsi/ginkgo"
@@ -36,12 +38,14 @@ var _ = Describe("Platform API", func() {
 			logContext := logrus.StandardLogger()
 			k8sClient, k8sConfig := platformK8s.InitKubernetesClient()
 			gitRepo := GitStorageRepoMock{}
+			containerRegistryMock := &ContainerRegistryMock{}
+			containerRegistryMock.StubAndReturnImages([]string{"helloworld"})
 
 			//k8sRepo := platformK8s.NewK8sRepo(k8sClient, k8sConfig, logContext.WithField("context", "k8s-repo"))
 			k8sPlatformRepoMock := &K8sPlatformRepoMock{}
 			k8sRepoV2 := k8s.NewRepo(k8sClient, logContext.WithField("context", "k8s-repo-v2"))
 
-			srv := NewServer(logContext, gitRepo, k8sClient, k8sPlatformRepoMock, k8sRepoV2, k8sConfig)
+			srv := NewServer(logContext, gitRepo, k8sClient, k8sPlatformRepoMock, k8sRepoV2, k8sConfig, containerRegistryMock)
 			s := httptest.NewServer(srv.Handler)
 			defer s.Close()
 
@@ -56,13 +60,32 @@ var _ = Describe("Platform API", func() {
 			response, _ := c.Do(request)
 
 			Expect(response).ToNot(BeNil())
-			r, _ := ioutil.ReadAll(response.Body)
-			Expect(string(r)).To(Equal("Foo"))
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
+			r, _ := ioutil.ReadAll(response.Body)
+			var jsonData map[string]interface{}
+			json.Unmarshal(r, &jsonData)
+			Expect(jsonData["url"]).To(Equal(".azurecr.io"))
+			Expect(jsonData["images"]).To(Equal([]interface{}{"helloworld"}))
 		})
 	})
 
 })
+
+type ContainerRegistryMock struct {
+	imagesResult []string
+}
+
+func (m *ContainerRegistryMock) StubAndReturnImages(result []string) {
+	m.imagesResult = result
+}
+
+func (m *ContainerRegistryMock) GetImages(credentials containerregistry.ContainerRegistryCredentials) ([]string, error) {
+	return m.imagesResult, nil
+}
+
+func (m *ContainerRegistryMock) GetTags(credentials containerregistry.ContainerRegistryCredentials, image string) ([]string, error) {
+	return []string{}, nil
+}
 
 type K8sPlatformRepoMock struct {
 }
