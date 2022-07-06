@@ -3,7 +3,6 @@ package containerregistry
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -90,10 +89,9 @@ func (repo azureRepo) GetTags2(credentials ContainerRegistryCredentials, image s
 	baseClient := containerregistry.New(credentials.URL)
 	baseClient.Authorizer = basicAuthorizer
 	var n int32
-	//result, err := baseClient.GetAcrTags(ctx, image)
+
 	result, err := baseClient.GetAcrTags(ctx, image, "", &n, "", "")
 
-	fmt.Println(result, err)
 	if err != nil {
 		if result.Response.StatusCode == http.StatusNotFound {
 			return []ImageTag{}, ErrNotFound
