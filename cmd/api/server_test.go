@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"time"
 
 	"github.com/dolittle/platform-api/pkg/k8s"
 	"github.com/dolittle/platform-api/pkg/platform"
@@ -41,6 +42,7 @@ var _ = Describe("Platform API", func() {
 	var server *httptest.Server
 	var crImagesPath string
 	var crTagsPath string
+	var crTagsPath2 string
 	var c http.Client
 
 	BeforeEach(func() {
@@ -66,6 +68,7 @@ var _ = Describe("Platform API", func() {
 		server = httptest.NewServer(srv.Handler)
 		crImagesPath = fmt.Sprintf("%s/application/12321/containerregistry/images", server.URL)
 		crTagsPath = fmt.Sprintf("%s/application/12321/containerregistry/tags/helloworld", server.URL)
+		crTagsPath2 = fmt.Sprintf("%s/application/12321/containerregistry/tags2/helloworld", server.URL)
 
 		c = http.Client{}
 	})
@@ -128,7 +131,7 @@ var _ = Describe("Platform API", func() {
 
 	})
 
-	Describe("When fetch tags from the images", func() {
+	Describe("When fetch tags for the images", func() {
 		It("should return the tags", func() {
 			request := createRequest(crTagsPath, "johnc")
 			response, _ := c.Do(request)
@@ -139,6 +142,25 @@ var _ = Describe("Platform API", func() {
 			var jsonData map[string]interface{}
 			json.Unmarshal(r, &jsonData)
 			Expect(jsonData["tags"]).To(Equal([]interface{}{"latest", "v1"}))
+		})
+
+	})
+
+	Describe("When fetch tags v2 for the images", func() {
+		It("should return the tags with last modified date", func() {
+			request := createRequest(crTagsPath2, "johnc")
+			response, _ := c.Do(request)
+
+			Expect(response).ToNot(BeNil())
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+			r, _ := ioutil.ReadAll(response.Body)
+			var jsonData map[string]interface{}
+			json.Unmarshal(r, &jsonData)
+			Expect(jsonData["tags"]).To(Equal(
+				[]interface{}{
+					map[string]interface{}{"name": "label1", "lastModified": "2022-05-12T13:27:42.721262Z"},
+				},
+			))
 		})
 	})
 
@@ -158,6 +180,14 @@ func (m *ContainerRegistryMock) GetImages(credentials containerregistry.Containe
 
 func (m *ContainerRegistryMock) GetTags(credentials containerregistry.ContainerRegistryCredentials, image string) ([]string, error) {
 	return []string{"latest", "v1"}, nil
+}
+
+func (m *ContainerRegistryMock) GetTags2(credentials containerregistry.ContainerRegistryCredentials, image string) ([]containerregistry.ImageTag, error) {
+	when, err := time.Parse("2006-01-02T15:04:05Z", "2022-05-12T13:27:42.721262Z")
+	if err != nil {
+		panic("Should never happen!")
+	}
+	return []containerregistry.ImageTag{{Name: "label1", LastModified: when}}, nil
 }
 
 type K8sPlatformRepoMock struct {

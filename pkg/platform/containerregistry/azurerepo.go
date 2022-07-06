@@ -3,7 +3,9 @@ package containerregistry
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/services/preview/containerregistry/runtime/2019-07/containerregistry"
 	"github.com/Azure/go-autorest/autorest"
@@ -76,4 +78,35 @@ func (repo azureRepo) GetTags(credentials ContainerRegistryCredentials, image st
 	}
 
 	return *result.Tags, nil
+}
+
+func (repo azureRepo) GetTags2(credentials ContainerRegistryCredentials, image string) ([]ImageTag, error) {
+	ctx := context.Background()
+
+	username := credentials.Username
+	password := credentials.Password
+	basicAuthorizer := autorest.NewBasicAuthorizer(username, password)
+
+	baseClient := containerregistry.New(credentials.URL)
+	baseClient.Authorizer = basicAuthorizer
+	var n int32
+	//result, err := baseClient.GetAcrTags(ctx, image)
+	result, err := baseClient.GetAcrTags(ctx, image, "", &n, "", "")
+
+	fmt.Println(result, err)
+	if err != nil {
+		if result.Response.StatusCode == http.StatusNotFound {
+			return []ImageTag{}, ErrNotFound
+		}
+
+		repo.logContext.WithField("error", err).Error("failed to get tags")
+		return []ImageTag{}, errors.New("failed to get tags")
+	}
+	res := []ImageTag{}
+	for _, atr := range *result.TagsAttributes {
+		lastModified, _ := time.Parse("2006-01-02T15:04:05Z", *atr.LastUpdateTime)
+		res = append(res, ImageTag{Name: *atr.Name, LastModified: lastModified})
+	}
+
+	return res, nil
 }

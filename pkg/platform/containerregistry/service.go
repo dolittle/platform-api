@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	applicationK8s "github.com/dolittle/platform-api/pkg/platform/application/k8s"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
@@ -24,6 +25,16 @@ type HTTPResponseTags struct {
 	Tags []string `json:"tags"`
 }
 
+type ImageTag struct {
+	Name         string    `json:"name"`
+	LastModified time.Time `json:"lastModified"`
+}
+
+type HTTPResponseTags2 struct {
+	Name string     `json:"name"`
+	Tags []ImageTag `json:"tags"`
+}
+
 // TODO maybe tags returns array of objects
 type ContainerRegistryCredentials struct {
 	URL      string
@@ -34,6 +45,7 @@ type ContainerRegistryCredentials struct {
 type ContainerRegistryRepo interface {
 	GetImages(credentials ContainerRegistryCredentials) ([]string, error)
 	GetTags(credentials ContainerRegistryCredentials, image string) ([]string, error)
+	GetTags2(credentials ContainerRegistryCredentials, image string) ([]ImageTag, error)
 }
 
 type service struct {
@@ -180,6 +192,56 @@ func (s *service) GetTags(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := HTTPResponseTags{
+		Name: imageName,
+		Tags: tags,
+	}
+
+	utils.RespondWithJSON(w, http.StatusOK, response)
+}
+
+func (s *service) GetTags2(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	applicationID := vars["applicationID"]
+	imageName := vars["imageName"]
+	userID := r.Header.Get("User-ID")
+	customerID := r.Header.Get("Tenant-ID")
+
+	customer, err := s.gitRepo.GetTerraformTenant(customerID)
+	if err != nil {
+		// TODO handle not found
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
+	if !allowed {
+		return
+	}
+
+	logContext := s.logContext.WithFields(logrus.Fields{
+		"method":        "GetTags",
+		"customerID":    customerID,
+		"applicationID": applicationID,
+		"userID":        userID,
+	})
+
+	credentials, err := s.getContainerRegistryCredentialsFromKubernetes(logContext, applicationID, customer.ContainerRegistryName)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, "Something went wrong")
+		return
+	}
+
+	tags, err := s.repo.GetTags2(credentials, imageName)
+	if err != nil {
+		if err == ErrNotFound {
+			utils.RespondWithError(w, http.StatusNotFound, "Tag was not found")
+			return
+		}
+		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to get tags")
+		return
+	}
+
+	response := HTTPResponseTags2{
 		Name: imageName,
 		Tags: tags,
 	}

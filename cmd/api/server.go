@@ -453,6 +453,11 @@ func NewServer(logContext *logrus.Logger,
 	).Methods(http.MethodGet, http.MethodOptions)
 
 	router.Handle(
+		"/application/{applicationID}/containerregistry/tags2/{imageName:.*}",
+		stdChainBase.ThenFunc(containerRegistryService.GetTags2),
+	).Methods(http.MethodGet, http.MethodOptions)
+
+	router.Handle(
 		"/admin/customer/{customerID}/application/{applicationID}/access/users",
 		stdChainBase.ThenFunc(applicationService.UserList),
 	).Methods(http.MethodGet, http.MethodOptions)
