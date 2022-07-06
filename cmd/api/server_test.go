@@ -36,44 +36,47 @@ func createRequest(path, xSharedSecret string) *http.Request {
 }
 
 var _ = Describe("Platform API", func() {
+	var gitRepo GitStorageRepoMock
+	var containerRegistryRepo *ContainerRegistryMock
+	var server *httptest.Server
+	var crImagesPath string
+	var crTagsPath string
+	var c http.Client
+
+	BeforeEach(func() {
+		viper.Set("tools.server.gitRepo.branch", "foo")
+		viper.Set("tools.server.gitRepo.directory", "/tmp/dolittle_operation")
+		viper.Set("tools.server.gitRepo.url", "git@github.com:dolittle-platform/Operations")
+		viper.Set("tools.server.gitRepo.sshKey", "does/not/exist")
+		viper.Set("tools.server.kubernetes.externalClusterHost", "external-host")
+		viper.Set("tools.server.secret", "johnc")
+
+		gitRepo = GitStorageRepoMock{}
+		containerRegistryRepo = &ContainerRegistryMock{}
+		containerRegistryRepo.StubAndReturnImages([]string{"helloworld"})
+
+		logContext := logrus.StandardLogger()
+		k8sClient, k8sConfig := platformK8s.InitKubernetesClient()
+
+		k8sPlatformRepoMock := &K8sPlatformRepoMock{}
+		k8sPlatformRepoMock.StubGetSecretAndReturn(&corev1.Secret{})
+		k8sRepoV2 := k8s.NewRepo(k8sClient, logContext.WithField("context", "k8s-repo-v2"))
+
+		srv := NewServer(logContext, gitRepo, k8sClient, k8sPlatformRepoMock, k8sRepoV2, k8sConfig, containerRegistryRepo)
+		server = httptest.NewServer(srv.Handler)
+		crImagesPath = fmt.Sprintf("%s/application/12321/containerregistry/images", server.URL)
+		crTagsPath = fmt.Sprintf("%s/application/12321/containerregistry/tags/helloworld", server.URL)
+
+		c = http.Client{}
+	})
+
+	AfterEach(func() {
+		server.Close()
+	})
 
 	Describe("When fetch images from Container Registry", func() {
-		var gitRepo GitStorageRepoMock
-		var containerRegistryRepo *ContainerRegistryMock
-		var server *httptest.Server
-		var crImagesPath string
-
-		BeforeEach(func() {
-			viper.Set("tools.server.gitRepo.branch", "foo")
-			viper.Set("tools.server.gitRepo.directory", "/tmp/dolittle_operation")
-			viper.Set("tools.server.gitRepo.url", "git@github.com:dolittle-platform/Operations")
-			viper.Set("tools.server.gitRepo.sshKey", "does/not/exist")
-			viper.Set("tools.server.kubernetes.externalClusterHost", "external-host")
-			viper.Set("tools.server.secret", "johnc")
-
-			gitRepo = GitStorageRepoMock{}
-			containerRegistryRepo = &ContainerRegistryMock{}
-			containerRegistryRepo.StubAndReturnImages([]string{"helloworld"})
-
-			logContext := logrus.StandardLogger()
-			k8sClient, k8sConfig := platformK8s.InitKubernetesClient()
-
-			k8sPlatformRepoMock := &K8sPlatformRepoMock{}
-			k8sPlatformRepoMock.StubGetSecretAndReturn(&corev1.Secret{})
-			k8sRepoV2 := k8s.NewRepo(k8sClient, logContext.WithField("context", "k8s-repo-v2"))
-
-			srv := NewServer(logContext, gitRepo, k8sClient, k8sPlatformRepoMock, k8sRepoV2, k8sConfig, containerRegistryRepo)
-			server = httptest.NewServer(srv.Handler)
-			crImagesPath = fmt.Sprintf("%s/application/12321/containerregistry/images", server.URL)
-		})
-
-		AfterEach(func() {
-			server.Close()
-		})
 
 		It("should return 403 Forbidden when x-shared-secret header is not set", func() {
-			c := http.Client{}
-
 			request := createRequest(crImagesPath, "")
 			response, _ := c.Do(request)
 
@@ -82,8 +85,6 @@ var _ = Describe("Platform API", func() {
 		})
 
 		It("should rertun 403 Forbidden when x-shared-secret header is invalid", func() {
-			c := http.Client{}
-
 			request := createRequest(crImagesPath, "invalid header")
 			response, _ := c.Do(request)
 
@@ -92,8 +93,6 @@ var _ = Describe("Platform API", func() {
 		})
 
 		It("should include message in the response when x-shared-secret header is invalid", func() {
-			c := http.Client{}
-
 			request := createRequest(crImagesPath, "invalid header")
 			response, _ := c.Do(request)
 
@@ -104,8 +103,6 @@ var _ = Describe("Platform API", func() {
 		})
 
 		It("should return container registry URL from the customer's config in our db (git storage)", func() {
-			c := http.Client{}
-
 			request := createRequest(crImagesPath, "johnc")
 			response, _ := c.Do(request)
 
@@ -118,8 +115,6 @@ var _ = Describe("Platform API", func() {
 		})
 
 		It("should return the images", func() {
-			c := http.Client{}
-
 			request := createRequest(crImagesPath, "johnc")
 			response, _ := c.Do(request)
 
@@ -131,6 +126,20 @@ var _ = Describe("Platform API", func() {
 			Expect(jsonData["images"]).To(Equal([]interface{}{"helloworld"}))
 		})
 
+	})
+
+	Describe("When fetch tags from the images", func() {
+		It("should return the tags", func() {
+			request := createRequest(crTagsPath, "johnc")
+			response, _ := c.Do(request)
+
+			Expect(response).ToNot(BeNil())
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+			r, _ := ioutil.ReadAll(response.Body)
+			var jsonData map[string]interface{}
+			json.Unmarshal(r, &jsonData)
+			Expect(jsonData["tags"]).To(Equal([]interface{}{"latest", "v1"}))
+		})
 	})
 
 })
@@ -148,7 +157,7 @@ func (m *ContainerRegistryMock) GetImages(credentials containerregistry.Containe
 }
 
 func (m *ContainerRegistryMock) GetTags(credentials containerregistry.ContainerRegistryCredentials, image string) ([]string, error) {
-	return []string{}, nil
+	return []string{"latest", "v1"}, nil
 }
 
 type K8sPlatformRepoMock struct {
