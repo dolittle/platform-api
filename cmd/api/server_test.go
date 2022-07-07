@@ -11,12 +11,13 @@ import (
 	"github.com/dolittle/platform-api/cmd/api/mocks"
 	"github.com/dolittle/platform-api/pkg/k8s"
 	"github.com/dolittle/platform-api/pkg/platform/containerregistry"
-	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/rest"
 )
 
 func createRequest(path, xSharedSecret string) *http.Request {
@@ -56,7 +57,9 @@ var _ = Describe("Platform API", func() {
 		containerRegistryRepo.StubAndReturnTags2([]containerregistry.ImageTag{{Name: "label1", LastModified: now}})
 
 		logContext := logrus.StandardLogger()
-		k8sClient, k8sConfig := platformK8s.InitKubernetesClient()
+		//k8sClient, k8sConfig := platformK8s.InitKubernetesClient()
+		k8sClient := fake.NewSimpleClientset()
+		k8sConfig := &rest.Config{}
 
 		k8sPlatformRepoMock := &mocks.K8sPlatformRepoMock{}
 		k8sPlatformRepoMock.StubGetSecretAndReturn(&corev1.Secret{})

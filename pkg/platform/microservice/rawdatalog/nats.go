@@ -194,7 +194,7 @@ func createNatsResources(namespace, environment string, labels, annotations labe
 								},
 							},
 							LivenessProbe: &corev1.Probe{
-								Handler: corev1.Handler{
+								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path: "/",
 										Port: intstr.FromString("monitor"),
@@ -204,7 +204,7 @@ func createNatsResources(namespace, environment string, labels, annotations labe
 								TimeoutSeconds:      5,
 							},
 							ReadinessProbe: &corev1.Probe{
-								Handler: corev1.Handler{
+								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path: "/",
 										Port: intstr.FromString("monitor"),
@@ -214,7 +214,7 @@ func createNatsResources(namespace, environment string, labels, annotations labe
 								TimeoutSeconds:      5,
 							},
 							Lifecycle: &corev1.Lifecycle{
-								PreStop: &corev1.Handler{
+								PreStop: &corev1.LifecycleHandler{
 									Exec: &corev1.ExecAction{
 										Command: []string{"/bin/sh", "-c", "/nats-server -sl=ldm=/var/run/nats/nats.pid && /bin/sleep 60"},
 									},
