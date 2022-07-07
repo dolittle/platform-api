@@ -6,6 +6,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+// envVarForTerraform sets the ARM_* environment variables to their values
+// from the Azure Service Principal that is configured inside the apiSecrets k8s secret.
+// The ARM_* env variables are the default env vars that Terraform uses to setup
+// it's access to Azure:
+// https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/guides/service_principal_client_secret#configuring-the-service-principal-in-terraform
 func envVarForTerraform(apiSecrets string) []corev1.EnvVar {
 	gitVars := envVarGitNotInUse()
 	terraformVars := []corev1.EnvVar{

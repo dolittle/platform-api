@@ -94,7 +94,6 @@ func (s *service) UpdateEnvironmentVariables(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// We are onnly interested in the Data
 	err = s.environmentVariablesRepo.UpdateEnvironmentVariables(applicationID, environment, microserviceID, input.Data)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusUnprocessableEntity, err.Error())

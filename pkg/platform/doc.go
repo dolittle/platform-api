@@ -380,12 +380,34 @@ type StudioEnvironmentVariable struct {
 	Value    string `json:"value"`
 	IsSecret bool   `json:"isSecret"`
 }
+
 type HttpResponseEnvironmentVariables struct {
 	ApplicationID  string                      `json:"applicationId"`
 	MicroserviceID string                      `json:"microserviceId"`
 	Environment    string                      `json:"environment"`
 	Data           []StudioEnvironmentVariable `json:"data"`
 }
+type HttpResponseConfigFilesNamesList struct {
+	ApplicationID  string   `json:"applicationId"`
+	MicroserviceID string   `json:"microserviceId"`
+	Environment    string   `json:"environment"`
+	Data           []string `json:"data"`
+}
+
+type HttpResponseDeleteConfigFile struct {
+	ApplicationID  string `json:"applicationId"`
+	MicroserviceID string `json:"microserviceId"`
+	Environment    string `json:"environment"`
+	Success        bool   `json:"success"`
+}
+
+type HttpRequestDeleteConfigFile struct {
+	ApplicationID  string `json:"applicationId"`
+	MicroserviceID string `json:"microserviceId"`
+	Environment    string `json:"environment"`
+	Key            string `json:"key"`
+}
+
 type MicroserviceMetadataShortInfo struct {
 	CustomerID       string `json:"customerId"`
 	CustomerName     string `json:"customerName"`

@@ -1,3 +1,252 @@
+# [4.13.0] - 2022-6-21 [PR: #140](https://github.com/dolittle/platform-api/pull/140)
+## Summary
+
+New `tools eventhorizon add` command for updating the `event-horizon-consents.json`, `event-horizons.json` and `microservices.json` between a producer and consumer to establish an event horizon subscription from the configurations point of view.
+If the `--producer-application-id` and `--producer-environment` flags are also specified it can setup the subscriptions config across applications (have to be owned by the same customer) by also creating a NetworkPolicy if needed.
+
+Example usage:
+Add an event horizon subscription within an application and environment:
+```sh
+go run main.go tools eventhorizon add 									\
+	--customer-id 78a04863-376f-4279-9b52-d26d03279853 					\
+	--application-id cfd9f00e-2308-0b4b-89dc-7b2280e19094 				\
+	--environment Test 													\
+	--microservice-id 76ba32bb-bbeb-45c5-925c-b8914cd1e6e4 				\
+	--tenant-id 445f8ea8-1a6f-40d7-b2fc-796dba92dc44 					\
+	--producer-microservice-id 6c70e222-1008-2e41-be43-bfe54f773ddd 	\
+	--producer-tenant-id 445f8ea8-1a6f-40d7-b2fc-796dba92dc44 			\
+	--public-stream 9a14541f-6077-40fc-bef5-89bce2c0790b 				\
+	--partition whatever 												\
+	--scope 443d87d1-ed23-4464-b321-de974a796a8c
+```
+
+Add an event horizon subscription across applications:
+```sh
+go run main.go tools eventhorizon add 									\
+	--customer-id 4cb310e8-8a8e-48a4-bb81-a8cddb484197					\
+	--application-id e63b11dd-aaa6-2242-a0b9-230e4e06d43e 				\
+	--environment Dev 													\
+	--microservice-id e78f7323-19ff-445b-8dba-e0c17dadb569 				\
+	--tenant-id d802ee55-644f-f142-af23-925391061fd6 					\
+	--producer-application-id 35f0d011-f13f-8643-bea3-ef55ce47db2e 		\
+	--producer-environment Dev										 	\
+	--producer-microservice-id 418d5c62-5c6a-4b58-af51-93549d4635e5 	\
+	--producer-tenant-id 43423763-e222-da40-bc77-bf275cc3875c 			\
+	--public-stream 9a14541f-6077-40fc-bef5-89bce2c0790b 				\
+	--partition whatever 												\
+	--scope 443d87d1-ed23-4464-b321-de974a796a8c
+```
+
+
+# [4.12.0] - 2022-6-17 [PR: #141](https://github.com/dolittle/platform-api/pull/141)
+## Summary
+This was implemented to speed up Platform Engineers time spent on copying microservices from an environment to a new environment. 
+
+With this command it's possible to copy env vars for a microservice in a specific environment to a new environment.
+
+## Example
+```
+go run main.go tools microservice copy environment \
+    --application cde2e951-d40a-3548-8b45-64c0ded97940 \
+    --microservice-name frontend2 \
+    --from-env test \
+    --to-env prod
+```
+
+
+# [4.11.4] - 2022-6-3 [PR: #138](https://github.com/dolittle/platform-api/pull/138)
+## Summary
+
+Fix deploy typo and force deployment (very good).
+
+
+# [4.11.3] - 2022-6-3 [PR: #136](https://github.com/dolittle/platform-api/pull/136)
+## Summary
+
+Simplify the deployment workflow so that it doesn't require 2 rounds of approvals. Due to the limitations of reusable workflows in GitHub we sadly can't use the other 2 reusable workflows to do this. Also forces a deployment.
+
+
+# [4.11.2] - 2022-6-3 [PR: #134](https://github.com/dolittle/platform-api/pull/134)
+## Summary
+
+Fix the needs of the deploy workflow and force a deployment
+
+
+# [4.11.1] - 2022-6-3 [PR: #133](https://github.com/dolittle/platform-api/pull/133)
+## Summary
+
+Fix typo in reusable workflof, also force release (this is a good way to test workflows)
+
+
+# [4.11.0] - 2022-5-30 [PR: #130](https://github.com/dolittle/platform-api/pull/130)
+## Summary
+
+- Made the `tools m3connector create environment` CLI command to also upsert the `<env>-kafka-files` configmap in the correct environment in k8s with the credentials, certificates and `config.json`
+- Made the `CreateTopic()` & `AddACL()` methods in the `aiven` package to not return errors if the ACL/topic already existed.
+- Changed the `CreateUser()` method to `GetOrCreateUser()` so that it doesn't fail if the user already exists
+- Updated mocks with mockery 2.12.2 as the old ones didn't work with go 1.18
+
+
+# [4.10.0] - 2022-5-19 [PR: #122](https://github.com/dolittle/platform-api/pull/122)
+## Summary
+
+Adds a new CLI command `platform tools m3connector create environment` that provisions the kafka resources needed for an m3connector setup for an environment.
+```bash
+Usage:
+  platform tools m3connector create environment [flags]
+
+Flags:
+      --application-id string   The applications ID
+      --customer-id string      The customers ID
+      --environment string      The environment
+  -h, --help                    help for environment
+
+Global Flags:
+      --aiven-api-token string        Aiven API token
+      --aiven-project string          Aiven project
+      --aiven-service string          Aiven service
+      --platform-environment string   Platform environment (dev or prod), not linked to application environment (default "dev")
+```
+
+The kafka resources are:
+- 4 topics:
+  - `cust_<customer-id>.app_<application-id>.env_<environment>.m3connector.change-events` (3 replicas, unlimited retention)
+  - `cust_<customer-id>.app_<application-id>.env_<environment>.m3connector.input` (3 replicas, unlimited retention)
+  - `cust_<customer-id>.app_<application-id>.env_<environment>.m3connector.commands` (3 replicas, unlimited retention)
+  - `cust_<customer-id>.app_<application-id>.env_<environment>.m3connector.command-receipts` (3 replicas, 7d retention)
+- An Aiven (sub) service user. Aiven's max length for usernames is 64 so we format the username in the following way:
+```go
+environment := "dev"
+serviceName := "m3connector"
+shortCustomerID := strings.ReplaceAll(customerID, "-", "")[:16]
+shortApplicationID := strings.ReplaceAll(applicationID, "-", "")[:16]
+username := fmt.Sprintf("%s.%s.%s.%s", shortCustomerID, shortApplicationID, environment, serviceName)
+```
+- Adds ACL's between the topics and the user with `"readwrite"` permissions.
+
+The command will currently fail if any of the resources already existed.
+
+
+# [4.9.0] - 2022-5-12 [PR: #128](https://github.com/dolittle/platform-api/pull/128)
+## Summary
+
+Hard coding a default resource request and limit for CPU and Memory on:
+- Head containers
+- Runtime containers
+- MongoDB containers (not backup jobs)
+
+The requests are higher for "Prod" environments, according to the suggested default values:
+```yaml
+environments:
+  prod:
+    runtime:
+      resources:
+        requests:
+          cpu: 50m
+          memory: 256Mi
+        limits:
+          cpu: 2000m
+          memory: 1Gi
+    head:
+      resources:
+        requests:
+          cpu: 50m
+          memory: 256Mi
+        limits:
+          cpu: 2000m
+          memory: 1Gi
+    mongodb:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 512Mi
+        limits:
+          cpu: 2000m
+          memory: 2Gi
+
+  non-prod:
+    runtime:
+      resources:
+        requests:
+          cpu: 25m
+          memory: 256Mi
+        limits:
+          cpu: 2000m
+          memory: 1Gi
+    head:
+      resources:
+        requests:
+          cpu: 25m
+          memory: 256Mi
+        limits:
+          cpu: 2000m
+          memory: 1Gi
+    mongodb:
+      resources:
+        requests:
+          cpu: 50m
+          memory: 512Mi
+        limits:
+          cpu: 2000m
+          memory: 2Gi
+
+```
+
+
+# [4.8.3] - 2022-5-12 [PR: #127](https://github.com/dolittle/platform-api/pull/127)
+## Summary
+
+Fixes a bug with config files saved on the configmaps `data` property not being deleted in the `RemoveEntryFromConfigFiles()` method.
+
+## Reference
+- https://app.asana.com/0/1202121266838773/1202261003053932/f
+
+
+# [4.8.2] - 2022-5-11 [PR: #126](https://github.com/dolittle/platform-api/pull/126)
+## Summary
+
+- Fixes a bug with only the `binaryData` property for config files configmaps being used for fetching config files filenames.
+- Adds support for both utf8 & non-utf8 files being uploaded as the configs. If the code detects that the incoming config file isn't valid utf8 it's going to get saved to the `binaryData` property. Otherwise it's saved to `data`.
+
+## Reference
+- https://app.asana.com/0/1202121266838773/1202244401000776
+
+
+# [4.8.1] - 2022-5-10 [PR: #125](https://github.com/dolittle/platform-api/pull/125)
+## Summary
+
+Resolved remaining comments of [PR 121](https://github.com/dolittle/platform-api/pull/121)
+
+### Changed
+
+- use logcontext
+- log as info for validation messages
+- refactoring based on [comments](https://github.com/dolittle/platform-api/pull/121)
+
+
+# [4.8.0] - 2022-5-6 [PR: #121](https://github.com/dolittle/platform-api/pull/121)
+## Summary
+
+- Config Files support
+
+### Added
+
+- Get config files names list for microservice
+  - /live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/config-files/list
+    - GET
+- Delete config file for microservice
+  - /live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/config-files
+    - DELETE
+- Add entry to config file configmap for microservice
+  - /live/application/{applicationID}/environment/{environment}/microservice/{microserviceID}/config-files
+    - PUT
+-  validation
+
+### Changed
+
+- More descriptive error logging in some of the environment variables repo and service
+
+
 # [4.7.0] - 2022-5-5 [PR: #116](https://github.com/dolittle/platform-api/pull/116)
 # Note
 - This does not work in local development due to the container registry, we will need to document how to cheat the system

@@ -4,3 +4,6 @@ platform-api
 
 # Ignore test output
 profile.cov
+
+# Ignore IDE files 
+.idea

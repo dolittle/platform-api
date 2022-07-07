@@ -34,21 +34,21 @@ func (r k8sRepo) GetEnvironmentVariables(applicationID string, environment strin
 	data := make([]platform.StudioEnvironmentVariable, 0)
 	name, err := r.k8sDolittleRepo.GetMicroserviceName(applicationID, environment, microserviceID)
 	if err != nil {
-		return data, errors.New("unable to find microservice")
+		return data, errors.New("GetEnvironmentVariables ERROR: unable to find microservice")
 	}
 
 	configmapName := platformK8s.GetMicroserviceEnvironmentVariableConfigmapName(name)
 
 	configMap, err := r.k8sDolittleRepo.GetConfigMap(applicationID, configmapName)
 	if err != nil {
-		return data, errors.New("unable to load data from configmap")
+		return data, errors.New("GetEnvironmentVariables ERROR: unable to load data from configmap")
 	}
 
 	secretName := platformK8s.GetMicroserviceEnvironmentVariableSecretName(name)
 
 	secret, err := r.k8sDolittleRepo.GetSecret(r.logContext, applicationID, secretName)
 	if err != nil {
-		return data, errors.New("unable to load data from configmap")
+		return data, errors.New("GetEnvironmentVariables ERROR: unable to load data from configmap")
 	}
 
 	for name, value := range configMap.Data {
@@ -76,24 +76,24 @@ func (r k8sRepo) UpdateEnvironmentVariables(applicationID string, environment st
 	uniqueNames := make([]string, 0)
 	for _, item := range data {
 		if item.Name == "" {
-			return err
+			return errors.New("UpdateEnvironmentVariables ERROR: Empty environment variable name in existing configmap")
 		}
 
 		if strings.TrimSpace(item.Name) != item.Name {
-			return err
+			return errors.New("UpdateEnvironmentVariables ERROR: No spaces allowed in environment variable name in existing configmap")
 		}
 
 		if item.Value == "" {
-			return err
+			return errors.New("UpdateEnvironmentVariables ERROR: No empty value allowed in environment variable value in existing configmap")
 		}
 
 		if strings.TrimSpace(item.Value) != item.Value {
-			return err
+			return errors.New("UpdateEnvironmentVariables ERROR: TrimSpace validation failed in environment variable value in existing configmap")
 		}
 
 		// Check for duplicate keys
 		if funk.ContainsString(uniqueNames, item.Name) {
-			return err
+			return errors.New("UpdateEnvironmentVariables ERROR: No duplicate keys allowed in environment variable in existing configmap")
 		}
 
 		uniqueNames = append(uniqueNames, item.Name)
@@ -102,19 +102,19 @@ func (r k8sRepo) UpdateEnvironmentVariables(applicationID string, environment st
 	// Get name of microservice
 	name, err := r.k8sDolittleRepo.GetMicroserviceName(applicationID, environment, microserviceID)
 	if err != nil {
-		return errors.New("unable to find microservice")
+		return errors.New("UpdateEnvironmentVariables ERROR: unable to find microservice")
 	}
 
 	configmapName := platformK8s.GetMicroserviceEnvironmentVariableConfigmapName(name)
 	configMap, err := r.k8sDolittleRepo.GetConfigMap(applicationID, configmapName)
 	if err != nil {
-		return errors.New("unable to load data from configmap")
+		return errors.New("UpdateEnvironmentVariables ERROR: unable to load data from configmap")
 	}
 
 	secretName := platformK8s.GetMicroserviceEnvironmentVariableSecretName(name)
 	secret, err := r.k8sDolittleRepo.GetSecret(r.logContext, applicationID, secretName)
 	if err != nil {
-		return errors.New("unable to load data from configmap")
+		return errors.New("UpdateEnvironmentVariables ERROR: unable to load data from configmap")
 	}
 
 	// TODO would be nice to use a resource (application-namespace branch)
@@ -145,12 +145,12 @@ func (r k8sRepo) UpdateEnvironmentVariables(applicationID string, environment st
 	// Write configmap and secret
 	_, err = r.k8sDolittleRepo.WriteConfigMap(configMap)
 	if err != nil {
-		return errors.New("failed to update configmap")
+		return errors.New("UpdateEnvironmentVariables ERROR: failed to update configmap")
 	}
 
 	_, err = r.k8sDolittleRepo.WriteSecret(secret)
 	if err != nil {
-		return errors.New("failed to update secret")
+		return errors.New("UpdateEnvironmentVariables ERROR: failed to update secret")
 	}
 	return nil
 }

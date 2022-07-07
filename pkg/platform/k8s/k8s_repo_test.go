@@ -47,7 +47,7 @@ var _ = Describe("k8s repo test", func() {
 				want           error
 				clientSet      *fake.Clientset
 				config         *rest.Config
-				k8sRepo        *platformK8s.K8sRepo
+				k8sRepo        platformK8s.K8sPlatformRepo
 				k8sRepoV2      k8s.Repo
 				logger         *logrus.Logger
 			)
@@ -276,7 +276,7 @@ var _ = Describe("k8s repo test", func() {
 			want           error
 			clientSet      *fake.Clientset
 			config         *rest.Config
-			k8sRepo        *platformK8s.K8sRepo
+			k8sRepo        platformK8s.K8sPlatformRepo
 			logger         logrus.FieldLogger
 		)
 
