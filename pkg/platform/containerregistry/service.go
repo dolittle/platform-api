@@ -26,8 +26,11 @@ type HTTPResponseTags struct {
 }
 
 type ImageTag struct {
-	Name         string    `json:"name"`
-	LastModified time.Time `json:"lastModified"`
+	Name           string    `json:"name"`
+	Digest         string    `json:"digest"`
+	CreatedTime    time.Time `json:"createdTime"`
+	LastUpdateTime time.Time `json:"lastUpdateTime"`
+	Signed         bool      `json:"signed"`
 }
 
 type HTTPResponseTags2 struct {

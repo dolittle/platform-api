@@ -102,8 +102,15 @@ func (repo azureRepo) GetTags2(credentials ContainerRegistryCredentials, image s
 	}
 	res := []ImageTag{}
 	for _, atr := range *result.TagsAttributes {
-		lastModified, _ := time.Parse("2006-01-02T15:04:05Z", *atr.LastUpdateTime)
-		res = append(res, ImageTag{Name: *atr.Name, LastModified: lastModified})
+		createdTime, _ := time.Parse(time.RFC3339Nano, *atr.CreatedTime)
+		lastUpdateTime, _ := time.Parse(time.RFC3339Nano, *atr.LastUpdateTime)
+		res = append(res, ImageTag{
+			Name:           *atr.Name,
+			Digest:         *atr.Digest,
+			CreatedTime:    createdTime,
+			LastUpdateTime: lastUpdateTime,
+			Signed:         *atr.Signed,
+		})
 	}
 
 	return res, nil

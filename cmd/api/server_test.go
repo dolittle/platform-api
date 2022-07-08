@@ -20,26 +20,51 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func createRequest(path, xSharedSecret string) *http.Request {
-	request, _ := http.NewRequest("GET", path, nil)
-	if xSharedSecret == "" {
-		request.Header.Del("x-shared-secret")
+type response struct {
+	status int
+	field  string
+	value  interface{}
+}
+
+type request struct {
+	path   string
+	secret string
+}
+
+func expect(req request, res response) {
+	c := http.Client{}
+	httpReq, _ := http.NewRequest("GET", req.path, nil)
+	if req.secret == "" {
+		httpReq.Header.Del("x-shared-secret")
 	} else {
-		request.Header.Set("x-shared-secret", xSharedSecret)
+		httpReq.Header.Set("x-shared-secret", req.secret)
 	}
-	request.Header.Set("Tenant-ID", "123")
-	request.Header.Set("User-ID", "666")
-	return request
+	httpReq.Header.Set("Tenant-ID", "123")
+	httpReq.Header.Set("User-ID", "666")
+
+	httpRes, _ := c.Do(httpReq)
+	Expect(httpRes).ToNot(BeNil())
+
+	if res.status != 0 {
+		Expect(httpRes.StatusCode).To(Equal(res.status))
+	} else {
+		Expect(httpRes.StatusCode).To(Equal(http.StatusOK))
+	}
+
+	if res.value != nil {
+		body, _ := ioutil.ReadAll(httpRes.Body)
+		var jsonData map[string]interface{}
+		json.Unmarshal(body, &jsonData)
+		fmt.Println(jsonData)
+		Expect(jsonData[res.field]).To(Equal(res.value))
+	}
 }
 
 var _ = Describe("Platform API", func() {
 	var gitRepo mocks.GitStorageRepoMock
 	var containerRegistryRepo *mocks.ContainerRegistryMock
 	var server *httptest.Server
-	var crImagesPath string
-	var crTagsPath string
-	var crTagsPath2 string
-	var c http.Client
+	var paths map[string]string
 	now := time.Now()
 
 	BeforeEach(func() {
@@ -54,7 +79,13 @@ var _ = Describe("Platform API", func() {
 		containerRegistryRepo = &mocks.ContainerRegistryMock{}
 		containerRegistryRepo.StubAndReturnImages([]string{"helloworld"})
 		containerRegistryRepo.StubAndReturnTags(([]string{"latest", "v1"}))
-		containerRegistryRepo.StubAndReturnTags2([]containerregistry.ImageTag{{Name: "label1", LastModified: now}})
+		containerRegistryRepo.StubAndReturnTags2([]containerregistry.ImageTag{{
+			Name:           "label1",
+			Digest:         "sha256:...",
+			CreatedTime:    now,
+			LastUpdateTime: now,
+			Signed:         false,
+		}})
 
 		logContext := logrus.StandardLogger()
 		//k8sClient, k8sConfig := platformK8s.InitKubernetesClient()
@@ -67,11 +98,12 @@ var _ = Describe("Platform API", func() {
 
 		srv := NewServer(logContext, gitRepo, k8sClient, k8sPlatformRepoMock, k8sRepoV2, k8sConfig, containerRegistryRepo)
 		server = httptest.NewServer(srv.Handler)
-		crImagesPath = fmt.Sprintf("%s/application/12321/containerregistry/images", server.URL)
-		crTagsPath = fmt.Sprintf("%s/application/12321/containerregistry/tags/helloworld", server.URL)
-		crTagsPath2 = fmt.Sprintf("%s/application/12321/containerregistry/tags2/helloworld", server.URL)
 
-		c = http.Client{}
+		paths = map[string]string{
+			"images": fmt.Sprintf("%s/application/12321/containerregistry/images", server.URL),
+			"tags":   fmt.Sprintf("%s/application/12321/containerregistry/tags/helloworld", server.URL),
+			"tags2":  fmt.Sprintf("%s/application/12321/containerregistry/tags2/helloworld", server.URL),
+		}
 	})
 
 	AfterEach(func() {
@@ -81,96 +113,88 @@ var _ = Describe("Platform API", func() {
 	Describe("When fetch images from Container Registry", func() {
 
 		It("should return 403 Forbidden when x-shared-secret header is not set", func() {
-			request := createRequest(crImagesPath, "")
-			response, _ := c.Do(request)
-
-			Expect(response).ToNot(BeNil())
-			Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			expect(
+				request{path: paths["images"], secret: ""},
+				response{status: http.StatusForbidden},
+			)
 		})
 
 		It("should rertun 403 Forbidden when x-shared-secret header is invalid", func() {
-			request := createRequest(crImagesPath, "invalid header")
-			response, _ := c.Do(request)
-
-			Expect(response).ToNot(BeNil())
-			Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			expect(
+				request{path: paths["images"], secret: "invalid header"},
+				response{status: http.StatusForbidden},
+			)
 		})
 
 		It("should include message in the response when x-shared-secret header is invalid", func() {
-			request := createRequest(crImagesPath, "invalid header")
-			response, _ := c.Do(request)
-
-			r, _ := ioutil.ReadAll(response.Body)
-			var jsonData map[string]interface{}
-			json.Unmarshal(r, &jsonData)
-			Expect(jsonData["message"]).To(Equal("Shared secret is wrong"))
+			expect(
+				request{path: paths["images"], secret: "invalid header"},
+				response{
+					status: http.StatusForbidden,
+					field:  "message",
+					value:  "Shared secret is wrong",
+				},
+			)
 		})
 
 		It("should return container registry URL from the customer's config in our db (git storage)", func() {
-			request := createRequest(crImagesPath, "johnc")
-			response, _ := c.Do(request)
-
-			Expect(response).ToNot(BeNil())
-			Expect(response.StatusCode).To(Equal(http.StatusOK))
-			r, _ := ioutil.ReadAll(response.Body)
-			var jsonData map[string]interface{}
-			json.Unmarshal(r, &jsonData)
-			Expect(jsonData["url"]).To(Equal("test1.azurecr.io"))
+			expect(
+				request{path: paths["images"], secret: "johnc"},
+				response{
+					field: "url",
+					value: "test1.azurecr.io",
+				},
+			)
 		})
 
 		It("should return the images", func() {
-			request := createRequest(crImagesPath, "johnc")
-			response, _ := c.Do(request)
-
-			Expect(response).ToNot(BeNil())
-			Expect(response.StatusCode).To(Equal(http.StatusOK))
-			r, _ := ioutil.ReadAll(response.Body)
-			var jsonData map[string]interface{}
-			json.Unmarshal(r, &jsonData)
-			Expect(jsonData["images"]).To(Equal([]interface{}{"helloworld"}))
+			expect(
+				request{path: paths["images"], secret: "johnc"},
+				response{
+					field: "images",
+					value: []interface{}{"helloworld"},
+				},
+			)
 		})
 
 	})
 
 	Describe("When fetch tags for the images", func() {
 		It("should return the tags", func() {
-			request := createRequest(crTagsPath, "johnc")
-			response, _ := c.Do(request)
-
-			Expect(response).ToNot(BeNil())
-			Expect(response.StatusCode).To(Equal(http.StatusOK))
-			r, _ := ioutil.ReadAll(response.Body)
-			var jsonData map[string]interface{}
-			json.Unmarshal(r, &jsonData)
-			Expect(jsonData["tags"]).To(Equal([]interface{}{"latest", "v1"}))
+			expect(
+				request{path: paths["tags"], secret: "johnc"},
+				response{
+					field: "tags",
+					value: []interface{}{"latest", "v1"},
+				},
+			)
 		})
-
 	})
 
 	Describe("When fetch tags v2 for the images", func() {
 		It("should return the tags with last modified date", func() {
-			request := createRequest(crTagsPath2, "johnc")
-			response, _ := c.Do(request)
-
-			Expect(response).ToNot(BeNil())
-			Expect(response.StatusCode).To(Equal(http.StatusOK))
-			r, _ := ioutil.ReadAll(response.Body)
-			var jsonData map[string]interface{}
-			json.Unmarshal(r, &jsonData)
-			Expect(jsonData["tags"]).To(Equal(
-				[]interface{}{
-					map[string]interface{}{"name": "label1", "lastModified": now.Format(time.RFC3339Nano)},
+			expect(
+				request{path: paths["tags2"], secret: "johnc"},
+				response{
+					field: "tags",
+					value: []interface{}{
+						map[string]interface{}{
+							"name":           "label1",
+							"digest":         "sha256:...",
+							"createdTime":    now.Format(time.RFC3339Nano),
+							"lastUpdateTime": now.Format(time.RFC3339Nano),
+							"signed":         false,
+						},
+					},
 				},
-			))
+			)
 		})
 
 		It("should rertun 403 Forbidden when x-shared-secret header is invalid", func() {
-			request := createRequest(crTagsPath2, "invalid header")
-			response, _ := c.Do(request)
-
-			Expect(response).ToNot(BeNil())
-			Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			expect(
+				request{path: paths["tags2"], secret: "invalid header"},
+				response{status: http.StatusForbidden},
+			)
 		})
 	})
-
 })
