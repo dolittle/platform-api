@@ -232,18 +232,17 @@ func (s *service) GetImageTags(w http.ResponseWriter, r *http.Request) {
 
 	credentials, err := s.getContainerRegistryCredentialsFromKubernetes(logContext, applicationID, customer.ContainerRegistryName)
 	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, "Something went wrong")
+		logContext.WithField("error", err).Warning("couldn't get the ACR credentials from kubernetes")
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	tags, err := s.repo.GetImageTags(credentials, imageName)
 	if err != nil {
-		if err == ErrNotFound {
-			utils.RespondWithError(w, http.StatusNotFound, "Tag was not found")
-			return
-		}
-		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to get tags")
+		logContext.WithField("error", err).Warning("failed to get tags")
+		utils.RespondWithError(w, http.StatusNotFound, err.Error())
 		return
+
 	}
 
 	response := HTTPResponseImageTags{
