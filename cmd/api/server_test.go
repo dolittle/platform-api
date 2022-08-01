@@ -79,7 +79,7 @@ var _ = Describe("Platform API", func() {
 		containerRegistryRepo = &mocks.ContainerRegistryMock{}
 		containerRegistryRepo.StubAndReturnImages([]string{"helloworld"})
 		containerRegistryRepo.StubAndReturnTags(([]string{"latest", "v1"}))
-		containerRegistryRepo.StubAndReturnTags2([]containerregistry.ImageTag{{
+		containerRegistryRepo.StubAndReturnImageTags([]containerregistry.ImageTag{{
 			Name:           "label1",
 			Digest:         "sha256:...",
 			CreatedTime:    now,
@@ -100,9 +100,9 @@ var _ = Describe("Platform API", func() {
 		server = httptest.NewServer(srv.Handler)
 
 		paths = map[string]string{
-			"images": fmt.Sprintf("%s/application/12321/containerregistry/images", server.URL),
-			"tags":   fmt.Sprintf("%s/application/12321/containerregistry/tags/helloworld", server.URL),
-			"tags2":  fmt.Sprintf("%s/application/12321/containerregistry/tags2/helloworld", server.URL),
+			"images":     fmt.Sprintf("%s/application/12321/containerregistry/images", server.URL),
+			"tags":       fmt.Sprintf("%s/application/12321/containerregistry/tags/helloworld", server.URL),
+			"image-tags": fmt.Sprintf("%s/application/12321/containerregistry/image-tags/helloworld", server.URL),
 		}
 	})
 
@@ -174,7 +174,7 @@ var _ = Describe("Platform API", func() {
 	Describe("When fetch tags v2 for the images", func() {
 		It("should return the tags with last modified date", func() {
 			expect(
-				request{path: paths["tags2"], secret: "johnc"},
+				request{path: paths["image-tags"], secret: "johnc"},
 				response{
 					field: "tags",
 					value: []interface{}{
@@ -192,7 +192,7 @@ var _ = Describe("Platform API", func() {
 
 		It("should rertun 403 Forbidden when x-shared-secret header is invalid", func() {
 			expect(
-				request{path: paths["tags2"], secret: "invalid header"},
+				request{path: paths["image-tags"], secret: "invalid header"},
 				response{status: http.StatusForbidden},
 			)
 		})

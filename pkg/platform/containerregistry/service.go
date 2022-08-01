@@ -33,7 +33,7 @@ type ImageTag struct {
 	Signed         bool      `json:"signed"`
 }
 
-type HTTPResponseTags2 struct {
+type HTTPResponseImageTags struct {
 	Name string     `json:"name"`
 	Tags []ImageTag `json:"tags"`
 }
@@ -48,7 +48,7 @@ type ContainerRegistryCredentials struct {
 type ContainerRegistryRepo interface {
 	GetImages(credentials ContainerRegistryCredentials) ([]string, error)
 	GetTags(credentials ContainerRegistryCredentials, image string) ([]string, error)
-	GetTags2(credentials ContainerRegistryCredentials, image string) ([]ImageTag, error)
+	GetImageTags(credentials ContainerRegistryCredentials, imageName string) ([]ImageTag, error)
 }
 
 type service struct {
@@ -202,7 +202,7 @@ func (s *service) GetTags(w http.ResponseWriter, r *http.Request) {
 	utils.RespondWithJSON(w, http.StatusOK, response)
 }
 
-func (s *service) GetTags2(w http.ResponseWriter, r *http.Request) {
+func (s *service) GetImageTags(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	applicationID := vars["applicationID"]
 	imageName := vars["imageName"]
@@ -234,7 +234,7 @@ func (s *service) GetTags2(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tags, err := s.repo.GetTags2(credentials, imageName)
+	tags, err := s.repo.GetImageTags(credentials, imageName)
 	if err != nil {
 		if err == ErrNotFound {
 			utils.RespondWithError(w, http.StatusNotFound, "Tag was not found")
@@ -244,7 +244,7 @@ func (s *service) GetTags2(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := HTTPResponseTags2{
+	response := HTTPResponseImageTags{
 		Name: imageName,
 		Tags: tags,
 	}

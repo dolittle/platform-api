@@ -79,7 +79,7 @@ func (repo azureRepo) GetTags(credentials ContainerRegistryCredentials, image st
 	return *result.Tags, nil
 }
 
-func (repo azureRepo) GetTags2(credentials ContainerRegistryCredentials, image string) ([]ImageTag, error) {
+func (repo azureRepo) GetImageTags(credentials ContainerRegistryCredentials, imageName string) ([]ImageTag, error) {
 	ctx := context.Background()
 
 	username := credentials.Username
@@ -89,8 +89,10 @@ func (repo azureRepo) GetTags2(credentials ContainerRegistryCredentials, image s
 	baseClient := containerregistry.New(credentials.URL)
 	baseClient.Authorizer = basicAuthorizer
 	var n int32
+	var last, orderby, digest string
+	orderby = "lastUpdateTime"
 
-	result, err := baseClient.GetAcrTags(ctx, image, "", &n, "", "")
+	result, err := baseClient.GetAcrTags(ctx, imageName, last, &n, orderby, digest)
 
 	if err != nil {
 		if result.Response.StatusCode == http.StatusNotFound {
