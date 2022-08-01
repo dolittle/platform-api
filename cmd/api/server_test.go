@@ -60,13 +60,23 @@ func expect(req request, res response) {
 	}
 }
 
-var _ = Describe("Platform API", func() {
-	var gitRepo mocks.GitStorageRepoMock
-	var containerRegistryRepo *mocks.ContainerRegistryMock
-	var server *httptest.Server
-	var paths map[string]string
-	now := time.Now()
+func setup(containerRegistryRepo *mocks.ContainerRegistryMock) *httptest.Server {
+	gitRepo := mocks.GitStorageRepoMock{}
 
+	logContext := logrus.StandardLogger()
+
+	k8sClient := fake.NewSimpleClientset()
+	k8sConfig := &rest.Config{}
+
+	k8sPlatformRepoMock := &mocks.K8sPlatformRepoMock{}
+	k8sPlatformRepoMock.StubGetSecretAndReturn(&corev1.Secret{})
+	k8sRepoV2 := k8s.NewRepo(k8sClient, logContext.WithField("context", "k8s-repo-v2"))
+
+	srv := NewServer(logContext, gitRepo, k8sClient, k8sPlatformRepoMock, k8sRepoV2, k8sConfig, containerRegistryRepo)
+	return httptest.NewServer(srv.Handler)
+}
+
+var _ = Describe("Platform API", func() {
 	BeforeEach(func() {
 		viper.Set("tools.server.gitRepo.branch", "foo")
 		viper.Set("tools.server.gitRepo.directory", "/tmp/dolittle_operation")
@@ -74,61 +84,39 @@ var _ = Describe("Platform API", func() {
 		viper.Set("tools.server.gitRepo.sshKey", "does/not/exist")
 		viper.Set("tools.server.kubernetes.externalClusterHost", "external-host")
 		viper.Set("tools.server.secret", "johnc")
-
-		gitRepo = mocks.GitStorageRepoMock{}
-		containerRegistryRepo = &mocks.ContainerRegistryMock{}
-		containerRegistryRepo.StubAndReturnImages([]string{"helloworld"})
-		containerRegistryRepo.StubAndReturnTags(([]string{"latest", "v1"}))
-		containerRegistryRepo.StubAndReturnImageTags([]containerregistry.ImageTag{{
-			Name:           "label1",
-			Digest:         "sha256:...",
-			CreatedTime:    now,
-			LastUpdateTime: now,
-			Signed:         false,
-		}})
-
-		logContext := logrus.StandardLogger()
-		//k8sClient, k8sConfig := platformK8s.InitKubernetesClient()
-		k8sClient := fake.NewSimpleClientset()
-		k8sConfig := &rest.Config{}
-
-		k8sPlatformRepoMock := &mocks.K8sPlatformRepoMock{}
-		k8sPlatformRepoMock.StubGetSecretAndReturn(&corev1.Secret{})
-		k8sRepoV2 := k8s.NewRepo(k8sClient, logContext.WithField("context", "k8s-repo-v2"))
-
-		srv := NewServer(logContext, gitRepo, k8sClient, k8sPlatformRepoMock, k8sRepoV2, k8sConfig, containerRegistryRepo)
-		server = httptest.NewServer(srv.Handler)
-
-		paths = map[string]string{
-			"images":     fmt.Sprintf("%s/application/12321/containerregistry/images", server.URL),
-			"tags":       fmt.Sprintf("%s/application/12321/containerregistry/tags/helloworld", server.URL),
-			"image-tags": fmt.Sprintf("%s/application/12321/containerregistry/image-tags/helloworld", server.URL),
-		}
-	})
-
-	AfterEach(func() {
-		server.Close()
 	})
 
 	Describe("When fetch images from Container Registry", func() {
+		var path string
+		var server *httptest.Server
+		BeforeEach(func() {
+			containerRegistryRepo := &mocks.ContainerRegistryMock{}
+			containerRegistryRepo.StubAndReturnImages([]string{"helloworld"})
+
+			server = setup(containerRegistryRepo)
+			path = fmt.Sprintf("%s/application/12321/containerregistry/images", server.URL)
+		})
+		AfterEach(func() {
+			server.Close()
+		})
 
 		It("should return 403 Forbidden when x-shared-secret header is not set", func() {
 			expect(
-				request{path: paths["images"], secret: ""},
+				request{path: path, secret: ""},
 				response{status: http.StatusForbidden},
 			)
 		})
 
-		It("should rertun 403 Forbidden when x-shared-secret header is invalid", func() {
+		It("should return 403 Forbidden when x-shared-secret header is invalid", func() {
 			expect(
-				request{path: paths["images"], secret: "invalid header"},
+				request{path: path, secret: "invalid header"},
 				response{status: http.StatusForbidden},
 			)
 		})
 
 		It("should include message in the response when x-shared-secret header is invalid", func() {
 			expect(
-				request{path: paths["images"], secret: "invalid header"},
+				request{path: path, secret: "invalid header"},
 				response{
 					status: http.StatusForbidden,
 					field:  "message",
@@ -139,7 +127,7 @@ var _ = Describe("Platform API", func() {
 
 		It("should return container registry URL from the customer's config in our db (git storage)", func() {
 			expect(
-				request{path: paths["images"], secret: "johnc"},
+				request{path: path, secret: "johnc"},
 				response{
 					field: "url",
 					value: "test1.azurecr.io",
@@ -149,7 +137,7 @@ var _ = Describe("Platform API", func() {
 
 		It("should return the images", func() {
 			expect(
-				request{path: paths["images"], secret: "johnc"},
+				request{path: path, secret: "johnc"},
 				response{
 					field: "images",
 					value: []interface{}{"helloworld"},
@@ -160,9 +148,22 @@ var _ = Describe("Platform API", func() {
 	})
 
 	Describe("When fetch tags for the images", func() {
+		var path string
+		var server *httptest.Server
+		BeforeEach(func() {
+			containerRegistryRepo := &mocks.ContainerRegistryMock{}
+			containerRegistryRepo.StubAndReturnTags(([]string{"latest", "v1"}))
+
+			server = setup(containerRegistryRepo)
+			path = fmt.Sprintf("%s/application/12321/containerregistry/tags/helloworld", server.URL)
+		})
+		AfterEach(func() {
+			server.Close()
+		})
+
 		It("should return the tags", func() {
 			expect(
-				request{path: paths["tags"], secret: "johnc"},
+				request{path: path, secret: "johnc"},
 				response{
 					field: "tags",
 					value: []interface{}{"latest", "v1"},
@@ -172,9 +173,29 @@ var _ = Describe("Platform API", func() {
 	})
 
 	Describe("When fetch tags v2 for the images", func() {
+		var path string
+		now := time.Now()
+		var server *httptest.Server
+		BeforeEach(func() {
+			containerRegistryRepo := &mocks.ContainerRegistryMock{}
+			containerRegistryRepo.StubAndReturnImageTags([]containerregistry.ImageTag{{
+				Name:           "label1",
+				Digest:         "sha256:...",
+				CreatedTime:    now,
+				LastUpdateTime: now,
+				Signed:         false,
+			}})
+
+			server = setup(containerRegistryRepo)
+			path = fmt.Sprintf("%s/application/12321/containerregistry/image-tags/helloworld", server.URL)
+		})
+		AfterEach(func() {
+			server.Close()
+		})
+
 		It("should return the tags with last modified date", func() {
 			expect(
-				request{path: paths["image-tags"], secret: "johnc"},
+				request{path: path, secret: "johnc"},
 				response{
 					field: "tags",
 					value: []interface{}{
@@ -190,9 +211,9 @@ var _ = Describe("Platform API", func() {
 			)
 		})
 
-		It("should rertun 403 Forbidden when x-shared-secret header is invalid", func() {
+		It("should return 403 Forbidden when x-shared-secret header is invalid", func() {
 			expect(
-				request{path: paths["image-tags"], secret: "invalid header"},
+				request{path: path, secret: "invalid header"},
 				response{status: http.StatusForbidden},
 			)
 		})
