@@ -33,14 +33,6 @@ type GitSync interface {
 	Pull() error
 }
 
-/*type GitStorageFoo interface {
-	Pull() error
-	CommitPathAndPush(path string, msg string) error
-	IsAutomationEnabledWithStudioConfig(studioConfig platform.StudioConfig, applicationID string, environment string) bool
-	GetRoot() string
-	GetRepository() *git.Repository
-}*/
-
 type GitStorage struct {
 	logContext logrus.FieldLogger
 	Repo       *git.Repository
