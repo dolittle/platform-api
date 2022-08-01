@@ -209,9 +209,18 @@ func (s *service) GetImageTags(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get("User-ID")
 	customerID := r.Header.Get("Tenant-ID")
 
+	logContext := s.logContext.WithFields(logrus.Fields{
+		"method":        "GetImageTags",
+		"customerID":    customerID,
+		"applicationID": applicationID,
+		"userID":        userID,
+	})
+
+	logContext.Debug("got request for fetching repository image tags")
+
 	customer, err := s.gitRepo.GetTerraformTenant(customerID)
 	if err != nil {
-		// TODO handle not found
+		logContext.WithField("error", err).Warning("failed to get customers terraform information")
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -220,13 +229,6 @@ func (s *service) GetImageTags(w http.ResponseWriter, r *http.Request) {
 	if !allowed {
 		return
 	}
-
-	logContext := s.logContext.WithFields(logrus.Fields{
-		"method":        "GetTags",
-		"customerID":    customerID,
-		"applicationID": applicationID,
-		"userID":        userID,
-	})
 
 	credentials, err := s.getContainerRegistryCredentialsFromKubernetes(logContext, applicationID, customer.ContainerRegistryName)
 	if err != nil {
