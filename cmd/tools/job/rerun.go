@@ -50,6 +50,8 @@ go run main.go tools job rerun <job-name>
 		}
 
 		timeoutCtx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*10))
+		// have to create a watcher as the job deletion isn't instantaneous and I don't want to deal with
+		// giving each job a unique name as it would make using this tool harder on subsequent tries
 		watcher, err := client.BatchV1().Jobs(namespace).Watch(timeoutCtx, watchOptions)
 		defer cancel()
 		defer watcher.Stop()
