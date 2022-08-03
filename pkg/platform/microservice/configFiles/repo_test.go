@@ -28,7 +28,7 @@ var _ = Describe("Repo", func() {
 
 		clientSet *fake.Clientset
 		config    *rest.Config
-		k8sRepo   platformK8s.K8sRepo
+		k8sRepo   platformK8s.K8sPlatformRepo
 		// k8sRepoV2 k8s.Repo
 		logger         *logrus.Logger
 		applicationID  string

@@ -30,7 +30,7 @@ var _ = Describe("Repo", func() {
 	var (
 		clientSet                *fake.Clientset
 		config                   *rest.Config
-		k8sDolittleRepo          platformK8s.K8sRepo
+		k8sDolittleRepo          platformK8s.K8sPlatformRepo
 		mockK8sRepoV2            *mockPkgK8s.Repo
 		repo                     simple.Repo
 		logger                   *logrus.Logger

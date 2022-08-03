@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	applicationK8s "github.com/dolittle/platform-api/pkg/platform/application/k8s"
 	platformK8s "github.com/dolittle/platform-api/pkg/platform/k8s"
@@ -24,6 +25,19 @@ type HTTPResponseTags struct {
 	Tags []string `json:"tags"`
 }
 
+type ImageTag struct {
+	Name           string    `json:"name"`
+	Digest         string    `json:"digest"`
+	CreatedTime    time.Time `json:"createdTime"`
+	LastUpdateTime time.Time `json:"lastUpdateTime"`
+	Signed         bool      `json:"signed"`
+}
+
+type HTTPResponseImageTags struct {
+	Name string     `json:"name"`
+	Tags []ImageTag `json:"tags"`
+}
+
 // TODO maybe tags returns array of objects
 type ContainerRegistryCredentials struct {
 	URL      string
@@ -34,19 +48,20 @@ type ContainerRegistryCredentials struct {
 type ContainerRegistryRepo interface {
 	GetImages(credentials ContainerRegistryCredentials) ([]string, error)
 	GetTags(credentials ContainerRegistryCredentials, image string) ([]string, error)
+	GetImageTags(credentials ContainerRegistryCredentials, imageName string) ([]ImageTag, error)
 }
 
 type service struct {
 	gitRepo         storage.Repo
 	repo            ContainerRegistryRepo
-	k8sDolittleRepo platformK8s.K8sRepo
+	k8sDolittleRepo platformK8s.K8sPlatformRepo
 	logContext      logrus.FieldLogger
 }
 
 func NewService(
 	gitRepo storage.Repo,
 	repo ContainerRegistryRepo,
-	k8sDolittleRepo platformK8s.K8sRepo,
+	k8sDolittleRepo platformK8s.K8sPlatformRepo,
 	logContext logrus.FieldLogger,
 ) service {
 	return service{
@@ -180,6 +195,57 @@ func (s *service) GetTags(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := HTTPResponseTags{
+		Name: imageName,
+		Tags: tags,
+	}
+
+	utils.RespondWithJSON(w, http.StatusOK, response)
+}
+
+func (s *service) GetImageTags(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	applicationID := vars["applicationID"]
+	imageName := vars["imageName"]
+	userID := r.Header.Get("User-ID")
+	customerID := r.Header.Get("Tenant-ID")
+
+	logContext := s.logContext.WithFields(logrus.Fields{
+		"method":        "GetImageTags",
+		"customerID":    customerID,
+		"applicationID": applicationID,
+		"userID":        userID,
+	})
+
+	logContext.Debug("got request for fetching repository image tags")
+
+	customer, err := s.gitRepo.GetTerraformTenant(customerID)
+	if err != nil {
+		logContext.WithField("error", err).Warning("failed to get customers terraform information")
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	allowed := s.k8sDolittleRepo.CanModifyApplicationWithResponse(w, customerID, applicationID, userID)
+	if !allowed {
+		return
+	}
+
+	credentials, err := s.getContainerRegistryCredentialsFromKubernetes(logContext, applicationID, customer.ContainerRegistryName)
+	if err != nil {
+		logContext.WithField("error", err).Warning("couldn't get the ACR credentials from kubernetes")
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	tags, err := s.repo.GetImageTags(credentials, imageName)
+	if err != nil {
+		logContext.WithField("error", err).Warning("failed to get tags")
+		utils.RespondWithError(w, http.StatusNotFound, err.Error())
+		return
+
+	}
+
+	response := HTTPResponseImageTags{
 		Name: imageName,
 		Tags: tags,
 	}

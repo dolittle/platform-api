@@ -29,7 +29,7 @@ var gitTestCMD = &cobra.Command{
 			gitRepoConfig,
 		)
 
-		dir := filepath.Join(gitRepo.Directory, "dev", "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3")
+		dir := filepath.Join(gitRepo.GetDirectory(), "dev", "453e04a7-4f9d-42f2-b36c-d51fa2c83fa3")
 
 		err := os.MkdirAll(dir, 0755)
 		if err != nil {

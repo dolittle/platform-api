@@ -37,7 +37,7 @@ var _ = Describe("Testing endpoints", func() {
 		gitRepo   *mockStorage.Repo
 		clientSet *fake.Clientset
 		config    *rest.Config
-		k8sRepo   platformK8s.K8sRepo
+		k8sRepo   platformK8s.K8sPlatformRepo
 		service   application.Service
 
 		customerID    string

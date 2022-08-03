@@ -17,7 +17,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func NewService(logContext logrus.FieldLogger, k8sDolittleRepo platformK8s.K8sRepo, lokiHost string) service {
+func NewService(logContext logrus.FieldLogger, k8sDolittleRepo platformK8s.K8sPlatformRepo, lokiHost string) service {
 	return service{
 		logContext:      logContext,
 		k8sDolittleRepo: k8sDolittleRepo,

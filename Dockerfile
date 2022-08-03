@@ -1,7 +1,7 @@
 # ----------------------------------------------------
 # Base
 # ----------------------------------------------------
-FROM golang:1.16.3-alpine3.13 AS build_base
+FROM golang:1.18.3-alpine3.15 AS build_base
 RUN mkdir -p {/app/dolittle/app/bin}
 WORKDIR /app/dolittle
 
@@ -30,7 +30,7 @@ RUN go build -ldflags "-s -w " -o app main.go
 # ----------------------------------------------------
 # Release
 # ----------------------------------------------------
-FROM alpine:3.13 AS release
+FROM alpine:3.15 AS release
 ENV LC_ALL=en_US.UTF-8
 ENV LC_LANG=en_US.UTF-8
 ENV LC_LANGUAGE=en_US.UTF-8

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/services/preview/containerregistry/runtime/2019-07/containerregistry"
 	"github.com/Azure/go-autorest/autorest"
@@ -76,4 +77,45 @@ func (repo azureRepo) GetTags(credentials ContainerRegistryCredentials, image st
 	}
 
 	return *result.Tags, nil
+}
+
+// GetImageTags gets a list of tags for an image with name imageName by using the GetAcrTags api.
+// This can be used instead of GetTags, if metadata (e.g. creation date) about tags is needed.
+func (repo azureRepo) GetImageTags(credentials ContainerRegistryCredentials, imageName string) ([]ImageTag, error) {
+	ctx := context.Background()
+
+	username := credentials.Username
+	password := credentials.Password
+	basicAuthorizer := autorest.NewBasicAuthorizer(username, password)
+
+	baseClient := containerregistry.New(credentials.URL)
+	baseClient.Authorizer = basicAuthorizer
+	var n int32
+	var last, orderby, digest string
+	orderby = "lastUpdateTime"
+
+	result, err := baseClient.GetAcrTags(ctx, imageName, last, &n, orderby, digest)
+
+	if err != nil {
+		if result.Response.StatusCode == http.StatusNotFound {
+			return []ImageTag{}, ErrNotFound
+		}
+
+		repo.logContext.WithField("error", err).Error("failed to get tags")
+		return []ImageTag{}, errors.New("failed to get tags")
+	}
+	res := []ImageTag{}
+	for _, atr := range *result.TagsAttributes {
+		createdTime, _ := time.Parse(time.RFC3339Nano, *atr.CreatedTime)
+		lastUpdateTime, _ := time.Parse(time.RFC3339Nano, *atr.LastUpdateTime)
+		res = append(res, ImageTag{
+			Name:           *atr.Name,
+			Digest:         *atr.Digest,
+			CreatedTime:    createdTime,
+			LastUpdateTime: lastUpdateTime,
+			Signed:         *atr.Signed,
+		})
+	}
+
+	return res, nil
 }

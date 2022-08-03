@@ -11,7 +11,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func Do(client kubernetes.Interface, resources Resources, k8sRepo platformK8s.K8sRepo) error {
+func Do(client kubernetes.Interface, resources Resources, k8sRepo platformK8s.K8sPlatformRepo) error {
 	ctx := context.TODO()
 	namespace := resources.Namespace.ObjectMeta.Name
 	applicationID := resources.Namespace.Annotations["dolittle.io/application-id"]

@@ -160,7 +160,7 @@ func createStanResources(namespace, environment string, labels, annotations labe
 								},
 							},
 							LivenessProbe: &corev1.Probe{
-								Handler: corev1.Handler{
+								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path: "/",
 										Port: intstr.FromString("monitor"),

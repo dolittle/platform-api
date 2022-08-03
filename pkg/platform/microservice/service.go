@@ -31,7 +31,7 @@ type service struct {
 	businessMomentsAdaptorRepo businessMomentsAdaptorRepo
 	rawDataLogIngestorRepo     rawdatalog.RawDataLogIngestorRepo
 	purchaseOrderHandler       *purchaseorderapi.Handler
-	k8sDolittleRepo            platformK8s.K8sRepo
+	k8sDolittleRepo            platformK8s.K8sPlatformRepo
 	gitRepo                    storage.Repo
 	parser                     parser.Parser
 	logContext                 logrus.FieldLogger
@@ -40,7 +40,7 @@ type service struct {
 func NewService(
 	isProduction bool,
 	gitRepo storage.Repo,
-	k8sDolittleRepo platformK8s.K8sRepo,
+	k8sDolittleRepo platformK8s.K8sPlatformRepo,
 	k8sClient kubernetes.Interface,
 	simpleRepo simple.Repo,
 	logContext logrus.FieldLogger,

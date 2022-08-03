@@ -40,7 +40,7 @@ var _ = Describe("Repo", func() {
 	var (
 		clientSet           *fake.Clientset
 		config              *rest.Config
-		k8sRepo             platformK8s.K8sRepo
+		k8sRepo             platformK8s.K8sPlatformRepo
 		gitRepo             *mockStorage.Repo
 		logger              *logrus.Logger
 		platformEnvironment string

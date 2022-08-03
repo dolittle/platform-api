@@ -17,12 +17,12 @@ type EnvironmentVariablesRepo interface {
 }
 
 type k8sRepo struct {
-	k8sDolittleRepo platformK8s.K8sRepo
+	k8sDolittleRepo platformK8s.K8sPlatformRepo
 	k8sClient       kubernetes.Interface
 	logContext      logrus.FieldLogger
 }
 
-func NewEnvironmentVariablesK8sRepo(k8sDolittleRepo platformK8s.K8sRepo, k8sClient kubernetes.Interface, logContext logrus.FieldLogger) k8sRepo {
+func NewEnvironmentVariablesK8sRepo(k8sDolittleRepo platformK8s.K8sPlatformRepo, k8sClient kubernetes.Interface, logContext logrus.FieldLogger) k8sRepo {
 	return k8sRepo{
 		k8sDolittleRepo: k8sDolittleRepo,
 		k8sClient:       k8sClient,
