@@ -12,6 +12,29 @@ type ContainerRegistryRepo struct {
 	mock.Mock
 }
 
+// GetImageTags provides a mock function with given fields: credentials, imageName
+func (_m *ContainerRegistryRepo) GetImageTags(credentials platformcontainerregistry.ContainerRegistryCredentials, imageName string) ([]platformcontainerregistry.ImageTag, error) {
+	ret := _m.Called(credentials, imageName)
+
+	var r0 []platformcontainerregistry.ImageTag
+	if rf, ok := ret.Get(0).(func(platformcontainerregistry.ContainerRegistryCredentials, string) []platformcontainerregistry.ImageTag); ok {
+		r0 = rf(credentials, imageName)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]platformcontainerregistry.ImageTag)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(platformcontainerregistry.ContainerRegistryCredentials, string) error); ok {
+		r1 = rf(credentials, imageName)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetImages provides a mock function with given fields: credentials
 func (_m *ContainerRegistryRepo) GetImages(credentials platformcontainerregistry.ContainerRegistryCredentials) ([]string, error) {
 	ret := _m.Called(credentials)
@@ -45,29 +68,6 @@ func (_m *ContainerRegistryRepo) GetTags(credentials platformcontainerregistry.C
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]string)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(platformcontainerregistry.ContainerRegistryCredentials, string) error); ok {
-		r1 = rf(credentials, image)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetTags2 provides a mock function with given fields: credentials, image
-func (_m *ContainerRegistryRepo) GetTags2(credentials platformcontainerregistry.ContainerRegistryCredentials, image string) ([]platformcontainerregistry.ImageTag, error) {
-	ret := _m.Called(credentials, image)
-
-	var r0 []platformcontainerregistry.ImageTag
-	if rf, ok := ret.Get(0).(func(platformcontainerregistry.ContainerRegistryCredentials, string) []platformcontainerregistry.ImageTag); ok {
-		r0 = rf(credentials, image)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]platformcontainerregistry.ImageTag)
 		}
 	}
 

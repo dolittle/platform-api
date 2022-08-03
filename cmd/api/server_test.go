@@ -8,16 +8,25 @@ import (
 	"net/http/httptest"
 	"time"
 
-	"github.com/dolittle/platform-api/cmd/api/mocks"
 	"github.com/dolittle/platform-api/pkg/k8s"
+	"github.com/dolittle/platform-api/pkg/platform"
 	"github.com/dolittle/platform-api/pkg/platform/containerregistry"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+	logrusTest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/spf13/viper"
+	"github.com/stretchr/testify/mock"
 	corev1 "k8s.io/api/core/v1"
+
+	// "github.com/test-go/testify/mock"
+
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
+
+	mockCR "github.com/dolittle/platform-api/mocks/pkg/platform/containerregistry"
+	mockK8s "github.com/dolittle/platform-api/mocks/pkg/platform/k8s"
+	mockStorage "github.com/dolittle/platform-api/mocks/pkg/platform/storage"
 )
 
 type response struct {
@@ -60,23 +69,17 @@ func expect(req request, res response) {
 	}
 }
 
-func setup(containerRegistryRepo *mocks.ContainerRegistryMock) *httptest.Server {
-	gitRepo := mocks.GitStorageRepoMock{}
-
-	logContext := logrus.StandardLogger()
-
-	k8sClient := fake.NewSimpleClientset()
-	k8sConfig := &rest.Config{}
-
-	k8sPlatformRepoMock := &mocks.K8sPlatformRepoMock{}
-	k8sPlatformRepoMock.StubGetSecretAndReturn(&corev1.Secret{})
-	k8sRepoV2 := k8s.NewRepo(k8sClient, logContext.WithField("context", "k8s-repo-v2"))
-
-	srv := NewServer(logContext, gitRepo, k8sClient, k8sPlatformRepoMock, k8sRepoV2, k8sConfig, containerRegistryRepo)
-	return httptest.NewServer(srv.Handler)
-}
-
 var _ = Describe("Platform API", func() {
+	var (
+		logger                *logrus.Logger
+		k8sPlatformRepoMock   *mockK8s.K8sPlatformRepo
+		gitRepo               *mockStorage.Repo
+		containerRegistryRepo *mockCR.ContainerRegistryRepo
+		server                *httptest.Server
+		path                  string
+		now                   time.Time
+	)
+
 	BeforeEach(func() {
 		viper.Set("tools.server.gitRepo.branch", "foo")
 		viper.Set("tools.server.gitRepo.directory", "/tmp/dolittle_operation")
@@ -84,20 +87,31 @@ var _ = Describe("Platform API", func() {
 		viper.Set("tools.server.gitRepo.sshKey", "does/not/exist")
 		viper.Set("tools.server.kubernetes.externalClusterHost", "external-host")
 		viper.Set("tools.server.secret", "johnc")
+
+		logger, _ = logrusTest.NewNullLogger()
+		k8sPlatformRepoMock = new(mockK8s.K8sPlatformRepo)
+		k8sPlatformRepoMock.On("GetSecret", mock.Anything, "12321", "acr").Return(&corev1.Secret{}, nil)
+		k8sPlatformRepoMock.On("CanModifyApplicationWithResponse", mock.Anything, "123", "12321", "666").Return(true)
+		gitRepo = new(mockStorage.Repo)
+		gitRepo.On("GetTerraformTenant", mock.Anything).Return(platform.TerraformCustomer{ContainerRegistryName: "test1"}, nil)
+
+		containerRegistryRepo = new(mockCR.ContainerRegistryRepo)
+		k8sClient := fake.NewSimpleClientset()
+		k8sRepoV2 := k8s.NewRepo(k8sClient, logger)
+		k8sConfig := &rest.Config{}
+		srv := NewServer(
+			logger, gitRepo, k8sClient, k8sPlatformRepoMock, k8sRepoV2, k8sConfig, containerRegistryRepo)
+		server = httptest.NewServer(srv.Handler)
 	})
 
-	Describe("When fetch images from Container Registry", func() {
-		var path string
-		var server *httptest.Server
-		BeforeEach(func() {
-			containerRegistryRepo := &mocks.ContainerRegistryMock{}
-			containerRegistryRepo.StubAndReturnImages([]string{"helloworld"})
+	AfterEach(func() {
+		server.Close()
+	})
 
-			server = setup(containerRegistryRepo)
+	When("fetch images from Container Registry", func() {
+		BeforeEach(func() {
+			containerRegistryRepo.On("GetImages", mock.Anything).Return([]string{"helloworld"}, nil)
 			path = fmt.Sprintf("%s/application/12321/containerregistry/images", server.URL)
-		})
-		AfterEach(func() {
-			server.Close()
 		})
 
 		It("should return 403 Forbidden when x-shared-secret header is not set", func() {
@@ -147,18 +161,11 @@ var _ = Describe("Platform API", func() {
 
 	})
 
-	Describe("When fetch tags for the images", func() {
-		var path string
-		var server *httptest.Server
+	When("fetch tags for the images", func() {
 		BeforeEach(func() {
-			containerRegistryRepo := &mocks.ContainerRegistryMock{}
-			containerRegistryRepo.StubAndReturnTags(([]string{"latest", "v1"}))
+			containerRegistryRepo.On("GetTags", mock.Anything, "helloworld").Return(([]string{"latest", "v1"}), nil)
 
-			server = setup(containerRegistryRepo)
 			path = fmt.Sprintf("%s/application/12321/containerregistry/tags/helloworld", server.URL)
-		})
-		AfterEach(func() {
-			server.Close()
 		})
 
 		It("should return the tags", func() {
@@ -172,25 +179,18 @@ var _ = Describe("Platform API", func() {
 		})
 	})
 
-	Describe("When fetch tags v2 for the images", func() {
-		var path string
-		now := time.Now()
-		var server *httptest.Server
+	When("fetch tags v2 for the images", func() {
 		BeforeEach(func() {
-			containerRegistryRepo := &mocks.ContainerRegistryMock{}
-			containerRegistryRepo.StubAndReturnImageTags([]containerregistry.ImageTag{{
+			now = time.Now()
+			containerRegistryRepo.On("GetImageTags", mock.Anything, "helloworld").Return([]containerregistry.ImageTag{{
 				Name:           "label1",
 				Digest:         "sha256:...",
 				CreatedTime:    now,
 				LastUpdateTime: now,
 				Signed:         false,
-			}})
+			}}, nil)
 
-			server = setup(containerRegistryRepo)
 			path = fmt.Sprintf("%s/application/12321/containerregistry/image-tags/helloworld", server.URL)
-		})
-		AfterEach(func() {
-			server.Close()
 		})
 
 		It("should return the tags with last modified date", func() {

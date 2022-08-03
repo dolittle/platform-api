@@ -79,6 +79,8 @@ func (repo azureRepo) GetTags(credentials ContainerRegistryCredentials, image st
 	return *result.Tags, nil
 }
 
+// GetImageTags gets a list of tags for an image with name imageName by using the GetAcrTags api.
+// This can be used instead of GetTags, if metadata (e.g. creation date) about tags is needed.
 func (repo azureRepo) GetImageTags(credentials ContainerRegistryCredentials, imageName string) ([]ImageTag, error) {
 	ctx := context.Background()
 
